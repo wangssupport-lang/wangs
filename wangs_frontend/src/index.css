@@ -4,28 +4,39 @@
 
 @layer base {
   body {
-    background-color: #fdfbf7;
-    color: #1c1917;
+    background-color: #FAF7F2;
+    color: #1C1917;
     font-family: 'Inter', sans-serif;
+    letter-spacing: -0.01em;
   }
 
-  h1, h2, h3, h4, .font-display {
+  h1, h2, h3, h4 {
     font-family: 'Playfair Display', Georgia, serif;
+    letter-spacing: -0.02em;
+  }
+
+  .font-display {
+    font-family: 'Cormorant Garamond', Georgia, serif;
   }
 }
 
-/* Custom scrollbars and styling */
+/* Custom refined scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
-  background: #f5eee1;
+  background: #F4F7F5;
 }
 ::-webkit-scrollbar-thumb {
-  background: #71a38e;
-  border-radius: 4px;
+  background: #A4C2B2;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3c6b59;
+  background: #568471;
+}
+
+/* Smooth transitions */
+.transition-luxury {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
