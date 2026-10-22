@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, ShieldCheck, Info } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck, ShieldCheck, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 
 export default function CartDrawer() {
@@ -14,92 +14,130 @@ export default function CartDrawer() {
     items_subtotal: '0.00',
     customer_platform_fee: '5.00',
     delivery_fee: '50.00',
+    discount_amount: '0.00',
     total_amount: '0.00',
   };
+
+  const subtotal = parseFloat(summary.items_subtotal) || 0;
+  const freeThreshold = 999;
+  const progressPercent = Math.min(100, Math.round((subtotal / freeThreshold) * 100));
+  const remainingForFree = Math.max(0, freeThreshold - subtotal);
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-stone-950/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-stone-950/60 backdrop-blur-sm transition-opacity duration-300"
         onClick={() => setIsDrawerOpen(false)}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col">
-          {/* Header */}
-          <div className="px-6 py-5 bg-cream-50 border-b border-stone-200/80 flex items-center justify-between">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-8">
+        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col border-l border-stone-200">
+          {/* Drawer Header */}
+          <div className="px-6 py-5 bg-gradient-to-b from-cream-100 to-white border-b border-stone-200 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-forest-900 text-cream-50 flex items-center justify-center font-bold text-xs">
-                {itemsCount}
+              <div className="w-9 h-9 rounded-xl bg-forest-900 text-cream-100 flex items-center justify-center shadow-sm">
+                <ShoppingBag size={18} />
               </div>
-              <h2 className="font-serif font-bold text-xl text-stone-900">Your Basket</h2>
+              <div>
+                <h2 className="font-serif font-bold text-lg text-stone-950 leading-none">
+                  Your Artisan Basket
+                </h2>
+                <span className="text-[11px] text-stone-500 font-medium">
+                  {itemsCount} {itemsCount === 1 ? 'jar' : 'jars'} selected
+                </span>
+              </div>
             </div>
             <button
               onClick={() => setIsDrawerOpen(false)}
               className="p-1.5 rounded-full text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors"
             >
-              <X size={18} />
+              <X size={20} />
             </button>
           </div>
+
+          {/* Free Shipping Progress Indicator */}
+          {items.length > 0 && (
+            <div className="px-6 py-3 bg-forest-50/80 border-b border-forest-100/80 text-xs">
+              <div className="flex items-center justify-between mb-1.5 text-forest-950 font-semibold text-[11px]">
+                <span className="flex items-center gap-1.5">
+                  <Truck size={14} className="text-forest-700" />
+                  {remainingForFree === 0 ? (
+                    <span className="text-emerald-800 font-bold">🎉 Congratulations! You have unlocked Free Pan-India Delivery</span>
+                  ) : (
+                    <span>Add <strong>₹{remainingForFree.toFixed(0)}</strong> more for Free Delivery</span>
+                  )}
+                </span>
+                <span className="font-mono text-forest-800">{progressPercent}%</span>
+              </div>
+              <div className="w-full bg-forest-200/60 h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-forest-600 to-emerald-600 h-full rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Items List */}
           <div className="flex-1 overflow-y-auto px-6 py-4 divide-y divide-stone-100">
             {items.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                <div className="w-16 h-16 rounded-2xl bg-cream-100 flex items-center justify-center mb-4 text-forest-900">
-                  <ShoppingBag size={28} />
+              <div className="h-full flex flex-col items-center justify-center text-center py-12 space-y-4">
+                <div className="w-20 h-20 rounded-full bg-cream-100 flex items-center justify-center text-forest-800/40">
+                  <ShoppingBag size={36} />
                 </div>
-                <h3 className="font-serif font-bold text-lg text-stone-900">Your basket is empty</h3>
-                <p className="text-xs text-stone-500 mt-1 max-w-xs leading-relaxed">
-                  Discover authentic Naga smoked pork, fiery King Chilli, and wild bamboo shoot pickles.
-                </p>
+                <div className="space-y-1">
+                  <h3 className="font-serif font-bold text-xl text-stone-900">Your basket is empty</h3>
+                  <p className="text-xs text-stone-500 max-w-xs mx-auto leading-relaxed">
+                    Explore firewood-smoked pork, fiery King Chilli, and wild bamboo shoot pickles cured in Kohima.
+                  </p>
+                </div>
                 <button
                   onClick={() => {
                     setIsDrawerOpen(false);
                     navigate('/products');
                   }}
-                  className="mt-6 px-6 py-3 bg-forest-900 hover:bg-forest-950 text-cream-50 text-xs font-bold rounded-xl shadow-sm transition-colors"
+                  className="px-6 py-3 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-md transition-all"
                 >
-                  Explore Authentic Batches
+                  Explore Authentic Pickles
                 </button>
               </div>
             ) : (
               items.map((item) => (
-                <div key={item.id} className="py-4 flex gap-4">
+                <div key={item.id} className="py-4 flex gap-4 items-center">
                   <img
                     src={item.product.primary_image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80'}
                     alt={item.product.title}
-                    className="w-18 h-18 object-cover rounded-xl border border-stone-200/80 flex-shrink-0"
+                    className="w-18 h-18 object-cover rounded-xl border border-stone-200 flex-shrink-0 shadow-sm"
                   />
                   <div className="flex-1 min-w-0">
                     <Link
                       to={`/product/${item.product.slug}`}
                       onClick={() => setIsDrawerOpen(false)}
-                      className="font-serif font-bold text-sm text-stone-900 hover:text-forest-800 line-clamp-1"
+                      className="font-serif font-bold text-sm text-stone-900 hover:text-forest-800 line-clamp-1 leading-snug"
                     >
                       {item.product.title}
                     </Link>
                     <p className="text-[11px] text-stone-500 mt-0.5">
                       {item.product.weight_grams}g · {item.product.manufacturer?.business_name}
                     </p>
-                    <p className="text-sm font-bold text-stone-900 mt-1">
+                    <p className="text-sm font-bold text-stone-950 mt-1 font-serif">
                       ₹{parseFloat(item.product.price).toFixed(0)}
                     </p>
 
                     {/* Quantity Controls */}
-                    <div className="flex items-center justify-between mt-2.5">
-                      <div className="flex items-center border border-stone-200 rounded-lg bg-stone-50 shadow-subtle">
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex items-center border border-stone-200 rounded-lg bg-stone-50 overflow-hidden shadow-inner">
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
-                          className="px-2 py-1 hover:bg-stone-200 text-stone-600 rounded-l"
+                          className="px-2 py-1 hover:bg-stone-200 text-stone-600 transition-colors"
                         >
                           <Minus size={12} />
                         </button>
-                        <span className="px-2.5 text-xs font-bold text-stone-900">{item.quantity}</span>
+                        <span className="px-2.5 text-xs font-bold text-stone-900 font-mono">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
-                          className="px-2 py-1 hover:bg-stone-200 text-stone-600 rounded-r"
+                          className="px-2 py-1 hover:bg-stone-200 text-stone-600 transition-colors"
                         >
                           <Plus size={12} />
                         </button>
@@ -119,23 +157,18 @@ export default function CartDrawer() {
             )}
           </div>
 
-          {/* Footer Summary with Section 6 Rules */}
+          {/* Drawer Footer with Financial Rule Breakdown */}
           {items.length > 0 && (
-            <div className="p-6 bg-cream-50 border-t border-stone-200/80 flex flex-col gap-3.5">
+            <div className="p-6 bg-cream-50 border-t border-stone-200 space-y-3">
               <div className="space-y-2 text-xs text-stone-700">
                 <div className="flex justify-between">
                   <span>Items Subtotal</span>
                   <span className="font-semibold text-stone-900">₹{parseFloat(summary.items_subtotal).toFixed(2)}</span>
                 </div>
-
-                <div className="flex justify-between items-center">
-                  <span className="flex items-center gap-1">
-                    Customer Platform Fee
-                    <span className="text-[10px] text-stone-400 font-mono">(₹5.00)</span>
-                  </span>
+                <div className="flex justify-between">
+                  <span>Customer Platform Fee</span>
                   <span className="font-semibold text-stone-900">₹{parseFloat(summary.customer_platform_fee).toFixed(2)}</span>
                 </div>
-
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
                   <span className="font-semibold text-stone-900">
@@ -146,34 +179,33 @@ export default function CartDrawer() {
                     )}
                   </span>
                 </div>
-
-                <div className="border-t border-stone-200/80 pt-2.5 flex justify-between items-baseline text-sm font-bold text-stone-950">
-                  <span>Total Amount Payable</span>
-                  <span className="text-xl font-serif text-forest-900">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                <div className="border-t border-stone-200 pt-2.5 flex justify-between items-baseline text-sm font-bold text-stone-950">
+                  <span>Total Payable</span>
+                  <span className="text-xl font-serif text-forest-950">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
                 </div>
               </div>
 
-              <div className="flex gap-2.5 mt-1">
+              <div className="flex gap-2.5 pt-1">
                 <Link
                   to="/cart"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-1 py-3 text-center text-xs font-bold text-forest-900 bg-white border border-stone-300 rounded-xl hover:bg-stone-50 transition-colors shadow-subtle"
+                  className="flex-1 py-3 text-center text-xs font-bold text-forest-900 bg-white border border-forest-900/30 rounded-xl hover:bg-forest-50 transition-colors shadow-sm"
                 >
                   View Full Cart
                 </Link>
                 <Link
                   to="/checkout"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-[2] py-3 flex items-center justify-center gap-2 text-xs font-bold text-cream-50 bg-forest-900 hover:bg-forest-950 rounded-xl shadow-md transition-colors"
+                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-forest-900 hover:bg-forest-950 rounded-xl shadow-md hover:shadow-lg transition-all"
                 >
-                  <span>Checkout</span>
-                  <ArrowRight size={14} />
+                  <span>Proceed to Checkout</span>
+                  <ArrowRight size={15} />
                 </Link>
               </div>
 
               <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1">
-                <ShieldCheck size={12} className="text-emerald-600" />
-                <span>Reinforced glass packaging & tamper-evident safety seal</span>
+                <ShieldCheck size={13} className="text-emerald-600" />
+                <span>256-bit Encrypted Escrow · Authentic Naga Producers</span>
               </p>
             </div>
           )}
