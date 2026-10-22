@@ -6,11 +6,13 @@ import {
   FileText, ArrowRight, RefreshCw, Star
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function AdminDashboardPage() {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState('metrics'); // 'metrics', 'manufacturers', 'products', 'orders', 'commission', 'settlements', 'logs'
   const [metrics, setMetrics] = useState(null);
@@ -79,10 +81,10 @@ export default function AdminDashboardPage() {
   const handleApproveManufacturer = async (id, status) => {
     try {
       await api.updateManufacturerStatus(id, status, `Reviewed and ${status.toLowerCase()} by admin`);
-      alert(`Manufacturer ${status.toLowerCase()} successfully!`);
+      toast.success(`Manufacturer ${status.toLowerCase()} successfully`);
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 
@@ -91,62 +93,65 @@ export default function AdminDashboardPage() {
     if (rate === null) return;
     try {
       await api.setCommissionOverride(id, rate);
-      alert('Commission rate override saved.');
+      toast.success('Commission rate override saved');
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Failed to update commission override');
+      toast.error(err.message || 'Failed to update commission override');
     }
   };
 
   const handleUpdateProductStatus = async (id, status) => {
     try {
       await api.updateProductStatus(id, status);
+      toast.success(`Product status set to ${status}`);
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 
   const handleToggleFeatured = async (id) => {
     try {
       await api.toggleFeaturedProduct(id);
+      toast.success('Product featured status updated');
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 
   const handleUpdateOrderStatus = async (id, newStatus) => {
     try {
       await api.updateOrderStatus(id, newStatus, 'Status updated via admin console');
+      toast.success(`Order status updated to ${newStatus}`);
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Action failed');
+      toast.error(err.message || 'Action failed');
     }
   };
 
   const handleUpdateCommission = async (e) => {
     e.preventDefault();
     if (!commForm.reason.trim()) {
-      alert('A reason is strictly required to log changes to commission settings.');
+      toast.error('A reason is strictly required to log changes to commission settings.');
       return;
     }
     try {
       await api.updateCommissionSettings(commForm);
-      alert('Commission settings updated and logged in audit history!');
+      toast.success('Commission settings updated and logged in audit history');
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Update failed');
+      toast.error(err.message || 'Update failed');
     }
   };
 
   const handleGenerateSettlement = async (mfgId) => {
     try {
       await api.generateSettlement(mfgId, 'Admin batch settlement calculation.');
-      alert('Settlement batch generated.');
+      toast.success('Settlement batch generated');
       loadAdminData();
     } catch (err) {
-      alert(err.message || 'Settlement generation failed');
+      toast.error(err.message || 'Settlement generation failed');
     }
   };
 

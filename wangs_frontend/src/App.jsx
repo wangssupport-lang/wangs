@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
 
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -28,7 +29,8 @@ export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <BrowserRouter>
+        <ToastProvider>
+          <BrowserRouter>
           <div className="min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white">
             <Navbar />
             <CartDrawer />
@@ -64,6 +66,7 @@ export default function App() {
             <Footer />
           </div>
         </BrowserRouter>
+        </ToastProvider>
       </CartProvider>
     </AuthProvider>
   );

@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { User, Package, MapPin, Clock, CheckCircle, Plus, AlertCircle, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function CustomerAccountPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'addresses', 'profile'
   const [orders, setOrders] = useState([]);
@@ -55,6 +57,7 @@ export default function CustomerAccountPage() {
       const created = await api.createAddress(newAddr);
       setAddresses([...addresses, created]);
       setShowAddressModal(false);
+      toast.success('Address saved successfully');
       setNewAddr({
         full_name: '',
         phone: '',
@@ -66,7 +69,7 @@ export default function CustomerAccountPage() {
         is_default: false,
       });
     } catch (err) {
-      alert(err.message || 'Failed to add address');
+      toast.error(err.message || 'Failed to add address');
     }
   };
 

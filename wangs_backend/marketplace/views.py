@@ -190,9 +190,15 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def check_pincode_serviceability(request):
-    pincode = request.query_params.get('pincode', '').strip()
-    if not pincode or len(pincode) != 6 or not pincode.isdigit():
-        return Response({'valid': False, 'message': 'Please enter a valid 6-digit Indian PIN code.'}, status=400)
+    raw_pincode = request.query_params.get('pincode', '')
+    pincode = ''.join(c for c in str(raw_pincode) if c.isdigit())
+    if len(pincode) != 6:
+        return Response({
+            'valid': False,
+            'pincode': pincode,
+            'serviceable': False,
+            'message': 'Please enter a valid 6-digit PIN code.'
+        }, status=200)
 
     state = "Nagaland" if pincode.startswith('797') or pincode.startswith('798') else "All India"
     est_days = "2-3 business days" if state == "Nagaland" else "4-6 business days"
@@ -203,7 +209,7 @@ def check_pincode_serviceability(request):
         'region': state,
         'estimated_delivery': est_days,
         'message': f'Standard delivery available to {pincode} ({est_days}).'
-    })
+    }, status=200)
 
 
 # -------------------------------------------------------------

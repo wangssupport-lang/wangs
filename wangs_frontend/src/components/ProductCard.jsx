@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingBag, CheckCircle, ShieldCheck, Plus, Minus, Flame, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 import SpiceMeter from './SpiceMeter';
 
 export default function ProductCard({ product }) {
   const { cart, addToCart, updateQuantity } = useCart();
+  const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
 
@@ -21,9 +23,10 @@ export default function ProductCard({ product }) {
     try {
       await addToCart(product.id, 1);
       setAdded(true);
+      toast.success(`Added ${product.title} to basket`);
       setTimeout(() => setAdded(false), 1200);
     } catch (err) {
-      alert(err.message || 'Could not add to cart');
+      toast.error(err.message || 'Could not add to cart');
     } finally {
       setAdding(false);
     }

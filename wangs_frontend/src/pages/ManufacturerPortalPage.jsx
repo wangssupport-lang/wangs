@@ -5,11 +5,13 @@ import {
   Plus, Edit, Eye, Filter, RefreshCw, Truck, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function ManufacturerPortalPage() {
   const { user, isManufacturer } = useAuth();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'products', 'orders', 'financials'
   const [profile, setProfile] = useState(null);
@@ -76,20 +78,21 @@ export default function ManufacturerPortalPage() {
     e.preventDefault();
     try {
       await api.createManufacturerProduct(newProd);
-      alert('Product created and submitted for Admin approval!');
+      toast.success('Product submitted for Admin approval');
       setShowAddProductModal(false);
       loadData();
     } catch (err) {
-      alert(err.message || 'Failed to submit product');
+      toast.error(err.message || 'Failed to submit product');
     }
   };
 
   const handleUpdateFulfillment = async (orderItemId, newStatus) => {
     try {
       await api.updateFulfillmentStatus(orderItemId, newStatus);
+      toast.success(`Fulfillment status updated to ${newStatus}`);
       loadData();
     } catch (err) {
-      alert(err.message || 'Failed to update fulfillment status');
+      toast.error(err.message || 'Failed to update fulfillment status');
     }
   };
 
