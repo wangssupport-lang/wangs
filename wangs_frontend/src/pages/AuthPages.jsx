@@ -55,8 +55,8 @@ export default function AuthPage() {
   const quickFill = (userType) => {
     if (userType === 'admin') {
       setFormData({ ...formData, username: 'admin', password: 'admin12345' });
-    } else if (userType === 'aunt') {
-      setFormData({ ...formData, username: 'aunt_arenla', password: 'aunt12345' });
+    } else if (userType === 'arenla') {
+      setFormData({ ...formData, username: 'arenla_kitchen', password: 'arenla12345' });
     } else if (userType === 'customer') {
       setFormData({ ...formData, username: 'customer', password: 'customer12345' });
     }
@@ -208,10 +208,10 @@ export default function AuthPage() {
             </button>
             <button
               type="button"
-              onClick={() => quickFill('aunt')}
+              onClick={() => quickFill('arenla')}
               className="px-2 py-1 bg-cream-100 hover:bg-cream-200 text-forest-900 rounded font-medium truncate"
             >
-              Aunt Arenla
+              Arenla Kitchen
             </button>
             <button
               type="button"

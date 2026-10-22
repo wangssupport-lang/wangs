@@ -8,7 +8,7 @@ from marketplace.models import (
 )
 
 class Command(BaseCommand):
-    help = "Seeds initial authentic Naga pickle categories, products, aunt's business, and test users."
+    help = "Seeds initial authentic Naga pickle categories, products, heritage business, and test users."
 
     def handle(self, *args, **options):
         self.stdout.write("Seeding Wangs marketplace data...")
@@ -62,11 +62,11 @@ class Command(BaseCommand):
             admin_user.set_password('admin12345')
             admin_user.save()
 
-        # Aunt Arenla (Primary founding manufacturer)
-        aunt_user, created = User.objects.get_or_create(
-            username='aunt_arenla',
+        # Arenla Heritage Kitchen (Primary founding manufacturer)
+        arenla_user, created = User.objects.get_or_create(
+            username='arenla_kitchen',
             defaults={
-                'email': 'aunt.arenla@wangs.in',
+                'email': 'arenla@wangs.in',
                 'first_name': 'Arenla',
                 'last_name': 'Ao',
                 'role': User.Role.MANUFACTURER,
@@ -74,21 +74,21 @@ class Command(BaseCommand):
             }
         )
         if created:
-            aunt_user.set_password('aunt12345')
-            aunt_user.save()
+            arenla_user.set_password('arenla12345')
+            arenla_user.save()
 
-        aunt_profile, _ = ManufacturerProfile.objects.get_or_create(
-            user=aunt_user,
+        arenla_profile, _ = ManufacturerProfile.objects.get_or_create(
+            user=arenla_user,
             defaults={
-                'business_name': "Aunt Arenla's Kitchen",
-                'slug': 'aunt-arenlas-kitchen',
+                'business_name': "Arenla's Heritage Kitchen",
+                'slug': 'arenlas-heritage-kitchen',
                 'brand_story': (
-                    "Born in the misty hills of Kohima, Aunt Arenla has been curing meats and crafting "
+                    "Born in the misty hills of Kohima, Arenla's Heritage Kitchen has been curing meats and crafting "
                     "authentic Naga pickles for over 35 years using traditional firewood smoking, "
                     "sun-dried King Chillies (Raja Mircha), and time-honored family fermentations."
                 ),
                 'location_district': 'Kohima, Nagaland',
-                'contact_email': 'aunt.arenla@wangs.in',
+                'contact_email': 'arenla@wangs.in',
                 'contact_phone': '+91 94360 12345',
                 'business_address': 'Sector 4, Ministers Hill, Kohima, Nagaland - 797001',
                 'postal_code': '797001',
@@ -244,11 +244,11 @@ class Command(BaseCommand):
         # 5. Products
         products_data = [
             {
-                'manufacturer': aunt_profile,
+                'manufacturer': arenla_profile,
                 'category': cat_objs['pork-pickle'],
-                'title': "Aunt Arenla's Signature Smoked Pork & King Chilli Pickle",
-                'slug': 'aunt-arenla-smoked-pork-king-chilli-pickle',
-                'short_description': "Aunt's legendary firewood-smoked Naga pork cubes cured with sun-ripened King Chilli and mustard oil.",
+                'title': "Arenla's Signature Smoked Pork & King Chilli Pickle",
+                'slug': 'arenla-signature-smoked-pork-king-chilli-pickle',
+                'short_description': "Legendary firewood-smoked Naga pork cubes cured with sun-ripened King Chilli and mustard oil.",
                 'description': (
                     "Our flagship product: chunks of indigenous Nagaland pork traditionally smoked over aged oak firewood "
                     "for 72 hours, then hand-cut and simmered in cold-pressed mustard oil with ground Raja Mircha (King Chilli) "
@@ -270,13 +270,13 @@ class Command(BaseCommand):
                 'primary_image_url': 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80',
             },
             {
-                'manufacturer': aunt_profile,
+                'manufacturer': arenla_profile,
                 'category': cat_objs['pork-pickle'],
                 'title': "Smoked Pork & Axone (Fermented Soybean) Pickle",
                 'slug': 'smoked-pork-axone-fermented-soybean-pickle',
                 'short_description': "Tender smoked pork infused with the deep umami of traditional Naga fermented soybean cakes.",
                 'description': (
-                    "Axone (fermented soybean) is the soul of Naga cuisine. Combined with auntie's cured smoked pork "
+                    "Axone (fermented soybean) is the soul of Naga cuisine. Combined with cured smoked pork "
                     "and roasted local chillies, this pickle delivers an earthy, pungent umami profile that pairs magically "
                     "with steamed warm rice."
                 ),
@@ -296,7 +296,7 @@ class Command(BaseCommand):
                 'primary_image_url': 'https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=800&q=80',
             },
             {
-                'manufacturer': aunt_profile,
+                'manufacturer': arenla_profile,
                 'category': cat_objs['chilli-pickle'],
                 'title': "Pure Raja Mircha (Naga King Chilli) Pickle",
                 'slug': 'pure-raja-mircha-naga-king-chilli-pickle',
@@ -371,14 +371,14 @@ class Command(BaseCommand):
                 'primary_image_url': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
             },
             {
-                'manufacturer': aunt_profile,
+                'manufacturer': arenla_profile,
                 'category': cat_objs['fruit-pickle'],
                 'title': "Wild Naga Apple & King Chilli Sweet-Spicy Pickle",
                 'slug': 'wild-naga-apple-king-chilli-pickle',
                 'short_description': "Tart organic wild apples from Kohima orchards spiced with sweet jaggery and a hint of King Chilli.",
                 'description': (
                     "Wild Naga apples (Docynia indica) are known for their firm bite and unique sour sweetness. "
-                    "Auntie simmers them with organic jaggery, roasted cumin, and just enough King Chilli to create "
+                    "Simmered with organic jaggery, roasted cumin, and just enough King Chilli to create "
                     "a mouth-watering sweet and spicy chutney-pickle hybrid."
                 ),
                 'price': Decimal('230.00'),
@@ -397,7 +397,7 @@ class Command(BaseCommand):
                 'primary_image_url': 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=800&q=80',
             },
             {
-                'manufacturer': aunt_profile,
+                'manufacturer': arenla_profile,
                 'category': cat_objs['vegetarian-pickles'],
                 'title': "Roasted Garlic & Crushed Axone Paste Pickle",
                 'slug': 'roasted-garlic-crushed-axone-paste-pickle',

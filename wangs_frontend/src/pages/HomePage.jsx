@@ -58,7 +58,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-base sm:text-lg text-cream-200/90 leading-relaxed max-w-2xl font-normal">
-                Born in my aunt’s kitchen in Kohima and crafted by verified regional food artisans.
+                Born in traditional heritage kitchens in Kohima and crafted by verified regional food artisans.
                 Experience slow-cured Naga smoked pork, fiery Raja Mircha (King Chilli), and fragrant wild bamboo shoot pickles delivered fresh across India.
               </p>
 
@@ -75,7 +75,7 @@ export default function HomePage() {
                   to="/about"
                   className="px-6 py-3.5 bg-forest-900/80 hover:bg-forest-800 text-cream-100 font-semibold text-sm rounded-xl border border-forest-700 transition-colors"
                 >
-                  Our Aunt’s Story
+                  Our Heritage Story
                 </Link>
               </div>
 
@@ -101,7 +101,7 @@ export default function HomePage() {
               <div className="relative mx-auto max-w-md rounded-2xl overflow-hidden shadow-2xl border-4 border-forest-800/60 bg-forest-900">
                 <img
                   src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80"
-                  alt="Aunt Arenla's Signature Smoked Pork"
+                  alt="Arenla's Signature Smoked Pork"
                   className="w-full h-96 object-cover object-center"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-forest-950/90 via-transparent to-transparent flex flex-col justify-end p-6">
@@ -109,7 +109,7 @@ export default function HomePage() {
                     Featured Heritage Batch
                   </span>
                   <h3 className="font-serif font-bold text-xl text-white">
-                    Aunt Arenla's Smoked Pork & King Chilli
+                    Arenla's Smoked Pork & King Chilli
                   </h3>
                   <p className="text-xs text-cream-200 mt-1">
                     Slowly smoked for 72 hours over aged oak wood in Kohima.
@@ -117,7 +117,7 @@ export default function HomePage() {
                   <div className="mt-3 flex items-center justify-between">
                     <span className="text-lg font-bold text-white">₹380 <span className="text-xs text-cream-300 font-normal">/ 250g</span></span>
                     <Link
-                      to="/product/aunt-arenla-smoked-pork-king-chilli-pickle"
+                      to="/product/arenla-signature-smoked-pork-king-chilli-pickle"
                       className="px-3.5 py-1.5 bg-cream-50 text-forest-950 font-bold text-xs rounded-lg hover:bg-white transition-colors"
                     >
                       Taste Now
@@ -205,7 +205,7 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* Brand Story Banner — Aunt Arenla's Kitchen */}
+      {/* Brand Story Banner — Heritage Kitchen */}
       <section className="bg-cream-100 border-y border-stone-200/80 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
@@ -214,24 +214,24 @@ export default function HomePage() {
                 The Origin Story
               </span>
               <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
-                "It started with my aunt curing smoked pork over oak firewood in Kohima."
+                "It started with authentic curing of smoked pork over oak firewood in Kohima."
               </h2>
               <p className="text-sm text-stone-600 leading-relaxed">
-                For over three decades, relatives and travelers would visit Kohima just to take back jars of Aunt Arenla’s
+                For over three decades, relatives and travelers would visit Kohima just to take back jars of Arenla’s
                 famous smoked pork and fiery King Chilli pickles. Every jar was crafted by hand: local meats slow-smoked
                 above the home hearth, seasoned with fermented soybeans (Axone), and infused in virgin cold-pressed mustard oil.
               </p>
               <p className="text-sm text-stone-600 leading-relaxed">
                 We founded <strong>Wangs (wangs.in)</strong> to preserve and celebrate this endangered culinary craft.
-                Today, Wangs not only brings my aunt’s recipes to every corner of India, but also provides a compliant,
-                transparent marketplace for other verified Nagaland pickle artisans to share their generational craft.
+                Today, Wangs brings these time-honored recipes to every corner of India, while providing a compliant,
+                transparent marketplace for verified Nagaland pickle artisans to share their generational craft.
               </p>
               <div className="pt-2 flex items-center gap-6">
                 <Link
                   to="/products?category=pork-pickle"
                   className="px-5 py-2.5 bg-forest-800 hover:bg-forest-900 text-white font-semibold text-xs rounded-lg transition-colors"
                 >
-                  Taste Aunt Arenla's Pickles
+                  Taste Heritage Pickles
                 </Link>
                 <div className="text-xs text-stone-500">
                   <span className="font-semibold text-stone-800 block">Kohima, Nagaland</span>
@@ -370,7 +370,7 @@ export default function HomePage() {
                 ))}
               </div>
               <p className="text-sm text-stone-700 italic leading-relaxed">
-                "Having lived in Delhi for 8 years, finding real Naga smoked pork pickle that tastes like home felt impossible. Aunt Arenla’s signature pork pickle is identical to the ones my grandmother used to make in Mokokchung. The oak smoke is phenomenal!"
+                "Having lived in Delhi for 8 years, finding real Naga smoked pork pickle that tastes like home felt impossible. Arenla Heritage signature pork pickle is identical to the ones my family used to make in Mokokchung. The oak smoke is phenomenal!"
               </p>
             </div>
             <div className="mt-6 pt-4 border-t border-stone-100">

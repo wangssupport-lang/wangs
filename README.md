@@ -3,7 +3,7 @@
 
 Wangs is a production-oriented, multi-vendor e-commerce marketplace dedicated to authentic Naga pickles, smoked meats, and regional food products from Nagaland, India.
 
-Born from my aunt’s 35-year family kitchen in Kohima, Wangs features her traditional oak firewood-smoked pork, GI-tagged King Chilli (Raja Mircha / Bhut Jolokia), and fermented bamboo shoot pickles, while serving as a compliant, transparent marketplace for verified artisan manufacturers across Nagaland.
+Born from over 35 years of traditional family culinary craft in Kohima, Wangs features traditional oak firewood-smoked pork, GI-tagged King Chilli (Raja Mircha / Bhut Jolokia), and fermented bamboo shoot pickles, while serving as a compliant, transparent marketplace for verified artisan manufacturers across Nagaland.
 
 ---
 
@@ -160,7 +160,7 @@ The database comes pre-populated with authentic test accounts:
 | Role | Username | Password | Email | Purpose |
 |---|---|---|---|---|
 | **Administrator** | `admin` | `admin12345` | `admin@wangs.in` | Platform metrics, commission settings, seller review |
-| **Aunt Arenla (Manufacturer)** | `aunt_arenla` | `aunt12345` | `aunt.arenla@wangs.in` | Foundational seller: Smoked Pork & King Chilli |
+| **Arenla Heritage (Manufacturer)** | `arenla_kitchen` | `arenla12345` | `arenla@wangs.in` | Foundational seller: Smoked Pork & King Chilli |
 | **Dzüko Artisans (Manufacturer)**| `dzuko_artisans` | `dzuko12345`| `contact@dzukocraft.in` | Approved seller: Bamboo shoot & river fish |
 | **Customer** | `customer` | `customer12345`| `customer@wangs.in` | Placing orders, saving addresses, order tracking |
 

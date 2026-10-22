@@ -20,16 +20,17 @@ class WangsFinancialAndOrderTests(TestCase):
             free_delivery_threshold=Decimal('999.00')
         )
 
+        # Setup Arenla Heritage Manufacturer Account
         self.mfg_user = User.objects.create_user(
-            username='aunt_arenla', email='aunt@wangs.in', password='password123',
+            username='arenla_kitchen', email='arenla@wangs.in', password='password123',
             role=User.Role.MANUFACTURER
         )
         self.mfg_profile = ManufacturerProfile.objects.create(
             user=self.mfg_user,
-            business_name="Aunt Arenla's Kitchen",
-            slug='aunt-arenlas-kitchen',
+            business_name="Arenla's Heritage Kitchen",
+            slug='arenlas-heritage-kitchen',
             location_district='Kohima',
-            contact_email='aunt@wangs.in',
+            contact_email='arenla@wangs.in',
             contact_phone='9436012345',
             business_address='Kohima, Nagaland',
             postal_code='797001',

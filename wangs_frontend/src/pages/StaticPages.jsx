@@ -15,9 +15,9 @@ export function AboutPage() {
 
       <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-6 leading-relaxed">
         <div className="bg-cream-100 p-6 rounded-2xl border border-stone-200">
-          <h2 className="font-serif font-bold text-xl text-stone-900 mb-2">The Family Kitchen of Aunt Arenla</h2>
+          <h2 className="font-serif font-bold text-xl text-stone-900 mb-2">The Heritage Kitchens of Nagaland</h2>
           <p>
-            Wangs began with a simple reality: in Nagaland, pickles are not casual condiments, but deeply preserved staples of survival and celebration. For more than 35 years, Aunt Arenla cured smoked pork, fiery King Chilli (Raja Mircha), and pungent fermented soybean (Axone) in her home kitchen atop Ministers Hill in Kohima.
+            Wangs began with a simple reality: in Nagaland, pickles are not casual condiments, but deeply preserved staples of survival and celebration. For more than 35 years, Master Pickler Arenla cured smoked pork, fiery King Chilli (Raja Mircha), and pungent fermented soybean (Axone) in her traditional kitchen atop Ministers Hill in Kohima.
           </p>
           <p className="mt-2">
             Relatives and friends visiting from Dimapur, Guwahati, Shillong, and Delhi would carry away dozens of glass jars packed with her signature firewood-smoked pork pickle. Recognizing that authentic Naga food was either impossible to find outside the state or diluted with artificial preservatives, we built Wangs.
@@ -27,7 +27,7 @@ export function AboutPage() {
         <div>
           <h3 className="font-serif font-bold text-lg text-stone-900 mb-2">From Single Kitchen to Multi-Vendor Platform</h3>
           <p>
-            While launched to share Aunt Arenla's authentic preparations, Wangs is structured as a dedicated regional multi-vendor marketplace. We partner with verified small-batch women entrepreneurs, self-help groups, and micro-enterprises from Kohima, Mokokchung, and Dimapur.
+            While launched to share authentic Kohima culinary preparations, Wangs is structured as a dedicated regional multi-vendor marketplace. We partner with verified small-batch women entrepreneurs, self-help groups, and micro-enterprises from Kohima, Mokokchung, and Dimapur.
           </p>
           <p className="mt-2">
             Every seller must hold a valid FSSAI food business registration, follow strict glass jar hermetic sealing protocols, and adhere to traditional firewood smoking and natural fermentation without synthetic colorants or industrial vinegar.

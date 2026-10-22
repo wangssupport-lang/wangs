@@ -25,7 +25,7 @@ export default function Footer() {
             </Link>
 
             <p className="text-sm text-stone-400 leading-relaxed mb-6 max-w-sm">
-              Rooted in my aunt’s 35-year family kitchen in Kohima, Wangs is India’s dedicated multi-vendor marketplace
+              Rooted in over 35 years of authentic family pickling tradition in Kohima, Wangs is India’s dedicated multi-vendor marketplace
               bringing heritage Naga smoked meats, GI-tagged King Chillies, and natural forest ferments directly to your dining table.
             </p>
 
