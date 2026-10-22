@@ -69,25 +69,24 @@ export default function HomePage() {
                 Firewood-Smoked Meats & Wild Hill Chillies.
               </h1>
 
-              <p className="text-base sm:text-lg text-cream-200/90 leading-relaxed max-w-2xl font-normal">
-                Born in traditional kitchens in Kohima and crafted by verified regional food artisans.
-                Experience slow-cured Naga smoked pork, fiery Raja Mircha (King Chilli), and fragrant wild bamboo shoot pickles delivered fresh across India.
+              <p className="text-sm sm:text-base text-cream-200/80 max-w-xl font-normal leading-relaxed">
+                Handcrafted in Kohima. Slow-cured smoked pork, GI-tagged King Chilli, and wild bamboo shoot pickles.
               </p>
 
-              <div className="flex flex-wrap items-center gap-4 pt-2">
+              <div className="flex flex-wrap items-center gap-3 pt-1">
                 <Link
                   to="/products"
-                  className="px-7 py-4 bg-chilli-700 hover:bg-chilli-800 text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all flex items-center gap-2.5 group hover:scale-102"
+                  className="px-6 py-3.5 bg-chilli-700 hover:bg-chilli-800 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 group"
                 >
-                  <span>Explore Authentic Batches</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  <span>Shop Collection</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </Link>
 
                 <Link
                   to="/about"
-                  className="px-6 py-4 bg-forest-900/90 hover:bg-forest-800 text-cream-100 font-bold text-sm rounded-xl border border-forest-700/80 transition-all shadow-sm"
+                  className="px-5 py-3.5 bg-forest-900/90 hover:bg-forest-800 text-cream-100 font-bold text-xs rounded-xl border border-forest-700/80 transition-all"
                 >
-                  Our Heritage & Tradition
+                  Our Heritage
                 </Link>
               </div>
 
@@ -240,123 +239,89 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. The 4 Pillars of Authentic Naga Pickling */}
+      {/* 4. The 4 Pillars */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Culinary Integrity</span>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-1">
-            Why Authentic Naga Pickles are Different
+        <div className="text-center max-w-xl mx-auto mb-10">
+          <span className="text-xs font-bold tracking-wider uppercase text-forest-700">The Tradition</span>
+          <h2 className="font-serif text-3xl font-bold text-stone-900 mt-1">
+            Artisanal Curing & Fermentation
           </h2>
-          <p className="text-xs sm:text-sm text-stone-500 mt-2">
-            No mass factory acidification. No synthetic coloring. Just traditional highland food preservation.
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-artisan space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold">
-              🪵
-            </div>
-            <h3 className="font-serif font-bold text-base text-stone-900">72-Hour Firewood Smoke</h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Meats are seasoned and hung above traditional wood hearths in Kohima, absorbing deep campfire aromatics before bottling.
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
+            <span className="text-2xl">🪵</span>
+            <h3 className="font-serif font-bold text-sm text-stone-900">72h Oak Smoke</h3>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Cured over aged hill oak hearths in Kohima.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-artisan space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-red-50 text-chilli-700 flex items-center justify-center font-bold">
-              🌶️
-            </div>
-            <h3 className="font-serif font-bold text-base text-stone-900">GI-Tagged Raja Mircha</h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Genuine King Chilli (Bhut Jolokia) cultivated in Nagaland volcanic hill soils, providing clean heat and floral citrus finish.
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
+            <span className="text-2xl">🌶️</span>
+            <h3 className="font-serif font-bold text-sm text-stone-900">GI-Tagged Chilli</h3>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Sun-wilted Naga Raja Mircha with citrus floral finish.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-artisan space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">
-              🌿
-            </div>
-            <h3 className="font-serif font-bold text-base text-stone-900">Natural Axone & Bastenga</h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Fermented soybean cakes (Axone) and sour wild bamboo shoot (Bastenga) impart a deep, complex umami profile found nowhere else.
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
+            <span className="text-2xl">🌿</span>
+            <h3 className="font-serif font-bold text-sm text-stone-900">Axone & Bastenga</h3>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Fermented soya and tender wild bamboo shoot umami.
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-artisan space-y-3">
-            <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center font-bold">
-              🫒
-            </div>
-            <h3 className="font-serif font-bold text-base text-stone-900">Pure Mustard Oil Barrier</h3>
-            <p className="text-xs text-stone-600 leading-relaxed">
-              Submerged completely under cold-pressed virgin mustard oil with mountain salt, naturally preserving meat tenderness for 9+ months.
+          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
+            <span className="text-2xl">🫒</span>
+            <h3 className="font-serif font-bold text-sm text-stone-900">Virgin Mustard Oil</h3>
+            <p className="text-xs text-stone-500 leading-relaxed">
+              Natural cold-pressed seal locking in tenderness.
             </p>
           </div>
         </div>
       </section>
 
-      {/* 5. Origin Story Showcase — Arenla's Heritage Kitchen */}
-      <section className="bg-gradient-to-b from-cream-100 to-cream-200/60 border-y border-stone-200 py-16 sm:py-20">
+      {/* 5. Origin Story */}
+      <section className="bg-cream-100 border-y border-stone-200/80 py-14">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            <div className="lg:col-span-6 space-y-5">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-forest-800 text-cream-100 rounded-full text-xs font-bold uppercase tracking-wider">
-                Founding Artisan Kitchen
-              </div>
-              <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
-                "It started with traditional curing of smoked pork over oak firewood in Kohima."
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+            <div className="lg:col-span-6 space-y-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-forest-800">
+                Founding Kitchen
+              </span>
+              <h2 className="font-serif text-3xl font-bold text-stone-900 leading-tight">
+                Crafted in Kohima for over 35 years.
               </h2>
-              <p className="text-sm text-stone-700 leading-relaxed">
-                For over three decades, relatives and travelers would visit Kohima just to take back jars of Arenla’s
-                famous smoked pork and fiery King Chilli pickles. Every jar was crafted by hand: local meats slow-smoked
-                above the home hearth, seasoned with fermented soybeans (Axone), and infused in virgin cold-pressed mustard oil.
+              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
+                Hand-cut pork cured over firewood hearths, seasoned with fermented soybeans (Axone), and infused with King Chilli. Wangs brings these rare regional recipes directly to your table.
               </p>
-              <p className="text-sm text-stone-700 leading-relaxed">
-                We founded <strong>Wangs (wangs.in)</strong> to preserve and celebrate this endangered culinary craft.
-                Today, Wangs brings these time-honored recipes to every corner of India, while providing a compliant,
-                transparent marketplace for verified Nagaland pickle artisans to share their generational craft.
-              </p>
-              <div className="pt-2 flex items-center gap-6">
+              <div className="pt-2 flex items-center gap-5">
                 <Link
                   to="/products?category=pork-pickle"
-                  className="px-6 py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl transition-all shadow-md"
+                  className="px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow transition-colors"
                 >
-                  Taste Heritage Pickles
+                  Taste Pork Pickles
                 </Link>
-                <div className="text-xs text-stone-600 font-medium">
-                  <span className="font-bold text-stone-900 block font-serif">Kohima, Nagaland</span>
+                <div className="text-xs text-stone-500">
+                  <span className="font-bold text-stone-800 block">Kohima, Nagaland</span>
                   <span>FSSAI Lic. #10023064000124</span>
                 </div>
               </div>
             </div>
 
             <div className="lg:col-span-6 grid grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <img
-                  src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80"
-                  alt="Oak Firewood Smoking"
-                  className="rounded-2xl object-cover h-56 w-full shadow-md"
-                />
-                <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
-                  <h4 className="font-serif font-bold text-stone-900 text-sm">Oak Wood Smoking</h4>
-                  <p className="text-xs text-stone-500 mt-1">
-                    Authentic Naga firewood cure giving an unmistakably deep, rustic campfire aroma.
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-4 pt-6">
-                <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-sm">
-                  <h4 className="font-serif font-bold text-stone-900 text-sm">Pure King Chilli</h4>
-                  <p className="text-xs text-stone-500 mt-1">
-                    Authentic GI-certified Raja Mircha with vibrant citrus notes and clean fiery heat.
-                  </p>
-                </div>
-                <img
-                  src="https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=500&q=80"
-                  alt="Naga King Chilli"
-                  className="rounded-2xl object-cover h-56 w-full shadow-md"
-                />
-              </div>
+              <img
+                src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80"
+                alt="Firewood Cure"
+                className="rounded-2xl object-cover h-48 w-full shadow-sm"
+              />
+              <img
+                src="https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=500&q=80"
+                alt="Naga King Chilli"
+                className="rounded-2xl object-cover h-48 w-full shadow-sm"
+              />
             </div>
           </div>
         </div>
@@ -384,57 +349,24 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 7. Multi-Vendor Manufacturer Banner */}
+      {/* 6. Producer Callout */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-cream-50 rounded-3xl p-8 sm:p-14 border border-forest-800 shadow-2xl relative overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-8 space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-forest-800 border border-forest-700 rounded-full text-xs text-amber-300 font-bold">
-                <Store size={14} />
-                <span>Northeast India Producer Collective</span>
-              </div>
-              <h2 className="font-serif text-3xl sm:text-4xl font-bold text-white leading-snug">
-                Are you an authentic food producer in Nagaland?
-              </h2>
-              <p className="text-sm sm:text-base text-cream-200 leading-relaxed max-w-2xl font-normal">
-                Wangs empowers verified regional producers from Kohima, Dimapur, Mokokchung, and across Nagaland.
-                Benefit from pan-India logistics, transparent 10% platform commission, direct automated payouts,
-                and dedicated regulatory compliance support.
-              </p>
-              <div className="pt-3 flex flex-wrap gap-4">
-                <Link
-                  to="/manufacturer/register"
-                  className="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-forest-950 font-bold text-xs rounded-xl shadow-md transition-all hover:scale-102"
-                >
-                  Apply as a Manufacturer
-                </Link>
-                <Link
-                  to="/about"
-                  className="px-6 py-3.5 bg-forest-800 hover:bg-forest-700 text-cream-100 font-bold text-xs rounded-xl border border-forest-700 transition-colors"
-                >
-                  Seller Guidelines & FSSAI Standards
-                </Link>
-              </div>
-            </div>
-
-            <div className="lg:col-span-4 bg-forest-950/90 p-6 rounded-2xl border border-forest-800/80 space-y-3.5 text-xs text-cream-200 backdrop-blur-sm">
-              <h4 className="font-serif font-bold text-sm text-white border-b border-forest-800 pb-2">
-                Why Sell on Wangs?
-              </h4>
-              <div className="flex items-start gap-2.5">
-                <CheckCircle size={16} className="text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Fixed 10% platform commission with zero hidden listing fees</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <CheckCircle size={16} className="text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Real-time seller dashboard with order packing & net payout records</span>
-              </div>
-              <div className="flex items-start gap-2.5">
-                <CheckCircle size={16} className="text-emerald-400 mt-0.5 flex-shrink-0" />
-                <span>Pan-India air-courier dispatch integration</span>
-              </div>
-            </div>
+        <div className="bg-forest-950 text-cream-50 rounded-3xl p-8 sm:p-12 border border-forest-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-2 max-w-xl">
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Producer Collective</span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">
+              Sell your authentic regional pickles on Wangs.
+            </h2>
+            <p className="text-xs sm:text-sm text-cream-300">
+              Transparent 10% platform commission, pan-India logistics, and direct escrow payouts.
+            </p>
           </div>
+          <Link
+            to="/manufacturer/register"
+            className="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-forest-950 font-bold text-xs rounded-xl shadow transition-colors whitespace-nowrap"
+          >
+            Apply as Producer
+          </Link>
         </div>
       </section>
 
