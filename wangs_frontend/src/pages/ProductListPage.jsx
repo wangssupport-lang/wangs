@@ -23,7 +23,7 @@ export default function ProductListPage() {
     async function loadCategories() {
       try {
         const cats = await api.getCategories();
-        setCategories(cats || []);
+        setCategories(cats?.results || cats || []);
       } catch (err) {
         console.error(err);
       }

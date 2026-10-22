@@ -107,6 +107,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.filter(is_active=True).order_by('display_order', 'name')
     serializer_class = CategorySerializer
     permission_classes = [permissions.AllowAny]
+    pagination_class = None
     lookup_field = 'slug'
 
 

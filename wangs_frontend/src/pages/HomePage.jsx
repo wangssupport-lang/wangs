@@ -21,9 +21,9 @@ export default function HomePage() {
           api.getBestsellerProducts(),
           api.getCategories(),
         ]);
-        setFeatured(featData || []);
-        setBestsellers(bestData || []);
-        setCategories(catData || []);
+        setFeatured(featData?.results || featData || []);
+        setBestsellers(bestData?.results || bestData || []);
+        setCategories(catData?.results || catData || []);
       } catch (err) {
         console.error('Failed to load homepage data', err);
       } finally {
