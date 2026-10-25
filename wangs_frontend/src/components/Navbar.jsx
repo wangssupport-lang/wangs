@@ -272,7 +272,7 @@ export default function Navbar() {
             )}
             <button
               type="submit"
-              className="absolute right-1 top-1 px-3 py-1 bg-forest-900 text-white text-[11px] font-bold rounded-lg shadow-2xs active:scale-95 transition-transform"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-[11px] font-bold rounded-lg shadow-2xs active:scale-95 transition-transform"
             >
               Go
             </button>

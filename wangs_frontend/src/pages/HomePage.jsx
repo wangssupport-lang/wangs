@@ -72,46 +72,46 @@ export default function HomePage() {
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
         
         {/* MOBILE HERO (Modern App Banner: Authentic Regional Artisanal Pickles) */}
-        <div className="sm:hidden relative max-w-7xl mx-auto px-3.5 py-3">
+        <div className="sm:hidden relative max-w-7xl mx-auto px-4 py-3.5">
           <div className="grid grid-cols-12 gap-3 items-center">
             {/* Left Content */}
-            <div className="col-span-7 flex flex-col justify-center space-y-2">
+            <div className="col-span-7 flex flex-col justify-center space-y-2.5">
               <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-forest-950/90 border border-amber-400/40 text-amber-300 text-[10px] font-bold w-fit shadow-xs">
                 <Sparkles size={10} className="text-amber-400 flex-shrink-0 animate-pulse" />
                 <span>Artisan Cured</span>
               </div>
 
-              <h1 className="font-serif text-[1.25rem] font-black leading-[1.15] tracking-tight text-white">
-                Authentic Regional Pickles, <br />
+              <h1 className="font-serif text-[1.28rem] font-black leading-[1.2] tracking-tight text-white">
+                Authentic Regional<br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
-                  Delivered Fresh.
+                  Pickles, Delivered Fresh.
                 </span>
               </h1>
 
-              <p className="text-[10px] text-stone-200/90 leading-relaxed line-clamp-2">
-                Slow-cured authentic King Chilli, shredded chicken & traditional bamboo shoot pickles from verified regional brands.
+              <p className="text-[10.5px] text-stone-200/90 leading-normal line-clamp-2">
+                Slow-cured King Chilli, shredded chicken & authentic traditional pickles from verified brands.
               </p>
 
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 <Link
                   to="/products"
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-[11px] rounded-xl shadow-md shadow-amber-500/25 active:scale-95 transition-all whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/25 active:scale-95 transition-all whitespace-nowrap"
                 >
                   <span>Shop Pickles</span>
-                  <ArrowRight size={11} />
+                  <ArrowRight size={12} />
                 </Link>
                 <Link
                   to="/brands"
-                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-stone-200 text-[11px] font-semibold rounded-xl border border-white/20 active:scale-95 transition-all whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-stone-200 text-xs font-semibold rounded-xl border border-white/20 active:scale-95 transition-all whitespace-nowrap"
                 >
-                  <Store size={11} className="text-amber-400" />
+                  <Store size={12} className="text-amber-400" />
                   <span>Brands</span>
                 </Link>
               </div>
             </div>
 
             {/* Right Pickle Packet Image (Clean, no floating badges) */}
-            <div className="col-span-5 relative flex items-center justify-center">
+            <div className="col-span-5 relative flex flex-col items-center justify-center">
               {/* Backglow aura */}
               <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/35 via-red-600/30 to-transparent rounded-full blur-2xl pointer-events-none" />
 
@@ -119,12 +119,14 @@ export default function HomePage() {
                 to="/products?brand=lia-chuka"
                 className="relative w-full flex flex-col items-center justify-center active:scale-95 transition-transform"
               >
-                <div className="relative animate-hero-float">
+                <div className="relative animate-hero-float flex flex-col items-center">
                   <img
                     src="/featured-pouches.png"
                     alt="Authentic Artisanal Pickles"
-                    className="w-full h-auto max-h-[160px] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
+                    className="w-full h-auto max-h-[170px] object-contain drop-shadow-[0_14px_28px_rgba(0,0,0,0.75)]"
                   />
+                  {/* Grounding contact shadow */}
+                  <div className="w-[85%] h-3 bg-black/60 rounded-full blur-md -mt-1 pointer-events-none" />
                 </div>
               </Link>
             </div>
@@ -329,10 +331,10 @@ export default function HomePage() {
       </section>
 
       {/* Main Content Sections */}
-      <div className="space-y-14 sm:space-y-16 mt-10 sm:mt-12 pb-12 sm:pb-16">
+      <div className="space-y-10 sm:space-y-16 mt-6 sm:mt-12 pb-12 sm:pb-16">
         {/* 4. Slow-Cured Artisanal Bestsellers */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-8">
+          <div className="flex items-end justify-between mb-5 sm:mb-8">
             <div>
               <span className="text-xs font-bold tracking-widest uppercase text-forest-800">Slow-Cured Pantry</span>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mt-1">
