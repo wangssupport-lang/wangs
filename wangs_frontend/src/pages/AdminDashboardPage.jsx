@@ -513,28 +513,65 @@ export default function AdminDashboardPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       {/* Top Banner */}
-      <div className="bg-forest-950 text-cream-50 p-6 sm:p-8 rounded-2xl shadow-md border border-forest-900 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Shield className="text-chilli-500" size={24} />
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
-              <span>Wangs Administration Space</span>
-              <span className="text-[10px] font-mono font-bold bg-amber-400 text-stone-950 px-2 py-0.5 rounded-full">
-                /wangadminspace
-              </span>
-            </h1>
+      <div className="bg-forest-950 text-cream-50 p-6 sm:p-8 rounded-2xl shadow-md border border-forest-900 mb-8 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <Shield className="text-chilli-500" size={24} />
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
+                <span>Wangs Administration Space</span>
+                <span className="text-[10px] font-mono font-bold bg-amber-400 text-stone-950 px-2 py-0.5 rounded-full">
+                  /wangadminspace
+                </span>
+              </h1>
+            </div>
+            <p className="text-xs text-cream-200 mt-1">
+              Superuser Marketplace & Financial Controls · Server-enforced permissions & audit logging
+            </p>
           </div>
-          <p className="text-xs text-cream-200 mt-1">
-            Superuser Marketplace & Financial Controls · Server-enforced permissions & audit logging
-          </p>
+
+          <button
+            onClick={loadAdminData}
+            className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+          >
+            <RefreshCw size={14} /> Refresh Data
+          </button>
         </div>
 
-        <button
-          onClick={loadAdminData}
-          className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
-        >
-          <RefreshCw size={14} /> Refresh Data
-        </button>
+        {/* Global Summary Ribbon */}
+        <div className="pt-3 border-t border-forest-900/80 flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
+            <Users size={14} className="text-amber-400" />
+            <span className="text-stone-300">Total Registered Users:</span>
+            <span className="font-bold text-white text-sm">
+              {metrics?.total_users ?? usersList.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
+            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span className="text-stone-300">Shoppers:</span>
+            <span className="font-bold text-emerald-300">
+              {metrics?.total_customers ?? usersList.filter((u) => u.role === 'CUSTOMER').length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
+            <Store size={13} className="text-amber-300" />
+            <span className="text-stone-300">Active Brand Sellers:</span>
+            <span className="font-bold text-amber-300">
+              {metrics?.active_manufacturers ?? manufacturersList.length}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
+            <Package size={13} className="text-stone-300" />
+            <span className="text-stone-300">Total Orders:</span>
+            <span className="font-bold text-white">
+              {metrics?.total_orders ?? ordersList.length}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* High-Visibility Attention Alert Banner for Inbound Seller Requests */}
@@ -579,7 +616,7 @@ export default function AdminDashboardPage() {
             isAlert: totalYetToApprove > 0,
           },
           { id: 'manufacturers', label: `Manufacturers (${manufacturersList.length})` },
-          { id: 'users', label: `Users & Customers (${usersList.length})` },
+          { id: 'users', label: `Users & Customers (${metrics?.total_users ?? usersList.length})` },
           { id: 'products', label: `Catalog Moderation (${productsList.length})` },
           { id: 'orders', label: `Orders (${ordersList.length})` },
           { id: 'commission', label: 'Commission & Fees' },
@@ -812,18 +849,53 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-white p-5 rounded-xl border border-stone-200 text-xs">
-              <span className="text-stone-500 block">Active Verified Manufacturers</span>
-              <span className="font-bold text-xl text-stone-900">{metrics?.active_manufacturers}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div
+              onClick={() => setActiveTab('users')}
+              className="bg-white p-5 rounded-2xl border border-stone-200 text-xs shadow-xs hover:border-forest-800 transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-stone-500 block font-medium group-hover:text-forest-900 transition-colors">Total Registered Users</span>
+                <span className="p-1.5 bg-forest-50 text-forest-800 rounded-lg group-hover:bg-forest-100 transition-colors">
+                  <Users size={16} />
+                </span>
+              </div>
+              <span className="font-serif font-bold text-2xl text-stone-900 mt-1 block">
+                {metrics?.total_users ?? usersList.length}
+              </span>
+              <span className="text-[10px] text-stone-500 mt-0.5 block">
+                {metrics?.total_customers ?? usersList.filter(u => u.role === 'CUSTOMER').length} shoppers · {metrics?.authorized_sellers ?? usersList.filter(u => u.can_sell).length} sellers
+              </span>
             </div>
-            <div className="bg-amber-50 p-5 rounded-xl border border-amber-200 text-xs text-amber-900">
+
+            <div className="bg-white p-5 rounded-2xl border border-stone-200 text-xs shadow-xs">
+              <span className="text-stone-500 block font-medium">Active Verified Manufacturers</span>
+              <span className="font-serif font-bold text-2xl text-stone-900 mt-1 block">
+                {metrics?.active_manufacturers ?? manufacturersList.filter(m => m.status === 'APPROVED').length}
+              </span>
+              <span className="text-[10px] text-stone-500 mt-0.5 block">Approved producer units</span>
+            </div>
+
+            <div
+              onClick={() => setActiveTab('yet_to_approve')}
+              className="bg-amber-50 p-5 rounded-2xl border border-amber-200 text-xs text-amber-900 shadow-xs cursor-pointer hover:border-amber-400 transition-all"
+            >
               <span className="block font-medium">Pending Seller Applications</span>
-              <span className="font-bold text-xl">{metrics?.pending_seller_applications}</span>
+              <span className="font-serif font-bold text-2xl text-amber-900 mt-1 block">
+                {metrics?.pending_seller_applications ?? 0}
+              </span>
+              <span className="text-[10px] text-amber-700 mt-0.5 block">Awaiting admin review & action</span>
             </div>
-            <div className="bg-white p-5 rounded-xl border border-stone-200 text-xs">
-              <span className="text-stone-500 block">Pending Product Reviews</span>
-              <span className="font-bold text-xl text-stone-900">{metrics?.pending_products_review}</span>
+
+            <div
+              onClick={() => setActiveTab('products')}
+              className="bg-white p-5 rounded-2xl border border-stone-200 text-xs shadow-xs cursor-pointer hover:border-stone-400 transition-all"
+            >
+              <span className="text-stone-500 block font-medium">Pending Product Reviews</span>
+              <span className="font-serif font-bold text-2xl text-stone-900 mt-1 block">
+                {metrics?.pending_products_review ?? 0}
+              </span>
+              <span className="text-[10px] text-stone-500 mt-0.5 block">Items submitted for moderation</span>
             </div>
           </div>
 
@@ -1167,7 +1239,7 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-1">
             <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
               <span className="text-stone-500 block">Total Registered Accounts</span>
-              <span className="text-xl font-bold text-stone-900 mt-0.5 block">{usersList.length}</span>
+              <span className="text-xl font-bold text-stone-900 mt-0.5 block">{metrics?.total_users ?? usersList.length}</span>
               <span className="text-[10px] text-stone-500">Shoppers, sellers & staff</span>
             </div>
             <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
