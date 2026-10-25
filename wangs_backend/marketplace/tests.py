@@ -1,6 +1,8 @@
+import datetime
 from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework import status
 
@@ -635,3 +637,36 @@ class WangsFinancialAndOrderTests(TestCase):
             'password': 'shopperpass'
         }, format='json')
         self.assertEqual(login_ok_resp.status_code, status.HTTP_200_OK)
+
+    def test_request_seller_access_email_verification(self):
+        """
+        Verify that requesting seller authorization requires verified email OTP.
+        """
+        url = reverse('request-seller-access')
+        req_data = {
+            'business_name': 'Hills Artisan Pickle Co',
+            'email': 'producer@hills.in',
+            'phone': '+91 94360 99999',
+            'location_district': 'Kohima',
+            'fssai_number': '12345678901234',
+            'message': 'Organic Naga king chilli and bamboo shoot pickles',
+        }
+
+        # 1. Unverified submission is rejected
+        resp = self.client.post(url, req_data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Email verification is mandatory', resp.data['detail'])
+
+        # 2. Mark OTP as verified for this email
+        EmailOTP.objects.create(
+            email='producer@hills.in',
+            otp_code='654321',
+            purpose='SELLER_REQUEST',
+            is_used=True,
+            expires_at=timezone.now() + datetime.timedelta(minutes=10)
+        )
+
+        # 3. Verified submission succeeds
+        ok_resp = self.client.post(url, req_data, format='json')
+        self.assertEqual(ok_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(ok_resp.data['success'])

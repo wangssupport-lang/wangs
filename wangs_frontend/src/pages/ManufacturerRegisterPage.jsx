@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -46,12 +46,30 @@ export default function ManufacturerRegisterPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [requestSuccess, setRequestSuccess] = useState(false);
 
-  // Resend OTP for seller email verification
+  // Resend OTP for seller email verification (authorized onboarding)
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpDeliveredLive, setOtpDeliveredLive] = useState(false);
+
+  // Dedicated OTP verification state for "Request Seller Authorization" form
+  const [reqOtpSent, setReqOtpSent] = useState(false);
+  const [reqOtpCode, setReqOtpCode] = useState('');
+  const [reqOtpVerified, setReqOtpVerified] = useState(false);
+  const [reqOtpLoading, setReqOtpLoading] = useState(false);
+  const [reqOtpTimer, setReqOtpTimer] = useState(0);
+
+  // Timer countdown for request OTP resend
+  useEffect(() => {
+    let interval = null;
+    if (reqOtpTimer > 0) {
+      interval = setInterval(() => {
+        setReqOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [reqOtpTimer]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -94,10 +112,62 @@ export default function ManufacturerRegisterPage() {
     }
   };
 
+  const handleSendRequestOtp = async (e) => {
+    if (e) e.preventDefault();
+    const emailToVerify = (requestData.email || '').trim().toLowerCase();
+    if (!emailToVerify || !emailToVerify.includes('@')) {
+      setErrorMsg('Please enter a valid Gmail / Email address to receive your verification code.');
+      return;
+    }
+    setReqOtpLoading(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      const res = await api.sendOtp(emailToVerify, 'SELLER_REQUEST');
+      setReqOtpSent(true);
+      setReqOtpTimer(60);
+      if (res?.delivered_via_email === false) {
+        setErrorMsg(res?.warning || 'Notice: Email delivery credentials are not configured in wangs_backend/.env.');
+      } else {
+        setSuccessMsg(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your Gmail inbox.`);
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Failed to dispatch verification email. Please check your email and try again.');
+    } finally {
+      setReqOtpLoading(false);
+    }
+  };
+
+  const handleVerifyRequestOtp = async (e) => {
+    if (e) e.preventDefault();
+    if (!reqOtpCode || reqOtpCode.trim().length !== 6) {
+      setErrorMsg('Please enter the 6-digit verification code.');
+      return;
+    }
+    setReqOtpLoading(true);
+    setErrorMsg('');
+    try {
+      const emailToVerify = (requestData.email || '').trim().toLowerCase();
+      await api.verifyOtp(emailToVerify, reqOtpCode.trim(), 'SELLER_REQUEST');
+      setReqOtpVerified(true);
+      setSuccessMsg(`Email ${emailToVerify} verified successfully! You can now submit your seller request.`);
+    } catch (err) {
+      setErrorMsg(err.message || 'Invalid or expired verification code. Please check your inbox or request a new code.');
+    } finally {
+      setReqOtpLoading(false);
+    }
+  };
+
   const handleRequestAuthorization = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setErrorMsg('');
+
+    if (!reqOtpVerified) {
+      setErrorMsg('Gmail / Email verification is mandatory. Please click "Send OTP" and enter the 6-digit code sent to your email.');
+      return;
+    }
+
+    setLoading(true);
     try {
       await api.requestSellerAccess(requestData);
       setRequestSuccess(true);
@@ -227,6 +297,13 @@ export default function ManufacturerRegisterPage() {
                 </div>
               )}
 
+              {successMsg && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
+                  <CheckCircle size={15} className="flex-shrink-0 text-emerald-600" />
+                  <span>{successMsg}</span>
+                </div>
+              )}
+
               <div>
                 <label className="block text-stone-700 font-semibold mb-1">
                   Brand or Producer Name *
@@ -241,20 +318,83 @@ export default function ManufacturerRegisterPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-stone-700 font-semibold mb-1">
-                    Contact Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={requestData.email}
-                    onChange={(e) => setRequestData({ ...requestData, email: e.target.value })}
-                    placeholder="e.g. seller@brand.in"
-                    className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900"
-                  />
+              {/* Contact Email with Live Email OTP Verification */}
+              <div>
+                <label className="block text-stone-700 font-semibold mb-1">
+                  Contact Email *
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                    <input
+                      type="email"
+                      required
+                      disabled={reqOtpVerified}
+                      value={requestData.email}
+                      onChange={(e) => {
+                        setRequestData({ ...requestData, email: e.target.value });
+                        if (reqOtpVerified) {
+                          setReqOtpVerified(false);
+                          setReqOtpSent(false);
+                          setReqOtpCode('');
+                        }
+                      }}
+                      placeholder="e.g. seller@brand.in or your_email@gmail.com"
+                      className={`w-full pl-10 pr-3 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                        reqOtpVerified ? 'border-emerald-400 bg-emerald-50/50' : 'border-stone-200'
+                      }`}
+                    />
+                  </div>
+                  {!reqOtpVerified ? (
+                    <button
+                      type="button"
+                      disabled={reqOtpLoading || !requestData.email || !requestData.email.includes('@')}
+                      onClick={handleSendRequestOtp}
+                      className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors disabled:opacity-50"
+                    >
+                      {reqOtpLoading ? 'Sending...' : reqOtpSent ? 'Resend OTP' : 'Send OTP'}
+                    </button>
+                  ) : (
+                    <span className="px-3.5 py-2.5 bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs flex items-center gap-1.5 whitespace-nowrap">
+                      <CheckCircle size={14} className="text-emerald-700" /> Verified
+                    </span>
+                  )}
                 </div>
+
+                {/* OTP Code Entry Popover */}
+                {reqOtpSent && !reqOtpVerified && (
+                  <div className="mt-2.5 p-3.5 bg-forest-50/80 border border-forest-200 rounded-xl space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-semibold text-forest-950">
+                        Enter 6-digit OTP sent to {requestData.email}:
+                      </span>
+                      {reqOtpTimer > 0 && (
+                        <span className="text-[10px] text-stone-500 font-medium">Resend in {reqOtpTimer}s</span>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={reqOtpCode}
+                        onChange={(e) => setReqOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="6-digit OTP"
+                        className="w-36 px-3 py-1.5 bg-white border border-forest-600 rounded-xl text-center font-mono text-xs font-bold tracking-wider text-stone-900"
+                      />
+                      <button
+                        type="button"
+                        disabled={reqOtpLoading || reqOtpCode.length !== 6}
+                        onClick={handleVerifyRequestOtp}
+                        className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                      >
+                        {reqOtpLoading ? 'Verifying...' : 'Confirm OTP'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-stone-700 font-semibold mb-1">
                     Phone / WhatsApp *
@@ -268,9 +408,6 @@ export default function ManufacturerRegisterPage() {
                     className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900"
                   />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-stone-700 font-semibold mb-1">
                     District / Town
@@ -283,19 +420,20 @@ export default function ManufacturerRegisterPage() {
                     className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900"
                   />
                 </div>
-                <div>
-                  <label className="block text-stone-700 font-semibold mb-1">
-                    FSSAI License # (if available)
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={14}
-                    value={requestData.fssai_number}
-                    onChange={(e) => setRequestData({ ...requestData, fssai_number: e.target.value.replace(/\D/g, '').slice(0, 14) })}
-                    placeholder="14-digit numeric code"
-                    className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-mono text-stone-900"
-                  />
-                </div>
+              </div>
+
+              <div>
+                <label className="block text-stone-700 font-semibold mb-1">
+                  FSSAI License # (if available)
+                </label>
+                <input
+                  type="text"
+                  maxLength={14}
+                  value={requestData.fssai_number}
+                  onChange={(e) => setRequestData({ ...requestData, fssai_number: e.target.value.replace(/\D/g, '').slice(0, 14) })}
+                  placeholder="14-digit numeric code"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-mono text-stone-900"
+                />
               </div>
 
               <div>

@@ -134,6 +134,7 @@ def send_otp_email(to_email: str, otp_code: str, purpose: str = 'LOGIN'):
         'LOGIN': 'Sign In to Your Wangs Account',
         'REGISTER': 'Complete Your Wangs Registration',
         'SELLER': 'Verify Your Wangs Producer Account',
+        'SELLER_REQUEST': 'Verify Your Seller Authorization Request',
     }
     title = purpose_titles.get(purpose, 'Your Wangs Verification Code')
     subject = f"Your Wangs OTP: {otp_code} — {title}"

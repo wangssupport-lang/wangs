@@ -220,6 +220,19 @@ class RequestSellerAccessView(views.APIView):
         if not email or not business_name:
             return Response({'detail': 'Business name and contact email are required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Ensure contact email has been verified via OTP
+        is_admin = bool(request.user and request.user.is_authenticated and getattr(request.user, 'role', None) == User.Role.ADMIN)
+        has_verified_otp = EmailOTP.objects.filter(
+            email=email,
+            is_used=True,
+            created_at__gte=timezone.now() - datetime.timedelta(minutes=60)
+        ).exists()
+
+        if not has_verified_otp and not is_admin:
+            return Response({
+                'detail': 'Email verification is mandatory. Please click "Send OTP" and enter the 6-digit verification code sent to your email.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
         # Log request in AuditLog so admin sees it in the dashboard
         AuditLog.objects.create(
             user=request.user if request.user.is_authenticated else None,
