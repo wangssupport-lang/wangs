@@ -370,22 +370,8 @@ export default function HomePage() {
         </section>
 
         {/* 5. The Wangs Assurance & Purity Standard */}
-        <section className="mt-16 sm:mt-20 border-t border-stone-200/90 pt-12 sm:pt-16">
+        <section className="mt-12 sm:mt-16 border-t border-stone-200/90 pt-8 sm:pt-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Section Header */}
-            <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/80 text-amber-900 text-[11px] font-bold tracking-wider uppercase mb-2.5">
-                <Sparkles size={12} className="text-amber-600" />
-                <span>The Wangs Promise</span>
-              </span>
-              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
-                Crafted With Purity. Delivered With Care.
-              </h3>
-              <p className="text-xs sm:text-sm text-stone-600 mt-2 leading-relaxed">
-                Small-batch curing, authentic regional heritage, and zero synthetic shortcuts.
-              </p>
-            </div>
-
             {/* 3 Value Proposition Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
               {/* Card 1 */}
