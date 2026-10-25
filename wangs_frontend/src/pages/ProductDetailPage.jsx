@@ -597,6 +597,17 @@ export default function ProductDetailPage() {
                 )}
               </button>
             </div>
+
+            {/* Food Safety Policy Notice: No return, refund only for genuine reason */}
+            <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-[11px] text-stone-600 flex items-start gap-2">
+              <ShieldCheck size={14} className="text-emerald-700 shrink-0 mt-0.5" />
+              <div>
+                <strong className="text-stone-900">No Returns (Edible Food): </strong>
+                <span>Items are non-returnable. Refunds or replacements are provided </span>
+                <strong className="text-stone-900">only for genuine reasons</strong>
+                <span> (transit breakage, defective vacuum seal, or wrong item with unboxing proof) within 48 hours of delivery.</span>
+              </div>
+            </div>
           </div>
 
           {/* Delivery PIN Code Checker */}

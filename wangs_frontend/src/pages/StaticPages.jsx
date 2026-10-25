@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Mail, MapPin, Phone, Truck, RefreshCw, Award, Flame } from 'lucide-react';
+import { ShieldCheck, Mail, MapPin, Phone, Truck, RefreshCw, Award, Flame, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
 
 export function AboutPage() {
   return (
@@ -120,16 +120,132 @@ export function ShippingPage() {
 
 export function RefundsPage() {
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
-      <h1 className="font-serif text-3xl font-bold text-stone-900">Returns & Refund Policy</h1>
+    <div className="max-w-4xl mx-auto px-4 py-12 space-y-8 text-xs sm:text-sm text-stone-700 leading-relaxed">
+      {/* Header */}
+      <div className="border-b border-stone-200 pb-5">
+        <span className="text-xs font-bold uppercase tracking-wider text-forest-800">
+          Store Policies & Consumer Protection
+        </span>
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-1">
+          No-Return & Refund Policy
+        </h1>
+        <p className="text-xs text-stone-500 mt-1.5">
+          Wangs Artisanal Marketplace · FSSAI Food Hygiene Compliant
+        </p>
+      </div>
+
+      {/* Strict No-Return Banner */}
+      <div className="p-5 sm:p-6 bg-amber-50/80 border border-amber-200/90 rounded-2xl sm:rounded-3xl flex items-start gap-3.5">
+        <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+          <ShieldAlert size={20} />
+        </div>
+        <div>
+          <h3 className="font-serif font-bold text-stone-900 text-sm sm:text-base">
+            Strict No-Return Policy (Edible & Perishable Food Items)
+          </h3>
+          <p className="text-xs text-stone-600 mt-1 leading-relaxed">
+            Due to the perishable nature of handcrafted food products, slow-cured preserves, and strict FSSAI food hygiene protocols, <strong>we cannot accept physical returns under any circumstances</strong> once a parcel has been dispatched or delivered.
+          </p>
+        </div>
+      </div>
+
+      {/* Refunds: Only When Genuine Reason */}
       <div className="space-y-4">
-        <p>
-          Due to the perishable nature of handcrafted food products and traditional meat preserves, we cannot accept returns once a seal has been opened.
-        </p>
-        <h3 className="font-serif font-bold text-base text-stone-900">Damaged or Broken in Transit Replacement Guarantee:</h3>
-        <p>
-          If a glass jar arrives broken or damaged due to courier mishandling, contact us within 48 hours of delivery with a photograph of the damaged parcel. We will issue a 100% full refund or dispatch an immediate replacement at zero cost.
-        </p>
+        <div>
+          <h2 className="font-serif text-xl font-bold text-stone-900 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-600" />
+            <span>Refunds & Replacements: Only When There is a Genuine Reason</span>
+          </h2>
+          <p className="text-xs text-stone-600 mt-1">
+            We guarantee safe transit and genuine quality. Refunds or immediate zero-cost replacements are issued <strong>strictly and solely when there is a genuine, verifiable defect or transit issue</strong>.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Genuine Reasons (Approved) */}
+          <div className="p-5 bg-white rounded-2xl border border-emerald-200 shadow-2xs space-y-3">
+            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wide">
+              <CheckCircle2 size={16} className="text-emerald-600" />
+              <span>Qualifying Genuine Reasons (Eligible for Refund)</span>
+            </div>
+            <ul className="space-y-2 text-xs text-stone-600">
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span><strong>Glass Jar Breakage / Parcel Crushed:</strong> Product arrived broken, cracked, or smashed during courier transit.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span><strong>Compromised Vacuum Seal or Leakage:</strong> Safety pop-up button arrived unsealed or oil leaked heavily inside transit bubble packaging.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span><strong>Incorrect Product Delivered:</strong> Received a different pickle variant from what was on your confirmed order.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-emerald-600 font-bold">✓</span>
+                <span><strong>Spoiled on Arrival:</strong> Verified freshness or quality issue upon opening within 48 hours.</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Non-Eligible Reasons (Disallowed) */}
+          <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+            <div className="flex items-center gap-2 text-stone-700 font-bold text-xs uppercase tracking-wide">
+              <XCircle size={16} className="text-rose-600" />
+              <span>Non-Eligible Reasons (No Refund or Return)</span>
+            </div>
+            <ul className="space-y-2 text-xs text-stone-600">
+              <li className="flex items-start gap-2">
+                <span className="text-rose-500 font-bold">✕</span>
+                <span><strong>Change of Mind:</strong> Ordering by mistake, buyer remorse, or no longer wanting the items after dispatch.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-rose-500 font-bold">✕</span>
+                <span><strong>Personal Taste Preference:</strong> Subjective opinions on authentic aroma, natural mustard oil content, or salt levels.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-rose-500 font-bold">✕</span>
+                <span><strong>Subjective Heat Tolerance:</strong> King Chilli (Bhoot Jolokia) preserves are extremely spicy by authentic design.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-rose-500 font-bold">✕</span>
+                <span><strong>Late Notification:</strong> Claims raised after 48 hours of courier delivery or without photographic unboxing proof.</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Claim Process */}
+      <div className="bg-white p-6 rounded-2xl border border-stone-200 space-y-3">
+        <h3 className="font-serif font-bold text-base text-stone-900">
+          How to Submit a Genuine Reason Claim
+        </h3>
+        <ol className="list-decimal list-inside space-y-2 text-xs text-stone-600 leading-relaxed">
+          <li>
+            <strong>Report within 48 Hours:</strong> Notify our customer support team within 48 hours of parcel delivery.
+          </li>
+          <li>
+            <strong>Provide Photo / Video Proof:</strong> Email <strong>wangssupport@gmail.com</strong> with your Order Number (#WNG-...) along with clear photos of the shipping label (AWB) and the broken/leaked jar or defect.
+          </li>
+          <li>
+            <strong>Direct Resolution:</strong> Once our verification team confirms the genuine issue, we will immediately issue a 100% full refund directly to your original payment mode (reflects in 5–7 banking days) or dispatch a zero-cost replacement jar via air courier.
+          </li>
+        </ol>
+      </div>
+
+      {/* Support Card */}
+      <div className="p-5 bg-stone-100 rounded-2xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-stone-700">
+        <div>
+          <span className="font-bold text-stone-900">Need help with an order issue?</span>
+          <p className="text-[11px] text-stone-500">Contact Wangs support team directly for fast assistance.</p>
+        </div>
+        <Link
+          to="/contact"
+          className="px-4 py-2 bg-forest-900 text-white rounded-xl font-bold text-xs hover:bg-forest-950 transition-colors self-start sm:self-auto text-center"
+        >
+          Contact Support
+        </Link>
       </div>
     </div>
   );
