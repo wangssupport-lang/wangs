@@ -21,15 +21,15 @@ export default function BrandCard({ brand, compact = false }) {
   const location = brand.location_district || brand.location || 'Artisan Workshop';
   const tagline = brand.tagline || brand.brand_story || 'Small-batch authentic artisanal brand';
 
-  // Minimal mode for Homepage Showcase
+  // Minimal mode for Homepage Showcase (Logo and brand name in same row)
   if (compact) {
     return (
       <Link
         to={targetUrl}
-        className="w-[155px] sm:w-auto shrink-0 snap-start group flex flex-col bg-white rounded-2xl border border-stone-200/80 hover:border-forest-700/50 p-3 sm:p-3.5 hover:shadow-xs transition-all select-none text-left"
+        className="w-[185px] sm:w-auto shrink-0 snap-start group flex items-center gap-3 bg-white rounded-2xl border border-stone-200/90 hover:border-forest-700/50 p-2.5 sm:p-3 hover:shadow-xs transition-all select-none text-left"
         title={`Visit ${brandName}`}
       >
-        <div className="w-10 h-10 rounded-xl bg-forest-950 text-amber-300 flex items-center justify-center font-serif font-bold text-xs border border-amber-400/20 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden">
+        <div className="w-10 h-10 rounded-xl bg-forest-950 text-amber-300 flex items-center justify-center font-serif font-bold text-xs border border-amber-400/20 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden shrink-0">
           {brand.logo_image && !logoFailed ? (
             <img
               src={brand.logo_image}
@@ -42,16 +42,18 @@ export default function BrandCard({ brand, compact = false }) {
           )}
         </div>
 
-        <div className="mt-2.5 min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1">
             <h3 className="font-serif font-bold text-stone-900 text-xs sm:text-sm group-hover:text-forest-900 transition-colors truncate">
               {brandName}
             </h3>
             <ShieldCheck size={12} className="text-emerald-600 shrink-0" />
           </div>
-          <p className="mt-0.5 text-[11px] text-stone-500 truncate">
-            {location}
-          </p>
+          {location && (
+            <p className="text-[10.5px] text-stone-500 truncate mt-0.5">
+              {location}
+            </p>
+          )}
         </div>
       </Link>
     );

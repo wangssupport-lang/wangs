@@ -313,7 +313,7 @@ export default function HomePage() {
           <div className="flex sm:grid gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 pb-1 sm:pb-0">
             {loading ? (
               [1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="w-[155px] sm:w-auto shrink-0 snap-start h-24 rounded-2xl bg-stone-200/60 animate-pulse" />
+                <div key={i} className="w-[185px] sm:w-auto shrink-0 snap-start h-14 rounded-2xl bg-stone-200/60 animate-pulse" />
               ))
             ) : brands.length > 0 ? (
               brands.slice(0, 8).map((brand) => (
