@@ -21,57 +21,37 @@ export default function BrandCard({ brand, compact = false }) {
   const location = brand.location_district || brand.location || 'Artisan Workshop';
   const tagline = brand.tagline || brand.brand_story || 'Small-batch authentic artisanal brand';
 
-  // Spotlight / Compact mode for Homepage Showcase
+  // Minimal mode for Homepage Showcase
   if (compact) {
     return (
       <Link
         to={targetUrl}
-        className="w-[210px] sm:w-auto shrink-0 snap-start group flex flex-col justify-between bg-white rounded-2xl border border-stone-200/90 shadow-2xs hover:border-forest-700/60 hover:shadow-md transition-all duration-200 p-3.5 select-none text-left"
-        title={`Visit ${brandName} Store`}
+        className="w-[155px] sm:w-auto shrink-0 snap-start group flex flex-col bg-white rounded-2xl border border-stone-200/80 hover:border-forest-700/50 p-3 sm:p-3.5 hover:shadow-xs transition-all select-none text-left"
+        title={`Visit ${brandName}`}
       >
-        <div>
-          {/* Header: Crest + Verified Badge */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="w-11 h-11 rounded-xl bg-forest-950 text-amber-300 flex items-center justify-center font-serif font-black text-xs border border-amber-400/30 shadow-2xs shrink-0 overflow-hidden group-hover:scale-105 transition-transform">
-              {brand.logo_image && !logoFailed ? (
-                <img
-                  src={brand.logo_image}
-                  alt={brandName}
-                  onError={() => setLogoFailed(true)}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{getInitials(brandName)}</span>
-              )}
-            </div>
-
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-800 text-[10px] font-bold">
-              <ShieldCheck size={11} className="text-emerald-600 shrink-0" />
-              <span>Verified</span>
-            </span>
-          </div>
-
-          {/* Brand Name & Location */}
-          <div className="mt-2.5">
-            <h3 className="font-serif font-bold text-stone-900 text-sm leading-snug group-hover:text-forest-900 transition-colors line-clamp-1">
-              {brandName}
-            </h3>
-
-            <p className="mt-1 flex items-center gap-1 text-[11px] text-stone-500 font-medium truncate">
-              <MapPin size={11} className="text-forest-700 shrink-0" />
-              <span className="truncate">{location}</span>
-            </p>
-
-            <p className="mt-1.5 text-[11px] text-stone-600 line-clamp-1 leading-normal">
-              {tagline}
-            </p>
-          </div>
+        <div className="w-10 h-10 rounded-xl bg-forest-950 text-amber-300 flex items-center justify-center font-serif font-bold text-xs border border-amber-400/20 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden">
+          {brand.logo_image && !logoFailed ? (
+            <img
+              src={brand.logo_image}
+              alt={brandName}
+              onError={() => setLogoFailed(true)}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span>{getInitials(brandName)}</span>
+          )}
         </div>
 
-        {/* Bottom CTA */}
-        <div className="mt-3 pt-2.5 border-t border-stone-100 flex items-center justify-between text-[11px] font-bold text-forest-800 group-hover:text-forest-950">
-          <span>Shop Store</span>
-          <ArrowUpRight size={13} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+        <div className="mt-2.5 min-w-0">
+          <div className="flex items-center gap-1">
+            <h3 className="font-serif font-bold text-stone-900 text-xs sm:text-sm group-hover:text-forest-900 transition-colors truncate">
+              {brandName}
+            </h3>
+            <ShieldCheck size={12} className="text-emerald-600 shrink-0" />
+          </div>
+          <p className="mt-0.5 text-[11px] text-stone-500 truncate">
+            {location}
+          </p>
         </div>
       </Link>
     );

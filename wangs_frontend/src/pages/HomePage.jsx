@@ -293,36 +293,27 @@ export default function HomePage() {
       </section>
 
 
-      {/* 2. Official Verified Brand Houses Showcase */}
-      <section className="bg-gradient-to-b from-stone-50 via-cream-50/70 to-stone-100/60 border-b border-stone-200/80 py-5 sm:py-7">
+      {/* 2. Official Brand Stores */}
+      <section className="bg-stone-50/70 border-b border-stone-200/80 py-4 sm:py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-end justify-between mb-3.5 sm:mb-5">
-            <div>
-              <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-forest-800">
-                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                <span>Verified Artisan Houses</span>
-              </div>
-              <h2 className="font-serif text-lg sm:text-2xl font-bold text-stone-900 mt-0.5">
-                Official Brand Stores
-              </h2>
-              <p className="text-xs text-stone-500 hidden sm:block mt-0.5">
-                Authentic small-batch recipes directly from certified regional heritage producers
-              </p>
-            </div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-stone-900">
+              Official Brand Stores
+            </h2>
             <Link
               to="/brands"
-              className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1 group py-1"
+              className="text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-0.5 group"
             >
               <span>View All Brands</span>
-              <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
 
-          {/* Cards: Smooth horizontal swipeable on mobile, multi-column grid on desktop */}
-          <div className="flex sm:grid gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 pb-2 sm:pb-0">
+          {/* Minimal Brand Cards: Horizontal swipe on mobile, clean grid on desktop */}
+          <div className="flex sm:grid gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 pb-1 sm:pb-0">
             {loading ? (
               [1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="w-[210px] sm:w-auto shrink-0 snap-start h-40 rounded-2xl bg-stone-200/70 animate-pulse" />
+                <div key={i} className="w-[155px] sm:w-auto shrink-0 snap-start h-24 rounded-2xl bg-stone-200/60 animate-pulse" />
               ))
             ) : brands.length > 0 ? (
               brands.slice(0, 8).map((brand) => (
