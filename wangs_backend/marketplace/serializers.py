@@ -4,7 +4,7 @@ from django.contrib.auth import authenticate
 from django.utils.text import slugify
 import uuid
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
@@ -51,13 +51,19 @@ class AdminUserSerializer(serializers.ModelSerializer):
         return obj.is_authorized_to_sell()
 
     def get_orders_count(self, obj):
-        return Order.objects.filter(customer=obj).count()
+        q = Q(user=obj)
+        if obj.email:
+            q |= Q(customer_email__iexact=obj.email)
+        return Order.objects.filter(q).distinct().count()
 
     def get_total_spent(self, obj):
+        q = Q(user=obj)
+        if obj.email:
+            q |= Q(customer_email__iexact=obj.email)
         spent = Order.objects.filter(
-            customer=obj,
+            q,
             payment_status=Order.PaymentStatus.PAID
-        ).aggregate(sum=Sum('total_amount'))['sum'] or Decimal('0.00')
+        ).distinct().aggregate(sum=Sum('total_amount'))['sum'] or Decimal('0.00')
         return str(spent)
 
     def get_manufacturer_business_name(self, obj):

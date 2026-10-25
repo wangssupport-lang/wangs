@@ -1257,20 +1257,20 @@ export default function AdminDashboardPage() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs mb-1">
             <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
               <span className="text-stone-500 block">Total Registered Accounts</span>
-              <span className="text-xl font-bold text-stone-900 mt-0.5 block">{metrics?.total_users ?? usersList.length}</span>
+              <span className="text-xl font-bold text-stone-900 mt-0.5 block">{usersList.length || (metrics?.total_users ?? 0)}</span>
               <span className="text-[10px] text-stone-500">Shoppers, sellers & staff</span>
             </div>
             <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
               <span className="text-stone-500 block">Verified Shoppers</span>
               <span className="text-xl font-bold text-stone-900 mt-0.5 block">
-                {usersList.filter((u) => u.role === 'CUSTOMER').length}
+                {usersList.length > 0 ? usersList.filter((u) => u.role === 'CUSTOMER').length : (metrics?.total_customers ?? 0)}
               </span>
               <span className="text-[10px] text-emerald-700 font-semibold">Active customer profiles</span>
             </div>
             <div className="bg-forest-900 text-white p-4 rounded-xl border border-forest-800 shadow-xs">
               <span className="text-cream-300 block">Authorized Sellers</span>
               <span className="text-xl font-bold text-white mt-0.5 block">
-                {usersList.filter((u) => u.can_sell || u.role === 'MANUFACTURER').length}
+                {usersList.length > 0 ? usersList.filter((u) => u.can_sell || u.role === 'MANUFACTURER').length : (metrics?.authorized_sellers ?? 0)}
               </span>
               <span className="text-[10px] text-amber-300 font-medium">Permitted to publish products</span>
             </div>
@@ -1305,27 +1305,32 @@ export default function AdminDashboardPage() {
 
             <div className="flex flex-wrap items-center gap-2 overflow-x-auto w-full sm:w-auto">
               <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
-                {['ALL', 'CUSTOMER', 'MANUFACTURER', 'ADMIN'].map((role) => (
+                {[
+                  { role: 'ALL', label: `All Roles (${usersList.length})` },
+                  { role: 'CUSTOMER', label: `Shoppers (${usersList.filter((u) => u.role === 'CUSTOMER').length})` },
+                  { role: 'MANUFACTURER', label: `Sellers (${usersList.filter((u) => u.role === 'MANUFACTURER' || u.can_sell).length})` },
+                  { role: 'ADMIN', label: `Admin (${usersList.filter((u) => u.role === 'ADMIN' || u.is_staff).length})` }
+                ].map((item) => (
                   <button
-                    key={role}
+                    key={item.role}
                     type="button"
-                    onClick={() => setUserRoleFilter(role)}
+                    onClick={() => setUserRoleFilter(item.role)}
                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-                      userRoleFilter === role
-                        ? 'bg-forest-900 text-white shadow-2xs'
+                      userRoleFilter === item.role
+                        ? 'bg-forest-900 text-white shadow-2xs font-bold'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
                   >
-                    {role === 'ALL' ? 'All Roles' : role}
+                    {item.label}
                   </button>
                 ))}
               </div>
 
               <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
                 {[
-                  { id: 'ALL', label: 'All Status' },
-                  { id: 'ACTIVE', label: 'Active' },
-                  { id: 'BANNED', label: 'Banned' }
+                  { id: 'ALL', label: `All Status (${usersList.length})` },
+                  { id: 'ACTIVE', label: `Active (${usersList.filter((u) => !u.is_banned).length})` },
+                  { id: 'BANNED', label: `Banned (${usersList.filter((u) => u.is_banned).length})` }
                 ].map((st) => (
                   <button
                     key={st.id}
@@ -1343,6 +1348,20 @@ export default function AdminDashboardPage() {
                   </button>
                 ))}
               </div>
+
+              {(userRoleFilter !== 'ALL' || userStatusFilter !== 'ALL' || userSearch) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUserRoleFilter('ALL');
+                    setUserStatusFilter('ALL');
+                    setUserSearch('');
+                  }}
+                  className="px-2.5 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                >
+                  Reset
+                </button>
+              )}
             </div>
           </div>
 
@@ -1393,8 +1412,47 @@ export default function AdminDashboardPage() {
                     const matchesRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
                     const matchesStatus = userStatusFilter === 'ALL' || (userStatusFilter === 'BANNED' ? u.is_banned : !u.is_banned);
                     return matchesSearch && matchesRole && matchesStatus;
-                  })
-                  .map((u) => (
+                  }).length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="p-8 text-center text-stone-500">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <Users size={28} className="text-stone-300" />
+                          <p className="font-semibold text-stone-700">No user accounts found matching current filters.</p>
+                          <p className="text-xs text-stone-400">
+                            {userRoleFilter !== 'ALL' || userStatusFilter !== 'ALL' || userSearch
+                              ? 'Try resetting your role or status filter to view all users.'
+                              : 'No users currently registered on the platform.'}
+                          </p>
+                          {(userRoleFilter !== 'ALL' || userStatusFilter !== 'ALL' || userSearch) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUserRoleFilter('ALL');
+                                setUserStatusFilter('ALL');
+                                setUserSearch('');
+                              }}
+                              className="mt-1 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              View All Users
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    usersList
+                      .filter((u) => {
+                        const matchesSearch = !userSearch || (
+                          (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                          (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                          (u.phone_number || '').includes(userSearch) ||
+                          (`${u.first_name || ''} ${u.last_name || ''}`).toLowerCase().includes(userSearch.toLowerCase())
+                        );
+                        const matchesRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
+                        const matchesStatus = userStatusFilter === 'ALL' || (userStatusFilter === 'BANNED' ? u.is_banned : !u.is_banned);
+                        return matchesSearch && matchesRole && matchesStatus;
+                      })
+                      .map((u) => (
                     <tr key={u.id} className="hover:bg-cream-50/50">
                       <td className="p-3">
                         <p className="font-bold text-stone-900 text-xs">
@@ -1492,7 +1550,8 @@ export default function AdminDashboardPage() {
                         {u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}
                       </td>
                     </tr>
-                  ))}
+                  ))
+                )}
               </tbody>
             </table>
           </div>
