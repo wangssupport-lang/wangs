@@ -14,18 +14,29 @@ def send_smtp_email(to_email: str, subject: str, html_content: str):
     """
     Sends an email using standard Django SMTP (e.g. Gmail SMTP smtp.gmail.com:587).
     """
-    host_user = getattr(settings, 'EMAIL_HOST_USER', '')
-    host_pass = getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+    host_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '')).strip()
+    host_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '')).replace(' ', '').strip()
     if not host_user or not host_pass:
         return False, {"error": "SMTP credentials (EMAIL_HOST_USER / EMAIL_HOST_PASSWORD) not configured."}
 
     try:
+        from django.core.mail import get_connection, EmailMultiAlternatives
+        connection = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host=getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com'),
+            port=getattr(settings, 'EMAIL_PORT', 587),
+            username=host_user,
+            password=host_pass,
+            use_tls=getattr(settings, 'EMAIL_USE_TLS', True),
+            timeout=10
+        )
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', host_user) or host_user
         msg = EmailMultiAlternatives(
             subject=subject,
             body="Your Wangs verification code is inside this email. Please view in an HTML-capable email client.",
             from_email=from_email,
-            to=[to_email]
+            to=[to_email],
+            connection=connection
         )
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
@@ -89,20 +100,30 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
     1. Checks if SMTP credentials (e.g. Gmail) are present.
     2. Otherwise attempts Resend API.
     """
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(settings.BASE_DIR / '.env', override=True)
+        load_dotenv(settings.BASE_DIR.parent / '.env', override=True)
+    except Exception:
+        pass
+
     # Try SMTP first if credentials are present
-    if getattr(settings, 'EMAIL_HOST_USER', '') and getattr(settings, 'EMAIL_HOST_PASSWORD', ''):
+    smtp_user = os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '')
+    smtp_pass = os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+    if smtp_user and smtp_pass:
         sent, info = send_smtp_email(to_email, subject, html_content)
         if sent:
             return True, info
 
     # Try Resend if configured
-    if getattr(settings, 'RESEND_API_KEY', ''):
+    resend_key = os.getenv('RESEND_API_KEY') or getattr(settings, 'RESEND_API_KEY', '')
+    if resend_key:
         sent, info = send_resend_email(to_email, subject, html_content)
         if sent:
             return True, info
         return False, info
 
-    return False, {"error": "No email delivery provider configured (configure EMAIL_HOST_USER & EMAIL_HOST_PASSWORD or RESEND_API_KEY)."}
+    return False, {"error": "Email credentials missing in .env (EMAIL_HOST_USER & EMAIL_HOST_PASSWORD or RESEND_API_KEY)."}
 
 
 def send_otp_email(to_email: str, otp_code: str, purpose: str = 'LOGIN'):

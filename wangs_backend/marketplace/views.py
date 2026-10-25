@@ -124,9 +124,10 @@ class SendEmailOTPView(views.APIView):
 
         return Response({
             'success': True,
-            'message': f'A 6-digit verification code has been dispatched to {email}. Please check your inbox or spam folder.',
-            'expires_in_minutes': 10,
             'delivered_via_email': sent_live,
+            'message': f'A 6-digit verification code has been dispatched to {email}. Please check your inbox or spam folder.' if sent_live else f'Email credentials not configured in .env. Please add EMAIL_HOST_USER and EMAIL_HOST_PASSWORD to wangs_backend/.env to receive emails in your Gmail.',
+            'warning': None if sent_live else f'Cannot dispatch to {email}: {resend_info.get("error", "Email credentials missing in .env")}. Add EMAIL_HOST_USER and EMAIL_HOST_PASSWORD to wangs_backend/.env.',
+            'expires_in_minutes': 10,
         }, status=status.HTTP_200_OK)
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle } from 'lucide-react';
+import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 
@@ -18,7 +18,23 @@ export default function AuthPage() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpTimer, setOtpTimer] = useState(0);
 
-  // Standard form state
+  // Post-registration Address Popup modal state
+  const [showAddressPopup, setShowAddressPopup] = useState(false);
+  const [addressSavedSuccess, setAddressSavedSuccess] = useState(false);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState('');
+  const [popupAddress, setPopupAddress] = useState({
+    full_name: '',
+    phone: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    is_default: true,
+  });
+
+  // Standard form state (Clean & fast signup: No address fields required on signup)
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -27,11 +43,6 @@ export default function AuthPage() {
     first_name: '',
     last_name: '',
     phone_number: '',
-    address_line1: '',
-    address_line2: '',
-    city: '',
-    state: '',
-    postal_code: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -75,7 +86,11 @@ export default function AuthPage() {
       const res = await api.sendOtp(email, 'REGISTER');
       setOtpSent(true);
       setOtpTimer(60);
-      setSuccessMsg(res?.message || `A 6-digit OTP verification code has been dispatched to ${email}. Please check your Gmail inbox.`);
+      if (res?.delivered_via_email === false) {
+        setError(res?.warning || 'Notice: Email delivery credentials are not yet configured in wangs_backend/.env.');
+      } else {
+        setSuccessMsg(res?.message || `A 6-digit OTP verification code has been dispatched to ${email}. Please check your Gmail inbox.`);
+      }
     } catch (err) {
       setError(err.message || 'Failed to dispatch OTP email. Please verify your email and try again.');
     } finally {
@@ -139,13 +154,56 @@ export default function AuthPage() {
           return;
         }
         await register(formData);
-        navigate('/account');
+        // Customer account successfully registered and authenticated!
+        // Launch delivery address setup popup modal
+        setPopupAddress({
+          full_name: `${formData.first_name || ''} ${formData.last_name || ''}`.trim(),
+          phone: formData.phone_number || '',
+          address_line1: '',
+          address_line2: '',
+          city: '',
+          state: '',
+          postal_code: '',
+          is_default: true,
+        });
+        setShowAddressPopup(true);
       }
     } catch (err) {
       setError(err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSavePopupAddress = async (e) => {
+    e.preventDefault();
+    if (!popupAddress.address_line1 || !popupAddress.city || !popupAddress.state || !popupAddress.postal_code) {
+      setAddressError('Please provide your street address, city, state, and 6-digit PIN code.');
+      return;
+    }
+    if (popupAddress.postal_code.trim().length !== 6) {
+      setAddressError('Please enter a valid 6-digit PIN code.');
+      return;
+    }
+    setAddressLoading(true);
+    setAddressError('');
+    try {
+      await api.createAddress(popupAddress);
+      setAddressSavedSuccess(true);
+      setTimeout(() => {
+        setShowAddressPopup(false);
+        navigate('/account');
+      }, 1200);
+    } catch (err) {
+      setAddressError(err.message || 'Failed to save address. You can also add it during checkout.');
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
+  const handleSkipAddress = () => {
+    setShowAddressPopup(false);
+    navigate('/account');
   };
 
   return (
@@ -377,68 +435,16 @@ export default function AuthPage() {
               />
             </div>
 
-            {/* Primary Delivery Address */}
-            <fieldset className="space-y-3 rounded-2xl border border-stone-200 bg-cream-50/60 p-4">
-              <legend className="px-1 font-bold text-stone-800">Primary Delivery Address</legend>
+            {/* Delivery address info notice (not required during signup) */}
+            <div className="bg-cream-50/80 border border-stone-200/80 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-stone-600">
+              <MapPin size={16} className="text-forest-700 shrink-0 mt-0.5" />
               <div>
-                <label className="mb-1 block font-medium text-stone-700">Street address, house number *</label>
-                <input
-                  type="text"
-                  required
-                  name="address_line1"
-                  autoComplete="address-line1"
-                  value={formData.address_line1}
-                  onChange={handleChange}
-                  placeholder="House / flat number and street"
-                  className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:border-forest-800"
-                />
+                <span className="font-semibold text-stone-800">Delivery Address</span>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  No address needed now. You can set it in a quick popup right after signup or save it at checkout.
+                </p>
               </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="mb-1 block font-medium text-stone-700">City *</label>
-                  <input
-                    type="text"
-                    required
-                    name="city"
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="Kohima"
-                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:border-forest-800"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-medium text-stone-700">State *</label>
-                  <input
-                    type="text"
-                    required
-                    name="state"
-                    value={formData.state}
-                    onChange={handleChange}
-                    placeholder="State"
-                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:border-forest-800"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-medium text-stone-700">PIN (6 digits) *</label>
-                  <input
-                    type="text"
-                    required
-                    inputMode="numeric"
-                    maxLength={6}
-                    name="postal_code"
-                    value={formData.postal_code}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        postal_code: e.target.value.replace(/\D/g, '').slice(0, 6),
-                      })
-                    }
-                    placeholder="797001"
-                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 font-mono text-center text-stone-900 focus:outline-none focus:border-forest-800"
-                  />
-                </div>
-              </div>
-            </fieldset>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -491,6 +497,139 @@ export default function AuthPage() {
           <span>Secured with Gmail / Email OTP & 256-Bit SSL Encryption</span>
         </div>
       </div>
+
+      {/* Post-Registration Address Setup Popup Modal */}
+      {showAddressPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white w-full max-w-lg rounded-3xl p-6 sm:p-7 shadow-2xl border border-stone-200 relative animate-scale-up">
+            <button
+              onClick={handleSkipAddress}
+              className="absolute top-4 right-4 p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-2xl bg-forest-100 flex items-center justify-center text-forest-800 shrink-0">
+                <MapPin size={24} />
+              </div>
+              <div>
+                <h3 className="font-serif font-bold text-lg text-stone-900">Welcome to Wangs!</h3>
+                <p className="text-xs text-stone-500">Account verified and created successfully</p>
+              </div>
+            </div>
+
+            {addressSavedSuccess ? (
+              <div className="py-8 text-center space-y-2">
+                <CheckCircle size={48} className="text-emerald-600 mx-auto" />
+                <h4 className="font-bold text-base text-stone-900">Delivery Address Saved!</h4>
+                <p className="text-xs text-stone-500">Taking you to your dashboard...</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSavePopupAddress} className="space-y-3.5 text-xs">
+                <div className="bg-cream-50 p-3 rounded-xl border border-stone-200/70 text-stone-700">
+                  <p className="font-medium text-stone-800 mb-0.5">Where should we deliver your pickles?</p>
+                  <p className="text-[11px] text-stone-500">
+                    You can set your primary address now for quick 1-click checkout, or skip and add it whenever you place an order.
+                  </p>
+                </div>
+
+                {addressError && (
+                  <div className="p-3 bg-red-50 text-red-700 rounded-xl flex items-center gap-2">
+                    <AlertCircle size={15} className="shrink-0" />
+                    <span>{addressError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-stone-700 font-semibold mb-1">Street Address, House No. *</label>
+                  <input
+                    type="text"
+                    required
+                    value={popupAddress.address_line1}
+                    onChange={(e) => setPopupAddress({ ...popupAddress, address_line1: e.target.value })}
+                    placeholder="House / flat number and street name"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-stone-700 font-semibold mb-1">Apartment, Landmark, Ward (Optional)</label>
+                  <input
+                    type="text"
+                    value={popupAddress.address_line2}
+                    onChange={(e) => setPopupAddress({ ...popupAddress, address_line2: e.target.value })}
+                    placeholder="e.g. Near Kohima War Cemetery or Landmark"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">City / Town *</label>
+                    <input
+                      type="text"
+                      required
+                      value={popupAddress.city}
+                      onChange={(e) => setPopupAddress({ ...popupAddress, city: e.target.value })}
+                      placeholder="Kohima"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">State *</label>
+                    <input
+                      type="text"
+                      required
+                      value={popupAddress.state}
+                      onChange={(e) => setPopupAddress({ ...popupAddress, state: e.target.value })}
+                      placeholder="Nagaland"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">PIN (6 digits) *</label>
+                    <input
+                      type="text"
+                      required
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={popupAddress.postal_code}
+                      onChange={(e) =>
+                        setPopupAddress({
+                          ...popupAddress,
+                          postal_code: e.target.value.replace(/\D/g, '').slice(0, 6),
+                        })
+                      }
+                      placeholder="797001"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono text-center text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="submit"
+                    disabled={addressLoading}
+                    className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    <span>{addressLoading ? 'Saving Address...' : 'Save Delivery Address'}</span>
+                    <ArrowRight size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSkipAddress}
+                    className="w-full py-2 text-stone-500 hover:text-stone-800 font-medium rounded-xl text-center text-xs transition-colors"
+                  >
+                    I'll add it later at checkout &rarr;
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
