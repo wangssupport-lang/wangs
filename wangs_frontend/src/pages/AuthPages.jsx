@@ -630,7 +630,7 @@ export default function AuthPage() {
                   onClick={() => { setIsLogin(false); setShowForgotPassword(false); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
                   className="text-forest-900 font-bold hover:underline cursor-pointer"
                 >
-                  Create an Account with Email OTP
+                  Create an Account
                 </button>
               </p>
             </div>
