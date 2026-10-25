@@ -1424,6 +1424,13 @@ class AdminSellerRequestView(views.APIView):
             'user': UserSerializer(user_match).data
         })
 
+    def delete(self, request):
+        req_id = request.data.get('id')
+        if not req_id:
+            return Response({'detail': 'Request ID is required'}, status=400)
+        AuditLog.objects.filter(id=req_id, action='SELLER_AUTHORIZATION_REQUESTED').delete()
+        return Response({'success': True, 'message': 'Seller request removed from queue.'})
+
 
 class AdminCommissionView(views.APIView):
     permission_classes = [IsAdminUserRole]

@@ -116,6 +116,7 @@ export const api = {
   toggleAdminMaintenanceMode: (payload = {}) => apiRequest('/admin/toggle-maintenance-mode/', { method: 'POST', body: JSON.stringify(payload) }),
   getAdminSellerRequests: () => apiRequest('/admin/seller-requests/'),
   approveAdminSellerRequest: (email) => apiRequest('/admin/seller-requests/', { method: 'POST', body: JSON.stringify({ email }) }),
+  deleteAdminSellerRequest: (id) => apiRequest('/admin/seller-requests/', { method: 'DELETE', body: JSON.stringify({ id }) }),
   getAdminManufacturers: () => apiRequest('/admin/manufacturers/'),
   updateManufacturerStatus: (id, status, notes = '') => apiRequest(`/admin/manufacturers/${id}/update_status/`, { method: 'POST', body: JSON.stringify({ status, admin_review_notes: notes }) }),
   toggleManufacturerFeatured: (id, payload = {}) => apiRequest(`/admin/manufacturers/${id}/toggle_featured/`, { method: 'POST', body: JSON.stringify(payload) }),

@@ -4,7 +4,7 @@ import {
   Shield, Users, Package, DollarSign, Settings,
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
-  Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban
+  Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -49,6 +49,11 @@ export default function AdminDashboardPage() {
   const [sellerSearch, setSellerSearch] = useState('');
   const [sellerStatusFilter, setSellerStatusFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
+
+  // Dedicated "Yet to be Approved" Space State
+  const [pendingTabFilter, setPendingTabFilter] = useState('PENDING'); // 'PENDING', 'ALL', 'AUTHORIZED', 'PROFILES'
+  const [pendingSearch, setPendingSearch] = useState('');
+  const [approvingEmail, setApprovingEmail] = useState('');
 
   // Commission Edit Form State
   const [commForm, setCommForm] = useState({
@@ -333,12 +338,27 @@ export default function AdminDashboardPage() {
   };
 
   const handleApproveSellerRequest = async (email) => {
+    setApprovingEmail(email);
     try {
       const res = await api.approveAdminSellerRequest(email);
       toast.success(res?.message || `Seller authorization approved! Onboarding email sent to ${email}`);
-      loadAdminData();
+      await loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Approval failed');
+    } finally {
+      setApprovingEmail('');
+    }
+  };
+
+  const handleDeleteSellerRequest = async (id, businessName = 'this application') => {
+    if (!window.confirm(`Are you sure you want to dismiss/remove the seller request for "${businessName}" from queue?`)) return;
+    try {
+      await api.deleteAdminSellerRequest(id);
+      toast.success(`Seller request for "${businessName}" removed from queue.`);
+      setSellerRequests((prev) => prev.filter((r) => r.id !== id));
+      loadAdminData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove seller request');
     }
   };
 
@@ -459,6 +479,26 @@ export default function AdminDashboardPage() {
     return (a.business_name || '').localeCompare(b.business_name || '');
   });
   const auditLogsList = extractList(auditLogs);
+  const sellerRequestsList = extractList(sellerRequests);
+  const pendingSellerRequests = sellerRequestsList.filter((r) => !r.is_authorized);
+  const authorizedSellerRequests = sellerRequestsList.filter((r) => r.is_authorized);
+  const pendingMfgProfiles = manufacturersList.filter((m) => m.status === 'PENDING');
+  const totalYetToApprove = pendingSellerRequests.length + pendingMfgProfiles.length;
+
+  const filteredPendingRequests = sellerRequestsList.filter((req) => {
+    const q = pendingSearch.trim().toLowerCase();
+    const matchesSearch = !q || (
+      (req.business_name || '').toLowerCase().includes(q) ||
+      (req.email || '').toLowerCase().includes(q) ||
+      (req.phone || '').includes(q) ||
+      (req.location_district || '').toLowerCase().includes(q) ||
+      (req.fssai_number || '').includes(q)
+    );
+    if (!matchesSearch) return false;
+    if (pendingTabFilter === 'PENDING') return !req.is_authorized;
+    if (pendingTabFilter === 'AUTHORIZED') return req.is_authorized;
+    return true; // 'ALL'
+  });
 
   // Platform Bundle Analytics & Monitoring
   const adminBundleOrders = ordersList.filter((o) => {
@@ -497,12 +537,49 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
+      {/* High-Visibility Attention Alert Banner for Inbound Seller Requests */}
+      {totalYetToApprove > 0 && (
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-100/70 to-emerald-50 border-2 border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <span className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0 animate-pulse">
+              <Store size={22} />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-serif font-bold text-sm sm:text-base text-stone-900">
+                  {totalYetToApprove} Inbound Seller Request(s) Awaiting Review & Approval
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                  Action Required
+                </span>
+              </div>
+              <p className="text-xs text-stone-600 mt-0.5">
+                Producers (including Akamla Pickle) submitted "Sell with Us on Wangs" onboarding applications. Review them in the dedicated "Yet to be Approved" space.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveTab('yet_to_approve')}
+            className="px-4 py-2.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+          >
+            <span>Review & Authorize ({totalYetToApprove})</span>
+            <ArrowRight size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Admin Nav Tabs */}
-      <div className="border-b border-stone-200 mb-8 flex flex-wrap gap-4 text-xs font-bold text-stone-600">
+      <div className="border-b border-stone-200 mb-8 flex flex-wrap gap-3 sm:gap-4 text-xs font-bold text-stone-600">
         {[
           { id: 'metrics', label: 'Marketplace Metrics' },
-          { id: 'users', label: `Users & Customers (${usersList.length})` },
+          {
+            id: 'yet_to_approve',
+            label: `Yet to be Approved (${totalYetToApprove})`,
+            badge: totalYetToApprove,
+            isAlert: totalYetToApprove > 0,
+          },
           { id: 'manufacturers', label: `Manufacturers (${manufacturersList.length})` },
+          { id: 'users', label: `Users & Customers (${usersList.length})` },
           { id: 'products', label: `Catalog Moderation (${productsList.length})` },
           { id: 'orders', label: `Orders (${ordersList.length})` },
           { id: 'commission', label: 'Commission & Fees' },
@@ -512,11 +589,20 @@ export default function AdminDashboardPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 border-b-2 transition-colors ${
-              activeTab === tab.id ? 'border-forest-900 text-forest-950 font-bold' : 'border-transparent hover:text-stone-900'
+            className={`pb-3 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === tab.id
+                ? 'border-forest-900 text-forest-950 font-bold'
+                : 'border-transparent hover:text-stone-900'
             }`}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            {tab.badge > 0 && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                tab.isAlert ? 'bg-amber-500 text-white shadow-2xs animate-pulse' : 'bg-stone-200 text-stone-700'
+              }`}>
+                {tab.badge}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -788,6 +874,289 @@ export default function AdminDashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Dedicated Tab: Yet to be Approved (Inbound Seller Applications & Compliance Profiles) */}
+      {activeTab === 'yet_to_approve' && (
+        <div className="space-y-6 text-xs">
+          {/* Header Card */}
+          <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 sm:p-7 rounded-3xl border border-forest-800 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <span className="p-3 bg-amber-400 text-forest-950 rounded-2xl shadow-sm shrink-0">
+                  <Store size={26} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-serif font-bold text-xl text-white">
+                      Yet to be Approved · Inbound Seller Applications
+                    </h2>
+                    {pendingSellerRequests.length > 0 && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-white text-[11px] font-bold animate-pulse">
+                        {pendingSellerRequests.length} Awaiting Review
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-forest-200 mt-1 max-w-2xl leading-relaxed">
+                    Review and authorize prospective artisanal food producers who submitted the "Sell with Us on Wangs" application form.
+                    Approving grants immediate seller access and automatically dispatches an onboarding email with direct web links to the Seller Portal (<code className="text-amber-300">wangs.in/manufacturer</code>).
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={loadAdminData}
+                className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-xl font-bold flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+              >
+                <RefreshCw size={13} />
+                <span>Refresh Requests</span>
+              </button>
+            </div>
+
+            {/* Quick Metrics */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-forest-800/80">
+              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+                <span className="text-[11px] text-amber-300 block font-semibold">Awaiting Authorization</span>
+                <span className="text-2xl font-bold text-white mt-0.5 block">{pendingSellerRequests.length}</span>
+                <span className="text-[10px] text-forest-300">Immediate action needed</span>
+              </div>
+              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+                <span className="text-[11px] text-emerald-300 block font-semibold">Authorized & Invited</span>
+                <span className="text-2xl font-bold text-white mt-0.5 block">{authorizedSellerRequests.length}</span>
+                <span className="text-[10px] text-forest-300">Seller portal links sent</span>
+              </div>
+              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+                <span className="text-[11px] text-cream-300 block font-semibold">Pending Profiles</span>
+                <span className="text-2xl font-bold text-white mt-0.5 block">{pendingMfgProfiles.length}</span>
+                <span className="text-[10px] text-forest-300">FSSAI document review</span>
+              </div>
+              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+                <span className="text-[11px] text-cream-300 block font-semibold">Total Requests Logged</span>
+                <span className="text-2xl font-bold text-white mt-0.5 block">{sellerRequestsList.length}</span>
+                <span className="text-[10px] text-forest-300">Lifetime queue</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sub-Filters and Search */}
+          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="relative w-full sm:w-80">
+              <input
+                type="text"
+                value={pendingSearch}
+                onChange={(e) => setPendingSearch(e.target.value)}
+                placeholder="Search by business name, email, phone, district, or FSSAI..."
+                className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-forest-800 font-medium"
+              />
+              <Search size={14} className="absolute left-3 top-2.5 text-stone-400" />
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 bg-stone-100 p-1 rounded-xl w-full sm:w-auto">
+              {[
+                { id: 'PENDING', label: `Pending Review (${pendingSellerRequests.length})`, isAlert: pendingSellerRequests.length > 0 },
+                { id: 'ALL', label: `All Requests (${sellerRequestsList.length})` },
+                { id: 'AUTHORIZED', label: `Authorized (${authorizedSellerRequests.length})` },
+                ...(pendingMfgProfiles.length > 0 ? [{ id: 'PROFILES', label: `Pending Profiles (${pendingMfgProfiles.length})`, isAlert: true }] : [])
+              ].map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setPendingTabFilter(f.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    pendingTabFilter === f.id
+                      ? f.isAlert
+                        ? 'bg-amber-600 text-white shadow-xs'
+                        : 'bg-forest-900 text-white shadow-xs'
+                      : 'text-stone-600 hover:text-stone-900'
+                  }`}
+                >
+                  <span>{f.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Table of Inbound Applications */}
+          {pendingTabFilter !== 'PROFILES' && (
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+              <div className="p-4 border-b border-stone-100 flex items-center justify-between">
+                <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-forest-800" />
+                  <span>Inbound Seller Authorization Applications ({filteredPendingRequests.length})</span>
+                </h3>
+                <span className="text-[11px] text-stone-400">
+                  {filteredPendingRequests.filter((r) => !r.is_authorized).length} action pending
+                </span>
+              </div>
+
+              {filteredPendingRequests.length === 0 ? (
+                <div className="py-16 text-center text-stone-500 space-y-2">
+                  <CheckCircle2 size={36} className="text-emerald-600 mx-auto" />
+                  <p className="font-serif font-bold text-sm text-stone-800">No requests matching this view</p>
+                  <p className="text-xs text-stone-400">All inbound seller authorization requests have been processed.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead className="bg-cream-100 border-b border-stone-200 text-stone-700">
+                      <tr>
+                        <th className="p-3.5">Business / Brand</th>
+                        <th className="p-3.5">Applicant Contact</th>
+                        <th className="p-3.5">Location</th>
+                        <th className="p-3.5">FSSAI License</th>
+                        <th className="p-3.5">Message / Pitch</th>
+                        <th className="p-3.5">Submitted</th>
+                        <th className="p-3.5">Status</th>
+                        <th className="p-3.5 text-right">Admin Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {filteredPendingRequests.map((req) => (
+                        <tr key={req.id} className={`hover:bg-cream-50/50 transition-colors ${!req.is_authorized ? 'bg-amber-50/40' : ''}`}>
+                          <td className="p-3.5">
+                            <div className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
+                              <Store size={14} className="text-amber-600 shrink-0" />
+                              <span>{req.business_name}</span>
+                            </div>
+                            <span className="text-[10px] text-stone-400 font-mono">Request #{req.id}</span>
+                          </td>
+                          <td className="p-3.5">
+                            <p className="font-mono text-xs text-forest-900 font-bold select-all">{req.email}</p>
+                            <p className="text-[11px] text-stone-500">{req.phone || 'No phone provided'}</p>
+                          </td>
+                          <td className="p-3.5 text-stone-700 font-medium">
+                            {req.location_district || '—'}
+                          </td>
+                          <td className="p-3.5">
+                            {req.fssai_number ? (
+                              <span className="font-mono text-[11px] bg-stone-100 px-2 py-0.5 rounded border border-stone-200 text-stone-800">
+                                {req.fssai_number}
+                              </span>
+                            ) : (
+                              <span className="text-stone-400">—</span>
+                            )}
+                          </td>
+                          <td className="p-3.5 max-w-[220px]">
+                            <p className="text-[11px] text-stone-600 line-clamp-2" title={req.message}>
+                              {req.message || 'No additional message.'}
+                            </p>
+                          </td>
+                          <td className="p-3.5 text-stone-500 text-[11px] whitespace-nowrap">
+                            {req.created_at ? new Date(req.created_at).toLocaleString() : '—'}
+                          </td>
+                          <td className="p-3.5 whitespace-nowrap">
+                            {req.is_authorized ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                                <CheckCircle size={12} className="text-emerald-600" />
+                                <span>Authorized & Invited</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 animate-pulse">
+                                <Clock size={12} className="text-amber-600" />
+                                <span>Yet to be Approved</span>
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
+                              {!req.is_authorized ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={approvingEmail === req.email}
+                                    onClick={() => handleApproveSellerRequest(req.email)}
+                                    className="px-3.5 py-1.5 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs shadow-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <CheckCircle size={13} className="text-emerald-400" />
+                                    <span>{approvingEmail === req.email ? 'Sending...' : 'Approve & Send Email'}</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSellerRequest(req.id, req.business_name)}
+                                    className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-700 font-semibold text-xs border border-stone-200 hover:border-red-200 transition-colors cursor-pointer"
+                                    title="Dismiss/Delete application"
+                                  >
+                                    Dismiss
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    type="button"
+                                    disabled={approvingEmail === req.email}
+                                    onClick={() => handleApproveSellerRequest(req.email)}
+                                    className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[11px] border border-emerald-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                    title="Resend seller portal onboarding email"
+                                  >
+                                    <RefreshCw size={11} className={approvingEmail === req.email ? 'animate-spin' : ''} />
+                                    <span>Resend Email</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSellerRequest(req.id, req.business_name)}
+                                    className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
+                                    title="Delete from list"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pending Manufacturer Profiles (If Any) */}
+          {(pendingTabFilter === 'ALL' || pendingTabFilter === 'PROFILES') && pendingMfgProfiles.length > 0 && (
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden mt-6">
+              <div className="p-4 border-b border-stone-100 flex items-center justify-between bg-amber-50/50">
+                <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
+                  <Store size={16} className="text-amber-600" />
+                  <span>Pending Manufacturer Profile Registrations ({pendingMfgProfiles.length})</span>
+                </h3>
+                <span className="text-[11px] text-amber-800 font-bold">Awaiting Compliance Review</span>
+              </div>
+              <div className="divide-y divide-stone-100">
+                {pendingMfgProfiles.map((m) => (
+                  <div key={m.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-stone-900 text-sm">{m.business_name}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold">Profile Pending</span>
+                      </div>
+                      <p className="text-xs text-stone-500">
+                        {m.contact_email} · {m.contact_phone} · {m.location_district}
+                      </p>
+                      {m.fssai_license_number && (
+                        <p className="text-[11px] text-stone-600 font-mono">FSSAI: {m.fssai_license_number}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleApproveManufacturer(m.id, 'APPROVED')}
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
+                      >
+                        ✓ Approve Manufacturer Profile
+                      </button>
+                      <button
+                        onClick={() => handleApproveManufacturer(m.id, 'REJECTED')}
+                        className="px-3 py-2 bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-700 font-bold text-xs rounded-xl border border-stone-200 cursor-pointer"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -1138,6 +1507,34 @@ export default function AdminDashboardPage() {
       {/* Tab 3: Manufacturers */}
       {activeTab === 'manufacturers' && (
         <div className="space-y-4 text-xs">
+          {/* Direct Alert to Inbound Seller Requests */}
+          {totalYetToApprove > 0 && (
+            <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-xs">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs animate-pulse">
+                  <Clock size={20} />
+                </span>
+                <div>
+                  <h4 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
+                    <span>{totalYetToApprove} Inbound Seller Request(s) Awaiting Authorization</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-600 text-white text-[10px] font-bold">Pending Review</span>
+                  </h4>
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    Producers who submitted "Sell with Us on Wangs" onboarding applications are waiting for administrator review.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('yet_to_approve')}
+                className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs transition-colors shrink-0 shadow-xs flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95"
+              >
+                <span>Open "Yet to be Approved" Space ({totalYetToApprove})</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          )}
+
           {/* Seller Volume & Product Aggregate Ribbon */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs mb-1">
             <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
@@ -1190,6 +1587,14 @@ export default function AdminDashboardPage() {
                   {st === 'ALL' ? 'All Statuses' : st}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setActiveTab('yet_to_approve')}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-2xs hover:scale-105 active:scale-95"
+              >
+                <span>Inbound Requests ({totalYetToApprove})</span>
+                <ArrowRight size={11} />
+              </button>
             </div>
           </div>
 
