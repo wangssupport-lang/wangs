@@ -72,49 +72,49 @@ export default function HomePage() {
       <section className="relative overflow-hidden bg-gradient-to-br from-forest-950 via-forest-900 to-[#10331e] text-white py-4 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
         
-        {/* MOBILE HERO (Compact 2-Column: Left Text, Right Pickle Packet) */}
-        <div className="sm:hidden relative max-w-7xl mx-auto px-3 xs:px-4 py-1">
-          <div className="grid grid-cols-12 gap-2.5 xs:gap-3 items-center">
+        {/* MOBILE HERO (Modern App Banner: Authentic Regional Artisanal Pickles) */}
+        <div className="sm:hidden relative max-w-7xl mx-auto px-3.5 py-3">
+          <div className="grid grid-cols-12 gap-3 items-center">
             {/* Left Content */}
-            <div className="col-span-7 flex flex-col justify-center space-y-1.5 xs:space-y-2">
-              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-forest-950/90 border border-amber-400/40 text-amber-300 text-[9px] font-bold w-fit shadow-xs">
-                <Sparkles size={9} className="text-amber-400 flex-shrink-0 animate-pulse" />
-                <span className="truncate">Artisanal Pickles</span>
+            <div className="col-span-7 flex flex-col justify-center space-y-2">
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-forest-950/90 border border-amber-400/40 text-amber-300 text-[10px] font-bold w-fit shadow-xs">
+                <Sparkles size={10} className="text-amber-400 flex-shrink-0 animate-pulse" />
+                <span>Artisan Cured</span>
               </div>
 
-              <h1 className="font-serif text-[1.12rem] xs:text-[1.25rem] font-black leading-[1.12] tracking-tight text-white">
-                Discover Authentic Pickles, <br />
+              <h1 className="font-serif text-[1.25rem] font-black leading-[1.15] tracking-tight text-white">
+                Authentic Regional Pickles, <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
                   Delivered Fresh.
                 </span>
               </h1>
 
-              <p className="text-[9px] xs:text-[10px] text-stone-200/90 leading-snug line-clamp-2">
-                Slow-cured pork, chicken & fiery ghost chilli from verified regional brands.
+              <p className="text-[10px] text-stone-200/90 leading-relaxed line-clamp-2">
+                Slow-cured wood-smoked pork, shredded chicken & fiery ghost chilli from verified regional brands.
               </p>
 
-              <div className="flex items-center gap-1.5 pt-0.5">
+              <div className="flex items-center gap-2 pt-1">
                 <Link
                   to="/products"
-                  className="inline-flex items-center justify-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-[10px] rounded-md shadow-md shadow-amber-500/20 active:scale-95 transition-all whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-[11px] rounded-xl shadow-md shadow-amber-500/25 active:scale-95 transition-all whitespace-nowrap"
                 >
-                  <span>Shop Now</span>
-                  <ArrowRight size={10} />
+                  <span>Shop Pickles</span>
+                  <ArrowRight size={11} />
                 </Link>
                 <Link
                   to="/brands"
-                  className="inline-flex items-center justify-center gap-1 px-2 py-1 bg-white/10 text-stone-200 text-[10px] font-semibold rounded-md border border-white/15 active:scale-95 transition-all whitespace-nowrap"
+                  className="inline-flex items-center justify-center gap-1 px-2.5 py-1.5 bg-white/10 hover:bg-white/15 text-stone-200 text-[11px] font-semibold rounded-xl border border-white/20 active:scale-95 transition-all whitespace-nowrap"
                 >
-                  <Store size={10} className="text-amber-400" />
+                  <Store size={11} className="text-amber-400" />
                   <span>Brands</span>
                 </Link>
               </div>
             </div>
 
-            {/* Right Pickle Packet Image */}
+            {/* Right Pickle Packet Image (Clean, no floating badges) */}
             <div className="col-span-5 relative flex items-center justify-center">
               {/* Backglow aura */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 via-red-600/25 to-transparent rounded-full blur-xl pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/35 via-red-600/30 to-transparent rounded-full blur-2xl pointer-events-none" />
 
               <Link
                 to="/products?brand=lia-chuka"
@@ -124,13 +124,8 @@ export default function HomePage() {
                   <img
                     src="/featured-pouches.png"
                     alt="Authentic Artisanal Pickles"
-                    className="w-full h-auto max-h-[145px] xs:max-h-[170px] object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.65)]"
+                    className="w-full h-auto max-h-[160px] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
                   />
-                  {/* Floating badge over pouches */}
-                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-forest-950/95 border border-amber-400/40 text-amber-300 text-[8.5px] xs:text-[9px] font-bold shadow-md whitespace-nowrap flex items-center gap-0.5">
-                    <Flame size={9} className="text-amber-400 fill-amber-400" />
-                    <span>Smoked Pork</span>
-                  </div>
                 </div>
               </Link>
             </div>
@@ -229,18 +224,6 @@ export default function HomePage() {
               >
                 {/* Continuous organic multi-phase levitation (persists smoothly even while tilting) */}
                 <div className="relative w-full flex flex-col items-center animate-hero-float">
-                  {/* Floating Spatial Micro-Tag 1: Left */}
-                  <div className="absolute top-4 sm:top-8 -left-2 sm:-left-6 z-20 animate-badge-float pointer-events-none hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-forest-950/90 backdrop-blur-md border border-amber-400/40 text-cream-100 shadow-2xl">
-                    <span className="w-2 h-2 rounded-full bg-chilli-500 animate-ping" />
-                    <span className="text-[11px] font-bold text-amber-300">Wood-Smoked Pork & Ghost Chilli</span>
-                  </div>
-
-                  {/* Floating Spatial Micro-Tag 2: Right */}
-                  <div className="absolute top-8 sm:top-12 -right-2 sm:-right-6 z-20 animate-badge-float-alt pointer-events-none hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-forest-950/90 backdrop-blur-md border border-emerald-400/40 text-cream-100 shadow-2xl">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    <span className="text-[11px] font-bold text-emerald-300">100% Traditional Recipe</span>
-                  </div>
-
                   {/* Image wrapper with interactive cursor spotlight & continuous sheen sweep */}
                   <div className="relative overflow-hidden rounded-3xl p-1">
                     {/* Pulsing red-gold backglow right under the pouches */}
@@ -309,6 +292,62 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 2. App-Style Category Highlights Bar (Blinkit / Swiggy / Zepto style) */}
+      <section className="bg-white border-b border-stone-200/90 py-4 px-4 sm:hidden shadow-2xs">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-forest-900" />
+            <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 font-sans">
+              Explore by Category
+            </span>
+          </div>
+          <Link to="/products" className="text-[11px] font-bold text-forest-800 flex items-center gap-0.5">
+            <span>See All</span>
+            <ChevronRight size={13} />
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-3.5 overflow-x-auto no-scrollbar scroll-smooth py-1 -mx-4 px-4">
+          {[
+            { name: 'Smoked Meat', slug: 'smoked-meat-pickle', icon: '🥩', bg: 'bg-amber-50 border-amber-200/90' },
+            { name: 'Pork Pickles', slug: 'pork-pickle', icon: '🥓', bg: 'bg-red-50 border-red-200/90' },
+            { name: 'King Chilli', slug: 'chilli-pickle', icon: '🌶️', bg: 'bg-orange-50 border-orange-200/90' },
+            { name: 'Bamboo Shoot', slug: 'bamboo-shoot-pickle', icon: '🎋', bg: 'bg-emerald-50 border-emerald-200/90' },
+            { name: 'Fruit & Sweet', slug: 'fruit-pickle', icon: '🥭', bg: 'bg-yellow-50 border-yellow-200/90' },
+            { name: 'Vegetarian', slug: 'vegetarian-pickles', icon: '🥗', bg: 'bg-lime-50 border-lime-200/90' },
+            { name: 'All Pickles', slug: '', icon: '✨', bg: 'bg-stone-50 border-stone-200/90' },
+          ].map((cat) => (
+            <Link
+              key={cat.slug || 'all'}
+              to={cat.slug ? `/products?category=${cat.slug}` : '/products'}
+              className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
+            >
+              <div className={`w-[3.4rem] h-[3.4rem] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border ${cat.bg} group-hover:scale-105 transition-transform`}>
+                <span>{cat.icon}</span>
+              </div>
+              <span className="text-[10px] font-bold text-stone-800 tracking-tight text-center max-w-[58px] leading-tight truncate">
+                {cat.name}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* Mobile Trust Assurance Strip */}
+      <div className="bg-forest-950 text-cream-100 py-2.5 px-4 sm:hidden flex items-center justify-around text-[10.5px] font-semibold border-b border-forest-900 shadow-2xs">
+        <span className="flex items-center gap-1 text-amber-300">
+          <Sparkles size={11} className="text-amber-400" /> Free Air Shipping
+        </span>
+        <span className="text-stone-600">·</span>
+        <span className="flex items-center gap-1 text-emerald-300">
+          <ShieldCheck size={11} className="text-emerald-400" /> FSSAI Certified
+        </span>
+        <span className="text-stone-600">·</span>
+        <span className="flex items-center gap-1 text-stone-200">
+          <Award size={11} className="text-amber-300" /> 100% Homemade
+        </span>
+      </div>
 
       {/* 3. Verified Brand Houses Strip (Logo + Brand Name Only) */}
       <section className="bg-gradient-to-b from-stone-50 via-cream-50 to-stone-100/70 border-b border-stone-200/90 py-3.5 sm:py-5">
