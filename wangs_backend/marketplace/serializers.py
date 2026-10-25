@@ -89,6 +89,14 @@ class RegisterSerializer(serializers.ModelSerializer):
             'state', 'postal_code',
         ]
 
+    def validate_email(self, value):
+        email = (value or '').strip().lower()
+        if not email:
+            raise serializers.ValidationError('Email address is required.')
+        if User.objects.filter(email__iexact=email).exists():
+            raise serializers.ValidationError('An account is already created with this email. Please sign in or use "Forgot Password".')
+        return email
+
     def validate(self, attrs):
         attrs = super().validate(attrs)
         address_fields = ('address_line1', 'city', 'state', 'postal_code')

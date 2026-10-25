@@ -106,6 +106,22 @@ class SendEmailOTPView(views.APIView):
         if not email or '@' not in email:
             return Response({'detail': 'Please provide a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Check for existing account when registering
+        if purpose == 'REGISTER':
+            if User.objects.filter(email__iexact=email).exists():
+                return Response({
+                    'detail': 'An account is already created with this email. Please sign in or use "Forgot Password".',
+                    'account_exists': True
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for registered account when resetting password
+        if purpose == 'RESET_PASSWORD':
+            if not User.objects.filter(email__iexact=email).exists():
+                return Response({
+                    'detail': 'No registered account found with this email address. Please check your email or create an account.',
+                    'account_exists': False
+                }, status=status.HTTP_404_NOT_FOUND)
+
         # Generate secure 6-digit numeric OTP code
         otp_code = f"{random.randint(100000, 999999)}"
         expires_at = timezone.now() + datetime.timedelta(minutes=10)
@@ -200,6 +216,73 @@ class VerifyEmailOTPView(views.APIView):
             'email': email,
             'purpose': purpose,
             'message': 'Email address verified successfully.'
+        }, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = str(request.data.get('email') or '').strip().lower()
+        otp_code = str(request.data.get('otp_code') or '').strip()
+        new_password = str(request.data.get('password') or '').strip()
+        confirm_password = str(request.data.get('confirm_password') or '').strip()
+
+        if not email or not otp_code or not new_password:
+            return Response({'detail': 'Email, 6-digit OTP code, and new password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({'detail': 'Password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if confirm_password and new_password != confirm_password:
+            return Response({'detail': 'Passwords do not match. Please re-enter your password to confirm.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(email__iexact=email).first()
+        if not user:
+            return Response({'detail': 'No registered account found with this email address.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if getattr(user, 'is_banned', False) or not user.is_active:
+            reason = getattr(user, 'ban_reason', None) or 'Platform policy or compliance violation.'
+            return Response({
+                'detail': f'This account has been suspended by administration. Reason: {reason} Contact wangssupport@gmail.com for assistance.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        otp_record = EmailOTP.objects.filter(
+            email=email,
+            otp_code=otp_code,
+            purpose='RESET_PASSWORD',
+            is_used=False
+        ).order_by('-created_at').first()
+
+        if not otp_record or not otp_record.is_valid():
+            return Response({'detail': 'Invalid or expired OTP code. Please request a new code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp_record.is_used = True
+        otp_record.save(update_fields=['is_used'])
+
+        user.set_password(new_password)
+        user.save()
+
+        AuditLog.objects.create(
+            user=user,
+            action='PASSWORD_RESET_SUCCESSFUL',
+            target_model='User',
+            target_id=str(user.id),
+            details={'email': email}
+        )
+
+        refresh = RefreshToken.for_user(user)
+        mfg_profile = None
+        if hasattr(user, 'manufacturer_profile'):
+            mfg_profile = ManufacturerProfileSerializer(user.manufacturer_profile).data
+
+        return Response({
+            'success': True,
+            'message': 'Your password has been successfully reset. You are now logged in.',
+            'user': UserSerializer(user).data,
+            'manufacturer_profile': mfg_profile,
+            'token': str(refresh.access_token),
+            'refresh': str(refresh),
         }, status=status.HTTP_200_OK)
 
 

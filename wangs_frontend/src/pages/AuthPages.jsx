@@ -1,15 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X } from 'lucide-react';
+import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function AuthPage() {
-  const { login, register } = useAuth();
+  const { login, register, resetPassword } = useAuth();
+  const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const [isLogin, setIsLogin] = useState(searchParams.get('tab') !== 'register');
+  const [showForgotPassword, setShowForgotPassword] = useState(searchParams.get('tab') === 'forgot-password');
+
+  // Forgot password state
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetOtpCode, setResetOtpCode] = useState('');
+  const [resetPasswordVal, setResetPasswordVal] = useState('');
+  const [resetConfirmPasswordVal, setResetConfirmPasswordVal] = useState('');
+  const [resetOtpSent, setResetOtpSent] = useState(false);
+  const [resetOtpLoading, setResetOtpLoading] = useState(false);
+  const [resetTimer, setResetTimer] = useState(0);
+  const [resetSubmitting, setResetSubmitting] = useState(false);
+
+  // Account already exists state banner
+  const [existingAccountEmail, setExistingAccountEmail] = useState('');
 
   // Customer registration OTP verification state
   const [otpCode, setOtpCode] = useState('');
@@ -60,14 +76,28 @@ export default function AuthPage() {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
+  // Handle countdown timer for Password Reset OTP resend
+  useEffect(() => {
+    let interval = null;
+    if (resetTimer > 0) {
+      interval = setInterval(() => {
+        setResetTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resetTimer]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     // Reset OTP verification if email is edited during registration
-    if (name === 'email' && otpVerified) {
-      setOtpVerified(false);
-      setOtpSent(false);
-      setOtpCode('');
+    if (name === 'email') {
+      setExistingAccountEmail('');
+      if (otpVerified) {
+        setOtpVerified(false);
+        setOtpSent(false);
+        setOtpCode('');
+      }
     }
   };
 
@@ -81,6 +111,7 @@ export default function AuthPage() {
     setOtpLoading(true);
     setError('');
     setSuccessMsg('');
+    setExistingAccountEmail('');
 
     try {
       const res = await api.sendOtp(email, 'REGISTER');
@@ -92,7 +123,13 @@ export default function AuthPage() {
         setSuccessMsg(res?.message || `A 6-digit OTP verification code has been dispatched to ${email}. Please check your Gmail inbox.`);
       }
     } catch (err) {
-      setError(err.message || 'Failed to dispatch OTP email. Please verify your email and try again.');
+      const msg = err.message || '';
+      if (err.account_exists || msg.toLowerCase().includes('already created') || msg.toLowerCase().includes('already exist')) {
+        setExistingAccountEmail(email);
+        setError(`An account is already created with this email (${email}). Please sign in or use "Forgot Password".`);
+      } else {
+        setError(msg || 'Failed to dispatch OTP email. Please verify your email and try again.');
+      }
     } finally {
       setOtpLoading(false);
     }
@@ -117,6 +154,80 @@ export default function AuthPage() {
       setError(err.message || 'Invalid or expired OTP code. Please check your inbox or request a new code.');
     } finally {
       setOtpLoading(false);
+    }
+  };
+
+  const handleSendResetOtp = async (e) => {
+    if (e) e.preventDefault();
+    const email = (resetEmail || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setError('Please provide a valid email address to receive your password reset OTP.');
+      return;
+    }
+    setResetOtpLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await api.sendOtp(email, 'RESET_PASSWORD');
+      setResetOtpSent(true);
+      setResetTimer(60);
+      if (res?.delivered_via_email === false) {
+        setError(res?.warning || 'Notice: Email delivery credentials are not yet configured in wangs_backend/.env.');
+      } else {
+        setSuccessMsg(res?.message || `A 6-digit password reset OTP has been dispatched to ${email}. Please check your Gmail inbox.`);
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to dispatch password reset code. Please check your email.');
+    } finally {
+      setResetOtpLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e) => {
+    e.preventDefault();
+    const email = (resetEmail || '').trim().toLowerCase();
+    const code = (resetOtpCode || '').trim();
+    if (!email) {
+      setError('Please enter your registered email address.');
+      return;
+    }
+    if (!code || code.length !== 6) {
+      setError('Please enter the 6-digit verification code sent to your email.');
+      return;
+    }
+    if (!resetPasswordVal || resetPasswordVal.length < 6) {
+      setError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (resetPasswordVal !== resetConfirmPasswordVal) {
+      setError('Passwords do not match. Please re-enter your password to confirm.');
+      return;
+    }
+
+    setResetSubmitting(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await resetPassword({
+        email,
+        otp_code: code,
+        password: resetPasswordVal,
+        confirm_password: resetConfirmPasswordVal
+      });
+      toast.success('Password has been successfully updated! You are now logged in.');
+      if (res.user?.role === 'ADMIN') {
+        navigate('/admin');
+      } else if (res.user?.role === 'MANUFACTURER') {
+        navigate('/manufacturer');
+      } else {
+        navigate('/account');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to reset password. Please check your OTP code and try again.');
+    } finally {
+      setResetSubmitting(false);
     }
   };
 
@@ -169,7 +280,13 @@ export default function AuthPage() {
         setShowAddressPopup(true);
       }
     } catch (err) {
-      setError(err.message || 'Authentication failed. Please verify credentials.');
+      const msg = err.message || '';
+      if (err.account_exists || msg.toLowerCase().includes('already created') || msg.toLowerCase().includes('already exist')) {
+        setExistingAccountEmail(formData.email);
+        setError(`An account is already created with this email (${formData.email}). Please sign in or use "Forgot Password".`);
+      } else {
+        setError(msg || 'Authentication failed. Please verify credentials.');
+      }
     } finally {
       setLoading(false);
     }
@@ -226,25 +343,85 @@ export default function AuthPage() {
           </p>
         </div>
 
-        {/* Tab switch */}
-        <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl text-xs font-semibold text-stone-600">
-          <button
-            type="button"
-            onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); }}
-            className={`py-2.5 rounded-xl transition-all ${isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); }}
-            className={`py-2.5 rounded-xl transition-all ${!isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
-          >
-            Create Account
-          </button>
-        </div>
+        {/* Tab switch / Header */}
+        {!showForgotPassword ? (
+          <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl text-xs font-semibold text-stone-600">
+            <button
+              type="button"
+              onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${!isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
+            >
+              Create Account
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between pb-1 border-b border-stone-100">
+            <button
+              type="button"
+              onClick={() => { setShowForgotPassword(false); setError(''); setSuccessMsg(''); }}
+              className="text-stone-500 hover:text-stone-900 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+            >
+              <span>← Back to Sign In</span>
+            </button>
+            <span className="text-[11px] font-semibold text-forest-800 bg-forest-50 px-2.5 py-0.5 rounded-full border border-forest-200">
+              Password Recovery
+            </span>
+          </div>
+        )}
 
-        {error && (
+        {/* Existing Account Notice Banner */}
+        {existingAccountEmail && (
+          <div className="p-3.5 bg-amber-50 border border-amber-300 text-stone-900 text-xs rounded-2xl space-y-2.5 shadow-2xs">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-950 text-xs">Account Already Created</p>
+                <p className="text-stone-700 text-[11px] mt-0.5 leading-relaxed">
+                  An account is already created with this email (<strong className="font-mono text-stone-900">{existingAccountEmail}</strong>).
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pt-2 border-t border-amber-200/80">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLogin(true);
+                  setShowForgotPassword(false);
+                  setFormData((prev) => ({ ...prev, username: existingAccountEmail }));
+                  setExistingAccountEmail('');
+                  setError('');
+                  setSuccessMsg('Please enter your password to sign in.');
+                }}
+                className="px-3.5 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl font-bold text-[11px] shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+              >
+                <span>Sign In Now</span>
+                <ArrowRight size={12} />
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(true);
+                  setResetEmail(existingAccountEmail);
+                  setExistingAccountEmail('');
+                  setError('');
+                  setSuccessMsg('');
+                }}
+                className="px-3 py-1.5 bg-white hover:bg-stone-50 text-stone-800 rounded-xl font-bold text-[11px] border border-stone-200 transition-all cursor-pointer"
+              >
+                Forgot Password?
+              </button>
+            </div>
+          </div>
+        )}
+
+        {error && !existingAccountEmail && (
           <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
             <AlertCircle size={15} className="flex-shrink-0 mt-0.5 text-red-600" />
             <span>{error}</span>
@@ -258,8 +435,130 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* 1. Direct Password Login Form (No OTP in Login) */}
-        {isLogin && (
+        {/* 1. Password Reset Form */}
+        {showForgotPassword && (
+          <form onSubmit={handleResetPasswordSubmit} className="space-y-4 text-xs">
+            <div className="text-center pb-1">
+              <div className="w-12 h-12 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto mb-2 shadow-2xs">
+                <KeyRound size={22} />
+              </div>
+              <h2 className="font-serif font-bold text-lg text-stone-900">
+                Reset Your Password
+              </h2>
+              <p className="text-stone-500 text-[11px] mt-1 max-w-xs mx-auto">
+                Enter your registered email address to receive a secure 6-digit verification code.
+              </p>
+            </div>
+
+            {/* Email + Send OTP Button */}
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                Registered Email Address *
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type="email"
+                    required
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="Enter your registered email"
+                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={resetOtpLoading || resetTimer > 0}
+                  onClick={handleSendResetOtp}
+                  className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl transition-all disabled:opacity-50 shrink-0 cursor-pointer shadow-2xs"
+                >
+                  {resetOtpLoading ? 'Sending...' : resetTimer > 0 ? `Resend (${resetTimer}s)` : 'Send Code'}
+                </button>
+              </div>
+            </div>
+
+            {/* 6-Digit Verification Code */}
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                6-Digit Email Verification Code *
+              </label>
+              <input
+                type="text"
+                required
+                maxLength={6}
+                value={resetOtpCode}
+                onChange={(e) => setResetOtpCode(e.target.value.replace(/\D/g, ''))}
+                placeholder="Enter 6-digit code from email"
+                className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-mono text-center tracking-widest text-sm"
+              />
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                New Password (minimum 6 characters) *
+              </label>
+              <div className="relative">
+                <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                <input
+                  type="password"
+                  required
+                  value={resetPasswordVal}
+                  onChange={(e) => setResetPasswordVal(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Confirm New Password */}
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                Confirm New Password *
+              </label>
+              <div className="relative">
+                <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                <input
+                  type="password"
+                  required
+                  value={resetConfirmPasswordVal}
+                  onChange={(e) => setResetConfirmPasswordVal(e.target.value)}
+                  placeholder="Re-enter new password to confirm"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                />
+              </div>
+            </div>
+
+            {/* Submit Reset */}
+            <button
+              type="submit"
+              disabled={resetSubmitting}
+              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <span>{resetSubmitting ? 'Resetting Password...' : 'Reset Password & Sign In'}</span>
+              <ArrowRight size={15} />
+            </button>
+
+            {/* Back to Sign In */}
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForgotPassword(false);
+                  setError('');
+                  setSuccessMsg('');
+                }}
+                className="text-stone-500 hover:text-stone-900 font-bold text-[11px] cursor-pointer"
+              >
+                ← Back to Sign In
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* 2. Direct Password Login Form (No OTP in Login) */}
+        {!showForgotPassword && isLogin && (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
               <label className="block text-stone-700 font-semibold mb-1">
@@ -281,9 +580,24 @@ export default function AuthPage() {
             </div>
 
             <div>
-              <label className="block text-stone-700 font-semibold mb-1">
-                Password
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-stone-700 font-semibold">
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowForgotPassword(true);
+                    setResetEmail(formData.username.includes('@') ? formData.username : '');
+                    setError('');
+                    setSuccessMsg('');
+                    setExistingAccountEmail('');
+                  }}
+                  className="text-[11px] text-forest-800 hover:text-forest-950 font-bold hover:underline cursor-pointer"
+                >
+                  Forgot Password?
+                </button>
+              </div>
               <div className="relative">
                 <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
                 <input
@@ -302,7 +616,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <span>{loading ? 'Signing In...' : 'Sign In'}</span>
               <ArrowRight size={15} />
@@ -313,8 +627,8 @@ export default function AuthPage() {
                 Don’t have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); }}
-                  className="text-forest-900 font-bold hover:underline"
+                  onClick={() => { setIsLogin(false); setShowForgotPassword(false); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
+                  className="text-forest-900 font-bold hover:underline cursor-pointer"
                 >
                   Create an Account with Email OTP
                 </button>
@@ -323,8 +637,8 @@ export default function AuthPage() {
           </form>
         )}
 
-        {/* 2. Customer Sign Up Form (Mandatory Gmail / Email OTP) */}
-        {!isLogin && (
+        {/* 3. Customer Sign Up Form (Mandatory Gmail / Email OTP) */}
+        {!showForgotPassword && !isLogin && (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="grid grid-cols-2 gap-2">
               <div>

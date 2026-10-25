@@ -133,11 +133,17 @@ def send_otp_email(to_email: str, otp_code: str, purpose: str = 'LOGIN'):
     purpose_titles = {
         'LOGIN': 'Sign In to Your Wangs Account',
         'REGISTER': 'Complete Your Wangs Registration',
+        'RESET_PASSWORD': 'Reset Your Wangs Account Password',
         'SELLER': 'Verify Your Wangs Producer Account',
         'SELLER_REQUEST': 'Verify Your Seller Authorization Request',
     }
     title = purpose_titles.get(purpose, 'Your Wangs Verification Code')
     subject = f"Your Wangs OTP: {otp_code} — {title}"
+
+    if purpose == 'RESET_PASSWORD':
+        intro_text = "Hello! Use the one-time verification code below to reset your Wangs account password. This code will expire in <strong>10 minutes</strong>. If you did not request a password reset, please secure your account immediately."
+    else:
+        intro_text = "Hello! Use the one-time verification code below to verify your email address on Wangs. This code will expire in <strong>10 minutes</strong>."
 
     # Rich artisanal HTML email template matching the website's forest green & warm cream aesthetic
     html_content = f"""
@@ -172,7 +178,7 @@ def send_otp_email(to_email: str, otp_code: str, purpose: str = 'LOGIN'):
                     {title}
                   </h2>
                   <p style="margin:0 0 24px;color:#57534e;font-size:14px;line-height:1.6;">
-                    Hello! Use the one-time verification code below to verify your email address on Wangs. This code will expire in <strong>10 minutes</strong>.
+                    {intro_text}
                   </p>
 
                   <!-- Stylized OTP Display Box -->

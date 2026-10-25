@@ -771,3 +771,96 @@ class WangsFinancialAndOrderTests(TestCase):
             self.assertEqual(args[0], 'pending_mfg@wangs.in')
             self.assertIn('Nagaland Pure Pickles', args[2])
             self.assertIn('/manufacturer', args[2])
+
+    def test_existing_email_detection_and_forgot_password_flow(self):
+        """
+        Verify that:
+        1. When an email is already registered, registration OTP and signup are rejected
+           with a clear 'account is already created with this email' error.
+        2. Forgot password sends a reset OTP and allows setting a new password.
+        """
+        from unittest.mock import patch
+
+        existing_user = User.objects.create_user(
+            username='existing_customer',
+            email='shopper_exists@wangs.in',
+            password='oldpassword123',
+            role=User.Role.CUSTOMER
+        )
+
+        # 1. Registration OTP rejects already created email
+        send_otp_url = reverse('auth-send-otp')
+        resp = self.client.post(send_otp_url, {
+            'email': 'shopper_exists@wangs.in',
+            'purpose': 'REGISTER'
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertTrue(resp.data.get('account_exists'))
+        self.assertIn('already created with this email', resp.data.get('detail', ''))
+
+        # 2. Registration endpoint itself also rejects already created email
+        reg_url = reverse('auth-register')
+        reg_resp = self.client.post(reg_url, {
+            'email': 'shopper_exists@wangs.in',
+            'password': 'brandnewpass123',
+            'first_name': 'Test'
+        }, format='json')
+        self.assertEqual(reg_resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('email', reg_resp.data)
+        self.assertIn('already created with this email', str(reg_resp.data['email']))
+
+        # 3. Forgot password OTP rejects unregistered email
+        resp_unknown = self.client.post(send_otp_url, {
+            'email': 'nobody@wangs.in',
+            'purpose': 'RESET_PASSWORD'
+        }, format='json')
+        self.assertEqual(resp_unknown.status_code, status.HTTP_404_NOT_FOUND)
+
+        # 4. Forgot password OTP succeeds for existing user
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'mock_reset_otp'})
+            resp_reset_otp = self.client.post(send_otp_url, {
+                'email': 'shopper_exists@wangs.in',
+                'purpose': 'RESET_PASSWORD'
+            }, format='json')
+            self.assertEqual(resp_reset_otp.status_code, status.HTTP_200_OK)
+            self.assertTrue(resp_reset_otp.data.get('success'))
+
+        # Retrieve generated reset OTP
+        otp_obj = EmailOTP.objects.filter(
+            email='shopper_exists@wangs.in',
+            purpose='RESET_PASSWORD',
+            is_used=False
+        ).latest('created_at')
+
+        # 5. Reset password with wrong OTP fails
+        reset_url = reverse('auth-reset-password')
+        fail_resp = self.client.post(reset_url, {
+            'email': 'shopper_exists@wangs.in',
+            'otp_code': '000000',
+            'password': 'mynewpassword999',
+            'confirm_password': 'mynewpassword999',
+        }, format='json')
+        self.assertEqual(fail_resp.status_code, status.HTTP_400_BAD_REQUEST)
+
+        # 6. Reset password with valid OTP succeeds
+        ok_reset = self.client.post(reset_url, {
+            'email': 'shopper_exists@wangs.in',
+            'otp_code': otp_obj.otp_code,
+            'password': 'mynewpassword999',
+            'confirm_password': 'mynewpassword999',
+        }, format='json')
+        self.assertEqual(ok_reset.status_code, status.HTTP_200_OK)
+        self.assertTrue(ok_reset.data.get('success'))
+        self.assertIn('token', ok_reset.data)
+
+        # 7. Old password no longer works, new password works
+        existing_user.refresh_from_db()
+        self.assertFalse(existing_user.check_password('oldpassword123'))
+        self.assertTrue(existing_user.check_password('mynewpassword999'))
+
+        login_resp = self.client.post(reverse('auth-login'), {
+            'username': 'shopper_exists@wangs.in',
+            'password': 'mynewpassword999'
+        }, format='json')
+        self.assertEqual(login_resp.status_code, status.HTTP_200_OK)

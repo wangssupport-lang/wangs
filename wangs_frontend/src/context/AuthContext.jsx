@@ -77,6 +77,16 @@ export function AuthProvider({ children }) {
     return res;
   };
 
+  const resetPassword = async (payload) => {
+    const res = await api.resetPassword(payload);
+    if (res.token) {
+      localStorage.setItem('wangs_token', res.token);
+      setUser(res.user);
+      setMfgProfile(res.manufacturer_profile);
+    }
+    return res;
+  };
+
   const logout = () => {
     localStorage.removeItem('wangs_token');
     setUser(null);
@@ -97,6 +107,7 @@ export function AuthProvider({ children }) {
       login,
       loginWithOtp,
       register,
+      resetPassword,
       logout,
       isAdmin,
       isManufacturer,

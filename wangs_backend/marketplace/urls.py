@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     RegisterView, LoginView, CurrentUserView, AddressViewSet,
-    SendEmailOTPView, VerifyEmailOTPView, RequestSellerAccessView,
+    SendEmailOTPView, VerifyEmailOTPView, ResetPasswordView, RequestSellerAccessView,
     BrandListView, BrandDetailView,
     CategoryViewSet, ProductViewSet, check_pincode_serviceability,
     CartView, CheckoutQuoteView, CreateOrderView, VerifyPaymentView,
@@ -32,6 +32,7 @@ urlpatterns = [
     path('auth/me/', CurrentUserView.as_view(), name='auth-me'),
     path('auth/send-otp/', SendEmailOTPView.as_view(), name='auth-send-otp'),
     path('auth/verify-otp/', VerifyEmailOTPView.as_view(), name='auth-verify-otp'),
+    path('auth/reset-password/', ResetPasswordView.as_view(), name='auth-reset-password'),
     path('auth/request-seller-access/', RequestSellerAccessView.as_view(), name='request-seller-access'),
     
     # Storefront & Brands (Amazon-style Brand Spotlight)
