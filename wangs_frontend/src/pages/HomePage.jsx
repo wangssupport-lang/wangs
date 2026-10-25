@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, ChevronRight, ChevronDown, ChevronUp, Sparkles, Store, ShieldCheck, Flame,
+  ArrowRight, ChevronRight, Sparkles, Store, ShieldCheck, Flame,
   Package, Utensils, Award
 } from 'lucide-react';
 import { api } from '../api';
@@ -13,7 +13,6 @@ export default function HomePage() {
   const [bestsellers, setBestsellers] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
-  const [showAllBrands, setShowAllBrands] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tilt, setTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
 
@@ -293,47 +292,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. App-Style Category Highlights Bar (Blinkit / Swiggy / Zepto style) */}
-      <section className="bg-white border-b border-stone-200/90 py-4 px-4 sm:hidden shadow-2xs">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-forest-900" />
-            <span className="text-[11px] font-black uppercase tracking-wider text-stone-900 font-sans">
-              Explore by Category
-            </span>
-          </div>
-          <Link to="/products" className="text-[11px] font-bold text-forest-800 flex items-center gap-0.5">
-            <span>See All</span>
-            <ChevronRight size={13} />
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-3.5 overflow-x-auto no-scrollbar scroll-smooth py-1 -mx-4 px-4">
-          {[
-            { name: 'Smoked Meat', slug: 'smoked-meat-pickle', icon: '🥩', bg: 'bg-amber-50 border-amber-200/90' },
-            { name: 'Pork Pickles', slug: 'pork-pickle', icon: '🥓', bg: 'bg-red-50 border-red-200/90' },
-            { name: 'King Chilli', slug: 'chilli-pickle', icon: '🌶️', bg: 'bg-orange-50 border-orange-200/90' },
-            { name: 'Bamboo Shoot', slug: 'bamboo-shoot-pickle', icon: '🎋', bg: 'bg-emerald-50 border-emerald-200/90' },
-            { name: 'Fruit & Sweet', slug: 'fruit-pickle', icon: '🥭', bg: 'bg-yellow-50 border-yellow-200/90' },
-            { name: 'Vegetarian', slug: 'vegetarian-pickles', icon: '🥗', bg: 'bg-lime-50 border-lime-200/90' },
-            { name: 'All Pickles', slug: '', icon: '✨', bg: 'bg-stone-50 border-stone-200/90' },
-          ].map((cat) => (
-            <Link
-              key={cat.slug || 'all'}
-              to={cat.slug ? `/products?category=${cat.slug}` : '/products'}
-              className="flex flex-col items-center gap-1.5 shrink-0 group active:scale-95 transition-transform"
-            >
-              <div className={`w-[3.4rem] h-[3.4rem] rounded-2xl flex items-center justify-center text-2xl shadow-2xs border ${cat.bg} group-hover:scale-105 transition-transform`}>
-                <span>{cat.icon}</span>
-              </div>
-              <span className="text-[10px] font-bold text-stone-800 tracking-tight text-center max-w-[58px] leading-tight truncate">
-                {cat.name}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section>
-
       {/* Mobile Trust Assurance Strip */}
       <div className="bg-forest-950 text-cream-100 py-2.5 px-4 sm:hidden flex items-center justify-around text-[10.5px] font-semibold border-b border-forest-900 shadow-2xs">
         <span className="flex items-center gap-1 text-amber-300">
@@ -349,33 +307,39 @@ export default function HomePage() {
         </span>
       </div>
 
-      {/* 3. Verified Brand Houses Strip (Logo + Brand Name Only) */}
-      <section className="bg-gradient-to-b from-stone-50 via-cream-50 to-stone-100/70 border-b border-stone-200/90 py-3.5 sm:py-5">
+      {/* 2. Official Verified Brand Houses Showcase */}
+      <section className="bg-gradient-to-b from-stone-50 via-cream-50/70 to-stone-100/60 border-b border-stone-200/80 py-5 sm:py-7">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-row items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-              <span className="text-[10.5px] sm:text-xs font-bold uppercase tracking-wider text-stone-700">
-                Official Brand Stores · Verified Producers
-              </span>
+          <div className="flex items-end justify-between mb-3.5 sm:mb-5">
+            <div>
+              <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-forest-800">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+                <span>Verified Artisan Houses</span>
+              </div>
+              <h2 className="font-serif text-lg sm:text-2xl font-bold text-stone-900 mt-0.5">
+                Official Brand Stores
+              </h2>
+              <p className="text-xs text-stone-500 hidden sm:block mt-0.5">
+                Authentic small-batch recipes directly from certified regional heritage producers
+              </p>
             </div>
             <Link
               to="/brands"
-              className="text-[11px] sm:text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-0.5 group whitespace-nowrap"
+              className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1 group py-1"
             >
               <span>View All Brands</span>
-              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
             </Link>
           </div>
 
-          {/* Row-wise Responsive Grid (2 columns on mobile, exactly 2 rows for 4 brands) */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-2.5">
+          {/* Cards: Smooth horizontal swipeable on mobile, multi-column grid on desktop */}
+          <div className="flex sm:grid gap-3 sm:gap-4 overflow-x-auto no-scrollbar scroll-smooth snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 pb-2 sm:pb-0">
             {loading ? (
-              [1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-11 sm:h-12 rounded-xl bg-stone-200/60 animate-pulse" />
+              [1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="w-[210px] sm:w-auto shrink-0 snap-start h-40 rounded-2xl bg-stone-200/70 animate-pulse" />
               ))
             ) : brands.length > 0 ? (
-              (showAllBrands ? brands : brands.slice(0, 4)).map((brand) => (
+              brands.slice(0, 8).map((brand) => (
                 <BrandCard
                   key={brand.id || brand.slug || brand.business_name}
                   brand={brand}
@@ -384,20 +348,6 @@ export default function HomePage() {
               ))
             ) : null}
           </div>
-
-          {/* View More / Show Less Toggle for more than 4 brands (or > 2 rows) */}
-          {brands.length > 4 && (
-            <div className="flex items-center justify-center pt-2 sm:pt-2.5">
-              <button
-                type="button"
-                onClick={() => setShowAllBrands(!showAllBrands)}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 hover:text-stone-900 text-[10.5px] font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
-              >
-                <span>{showAllBrands ? 'Show Less' : `View More Brands (+${brands.length - 4})`}</span>
-                {showAllBrands ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-              </button>
-            </div>
-          )}
         </div>
       </section>
 
