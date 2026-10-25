@@ -175,10 +175,59 @@ export default function ProductListPage() {
         </div>
       </div>
 
+      {/* Quick 1-Tap Mobile Filter Chips (Horizontal Scroll) */}
+      <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto no-scrollbar scroll-smooth py-1 -mt-4">
+        <button
+          type="button"
+          onClick={() => updateFilter('dietary_type', '')}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            !dietaryParam ? 'bg-forest-900 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+          }`}
+        >
+          All Types
+        </button>
+        <button
+          type="button"
+          onClick={() => updateFilter('dietary_type', dietaryParam === 'NON_VEG' ? '' : 'NON_VEG')}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            dietaryParam === 'NON_VEG' ? 'bg-forest-900 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+          }`}
+        >
+          Non-Veg
+        </button>
+        <button
+          type="button"
+          onClick={() => updateFilter('dietary_type', dietaryParam === 'VEG' ? '' : 'VEG')}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            dietaryParam === 'VEG' ? 'bg-forest-900 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+          }`}
+        >
+          Veg
+        </button>
+        <button
+          type="button"
+          onClick={() => updateFilter('in_stock', inStockParam ? '' : 'true')}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1 ${
+            inStockParam ? 'bg-emerald-700 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+          }`}
+        >
+          <span>In Stock</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => updateFilter('spice_level', spiceParam === 'FIERY_KING_CHILLI' ? '' : 'FIERY_KING_CHILLI')}
+          className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+            spiceParam === 'FIERY_KING_CHILLI' ? 'bg-chilli-700 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+          }`}
+        >
+          🔥 King Chilli
+        </button>
+      </div>
+
       {/* Main Grid with Sidebar Filter */}
       <div className="grid grid-cols-1 gap-5 sm:gap-8 lg:grid-cols-4">
         {/* Desktop Filter Sidebar */}
-        <aside className={`lg:block ${mobileFilterOpen ? 'block' : 'hidden'} space-y-6 bg-white lg:bg-transparent p-6 lg:p-0 rounded-3xl border lg:border-none border-stone-200 shadow-artisan lg:shadow-none`}>
+        <aside className="hidden lg:block space-y-6">
           {/* Categories Filter */}
           <div className="bg-white lg:p-5 lg:rounded-2xl lg:border lg:border-stone-200/80 lg:shadow-sm space-y-3">
             <h3 className="font-serif font-bold text-sm text-stone-950 border-b border-stone-100 pb-2">
@@ -381,6 +430,149 @@ export default function ProductListPage() {
           )}
         </div>
       </div>
+
+      {/* Mobile Slide-Up Filter Drawer (App-like Bottom Sheet) */}
+      {mobileFilterOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden bg-stone-950/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl border-t border-stone-200 animate-slide-up">
+            {/* Header */}
+            <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Filter size={16} className="text-forest-900" />
+                <h3 className="font-serif font-bold text-base text-stone-900">Filter Pickles</h3>
+                {activeFiltersCount > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-forest-100 text-forest-900 text-xs font-bold">
+                    {activeFiltersCount} active
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                aria-label="Close filters"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Scrollable Filters Body */}
+            <div className="p-5 overflow-y-auto space-y-5 text-xs">
+              {/* Dietary */}
+              <div>
+                <h4 className="font-bold text-stone-900 mb-2">Dietary Preference</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'All Types', val: '' },
+                    { label: 'Non-Veg', val: 'NON_VEG' },
+                    { label: 'Veg', val: 'VEG' },
+                    { label: 'Veg Mixed', val: 'VEG_MIXED' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => updateFilter('dietary_type', opt.val)}
+                      className={`py-2 px-3 rounded-xl font-medium text-left border transition-all ${
+                        dietaryParam === opt.val
+                          ? 'border-forest-900 bg-forest-50 text-forest-950 font-bold'
+                          : 'border-stone-200 bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div>
+                <h4 className="font-bold text-stone-900 mb-2">Categories</h4>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => updateFilter('category', '')}
+                    className={`px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                      !categoryParam ? 'border-forest-900 bg-forest-900 text-white font-bold' : 'border-stone-200 bg-stone-50 text-stone-700'
+                    }`}
+                  >
+                    All
+                  </button>
+                  {categories.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => updateFilter('category', c.slug)}
+                      className={`px-3 py-1.5 rounded-xl border text-xs transition-all ${
+                        categoryParam === c.slug ? 'border-forest-900 bg-forest-900 text-white font-bold' : 'border-stone-200 bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      {c.name} ({c.product_count})
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* In-Stock Toggle */}
+              <div className="pt-2 border-t border-stone-100">
+                <label className="flex items-center justify-between cursor-pointer py-1">
+                  <span className="font-bold text-stone-900">In-Stock Items Only</span>
+                  <input
+                    type="checkbox"
+                    checked={inStockParam}
+                    onChange={(e) => updateFilter('in_stock', e.target.checked ? 'true' : '')}
+                    className="w-5 h-5 rounded text-forest-900 focus:ring-forest-900"
+                  />
+                </label>
+              </div>
+
+              {/* Spice Spectrum */}
+              <div className="pt-2 border-t border-stone-100">
+                <h4 className="font-bold text-stone-900 mb-2">Heat Spectrum</h4>
+                <div className="space-y-1.5">
+                  {[
+                    { label: 'All Heat Levels', val: '' },
+                    { label: 'Mild Spice', val: 'MILD' },
+                    { label: 'Medium Spice', val: 'MEDIUM' },
+                    { label: 'Hot Firewood Spice', val: 'HOT' },
+                    { label: 'Fiery King Chilli (Raja Mircha)', val: 'FIERY_KING_CHILLI' },
+                  ].map((opt) => (
+                    <button
+                      key={opt.val}
+                      type="button"
+                      onClick={() => updateFilter('spice_level', opt.val)}
+                      className={`w-full py-2 px-3 rounded-xl font-medium text-left border transition-all ${
+                        spiceParam === opt.val
+                          ? 'border-forest-900 bg-forest-50 text-forest-950 font-bold'
+                          : 'border-stone-200 bg-stone-50 text-stone-700'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-stone-200 bg-stone-50 flex gap-3 pb-[calc(env(safe-area-inset-bottom,0px)+12px)]">
+              <button
+                type="button"
+                onClick={() => { clearAllFilters(); setMobileFilterOpen(false); }}
+                className="flex-1 py-3 text-stone-700 font-bold border border-stone-300 rounded-xl hover:bg-stone-100 active:scale-95 transition-all text-xs"
+              >
+                Reset
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileFilterOpen(false)}
+                className="flex-[2] py-3 bg-forest-900 text-white font-bold rounded-xl shadow active:scale-95 transition-all text-xs"
+              >
+                Apply & View Products
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

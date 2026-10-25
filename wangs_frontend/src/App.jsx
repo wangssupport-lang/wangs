@@ -81,7 +81,9 @@ function AppLayout() {
       </main>
 
       <Footer />
-      <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
+      {location.pathname !== '/checkout' && (
+        <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
+      )}
     </div>
   );
 }

@@ -56,10 +56,10 @@ export default function CartDrawer() {
         onClick={() => setIsDrawerOpen(false)}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-8">
-        <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col border-l border-stone-200">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-8">
+        <div className="w-screen max-w-full sm:max-w-md bg-white shadow-2xl flex flex-col border-l border-stone-200">
           {/* Drawer Header */}
-          <div className="px-6 py-5 bg-gradient-to-b from-cream-100 to-white border-b border-stone-200 flex items-center justify-between">
+          <div className="px-5 sm:px-6 py-4 sm:py-5 bg-gradient-to-b from-cream-100 to-white border-b border-stone-200 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-forest-900 text-cream-100 flex items-center justify-center shadow-sm">
                 <ShoppingBag size={18} />
@@ -216,21 +216,21 @@ export default function CartDrawer() {
                 <Link
                   to="/cart"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-1 py-3 text-center text-xs font-bold text-forest-900 bg-white border border-forest-900/30 rounded-xl hover:bg-forest-50 transition-colors shadow-sm"
+                  className="flex-1 py-3 text-center text-xs font-bold text-forest-900 bg-white border border-forest-900/30 rounded-xl hover:bg-forest-50 transition-colors shadow-sm active:scale-95"
                 >
-                  View Full Cart
+                  View Cart
                 </Link>
                 <Link
                   to="/checkout"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-forest-900 hover:bg-forest-950 rounded-xl shadow-md hover:shadow-lg transition-all"
+                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-forest-900 hover:bg-forest-950 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={15} />
                 </Link>
               </div>
 
-              <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1">
+              <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1 pb-[calc(env(safe-area-inset-bottom,0px)+4px)]">
                 <ShieldCheck size={13} className="text-emerald-600" />
                 <span>256-bit Encrypted Escrow · Verified Artisanal Producers</span>
               </p>

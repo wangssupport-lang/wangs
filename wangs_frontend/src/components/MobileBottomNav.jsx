@@ -86,14 +86,19 @@ export default function MobileBottomNav({ onOpenCart }) {
         <button
           type="button"
           onClick={onOpenCart}
-          className="relative flex flex-col items-center justify-center py-1 rounded-xl transition-all text-stone-500 hover:text-stone-900 font-medium active:scale-95"
-          aria-label="Shopping Cart"
+          className="relative flex flex-col items-center justify-center py-1 rounded-xl transition-all text-stone-600 hover:text-stone-950 font-medium active:scale-95"
+          aria-label={`Shopping Cart with ${itemsCount} items`}
         >
           <div className="relative p-1 rounded-full text-forest-900">
             <ShoppingBag size={20} strokeWidth={2.2} />
+            {itemsCount > 0 && (
+              <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 bg-amber-400 text-forest-950 font-black text-[10px] leading-tight rounded-full flex items-center justify-center shadow-xs border border-white animate-scale-up">
+                {itemsCount > 99 ? '99+' : itemsCount}
+              </span>
+            )}
           </div>
-          <span className="text-[10px] tracking-tight mt-0.5 font-bold text-forest-900">
-            Cart
+          <span className="text-[10px] tracking-tight mt-0.5 font-bold text-forest-950">
+            {itemsCount > 0 ? `₹${cartTotal}` : 'Cart'}
           </span>
         </button>
 

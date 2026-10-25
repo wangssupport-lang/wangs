@@ -123,7 +123,7 @@ export default function Navbar() {
 
             {/* Pincode Popover Modal */}
             {pinModalOpen && (
-              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 text-stone-900 animate-in fade-in zoom-in-95 duration-150">
+              <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 text-stone-900 animate-in fade-in zoom-in-95 duration-150">
                 <div className="flex justify-between items-center mb-2">
                   <p className="font-serif font-bold text-sm text-stone-900 flex items-center gap-1.5">
                     <MapPin size={15} className="text-forest-800" /> Check Delivery Availability
@@ -335,31 +335,48 @@ export default function Navbar() {
             {/* Shopping Basket Button */}
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="group relative px-3.5 py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
-              aria-label="Shopping Basket"
+              className="group relative px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
+              aria-label={`Shopping Basket with ${itemsCount} items`}
             >
-              <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
+              <div className="relative">
+                <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
+                {itemsCount > 0 && (
+                  <span className="absolute -top-2 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-forest-950 shadow-xs animate-scale-up">
+                    {itemsCount > 99 ? '99+' : itemsCount}
+                  </span>
+                )}
+              </div>
               <span className="hidden sm:inline text-xs font-bold tracking-tight">
-                Cart
+                Cart {itemsCount > 0 ? `· ₹${cartTotal}` : ''}
               </span>
             </button>
           </div>
         </div>
 
         {/* Mobile Search Bar (Directly accessible without drawer) */}
-        <div className="md:hidden pb-3">
+        <div className="md:hidden pb-2.5 pt-0.5">
           <form onSubmit={handleSearch} className="relative w-full">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search smoked pork, king chilli, ferments..."
-              className="w-full pl-9 pr-14 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-forest-800"
+              className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-forest-800 focus:bg-white shadow-2xs font-medium"
             />
             <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-12 top-2.5 text-stone-400 hover:text-stone-600 p-0.5"
+                aria-label="Clear search query"
+              >
+                <X size={13} />
+              </button>
+            )}
             <button
               type="submit"
-              className="absolute right-1 top-1 px-3 py-1 bg-forest-900 text-white text-[11px] font-bold rounded-lg"
+              className="absolute right-1 top-1 px-3 py-1 bg-forest-900 text-white text-[11px] font-bold rounded-lg shadow-2xs active:scale-95 transition-transform"
             >
               Go
             </button>

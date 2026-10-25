@@ -139,47 +139,44 @@ export default function CustomerAccountPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Navigation Tabs */}
-        <aside className="lg:col-span-3 space-y-1 text-xs">
+        {/* Navigation Tabs (Horizontal Scroll on Mobile, Sidebar on Desktop) */}
+        <aside className="lg:col-span-3 flex lg:flex-col overflow-x-auto no-scrollbar gap-1.5 lg:space-y-1 text-xs pb-2 lg:pb-0">
           <button
             onClick={() => setActiveTab('orders')}
-            className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-semibold transition-colors ${
-              activeTab === 'orders' ? 'bg-forest-900 text-white' : 'text-stone-700 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
+              activeTab === 'orders' ? 'bg-forest-900 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
-            <Package size={16} /> Track Orders ({orders.length})
+            <Package size={15} /> Track Orders ({orders.length})
           </button>
 
           <button
             onClick={() => setActiveTab('addresses')}
-            className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-semibold transition-colors ${
-              activeTab === 'addresses' ? 'bg-forest-900 text-white' : 'text-stone-700 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
+              activeTab === 'addresses' ? 'bg-forest-900 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
-            <MapPin size={16} /> Saved Delivery Addresses ({addresses.length})
+            <MapPin size={15} /> Addresses ({addresses.length})
           </button>
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-semibold transition-colors ${
-              activeTab === 'profile' ? 'bg-forest-900 text-white' : 'text-stone-700 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
+              activeTab === 'profile' ? 'bg-forest-900 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
-            <User size={16} /> Account Profile
+            <User size={15} /> Profile
           </button>
 
           {/* Seller Studio Sidebar Link - ONLY visible if user is registered as a seller */}
           {isManufacturer && (
-            <div className="pt-2">
+            <div className="shrink-0 lg:pt-2">
               <Link
                 to="/manufacturer"
-                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-bold bg-forest-950 text-amber-300 hover:bg-forest-900 transition-colors shadow-xs"
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-bold bg-forest-950 text-amber-300 hover:bg-forest-900 transition-colors shadow-xs whitespace-nowrap"
               >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-amber-400" />
-                  <span>Seller Studio</span>
-                </div>
-                <ArrowRight size={13} className="text-amber-400" />
+                <ShieldCheck size={15} className="text-amber-400" />
+                <span>Seller Studio</span>
               </Link>
             </div>
           )}

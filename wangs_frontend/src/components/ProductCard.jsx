@@ -192,8 +192,8 @@ export default function ProductCard({ product }) {
                   In Stock
                 </span>
               ) : (
-                <span className="text-[9px] sm:text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
-                  All Sold Out · In Stock Soon
+                <span className="text-[9px] sm:text-[10px] font-bold text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded truncate max-w-[105px] sm:max-w-none">
+                  Sold Out · Soon
                 </span>
               )}
               {hasDiscount && (

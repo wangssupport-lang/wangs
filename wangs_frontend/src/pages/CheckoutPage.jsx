@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck, Lock, CreditCard, CheckCircle, AlertCircle,
-  ArrowRight, Truck, Smartphone, Building, RefreshCw
+  ArrowRight, Truck, Smartphone, Building, RefreshCw, ChevronDown, ShoppingBag
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -29,6 +29,7 @@ export default function CheckoutPage() {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('RAZORPAY_TEST');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showMobileSummary, setShowMobileSummary] = useState(false);
 
   // Payment processing modal state
   const [paymentStep, setPaymentStep] = useState(null); // 'MODAL', 'VERIFYING', 'SUCCESS', 'FAILED'
@@ -172,6 +173,67 @@ export default function CheckoutPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Checkout Steps Form */}
         <div className="lg:col-span-7 space-y-6">
+          {/* Mobile Collapsible Order Summary Banner */}
+          <div className="lg:hidden bg-cream-100 p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowMobileSummary(!showMobileSummary)}
+              className="w-full flex items-center justify-between text-left"
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingBag size={16} className="text-forest-900" />
+                <span className="font-bold text-xs text-stone-900">
+                  Order Summary ({items.length} {items.length === 1 ? 'item' : 'items'})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-serif font-black text-sm text-forest-950">
+                  ₹{parseFloat(summary.total_amount).toFixed(0)}
+                </span>
+                <ChevronDown size={14} className={`text-stone-500 transition-transform ${showMobileSummary ? 'rotate-180' : ''}`} />
+              </div>
+            </button>
+
+            {showMobileSummary && (
+              <div className="pt-3 border-t border-stone-200/80 space-y-3 text-xs">
+                <div className="max-h-48 overflow-y-auto divide-y divide-stone-200/60 pr-1">
+                  {items.map((item) => (
+                    <div key={item.id} className="py-2 flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={item.product.primary_image_url || '/featured-pouches.png'}
+                          alt={item.product.title}
+                          className="w-9 h-9 object-cover rounded-lg border border-stone-200 flex-shrink-0"
+                        />
+                        <div className="truncate">
+                          <p className="font-bold text-stone-900 truncate text-[11px]">{item.product.title}</p>
+                          <p className="text-[10px] text-stone-500">{item.product.weight_grams}g · Qty: {item.quantity}</p>
+                        </div>
+                      </div>
+                      <span className="font-bold text-stone-950 text-xs font-serif whitespace-nowrap">
+                        ₹{(parseFloat(item.product.price) * item.quantity).toFixed(0)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="pt-2 border-t border-stone-200 space-y-1 text-[11px] text-stone-600">
+                  <div className="flex justify-between">
+                    <span>Items Subtotal</span>
+                    <span className="font-semibold text-stone-900">₹{parseFloat(summary.items_subtotal).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery Fee</span>
+                    <span className="font-bold text-emerald-700 uppercase text-[10px]">Free</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Platform Fee</span>
+                    <span>₹{parseFloat(summary.customer_platform_fee).toFixed(2)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <form onSubmit={handleCreateOrder} className="space-y-6">
             {/* 1. Customer Details */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
