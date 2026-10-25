@@ -488,23 +488,6 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Bottom Trust Assurance Strip */}
-            <div className="mt-8 sm:mt-10 bg-gradient-to-r from-stone-900 via-forest-950 to-stone-900 text-cream-100 rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex flex-wrap items-center justify-around gap-4 text-xs font-semibold border border-forest-800/40 shadow-xs">
-              <span className="flex items-center gap-2 text-stone-200">
-                <span className="text-base">🔒</span>
-                <span>100% Secure Razorpay & UPI Checkout</span>
-              </span>
-              <span className="hidden sm:inline text-stone-700">·</span>
-              <span className="flex items-center gap-2 text-amber-300">
-                <span className="text-base">✈️</span>
-                <span>Fast Nationwide Air Courier Delivery</span>
-              </span>
-              <span className="hidden sm:inline text-stone-700">·</span>
-              <span className="flex items-center gap-2 text-emerald-300">
-                <span className="text-base">🛡️</span>
-                <span>Guaranteed Fresh or Replacement</span>
-              </span>
-            </div>
           </div>
         </section>
       </div>
