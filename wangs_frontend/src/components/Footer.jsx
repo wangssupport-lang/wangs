@@ -69,11 +69,6 @@ export default function Footer() {
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
-                <Link to="/products?category=pork-pickle" className="hover:text-white transition-colors">
-                  Smoked Pork
-                </Link>
-              </li>
-              <li>
                 <Link to="/products?category=chilli-pickle" className="hover:text-white transition-colors">
                   King Chilli
                 </Link>
