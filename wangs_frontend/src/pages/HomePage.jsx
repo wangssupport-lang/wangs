@@ -89,7 +89,7 @@ export default function HomePage() {
               </h1>
 
               <p className="text-[10px] text-stone-200/90 leading-relaxed line-clamp-2">
-                Slow-cured wood-smoked pork, shredded chicken & fiery ghost chilli from verified regional brands.
+                Slow-cured authentic King Chilli, shredded chicken & traditional bamboo shoot pickles from verified regional brands.
               </p>
 
               <div className="flex items-center gap-2 pt-1">
@@ -132,9 +132,9 @@ export default function HomePage() {
         </div>
 
         {/* DESKTOP & TABLET HERO (Spacious layout with 3D physics & full copy) */}
-        <div className="hidden sm:grid relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:grid-cols-12 gap-8 sm:gap-10 lg:gap-12 items-center">
+        <div className="hidden sm:grid relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center">
           {/* Hero Left Content */}
-          <div className="lg:col-span-6 space-y-4 sm:space-y-6 flex flex-col items-center lg:items-start text-center lg:text-left">
+          <div className="sm:col-span-7 lg:col-span-6 space-y-4 sm:space-y-6 flex flex-col items-center lg:items-start text-center lg:text-left">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-forest-950/80 border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-bold mx-auto lg:mx-0 shadow-sm backdrop-blur-md">
               <Sparkles size={13} className="text-amber-400 flex-shrink-0 animate-pulse" />
               <span className="truncate">Artisanal Regional Cures · Direct From Verified Brands</span>
@@ -148,7 +148,7 @@ export default function HomePage() {
             </h1>
 
             <p className="text-xs sm:text-sm lg:text-base text-stone-200/90 max-w-xl leading-relaxed mx-auto lg:mx-0">
-              Slow-cured wood-smoked pork, shredded chicken, fiery ghost chilli, and traditional bamboo shoot recipes. Sourced directly from verified artisan producers and shipped fresh nationwide.
+              Slow-cured authentic King Chilli, shredded chicken, fiery ghost pepper, and traditional bamboo shoot recipes. Sourced directly from verified artisan producers and shipped fresh nationwide.
             </p>
 
             {/* CTAs: Side-by-side with gold gradient & frosted glass */}
@@ -180,7 +180,7 @@ export default function HomePage() {
 
           {/* Hero Right Visual: Pro 3D Physics, Floating & Ambient Lighting */}
           <div
-            className="lg:col-span-6 relative flex flex-col items-center justify-center pt-2 sm:pt-6 lg:pt-8 select-none"
+            className="sm:col-span-5 lg:col-span-6 relative flex flex-col items-center justify-center pt-2 sm:pt-6 lg:pt-8 select-none"
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
           >

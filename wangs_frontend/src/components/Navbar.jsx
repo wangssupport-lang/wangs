@@ -88,7 +88,7 @@ export default function Navbar() {
                 value={searchQuery}
                 onFocus={() => setSearchFocused(true)}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search smoked pork, fiery king chilli, bastenga bamboo..."
+                placeholder="Search king chilli, bamboo shoot, artisan pickles..."
                 className="w-full pl-11 pr-24 py-2.5 bg-stone-100/80 border border-stone-200/90 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 focus:bg-white transition-all font-medium"
               />
               <Search size={16} className="absolute left-4 top-3 text-stone-400" />
@@ -123,12 +123,11 @@ export default function Navbar() {
                 </div>
                 <div className="flex flex-wrap gap-1.5">
                   {[
-                    'Smoked Pork & King Chilli',
-                    'Pure Raja Mircha (Bhut Jolokia)',
+                    'King Chilli (Bhut Jolokia)',
+                    'Shredded Chicken Pickle',
                     'Prawn Fusion Pickle',
                     'Bastenga Bamboo Shoot',
                     'Fermented Axone Soya',
-                    'Smoked Beef Pickle',
                     'Wild Mountain Apple',
                   ].map((tag) => (
                     <button
@@ -257,7 +256,7 @@ export default function Navbar() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search smoked pork, king chilli, ferments..."
+              placeholder="Search king chilli, bamboo shoot, artisan pickles..."
               className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-forest-800 focus:bg-white shadow-2xs font-medium"
             />
             <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
