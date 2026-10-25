@@ -44,10 +44,12 @@ function AppLayout() {
     return <MaintenancePage message={maintenanceMessage} />;
   }
 
+  const isAdminRoute = location.pathname.startsWith('/wangadminspace');
+
   return (
-    <div className="min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white pb-20 md:pb-0">
-      <Navbar />
-      <CartDrawer />
+    <div className={`min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white ${isAdminRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
+      {!isAdminRoute && <Navbar />}
+      {!isAdminRoute && <CartDrawer />}
 
       <main className="flex-1">
         <Routes>
@@ -80,8 +82,8 @@ function AppLayout() {
         </Routes>
       </main>
 
-      <Footer />
-      {location.pathname !== '/checkout' && (
+      {!isAdminRoute && <Footer />}
+      {!isAdminRoute && location.pathname !== '/checkout' && (
         <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
       )}
     </div>

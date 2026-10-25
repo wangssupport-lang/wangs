@@ -4,7 +4,8 @@ import {
   Shield, Users, Package, DollarSign, Settings,
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
-  Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck
+  Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
+  Home, LogOut
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -18,7 +19,7 @@ const extractList = (data) => {
 };
 
 export default function AdminDashboardPage() {
-  const { user, isAdmin, loading: authLoading, login, allowSellerRegistration, isMaintenanceMode, maintenanceMessage, refreshPlatformSettings } = useAuth();
+  const { user, isAdmin, loading: authLoading, login, logout, allowSellerRegistration, isMaintenanceMode, maintenanceMessage, refreshPlatformSettings } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -530,12 +531,29 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
-          <button
-            onClick={loadAdminData}
-            className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
-          >
-            <RefreshCw size={14} /> Refresh Data
-          </button>
+          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+            <Link
+              to="/"
+              className="px-3.5 py-2 bg-forest-900 hover:bg-forest-800 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border border-forest-800 shadow-2xs"
+            >
+              <Home size={14} />
+              <span>Storefront</span>
+            </Link>
+            <button
+              onClick={loadAdminData}
+              className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-forest-700 shadow-2xs"
+            >
+              <RefreshCw size={14} />
+              <span>Refresh Data</span>
+            </button>
+            <button
+              onClick={() => { logout(); navigate('/login'); }}
+              className="px-3 py-2 bg-stone-900 hover:bg-red-950 text-stone-300 hover:text-red-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-800 shadow-2xs"
+            >
+              <LogOut size={14} />
+              <span>Log Out</span>
+            </button>
+          </div>
         </div>
 
         {/* Global Summary Ribbon */}
