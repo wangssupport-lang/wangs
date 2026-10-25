@@ -124,13 +124,13 @@ export function RefundsPage() {
       {/* Header */}
       <div className="border-b border-stone-200 pb-5">
         <span className="text-xs font-bold uppercase tracking-wider text-forest-800">
-          Store Policies & Consumer Protection
+          Store Policies & Producer Autonomy
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-1">
-          No-Return & Refund Policy
+          No-Return & Manufacturer-Governed Refund Policy
         </h1>
         <p className="text-xs text-stone-500 mt-1.5">
-          Wangs Artisanal Marketplace · FSSAI Food Hygiene Compliant
+          Wangs Artisanal Multi-Vendor Marketplace · Verified Regional Producers
         </p>
       </div>
 
@@ -144,92 +144,109 @@ export function RefundsPage() {
             Strict No-Return Policy (Edible & Perishable Food Items)
           </h3>
           <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-            Due to the perishable nature of handcrafted food products, slow-cured preserves, and strict FSSAI food hygiene protocols, <strong>we cannot accept physical returns under any circumstances</strong> once a parcel has been dispatched or delivered.
+            Due to the perishable nature of handcrafted food products, slow-cured preserves, and strict FSSAI food hygiene protocols, <strong>we cannot accept physical returns under any circumstances</strong> once an order has been dispatched or delivered.
           </p>
         </div>
       </div>
 
-      {/* Refunds: Only When Genuine Reason */}
+      {/* Manufacturer Discretion Highlight Banner */}
+      <div className="p-5 sm:p-6 bg-forest-950 text-cream-100 rounded-2xl sm:rounded-3xl border border-forest-800 shadow-sm space-y-2">
+        <div className="flex items-center gap-2 text-amber-300 font-bold text-xs uppercase tracking-wider">
+          <Award size={15} />
+          <span>Manufacturer Autonomy & Decision-Making</span>
+        </div>
+        <h2 className="font-serif text-lg sm:text-xl font-bold text-white">
+          Refunds are Fully Dependent on the Manufacturer
+        </h2>
+        <p className="text-xs text-cream-200/90 leading-relaxed">
+          Wangs is a dedicated marketplace connecting customers directly with independent verified producers. Because each batch is cured, sealed, and packaged directly by the respective brand, <strong>the decision to approve or reject a refund or replacement is completely and fully dependent on the manufacturer</strong>. Each manufacturer reserves the full right to evaluate whether they want to allow a refund based on the evidence provided.
+        </p>
+      </div>
+
+      {/* Refunds: Only for Genuine Reasons */}
       <div className="space-y-4">
         <div>
           <h2 className="font-serif text-xl font-bold text-stone-900 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-600" />
-            <span>Refunds & Replacements: Only When There is a Genuine Reason</span>
+            <span>Refunds Considered Only for Genuine, Verified Reasons</span>
           </h2>
           <p className="text-xs text-stone-600 mt-1">
-            We guarantee safe transit and genuine quality. Refunds or immediate zero-cost replacements are issued <strong>strictly and solely when there is a genuine, verifiable defect or transit issue</strong>.
+            Manufacturers will only review and consider claims where there is a <strong>clear, genuine physical defect or transit mishap</strong> supported by unboxing photos/video within 48 hours of delivery:
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Genuine Reasons (Approved) */}
+          {/* Genuine Reasons (Subject to Manufacturer Approval) */}
           <div className="p-5 bg-white rounded-2xl border border-emerald-200 shadow-2xs space-y-3">
             <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wide">
               <CheckCircle2 size={16} className="text-emerald-600" />
-              <span>Qualifying Genuine Reasons (Eligible for Refund)</span>
+              <span>Genuine Reasons (Reviewed by Manufacturer)</span>
             </div>
             <ul className="space-y-2 text-xs text-stone-600">
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span><strong>Glass Jar Breakage / Parcel Crushed:</strong> Product arrived broken, cracked, or smashed during courier transit.</span>
+                <span><strong>Severe Transit Breakage:</strong> Glass jar or vacuum pouch arrived cracked, broken, or crushed during courier transport.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span><strong>Compromised Vacuum Seal or Leakage:</strong> Safety pop-up button arrived unsealed or oil leaked heavily inside transit bubble packaging.</span>
+                <span><strong>Damaged Seal or Oil Leakage:</strong> Safety pop-up vacuum seal was compromised or leaked heavily inside shipping bubble wrap upon arrival.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span><strong>Incorrect Product Delivered:</strong> Received a different pickle variant from what was on your confirmed order.</span>
+                <span><strong>Incorrect Product Dispatched:</strong> The received item does not match the product listed on your confirmed order invoice.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-emerald-600 font-bold">✓</span>
-                <span><strong>Spoiled on Arrival:</strong> Verified freshness or quality issue upon opening within 48 hours.</span>
+                <span><strong>Proven Quality Defect on Arrival:</strong> Verified freshness or spoilage anomaly reported immediately with unboxing proof.</span>
               </li>
             </ul>
           </div>
 
-          {/* Non-Eligible Reasons (Disallowed) */}
+          {/* Non-Eligible Reasons (Disallowed by Manufacturers) */}
           <div className="p-5 bg-stone-50 rounded-2xl border border-stone-200 shadow-2xs space-y-3">
             <div className="flex items-center gap-2 text-stone-700 font-bold text-xs uppercase tracking-wide">
               <XCircle size={16} className="text-rose-600" />
-              <span>Non-Eligible Reasons (No Refund or Return)</span>
+              <span>Non-Eligible Claims (Declined by Manufacturers)</span>
             </div>
             <ul className="space-y-2 text-xs text-stone-600">
               <li className="flex items-start gap-2">
                 <span className="text-rose-500 font-bold">✕</span>
-                <span><strong>Change of Mind:</strong> Ordering by mistake, buyer remorse, or no longer wanting the items after dispatch.</span>
+                <span><strong>Change of Mind:</strong> Ordering errors, buyer remorse, or personal cancellation requests made after courier dispatch.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-rose-500 font-bold">✕</span>
-                <span><strong>Personal Taste Preference:</strong> Subjective opinions on authentic aroma, natural mustard oil content, or salt levels.</span>
+                <span><strong>Subjective Taste & Aroma:</strong> Individual preferences regarding traditional saltiness, mustard oil pungency, or fermented aroma.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-rose-500 font-bold">✕</span>
-                <span><strong>Subjective Heat Tolerance:</strong> King Chilli (Bhoot Jolokia) preserves are extremely spicy by authentic design.</span>
+                <span><strong>Spice Tolerance:</strong> King Chilli preserves are authentically fiery by design and are not eligible for returns based on heat level.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-rose-500 font-bold">✕</span>
-                <span><strong>Late Notification:</strong> Claims raised after 48 hours of courier delivery or without photographic unboxing proof.</span>
+                <span><strong>Claims Without Proof / Past 48 Hours:</strong> Requests submitted without clear unboxing photos/videos or delayed beyond the 48-hour delivery window.</span>
               </li>
             </ul>
           </div>
         </div>
       </div>
 
-      {/* Claim Process */}
+      {/* Claim Submission & Review Workflow */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 space-y-3">
         <h3 className="font-serif font-bold text-base text-stone-900">
-          How to Submit a Genuine Reason Claim
+          How the Manufacturer Review Process Works
         </h3>
         <ol className="list-decimal list-inside space-y-2 text-xs text-stone-600 leading-relaxed">
           <li>
-            <strong>Report within 48 Hours:</strong> Notify our customer support team within 48 hours of parcel delivery.
+            <strong>Customer Submits Claim within 48 Hours:</strong> Email <strong>wangssupport@gmail.com</strong> with your Order Number (#WNG-...), clear photos/video of the courier label (AWB), and photos of the damaged or defective item.
           </li>
           <li>
-            <strong>Provide Photo / Video Proof:</strong> Email <strong>wangssupport@gmail.com</strong> with your Order Number (#WNG-...) along with clear photos of the shipping label (AWB) and the broken/leaked jar or defect.
+            <strong>Forwarded to Respective Manufacturer:</strong> Wangs forwards your claim and unboxing evidence directly to the independent brand manufacturer who produced the batch.
           </li>
           <li>
-            <strong>Direct Resolution:</strong> Once our verification team confirms the genuine issue, we will immediately issue a 100% full refund directly to your original payment mode (reflects in 5–7 banking days) or dispatch a zero-cost replacement jar via air courier.
+            <strong>Manufacturer Decision:</strong> The manufacturer reviews the genuine evidence and decides whether to approve a refund or dispatch an immediate replacement.
+          </li>
+          <li>
+            <strong>Resolution Execution:</strong> If the manufacturer authorizes the refund, the amount is credited directly to your original payment method (reflecting in 5–7 banking days). If the manufacturer authorizes a replacement, a fresh jar is dispatched at zero cost.
           </li>
         </ol>
       </div>
@@ -237,8 +254,8 @@ export function RefundsPage() {
       {/* Support Card */}
       <div className="p-5 bg-stone-100 rounded-2xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-stone-700">
         <div>
-          <span className="font-bold text-stone-900">Need help with an order issue?</span>
-          <p className="text-[11px] text-stone-500">Contact Wangs support team directly for fast assistance.</p>
+          <span className="font-bold text-stone-900">Have a genuine issue with an order?</span>
+          <p className="text-[11px] text-stone-500">Contact our support team to submit your evidence for manufacturer review.</p>
         </div>
         <Link
           to="/contact"

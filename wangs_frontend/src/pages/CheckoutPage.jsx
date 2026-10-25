@@ -500,10 +500,10 @@ export default function CheckoutPage() {
 
             <div className="p-3.5 bg-amber-50/70 rounded-2xl border border-amber-200/80 text-[11px] text-stone-700 space-y-1">
               <p className="font-bold text-amber-950 flex items-center gap-1.5">
-                <ShieldCheck size={13} className="text-amber-800" /> No Returns · Refund for Genuine Reason
+                <ShieldCheck size={13} className="text-amber-800" /> No Returns · Refunds Dependent on Manufacturer
               </p>
               <p className="text-stone-600 leading-relaxed text-[10.5px]">
-                Edible products are non-returnable. Full refund or zero-cost replacement is issued only for genuine issues (transit damage, broken seal, or defect with unboxing proof).
+                Edible items are non-returnable. Refunds or replacements are fully dependent on whether the respective manufacturer decides to allow it, evaluated strictly for genuine reasons (transit breakage or defect with unboxing proof).
               </p>
             </div>
           </div>

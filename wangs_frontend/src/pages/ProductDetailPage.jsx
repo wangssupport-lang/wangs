@@ -598,14 +598,14 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            {/* Food Safety Policy Notice: No return, refund only for genuine reason */}
+            {/* Food Safety Policy Notice: No return, refund fully dependent on manufacturer */}
             <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-[11px] text-stone-600 flex items-start gap-2">
               <ShieldCheck size={14} className="text-emerald-700 shrink-0 mt-0.5" />
               <div>
                 <strong className="text-stone-900">No Returns (Edible Food): </strong>
-                <span>Items are non-returnable. Refunds or replacements are provided </span>
-                <strong className="text-stone-900">only for genuine reasons</strong>
-                <span> (transit breakage, defective vacuum seal, or wrong item with unboxing proof) within 48 hours of delivery.</span>
+                <span>Items are non-returnable. Refunds or replacements are </span>
+                <strong className="text-stone-900">fully dependent on the manufacturer's review and approval</strong>
+                <span>, considered only for genuine reasons (transit breakage or defective seal with unboxing proof within 48h).</span>
               </div>
             </div>
           </div>

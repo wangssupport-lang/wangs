@@ -193,7 +193,7 @@ export default function CustomerAccountPage() {
                   <Package size={32} className="text-stone-400 mx-auto mb-3" />
                   <h3 className="font-serif font-bold text-base text-stone-900">No orders placed yet</h3>
                   <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-                    Taste authentic woodfire smoked pork, King Chilli, and fermented bamboo shoot pickles.
+                    Taste authentic King Chilli, fermented bamboo shoot, and wild forest pickles.
                   </p>
                   <Link
                     to="/products"
