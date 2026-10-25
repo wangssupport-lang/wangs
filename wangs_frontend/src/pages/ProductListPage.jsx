@@ -105,44 +105,29 @@ export default function ProductListPage() {
   const activeFiltersCount = [categoryParam, searchParam, brandParam, spiceParam, dietaryParam, inStockParam ? 'true' : ''].filter(Boolean).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-cream-100 via-white to-cream-100 p-8 sm:p-10 rounded-3xl border border-stone-200/90 shadow-artisan flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Artisan Curation</span>
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">
-            Artisanal Pickles
-          </h1>
-          <p className="text-xs sm:text-sm text-stone-600 mt-2 max-w-xl leading-relaxed">
-            Small-batch firewood-smoked meats, wild chillies, and mountain ferments.
-          </p>
-          {brandParam && (
-            <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-forest-900 text-cream-100 text-xs font-semibold shadow-sm">
-              <span>Brand Store: <strong className="text-amber-300 font-bold">{products[0]?.manufacturer?.business_name || brandParam.replace(/-/g, ' ')}</strong></span>
-              <button
-                type="button"
-                onClick={() => updateFilter('brand', '')}
-                className="hover:text-amber-300 ml-1 p-0.5 rounded-full hover:bg-forest-800 transition-colors"
-                title="Clear brand filter"
-              >
-                <X size={13} />
-              </button>
-            </div>
-          )}
-        </div>
-
-        {activeFiltersCount > 0 && (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-4 sm:space-y-6">
+      {/* Brand Store Filter Indicator if active */}
+      {brandParam && (
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-forest-950 text-cream-100 rounded-2xl shadow-xs">
+          <div className="flex items-center gap-2 text-xs font-semibold">
+            <span className="text-amber-300 font-bold uppercase tracking-wider text-[10px]">Brand Store:</span>
+            <span className="text-white font-serif font-bold text-sm">
+              {products[0]?.manufacturer?.business_name || brandParam.replace(/-/g, ' ')}
+            </span>
+          </div>
           <button
-            onClick={clearAllFilters}
-            className="self-start sm:self-auto px-4 py-2 bg-chilli-50 hover:bg-chilli-100 text-chilli-700 border border-chilli-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors"
+            type="button"
+            onClick={() => updateFilter('brand', '')}
+            className="flex items-center gap-1 text-xs text-stone-300 hover:text-white px-2.5 py-1 rounded-lg bg-forest-900 border border-forest-800"
           >
-            <X size={13} /> Reset Filters ({activeFiltersCount})
+            <span>Clear</span>
+            <X size={12} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Toolbar */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-sm flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200/90 shadow-sm flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setMobileFilterOpen(!mobileFilterOpen)}
@@ -156,6 +141,15 @@ export default function ProductListPage() {
             Showing <strong className="text-stone-900 font-bold">{products.length}</strong> of{' '}
             <strong className="text-stone-900 font-bold">{totalCount}</strong> authentic products
           </span>
+
+          {activeFiltersCount > 0 && (
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-chilli-700 hover:underline font-bold ml-1 hidden sm:inline"
+            >
+              Reset ({activeFiltersCount})
+            </button>
+          )}
         </div>
 
         {/* Sorting Dropdown */}
