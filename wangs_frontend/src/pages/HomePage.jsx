@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, ChevronRight, Sparkles, Store, ShieldCheck, Flame,
-  Package, Utensils, Award
+  Package, Utensils, Award, Plane, Leaf, CheckCircle2
 } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
@@ -383,29 +383,141 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 5. Minimal Artisan Assurance Strip */}
-        <section className="border-t border-stone-200/80 pt-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-center sm:text-left">
-            <div className="space-y-1.5 sm:border-r sm:border-stone-200 sm:pr-8">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">01 · Verified Quality</span>
-              <h4 className="font-serif font-bold text-base text-stone-900">Direct From Verified Brands</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Every batch is handcrafted in registered small-batch workshops under strict FSSAI food safety hygiene.
+        {/* 5. The Wangs Assurance & Purity Standard */}
+        <section className="mt-16 sm:mt-20 border-t border-stone-200/90 pt-12 sm:pt-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Section Header */}
+            <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-12">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 border border-amber-200/80 text-amber-900 text-[11px] font-bold tracking-wider uppercase mb-2.5">
+                <Sparkles size={12} className="text-amber-600" />
+                <span>The Wangs Promise</span>
+              </span>
+              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
+                Crafted With Purity. Delivered With Care.
+              </h3>
+              <p className="text-xs sm:text-sm text-stone-600 mt-2 leading-relaxed">
+                Small-batch curing, authentic regional heritage, and zero synthetic shortcuts.
               </p>
             </div>
-            <div className="space-y-1.5 sm:border-r sm:border-stone-200 sm:pr-8">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">02 · Express Logistics</span>
-              <h4 className="font-serif font-bold text-base text-stone-900">Air Express Dispatch</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Packed with shock-absorbing air-cushion protection to preserve fresh seal across 26,000+ Indian PIN codes.
-              </p>
+
+            {/* 3 Value Proposition Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Card 1 */}
+              <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-forest-700/40 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:bg-emerald-100 transition-all">
+                      <ShieldCheck size={22} className="text-emerald-700" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 px-2.5 py-0.5 rounded-full uppercase">
+                      01 · Verified Quality
+                    </span>
+                  </div>
+
+                  <h4 className="font-serif font-bold text-base sm:text-lg text-stone-900 group-hover:text-forest-900 transition-colors">
+                    Direct From Verified Brands
+                  </h4>
+
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Every batch is handcrafted in registered small-batch workshops under strict FSSAI food safety hygiene.
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-stone-100 flex flex-col gap-1.5 text-[11px] text-stone-700 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                    <span>FSSAI Registered Workshops</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                    <span>Authentic Regional Recipes</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-amber-700/40 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/80 flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:bg-amber-100 transition-all">
+                      <Plane size={22} className="text-amber-800" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest text-amber-900 bg-amber-50/80 border border-amber-200/60 px-2.5 py-0.5 rounded-full uppercase">
+                      02 · Express Logistics
+                    </span>
+                  </div>
+
+                  <h4 className="font-serif font-bold text-base sm:text-lg text-stone-900 group-hover:text-forest-900 transition-colors">
+                    Air Express Dispatch
+                  </h4>
+
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Packed with shock-absorbing air-cushion protection to preserve fresh seal across 26,000+ Indian PIN codes.
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-stone-100 flex flex-col gap-1.5 text-[11px] text-stone-700 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-amber-600 shrink-0" />
+                    <span>Free Air Shipping on All Orders</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-amber-600 shrink-0" />
+                    <span>Shock-Proof Zero Leakage Seal</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-forest-700/40 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-stone-100 text-forest-900 border border-stone-200/80 flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:bg-stone-200 transition-all">
+                      <Leaf size={22} className="text-forest-800" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest text-stone-700 bg-stone-100 border border-stone-200 px-2.5 py-0.5 rounded-full uppercase">
+                      03 · Heritage Ingredients
+                    </span>
+                  </div>
+
+                  <h4 className="font-serif font-bold text-base sm:text-lg text-stone-900 group-hover:text-forest-900 transition-colors">
+                    Zero Synthetic Preservatives
+                  </h4>
+
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Cured naturally with cold-pressed mustard oil, native Raja Mircha, and traditional wood-smoke aging.
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-stone-100 flex flex-col gap-1.5 text-[11px] text-stone-700 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-forest-600 shrink-0" />
+                    <span>100% Cold-Pressed Mustard Oil</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-forest-600 shrink-0" />
+                    <span>Traditional Wood-Smoke Curing</span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">03 · Heritage Ingredients</span>
-              <h4 className="font-serif font-bold text-base text-stone-900">Zero Synthetic Preservatives</h4>
-              <p className="text-xs text-stone-500 leading-relaxed">
-                Cured naturally with cold-pressed mustard oil, native Raja Mircha, and traditional wood-smoke aging.
-              </p>
+
+            {/* Bottom Trust Assurance Strip */}
+            <div className="mt-8 sm:mt-10 bg-gradient-to-r from-stone-900 via-forest-950 to-stone-900 text-cream-100 rounded-2xl sm:rounded-3xl p-4 sm:p-5 flex flex-wrap items-center justify-around gap-4 text-xs font-semibold border border-forest-800/40 shadow-xs">
+              <span className="flex items-center gap-2 text-stone-200">
+                <span className="text-base">🔒</span>
+                <span>100% Secure Razorpay & UPI Checkout</span>
+              </span>
+              <span className="hidden sm:inline text-stone-700">·</span>
+              <span className="flex items-center gap-2 text-amber-300">
+                <span className="text-base">✈️</span>
+                <span>Fast Nationwide Air Courier Delivery</span>
+              </span>
+              <span className="hidden sm:inline text-stone-700">·</span>
+              <span className="flex items-center gap-2 text-emerald-300">
+                <span className="text-base">🛡️</span>
+                <span>Guaranteed Fresh or Replacement</span>
+              </span>
             </div>
           </div>
         </section>
