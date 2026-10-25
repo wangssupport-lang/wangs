@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag, Search, User, Menu, X, ChevronDown, Home,
-  Shield, ShieldCheck, Store, MapPin, Truck, CheckCircle,
+  Shield, ShieldCheck, Store,
   Sparkles, Star, LogOut, Package, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -18,11 +18,6 @@ export default function Navbar() {
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [searchFocused, setSearchFocused] = useState(false);
-  const [pincode, setPincode] = useState('797001');
-  const [pincodeInput, setPincodeInput] = useState('797001');
-  const [pincodeResult, setPincodeResult] = useState({ valid: true, region: 'Express Air Hub', estimated_delivery: '2-3 business days' });
-  const [pinModalOpen, setPinModalOpen] = useState(false);
-  const [checkingPin, setCheckingPin] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [brands, setBrands] = useState([]);
 
@@ -64,122 +59,13 @@ export default function Navbar() {
     navigate(`/products?search=${encodeURIComponent(term)}`);
   };
 
-  const handleCheckPincode = async (e) => {
-    e.preventDefault();
-    const cleaned = (pincodeInput || '').replace(/\D/g, '').slice(0, 6);
-    if (cleaned.length !== 6) {
-      setPincodeResult({ valid: false, message: 'Please enter 6 digits' });
-      return;
-    }
-    setCheckingPin(true);
-    try {
-      const res = await api.checkPincode(cleaned);
-      if (res && res.valid) {
-        setPincodeResult(res);
-        setPincode(cleaned);
-        setTimeout(() => setPinModalOpen(false), 1500);
-      } else {
-        setPincodeResult({ valid: false, message: res?.message || 'Invalid or non-serviceable PIN code' });
-      }
-    } catch (err) {
-      setPincodeResult({ valid: false, message: 'Unable to check PIN code right now' });
-    } finally {
-      setCheckingPin(false);
-    }
-  };
-
   const cartTotal = cart?.financial_summary?.total_amount
     ? Math.round(parseFloat(cart.financial_summary.total_amount))
     : 0;
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-xs">
-      {/* 1. Ultra-sleek Top Announcement Bar */}
-      <div className="bg-forest-950 text-cream-100 text-[11px] py-1.5 px-4 sm:px-6 border-b border-forest-900/80">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5 truncate">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-forest-900/90 text-amber-300 border border-amber-400/25 font-bold text-[9px] tracking-wider uppercase">
-              <Sparkles size={10} className="text-amber-400" /> Complimentary Air Express
-            </span>
-            <span className="text-stone-300 text-xs truncate">
-              Orders over ₹999 ship free nationwide · Code <strong className="text-amber-300 font-semibold tracking-wider">WANGS10</strong> for 10% off
-            </span>
-          </div>
-
-          {/* Interactive Delivery Location Pill (Amazon/Blinkit style) */}
-          <div className="relative flex-shrink-0">
-            <button
-              type="button"
-              onClick={() => setPinModalOpen(!pinModalOpen)}
-              className="flex items-center gap-1.5 text-stone-300 hover:text-white transition-colors text-[11px] font-semibold"
-            >
-              <Truck size={13} className="text-amber-400" />
-              <span className="hidden sm:inline">Delivering to:</span>
-              <span className="text-amber-300 font-bold underline decoration-amber-400/50 underline-offset-2">
-                {pincodeResult?.valid ? `${pincodeResult.region?.split(',')[0]} (${pincode})` : `PIN ${pincode}`}
-              </span>
-              <ChevronDown size={12} className={`transition-transform duration-200 ${pinModalOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            {/* Pincode Popover Modal */}
-            {pinModalOpen && (
-              <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] max-w-xs sm:w-80 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 text-stone-900 animate-in fade-in zoom-in-95 duration-150">
-                <div className="flex justify-between items-center mb-2">
-                  <p className="font-serif font-bold text-sm text-stone-900 flex items-center gap-1.5">
-                    <MapPin size={15} className="text-forest-800" /> Check Delivery Availability
-                  </p>
-                  <button onClick={() => setPinModalOpen(false)} className="text-stone-400 hover:text-stone-600">
-                    <X size={15} />
-                  </button>
-                </div>
-                <p className="text-xs text-stone-500 mb-3">
-                  Enter your 6-digit postal code to check express air delivery speed. Free shipping on all orders!
-                </p>
-                <form onSubmit={handleCheckPincode} className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={6}
-                      value={pincodeInput}
-                      onChange={(e) => setPincodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="e.g. 797001 or 110001"
-                      className="flex-1 px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-mono text-xs font-bold text-stone-900 focus:outline-none focus:border-forest-800"
-                    />
-                    <button
-                      type="submit"
-                      disabled={checkingPin}
-                      className="px-4 py-2 bg-forest-900 text-white font-bold text-xs rounded-xl hover:bg-forest-950 transition-colors disabled:opacity-50"
-                    >
-                      {checkingPin ? 'Checking...' : 'Apply'}
-                    </button>
-                  </div>
-                  {pincodeResult && (
-                    <div className={`p-2.5 rounded-xl text-xs flex items-start gap-1.5 ${pincodeResult.valid ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
-                      {pincodeResult.valid ? (
-                        <>
-                          <CheckCircle size={15} className="text-emerald-700 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="font-bold">{pincodeResult.region}</p>
-                            <p className="text-[11px] text-emerald-800 mt-0.5">
-                              Express Air: {pincodeResult.estimated_delivery} · 100% Free Nationwide Delivery
-                            </p>
-                          </div>
-                        </>
-                      ) : (
-                        <span>{pincodeResult.message}</span>
-                      )}
-                    </div>
-                  )}
-                </form>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Main Header Row */}
+      {/* Main Header Row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 sm:h-[4.75rem] items-center justify-between gap-4">
           {/* Brand Logo & Wordmark */}
