@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ShoppingBag, Search, User, Menu, X, ChevronDown,
+  ShoppingBag, Search, User, Menu, X, ChevronDown, Home,
   Shield, ShieldCheck, Store, MapPin, Truck, CheckCircle,
   Sparkles, Star, LogOut, Package, ArrowRight
 } from 'lucide-react';
@@ -258,8 +258,19 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Right Action Icons: Sign In, Cart */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          {/* Right Action Icons: Home, Sign In / Account, Cart */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            {/* Homepage Link Button */}
+            <Link
+              to="/"
+              className="flex items-center justify-center p-2 sm:px-3 sm:py-2 rounded-xl text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs active:scale-95"
+              aria-label="Home"
+              title="Home"
+            >
+              <Home size={16} className="text-forest-900" />
+              <span className="hidden sm:inline text-xs font-bold ml-1.5">Home</span>
+            </Link>
+
             {/* User Account / Sign In */}
             <div className="relative">
               {user ? (
