@@ -20,7 +20,7 @@ export default function CheckoutPage() {
     shipping_address_line1: '',
     shipping_address_line2: '',
     shipping_city: '',
-    shipping_state: 'Nagaland',
+    shipping_state: '',
     shipping_postal_code: '',
     coupon_code: '',
   });
@@ -83,7 +83,7 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!formData.customer_name || !formData.customer_email || !formData.customer_phone || !formData.shipping_address_line1 || !formData.shipping_postal_code) {
+    if (!formData.customer_name || !formData.customer_email || !formData.customer_phone || !formData.shipping_address_line1 || !formData.shipping_city || !formData.shipping_state || !formData.shipping_postal_code) {
       setErrorMessage('Please fill in all required shipping address fields.');
       return;
     }
@@ -136,7 +136,7 @@ export default function CheckoutPage() {
   const summary = cart?.financial_summary || {
     items_subtotal: '0.00',
     customer_platform_fee: '5.00',
-    delivery_fee: '50.00',
+    delivery_fee: '0.00',
     total_amount: '0.00',
   };
 
@@ -144,9 +144,9 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-4">
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is empty</h2>
-        <p className="text-xs text-stone-500">Add authentic Naga pickles to proceed with checkout.</p>
+        <p className="text-xs text-stone-500">Add handcrafted pickles to proceed with checkout.</p>
         <Link to="/products" className="inline-block px-6 py-3 bg-forest-900 text-white text-xs font-bold rounded-xl shadow-md">
-          Explore Naga Pickles
+          Explore Pickles
         </Link>
       </div>
     );
@@ -158,7 +158,7 @@ export default function CheckoutPage() {
         <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Safe & Encrypted</span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">Checkout & Delivery</h1>
         <p className="text-xs text-stone-500 mt-1">
-          Direct dispatch from verified artisan kitchens in Kohima and Mokokchung.
+          Direct dispatch from verified artisan producers in Kohima and Mokokchung.
         </p>
       </div>
 
@@ -211,6 +211,9 @@ export default function CheckoutPage() {
                     type="tel"
                     name="customer_phone"
                     required
+                    minLength={10}
+                    maxLength={15}
+                    pattern="\+?[0-9\s()-]{10,15}"
                     value={formData.customer_phone}
                     onChange={handleChange}
                     placeholder="e.g. +91 98765 43210"
@@ -293,7 +296,7 @@ export default function CheckoutPage() {
                     required
                     value={formData.shipping_state}
                     onChange={handleChange}
-                    placeholder="e.g. Nagaland, Assam, Delhi"
+                    placeholder="e.g. Assam, Delhi, Karnataka"
                     className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
                   />
                 </div>
@@ -301,11 +304,16 @@ export default function CheckoutPage() {
                   <label className="block text-stone-700 font-bold mb-1.5">PIN Code (6 digits) *</label>
                   <input
                     type="text"
+                    inputMode="numeric"
                     maxLength={6}
+                    pattern="[0-9]{6}"
                     name="shipping_postal_code"
                     required
                     value={formData.shipping_postal_code}
-                    onChange={handleChange}
+                    onChange={(e) => setFormData((prev) => ({
+                      ...prev,
+                      shipping_postal_code: e.target.value.replace(/\D/g, '').slice(0, 6),
+                    }))}
                     placeholder="e.g. 797001"
                     className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-mono font-medium"
                   />
@@ -439,7 +447,7 @@ export default function CheckoutPage() {
             <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-cream-50 p-6 flex items-center justify-between">
               <div>
                 <span className="text-[10px] uppercase font-black tracking-wider text-amber-300">Razorpay Test Gateway</span>
-                <h3 className="font-serif font-bold text-lg text-white">Wangs Naga Marketplace</h3>
+                <h3 className="font-serif font-bold text-lg text-white">Wangs Artisanal Marketplace</h3>
               </div>
               <div className="text-right">
                 <span className="text-[11px] text-cream-300 block">Total Due</span>

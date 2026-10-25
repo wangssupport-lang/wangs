@@ -50,9 +50,14 @@ class FinancialCalculator:
             else:
                 rate = quantize_amount(commission_setting.default_commission_rate)
 
-            # Commission is deducted from manufacturer product gross amount
-            comm_amount = quantize_amount((line_subtotal * rate) / Decimal('100.00'))
-            mfg_payout = quantize_amount(line_subtotal - comm_amount)
+            # Commission and seller payout calculation
+            # Seller earns base product price payout; commission & express delivery are factored into listed price
+            if getattr(product, 'base_price', None) is not None:
+                mfg_payout = quantize_amount(product.base_price * qty)
+                comm_amount = quantize_amount(line_subtotal - mfg_payout)
+            else:
+                comm_amount = quantize_amount((line_subtotal * rate) / Decimal('100.00'))
+                mfg_payout = quantize_amount(line_subtotal - comm_amount)
 
             platform_commission_total += comm_amount
             manufacturer_payout_total += mfg_payout
@@ -82,11 +87,9 @@ class FinancialCalculator:
         # Platform fee
         platform_fee = quantize_amount(commission_setting.customer_platform_fee)
 
-        # Delivery fee
-        if items_subtotal >= commission_setting.free_delivery_threshold:
-            delivery_fee = Decimal('0.00')
-        else:
-            delivery_fee = quantize_amount(commission_setting.default_delivery_fee)
+        # Delivery fee: Zero customer delivery charge (Nationwide Free Delivery for all customers)
+        # Logistics is built into seller's listing price equation (Base + Commission + Delivery = Customer Price)
+        delivery_fee = Decimal('0.00')
 
         total_amount = quantize_amount(items_subtotal - discount_amount + platform_fee + delivery_fee)
 

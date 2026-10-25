@@ -1,33 +1,62 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ArrowRight, ShieldCheck, Flame, Sparkles, Award,
-  Truck, CheckCircle, ChevronRight, Store, Star,
-  UtensilsCrossed, Compass, HeartHandshake, Eye
+  ArrowRight, ChevronRight, ChevronDown, ChevronUp, Sparkles, Store, ShieldCheck, Flame,
+  Package, Utensils, Award
 } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
+import BrandCard from '../components/BrandCard';
+import { getBrandsFromProducts } from '../utils/brands';
 
 export default function HomePage() {
-  const [featured, setFeatured] = useState([]);
   const [bestsellers, setBestsellers] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [showAllBrands, setShowAllBrands] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [tilt, setTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
 
-  // Interactive Heat Spectrum Explorer state
-  const [selectedHeat, setSelectedHeat] = useState('ALL');
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clientX = e.clientX - rect.left;
+    const clientY = e.clientY - rect.top;
+    const x = clientX - rect.width / 2;
+    const y = clientY - rect.height / 2;
+    // Smooth physical 3D tilt angles (max ±7.5 deg)
+    const rotateY = (x / (rect.width / 2)) * 7.5;
+    const rotateX = -(y / (rect.height / 2)) * 7.5;
+    // Real-time spotlight glare coordinates
+    const glareX = Math.max(0, Math.min(100, Math.round((clientX / rect.width) * 100)));
+    const glareY = Math.max(0, Math.min(100, Math.round((clientY / rect.height) * 100)));
+    setTilt({ x: rotateX, y: rotateY, glareX, glareY, active: true });
+  };
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
+  };
 
   useEffect(() => {
     async function loadData() {
       try {
-        const [featData, bestData, catData] = await Promise.all([
-          api.getFeaturedProducts(),
+        const [bestData, catData] = await Promise.all([
           api.getBestsellerProducts(),
           api.getCategories(),
         ]);
-        setFeatured(featData?.results || featData || []);
-        setBestsellers(bestData?.results || bestData || []);
+        const bestProducts = bestData?.results || bestData || [];
+        setBestsellers(bestProducts);
         setCategories(catData?.results || catData || []);
+        try {
+          const brandsData = await api.getBrands();
+          if (brandsData && brandsData.length > 0) {
+            setBrands(brandsData);
+          } else {
+            const featuredData = await api.getFeaturedProducts();
+            setBrands(getBrandsFromProducts(bestData, featuredData));
+          }
+        } catch (err) {
+          setBrands(getBrandsFromProducts(bestData));
+        }
       } catch (err) {
         console.error('Failed to load homepage data', err);
       } finally {
@@ -37,416 +66,361 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  const heatFilteredBestsellers = selectedHeat === 'ALL'
-    ? bestsellers
-    : bestsellers.filter((p) => p.spice_level === selectedHeat);
-
   return (
-    <div className="space-y-16 sm:space-y-28">
-      {/* 1. Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-forest-950 via-forest-900 to-forest-950 text-cream-50 pt-16 pb-20 sm:pt-24 sm:pb-28 border-b border-forest-800/80">
-        {/* Subtle Decorative Ambient Glows */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-forest-700/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-chilli-900/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-            {/* Left Column: Editorial Headline & Value Pillars */}
-            <div className="lg:col-span-7 space-y-7">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-forest-800/80 border border-forest-700/80 rounded-full text-xs text-cream-200 shadow-sm backdrop-blur-sm">
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                </span>
-                <span className="font-semibold tracking-wide uppercase text-[10px] text-amber-300">
-                  Rare Regional Culinary Preserves
-                </span>
-                <span className="text-forest-400">·</span>
-                <span className="text-[11px] text-cream-300 font-medium">Nagaland, Northeast India</span>
+    <div>
+      {/* 1. Vibrant Artisanal Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-forest-950 via-forest-900 to-[#10331e] text-white py-4 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
+        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
+        
+        {/* MOBILE HERO (Compact 2-Column: Left Text, Right Pickle Packet) */}
+        <div className="sm:hidden relative max-w-7xl mx-auto px-3 xs:px-4 py-1">
+          <div className="grid grid-cols-12 gap-2.5 xs:gap-3 items-center">
+            {/* Left Content */}
+            <div className="col-span-7 flex flex-col justify-center space-y-1.5 xs:space-y-2">
+              <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-forest-950/90 border border-amber-400/40 text-amber-300 text-[9px] font-bold w-fit shadow-xs">
+                <Sparkles size={9} className="text-amber-400 flex-shrink-0 animate-pulse" />
+                <span className="truncate">Artisanal Pickles</span>
               </div>
 
-              <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-[1.12]">
-                Firewood-Smoked Meats & Wild Hill Chillies.
+              <h1 className="font-serif text-[1.12rem] xs:text-[1.25rem] font-black leading-[1.12] tracking-tight text-white">
+                Discover Authentic Pickles, <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
+                  Delivered Fresh.
+                </span>
               </h1>
 
-              <p className="text-sm sm:text-base text-cream-200/80 max-w-xl font-normal leading-relaxed">
-                Handcrafted in Kohima. Slow-cured smoked pork, GI-tagged King Chilli, and wild bamboo shoot pickles.
+              <p className="text-[9px] xs:text-[10px] text-stone-200/90 leading-snug line-clamp-2">
+                Slow-cured pork, chicken & fiery ghost chilli from verified regional brands.
               </p>
 
-              <div className="flex flex-wrap items-center gap-3 pt-1">
+              <div className="flex items-center gap-1.5 pt-0.5">
                 <Link
                   to="/products"
-                  className="px-6 py-3.5 bg-chilli-700 hover:bg-chilli-800 text-white font-bold text-xs rounded-xl shadow-lg transition-all flex items-center gap-2 group"
+                  className="inline-flex items-center justify-center gap-1 px-2 py-1 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-[10px] rounded-md shadow-md shadow-amber-500/20 active:scale-95 transition-all whitespace-nowrap"
                 >
-                  <span>Shop Collection</span>
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                  <span>Shop Now</span>
+                  <ArrowRight size={10} />
                 </Link>
-
                 <Link
-                  to="/about"
-                  className="px-5 py-3.5 bg-forest-900/90 hover:bg-forest-800 text-cream-100 font-bold text-xs rounded-xl border border-forest-700/80 transition-all"
+                  to="/brands"
+                  className="inline-flex items-center justify-center gap-1 px-2 py-1 bg-white/10 text-stone-200 text-[10px] font-semibold rounded-md border border-white/15 active:scale-95 transition-all whitespace-nowrap"
                 >
-                  Our Heritage
+                  <Store size={10} className="text-amber-400" />
+                  <span>Brands</span>
                 </Link>
               </div>
-
-              {/* Stats Bar */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-6 border-t border-forest-800/80 text-xs">
-                <div>
-                  <p className="font-serif font-black text-white text-lg sm:text-xl">35+ Years</p>
-                  <p className="text-[11px] text-cream-300/80 mt-0.5 font-medium">Family Heritage Cure</p>
-                </div>
-                <div>
-                  <p className="font-serif font-black text-white text-lg sm:text-xl">72 Hours</p>
-                  <p className="text-[11px] text-cream-300/80 mt-0.5 font-medium">Oak Firewood Smoke</p>
-                </div>
-                <div>
-                  <p className="font-serif font-black text-amber-400 text-lg sm:text-xl">GI-Tagged</p>
-                  <p className="text-[11px] text-cream-300/80 mt-0.5 font-medium">Naga Raja Mircha</p>
-                </div>
-                <div>
-                  <p className="font-serif font-black text-white text-lg sm:text-xl">100%</p>
-                  <p className="text-[11px] text-cream-300/80 mt-0.5 font-medium">FSSAI Certified Sellers</p>
-                </div>
-              </div>
             </div>
 
-            {/* Right Column: Hero Visual Card */}
-            <div className="lg:col-span-5 relative">
-              <div className="relative mx-auto max-w-md rounded-3xl overflow-hidden shadow-2xl border-2 border-forest-700/60 bg-forest-900 group">
-                <img
-                  src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80"
-                  alt="Arenla's Signature Smoked Pork"
-                  className="w-full h-[420px] object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-                />
+            {/* Right Pickle Packet Image */}
+            <div className="col-span-5 relative flex items-center justify-center">
+              {/* Backglow aura */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 via-red-600/25 to-transparent rounded-full blur-xl pointer-events-none" />
 
-                {/* Subtle vignette gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-forest-950 via-forest-950/40 to-transparent flex flex-col justify-end p-7">
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/90 text-forest-950 text-[10px] font-black uppercase tracking-wider rounded-md mb-2 w-max">
-                    <Sparkles size={11} /> Signature Batch
-                  </div>
-                  <h3 className="font-serif font-bold text-2xl text-white leading-tight">
-                    Arenla's Smoked Pork & King Chilli
-                  </h3>
-                  <p className="text-xs text-cream-200 mt-1.5 leading-relaxed font-normal">
-                    Indigenous Nagaland pork slow-smoked over aged oak embers for 72 hours, steeped in pure cold-pressed mustard oil.
-                  </p>
-                  <div className="mt-4 pt-3 border-t border-forest-800/80 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs text-cream-400 block font-medium">Net 250g Glass Jar</span>
-                      <span className="text-xl font-serif font-bold text-white">₹380</span>
-                    </div>
-                    <Link
-                      to="/product/arenla-signature-smoked-pork-king-chilli-pickle"
-                      className="px-4 py-2.5 bg-cream-50 hover:bg-white text-forest-950 font-bold text-xs rounded-xl shadow-md transition-all hover:scale-105"
-                    >
-                      Taste This Batch
-                    </Link>
+              <Link
+                to="/products?brand=lia-chuka"
+                className="relative w-full flex flex-col items-center justify-center active:scale-95 transition-transform"
+              >
+                <div className="relative animate-hero-float">
+                  <img
+                    src="/featured-pouches.png"
+                    alt="Authentic Artisanal Pickles"
+                    className="w-full h-auto max-h-[145px] xs:max-h-[170px] object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.65)]"
+                  />
+                  {/* Floating badge over pouches */}
+                  <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-forest-950/95 border border-amber-400/40 text-amber-300 text-[8.5px] xs:text-[9px] font-bold shadow-md whitespace-nowrap flex items-center gap-0.5">
+                    <Flame size={9} className="text-amber-400 fill-amber-400" />
+                    <span>Smoked Pork</span>
                   </div>
                 </div>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
-      </section>
 
-      {/* 2. Interactive Heat Spectrum Explorer */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-3xl p-6 sm:p-10 border border-stone-200 shadow-artisan">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-            <div>
-              <span className="text-xs font-bold tracking-wider uppercase text-chilli-700">Interactive Taste Navigator</span>
-              <h2 className="font-serif text-3xl font-bold text-stone-900 mt-1">
-                Explore by Heat & Spice Intensity
-              </h2>
-              <p className="text-xs text-stone-500 mt-1">
-                From mellow wild fruit chutneys to million-Scoville King Chilli preserves.
-              </p>
+        {/* DESKTOP & TABLET HERO (Spacious layout with 3D physics & full copy) */}
+        <div className="hidden sm:grid relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:grid-cols-12 gap-8 sm:gap-10 lg:gap-12 items-center">
+          {/* Hero Left Content */}
+          <div className="lg:col-span-6 space-y-4 sm:space-y-6 flex flex-col items-center lg:items-start text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-forest-950/80 border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-bold mx-auto lg:mx-0 shadow-sm backdrop-blur-md">
+              <Sparkles size={13} className="text-amber-400 flex-shrink-0 animate-pulse" />
+              <span className="truncate">Artisanal Regional Cures · Direct From Verified Brands</span>
             </div>
 
-            {/* Heat Buttons Filter */}
-            <div className="flex flex-wrap items-center gap-2 text-xs font-bold">
-              {[
-                { id: 'ALL', label: 'All Heat Levels' },
-                { id: 'MILD', label: 'Mild (Jaggery & Apple)' },
-                { id: 'MEDIUM', label: 'Medium (Bastenga)' },
-                { id: 'HOT', label: 'Hot (Smoked Meat)' },
-                { id: 'FIERY_KING_CHILLI', label: 'Fiery Raja Mircha 🌶️' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setSelectedHeat(tab.id)}
-                  className={`px-3.5 py-2 rounded-xl transition-all ${
-                    selectedHeat === tab.id
-                      ? 'bg-forest-900 text-white shadow-sm'
-                      : 'bg-cream-100 hover:bg-cream-200 text-stone-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
+            <h1 className="font-serif text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.08] tracking-tight">
+              Discover Authentic Pickles, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
+                Delivered Fresh to You.
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm lg:text-base text-stone-200/90 max-w-xl leading-relaxed mx-auto lg:mx-0">
+              Slow-cured wood-smoked pork, shredded chicken, fiery ghost chilli, and traditional bamboo shoot recipes. Sourced directly from verified artisan producers and shipped fresh nationwide.
+            </p>
+
+            {/* CTAs: Side-by-side with gold gradient & frosted glass */}
+            <div className="flex flex-row items-center justify-center lg:justify-start gap-2.5 sm:gap-3.5 pt-1 w-full sm:w-auto">
+              <Link
+                to="/products"
+                className="flex-1 sm:flex-initial justify-center px-5 py-3 sm:px-7 sm:py-3.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-forest-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-2 active:scale-98 text-center whitespace-nowrap hover:scale-[1.02]"
+              >
+                <span>Shop Authentic Pickles</span>
+                <ArrowRight size={15} className="flex-shrink-0" />
+              </Link>
+              <Link
+                to="/brands"
+                className="flex-1 sm:flex-initial justify-center px-4 py-3 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/15 text-cream-50 font-bold text-xs sm:text-sm rounded-xl border border-white/20 hover:border-amber-400/50 backdrop-blur-md shadow-sm transition-all flex items-center gap-2 active:scale-98 text-center whitespace-nowrap hover:scale-[1.02]"
+              >
+                <Store size={15} className="text-amber-400 flex-shrink-0" />
+                <span>Artisan Brands</span>
+              </Link>
+            </div>
+
+            {/* Trust Micro-Badges */}
+            <div className="pt-2 sm:pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-5 text-[11px] text-stone-300">
+              <span className="flex items-center gap-1.5">
+                <Award size={14} className="text-amber-300 flex-shrink-0" />
+                <span>Verified Artisan Brands</span>
+              </span>
             </div>
           </div>
 
-          {/* Product Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {heatFilteredBestsellers.slice(0, 4).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </div>
-      </section>
+          {/* Hero Right Visual: Pro 3D Physics, Floating & Ambient Lighting */}
+          <div
+            className="lg:col-span-6 relative flex flex-col items-center justify-center pt-2 sm:pt-6 lg:pt-8 select-none"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Ambient luxury lighting with breathing aura & mouse parallax */}
+            <div
+              className="absolute w-96 h-96 sm:w-[38rem] sm:h-[38rem] rounded-full bg-gradient-to-tr from-amber-500/30 via-red-900/30 to-forest-800/40 blur-3xl pointer-events-none -top-4 animate-ambient-aura transition-transform duration-500 ease-out"
+              style={{
+                transform: tilt.active
+                  ? `translate3d(${-tilt.y * 1.8}px, ${tilt.x * 1.8}px, 0)`
+                  : undefined,
+              }}
+            />
 
-      {/* 3. Categories Showcase */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-          <div>
-            <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Artisanal Specialties</span>
-            <h2 className="font-serif text-3xl font-bold text-stone-900 mt-1">
-              Curated Regional Naga Categories
-            </h2>
-          </div>
-          <Link to="/products" className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1 group">
-            <span>Browse Full Pantry</span>
-            <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-          </Link>
-        </div>
+            {/* Pulsing golden energy rings behind pouches */}
+            <div className="absolute w-72 h-72 sm:w-[26rem] sm:h-[26rem] rounded-full border border-amber-400/25 pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-ring" />
+            <div className="absolute w-80 h-80 sm:w-[30rem] sm:h-[30rem] rounded-full bg-gradient-to-tr from-amber-500/20 via-orange-500/20 to-transparent blur-2xl pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-ambient-aura" />
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-5">
-          {categories.map((cat) => (
+            {/* Drifting golden embers for hearth & firewood warmth */}
+            <div className="absolute top-1/4 right-8 w-2 h-2 rounded-full bg-amber-400/80 blur-[0.6px] animate-ember-1 pointer-events-none" />
+            <div className="absolute top-1/3 left-10 w-2.5 h-2.5 rounded-full bg-orange-400/70 blur-[0.7px] animate-ember-2 pointer-events-none" />
+            <div className="absolute top-1/2 right-1/4 w-1.5 h-1.5 rounded-full bg-amber-300/80 blur-[0.5px] animate-ember-3 pointer-events-none" />
+            <div className="absolute -top-3 right-12 w-2 h-2 rounded-full bg-amber-400/70 blur-[0.8px] animate-drift-slow pointer-events-none" />
+            <div className="absolute top-20 left-6 w-2.5 h-2.5 rounded-full bg-amber-300/50 blur-[0.8px] animate-drift-alt pointer-events-none" />
+            <div className="absolute -bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-amber-200/60 blur-[0.6px] animate-drift-slow pointer-events-none [animation-delay:3s]" />
+
             <Link
-              key={cat.id}
-              to={`/products?category=${cat.slug}`}
-              className="group relative bg-white rounded-2xl border border-stone-200/90 overflow-hidden shadow-artisan hover:shadow-artisan-hover transition-all duration-300 flex flex-col hover:border-forest-700/40"
+              to="/products?brand=lia-chuka"
+              className="relative group w-full flex flex-col items-center cursor-pointer"
+              style={{ perspective: '1200px' }}
             >
-              <div className="aspect-[4/3] overflow-hidden bg-cream-100">
-                <img
-                  src={cat.image_url}
-                  alt={cat.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
-                />
-              </div>
-              <div className="p-3.5 text-center">
-                <h3 className="font-serif font-bold text-stone-900 text-sm group-hover:text-forest-800 transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="text-[11px] text-stone-500 font-medium mt-0.5">
-                  {cat.product_count} {cat.product_count === 1 ? 'variety' : 'varieties'}
-                </p>
+              {/* Outer 3D Interactive Tilt Cradle with elevation lift on hover */}
+              <div
+                className="relative w-full flex flex-col items-center transition-transform duration-300 ease-out"
+                style={{
+                  transform: tilt.active
+                    ? `perspective(1200px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-14px) scale3d(1.04, 1.04, 1.04)`
+                    : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale3d(1, 1, 1)',
+                  transformStyle: 'preserve-3d',
+                }}
+              >
+                {/* Continuous organic multi-phase levitation (persists smoothly even while tilting) */}
+                <div className="relative w-full flex flex-col items-center animate-hero-float">
+                  {/* Floating Spatial Micro-Tag 1: Left */}
+                  <div className="absolute top-4 sm:top-8 -left-2 sm:-left-6 z-20 animate-badge-float pointer-events-none hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-forest-950/90 backdrop-blur-md border border-amber-400/40 text-cream-100 shadow-2xl">
+                    <span className="w-2 h-2 rounded-full bg-chilli-500 animate-ping" />
+                    <span className="text-[11px] font-bold text-amber-300">Wood-Smoked Pork & Ghost Chilli</span>
+                  </div>
+
+                  {/* Floating Spatial Micro-Tag 2: Right */}
+                  <div className="absolute top-8 sm:top-12 -right-2 sm:-right-6 z-20 animate-badge-float-alt pointer-events-none hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-forest-950/90 backdrop-blur-md border border-emerald-400/40 text-cream-100 shadow-2xl">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span className="text-[11px] font-bold text-emerald-300">100% Traditional Recipe</span>
+                  </div>
+
+                  {/* Image wrapper with interactive cursor spotlight & continuous sheen sweep */}
+                  <div className="relative overflow-hidden rounded-3xl p-1">
+                    {/* Pulsing red-gold backglow right under the pouches */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-red-600/25 via-amber-500/20 to-transparent blur-2xl pointer-events-none" />
+
+                    <img
+                      src="/featured-pouches.png"
+                      alt="Lia Chuka Traditional Bambooshoot, Pork and Chicken Pickles"
+                      className="w-full max-w-[280px] xs:max-w-xs sm:max-w-md lg:max-w-[42rem] xl:max-w-[45rem] h-auto object-contain select-none transition-all duration-500 drop-shadow-[0_16px_36px_rgba(0,0,0,0.65)] group-hover:drop-shadow-[0_32px_56px_rgba(217,119,6,0.38)]"
+                    />
+
+                    {/* Automatic Periodic Metallic Sheen Sweep (Every 5 seconds) */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full animate-auto-sheen pointer-events-none" />
+
+                    {/* Interactive Cursor Spotlight Glare Sheen */}
+                    <div
+                      className="absolute inset-0 pointer-events-none transition-opacity duration-300 mix-blend-overlay"
+                      style={{
+                        opacity: tilt.active ? 0.8 : 0.25,
+                        background: `radial-gradient(circle 380px at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.5) 0%, rgba(251, 191, 36, 0.2) 35%, transparent 65%)`,
+                      }}
+                    />
+
+                    {/* Extra Specular Sheen sweep on user hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/30 to-transparent -translate-x-full group-hover:animate-shimmer-sweep pointer-events-none" />
+                  </div>
+
+                  {/* Curated Spotlight Pedestal Glow underneath base of pouches */}
+                  <div className="w-[88%] h-6 sm:h-8 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent blur-md rounded-full -mt-2 mx-auto pointer-events-none" />
+
+                  {/* Red/Crimson Packaging Floor Underglow */}
+                  <div
+                    className="w-[86%] h-5 sm:h-8 bg-red-600/30 rounded-[100%] blur-xl -mt-4 sm:-mt-6 mx-auto pointer-events-none transition-all duration-300"
+                    style={{
+                      transform: tilt.active
+                        ? `translateX(${-tilt.y * 2.5}px) scaleX(0.95)`
+                        : undefined,
+                      opacity: tilt.active ? 0.5 : 0.75,
+                    }}
+                  />
+
+                  {/* Grounding Multi-layered Contact Shadow underneath base of pouches */}
+                  <div
+                    className={`w-[94%] h-8 sm:h-12 bg-black/85 rounded-[100%] blur-2xl -mt-5 sm:-mt-6 mx-auto pointer-events-none transition-all duration-300 ${
+                      tilt.active ? '' : 'animate-hero-shadow'
+                    }`}
+                    style={{
+                      transform: tilt.active
+                        ? `translateX(${-tilt.y * 3.5}px) translateY(12px) scaleX(0.92) scaleY(0.42)`
+                        : undefined,
+                      opacity: tilt.active ? 0.6 : 0.85,
+                    }}
+                  />
+                  <div
+                    className="w-[78%] h-4 sm:h-6 bg-black/95 rounded-[100%] blur-md -mt-3.5 sm:-mt-5 mx-auto pointer-events-none transition-all duration-300"
+                    style={{
+                      transform: tilt.active
+                        ? `translateX(${-tilt.y * 2}px) scaleX(0.9)`
+                        : undefined,
+                      opacity: tilt.active ? 0.75 : 0.95,
+                    }}
+                  />
+                </div>
               </div>
             </Link>
-          ))}
-        </div>
-      </section>
-
-      {/* 4. The 4 Pillars */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-xl mx-auto mb-10">
-          <span className="text-xs font-bold tracking-wider uppercase text-forest-700">The Tradition</span>
-          <h2 className="font-serif text-3xl font-bold text-stone-900 mt-1">
-            Artisanal Curing & Fermentation
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <span className="text-2xl">🪵</span>
-            <h3 className="font-serif font-bold text-sm text-stone-900">72h Oak Smoke</h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Cured over aged hill oak hearths in Kohima.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <span className="text-2xl">🌶️</span>
-            <h3 className="font-serif font-bold text-sm text-stone-900">GI-Tagged Chilli</h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Sun-wilted Naga Raja Mircha with citrus floral finish.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <span className="text-2xl">🌿</span>
-            <h3 className="font-serif font-bold text-sm text-stone-900">Axone & Bastenga</h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Fermented soya and tender wild bamboo shoot umami.
-            </p>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <span className="text-2xl">🫒</span>
-            <h3 className="font-serif font-bold text-sm text-stone-900">Virgin Mustard Oil</h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
-              Natural cold-pressed seal locking in tenderness.
-            </p>
           </div>
         </div>
       </section>
 
-      {/* 5. Origin Story */}
-      <section className="bg-cream-100 border-y border-stone-200/80 py-14">
+      {/* 3. Verified Brand Houses Strip (Logo + Brand Name Only) */}
+      <section className="bg-gradient-to-b from-stone-50 via-cream-50 to-stone-100/70 border-b border-stone-200/90 py-3.5 sm:py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-6 space-y-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-forest-800">
-                Founding Kitchen
+          <div className="flex flex-row items-center justify-between gap-2 mb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+              <span className="text-[10.5px] sm:text-xs font-bold uppercase tracking-wider text-stone-700">
+                Official Brand Stores · Verified Producers
               </span>
-              <h2 className="font-serif text-3xl font-bold text-stone-900 leading-tight">
-                Crafted in Kohima for over 35 years.
+            </div>
+            <Link
+              to="/brands"
+              className="text-[11px] sm:text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-0.5 group whitespace-nowrap"
+            >
+              <span>View All Brands</span>
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
+          </div>
+
+          {/* Row-wise Responsive Grid (2 columns on mobile, exactly 2 rows for 4 brands) */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 sm:gap-2.5">
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-11 sm:h-12 rounded-xl bg-stone-200/60 animate-pulse" />
+              ))
+            ) : brands.length > 0 ? (
+              (showAllBrands ? brands : brands.slice(0, 4)).map((brand) => (
+                <BrandCard
+                  key={brand.id || brand.slug || brand.business_name}
+                  brand={brand}
+                  compact={true}
+                />
+              ))
+            ) : null}
+          </div>
+
+          {/* View More / Show Less Toggle for more than 4 brands (or > 2 rows) */}
+          {brands.length > 4 && (
+            <div className="flex items-center justify-center pt-2 sm:pt-2.5">
+              <button
+                type="button"
+                onClick={() => setShowAllBrands(!showAllBrands)}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 hover:text-stone-900 text-[10.5px] font-bold shadow-2xs transition-all active:scale-95 cursor-pointer"
+              >
+                <span>{showAllBrands ? 'Show Less' : `View More Brands (+${brands.length - 4})`}</span>
+                {showAllBrands ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Main Content Sections */}
+      <div className="space-y-14 sm:space-y-16 mt-10 sm:mt-12 pb-12 sm:pb-16">
+        {/* 4. Slow-Cured Artisanal Bestsellers */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <span className="text-xs font-bold tracking-widest uppercase text-forest-800">Slow-Cured Pantry</span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mt-1">
+                Artisan Favorites
               </h2>
-              <p className="text-xs sm:text-sm text-stone-600 leading-relaxed">
-                Hand-cut pork cured over firewood hearths, seasoned with fermented soybeans (Axone), and infused with King Chilli. Wangs brings these rare regional recipes directly to your table.
-              </p>
-              <div className="pt-2 flex items-center gap-5">
-                <Link
-                  to="/products?category=pork-pickle"
-                  className="px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow transition-colors"
-                >
-                  Taste Pork Pickles
-                </Link>
-                <div className="text-xs text-stone-500">
-                  <span className="font-bold text-stone-800 block">Kohima, Nagaland</span>
-                  <span>FSSAI Lic. #10023064000124</span>
-                </div>
-              </div>
             </div>
-
-            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
-              <img
-                src="https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=500&q=80"
-                alt="Firewood Cure"
-                className="rounded-2xl object-cover h-48 w-full shadow-sm"
-              />
-              <img
-                src="https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=500&q=80"
-                alt="Naga King Chilli"
-                className="rounded-2xl object-cover h-48 w-full shadow-sm"
-              />
-            </div>
+            <Link
+              to="/products"
+              className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1 group"
+            >
+              <span>View Full Catalog</span>
+              <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
-        </div>
-      </section>
 
-      {/* 6. Featured Batches Showcase */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
-          <div>
-            <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Artisan Harvest</span>
-            <h2 className="font-serif text-3xl font-bold text-stone-900 mt-1">
-              Handpicked Featured Batches
-            </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {loading
+              ? [1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-96 rounded-2xl bg-stone-100 animate-pulse" />
+                ))
+              : bestsellers.slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))
+            }
           </div>
-          <Link to="/products" className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1">
-            <span>Explore full pantry</span>
-            <ChevronRight size={14} />
-          </Link>
-        </div>
+        </section>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featured.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
-
-      {/* 6. Producer Callout */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-forest-950 text-cream-50 rounded-3xl p-8 sm:p-12 border border-forest-800 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-300">Producer Collective</span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">
-              Sell your authentic regional pickles on Wangs.
-            </h2>
-            <p className="text-xs sm:text-sm text-cream-300">
-              Transparent 10% platform commission, pan-India logistics, and direct escrow payouts.
-            </p>
-          </div>
-          <Link
-            to="/manufacturer/register"
-            className="px-6 py-3.5 bg-amber-500 hover:bg-amber-400 text-forest-950 font-bold text-xs rounded-xl shadow transition-colors whitespace-nowrap"
-          >
-            Apply as Producer
-          </Link>
-        </div>
-      </section>
-
-      {/* 8. Customer Testimonials */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-2xl mx-auto mb-12">
-          <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Customer Appreciation</span>
-          <h2 className="font-serif text-3xl font-bold text-stone-900 mt-1">
-            Bringing the Aroma of the Hills to Homes
-          </h2>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-7 rounded-2xl border border-stone-200 shadow-artisan flex flex-col justify-between">
-            <div className="space-y-3.5">
-              <div className="flex text-amber-500 gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={15} fill="currentColor" />
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-stone-700 italic leading-relaxed">
-                "Having lived in Delhi for 8 years, finding real Naga smoked pork pickle that tastes like home felt impossible. Arenla Heritage signature pork pickle is identical to the ones my family used to make in Mokokchung. The oak smoke is phenomenal!"
+        {/* 5. Minimal Artisan Assurance Strip */}
+        <section className="border-t border-stone-200/80 pt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-3 gap-8 text-center sm:text-left">
+            <div className="space-y-1.5 sm:border-r sm:border-stone-200 sm:pr-8">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">01 · Verified Quality</span>
+              <h4 className="font-serif font-bold text-base text-stone-900">Direct From Verified Brands</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Every batch is handcrafted in registered small-batch workshops under strict FSSAI food safety hygiene.
               </p>
             </div>
-            <div className="mt-6 pt-4 border-t border-stone-100 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-forest-800 text-cream-100 flex items-center justify-center font-bold text-xs">
-                KJ
-              </div>
-              <div>
-                <p className="font-bold text-xs text-stone-900">Dr. K. Jamir</p>
-                <p className="text-[11px] text-stone-500">Verified Buyer · New Delhi</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-7 rounded-2xl border border-stone-200 shadow-artisan flex flex-col justify-between">
-            <div className="space-y-3.5">
-              <div className="flex text-amber-500 gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={15} fill="currentColor" />
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-stone-700 italic leading-relaxed">
-                "The Raja Mircha pickle is intense! It’s not just mindless heat; the mustard oil and mountain peppercorns give it an amazing floral citrus depth. A tiny spoonful elevates simple dal and rice into a feast."
+            <div className="space-y-1.5 sm:border-r sm:border-stone-200 sm:pr-8">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">02 · Express Logistics</span>
+              <h4 className="font-serif font-bold text-base text-stone-900">Air Express Dispatch</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Packed with shock-absorbing air-cushion protection to preserve fresh seal across 26,000+ Indian PIN codes.
               </p>
             </div>
-            <div className="mt-6 pt-4 border-t border-stone-100 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-forest-800 text-cream-100 flex items-center justify-center font-bold text-xs">
-                AS
-              </div>
-              <div>
-                <p className="font-bold text-xs text-stone-900">Ananya Sen</p>
-                <p className="text-[11px] text-stone-500">Food Critic · Bengaluru</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-7 rounded-2xl border border-stone-200 shadow-artisan flex flex-col justify-between">
-            <div className="space-y-3.5">
-              <div className="flex text-amber-500 gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={15} fill="currentColor" />
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-stone-700 italic leading-relaxed">
-                "Ordered the Bastenga (fermented bamboo shoot) and wild apple pickle. Packed securely in sturdy glass jars with thick tamper seals, arrived in Mumbai within 4 days. Crisp, tangy, authentic Northeast India."
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 font-mono">03 · Heritage Ingredients</span>
+              <h4 className="font-serif font-bold text-base text-stone-900">Zero Synthetic Preservatives</h4>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                Cured naturally with cold-pressed mustard oil, native Raja Mircha, and traditional wood-smoke aging.
               </p>
             </div>
-            <div className="mt-6 pt-4 border-t border-stone-100 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-forest-800 text-cream-100 flex items-center justify-center font-bold text-xs">
-                VM
-              </div>
-              <div>
-                <p className="font-bold text-xs text-stone-900">Vikramaditya Mehta</p>
-                <p className="text-[11px] text-stone-500">Verified Buyer · Mumbai</p>
-              </div>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </div>
   );
 }

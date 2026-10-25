@@ -51,8 +51,12 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['"Playfair Display"', 'Georgia', 'serif'],
-        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        serif: ['Fraunces', '"Playfair Display"', 'Georgia', 'serif'],
+        display: ['"Playfair Display"', 'Fraunces', 'serif'],
+        brand: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        cinzel: ['Cinzel', 'serif'],
+        syne: ['Syne', 'sans-serif'],
+        sans: ['"DM Sans"', '"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
         'artisan': '0 4px 20px -2px rgba(10, 22, 19, 0.06), 0 2px 6px -1px rgba(10, 22, 19, 0.04)',

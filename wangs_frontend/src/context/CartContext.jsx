@@ -57,12 +57,8 @@ export function CartProvider({ children }) {
   };
 
   const clearCart = async () => {
-    try {
-      const data = await api.clearCart();
-      setCart(data);
-    } catch (err) {
-      console.error(err);
-    }
+    const data = await api.clearCart();
+    setCart(data);
   };
 
   const itemsCount = cart?.financial_summary?.items_count || 0;

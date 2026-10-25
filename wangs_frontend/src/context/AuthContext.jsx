@@ -6,6 +6,7 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [mfgProfile, setMfgProfile] = useState(null);
+  const [platformSettings, setPlatformSettings] = useState({ allow_seller_registration: false });
   const [loading, setLoading] = useState(true);
 
   // Initialize session key for guests if not exists
@@ -16,6 +17,15 @@ export function AuthProvider({ children }) {
       localStorage.setItem('wangs_session_key', sessionKey);
     }
   }, []);
+
+  const loadPlatformSettings = async () => {
+    try {
+      const s = await api.getPlatformSettings();
+      if (s) setPlatformSettings(s);
+    } catch (err) {
+      // offline / default
+    }
+  };
 
   const loadCurrentUser = async () => {
     const token = localStorage.getItem('wangs_token');
@@ -39,6 +49,7 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     loadCurrentUser();
+    loadPlatformSettings();
   }, []);
 
   const login = async (username, password) => {
@@ -56,14 +67,27 @@ export function AuthProvider({ children }) {
     return res.user;
   };
 
+  const loginWithOtp = async (email, otpCode) => {
+    const res = await api.verifyOtp(email, otpCode, 'LOGIN');
+    if (res.token) {
+      localStorage.setItem('wangs_token', res.token);
+      setUser(res.user);
+      setMfgProfile(res.manufacturer_profile);
+    }
+    return res;
+  };
+
   const logout = () => {
     localStorage.removeItem('wangs_token');
     setUser(null);
     setMfgProfile(null);
   };
 
-  const isAdmin = user && (user.role === 'ADMIN' || user.is_staff);
+  const isAdmin = user && (user.role === 'ADMIN' || user.is_staff === true);
   const isManufacturer = user && user.role === 'MANUFACTURER';
+  const isAuthorizedToSell = Boolean(
+    user && (user.is_authorized_to_sell || user.can_sell || user.role === 'MANUFACTURER' || user.role === 'ADMIN' || user.is_staff)
+  );
 
   return (
     <AuthContext.Provider value={{
@@ -71,10 +95,17 @@ export function AuthProvider({ children }) {
       mfgProfile,
       loading,
       login,
+      loginWithOtp,
       register,
       logout,
       isAdmin,
       isManufacturer,
+      isAuthorizedToSell,
+      allowSellerRegistration: Boolean(platformSettings?.allow_seller_registration),
+      isMaintenanceMode: Boolean(platformSettings?.is_maintenance_mode),
+      maintenanceMessage: platformSettings?.maintenance_message || "We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!",
+      platformSettings,
+      refreshPlatformSettings: loadPlatformSettings,
       refreshUser: loadCurrentUser
     }}>
       {children}

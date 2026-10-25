@@ -3,9 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Tag, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { api } from '../api';
+import { useToast } from '../context/ToastContext';
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, itemsCount } = useCart();
+  const toast = useToast();
   const navigate = useNavigate();
 
   const [couponCode, setCouponCode] = useState('');
@@ -13,6 +15,37 @@ export default function CartPage() {
   const [quote, setQuote] = useState(null);
   const [couponError, setCouponError] = useState('');
   const [calculating, setCalculating] = useState(false);
+  const [updatingProductId, setUpdatingProductId] = useState(null);
+
+  const changeQuantity = async (productId, quantity) => {
+    setUpdatingProductId(productId);
+    try {
+      await updateQuantity(productId, quantity);
+    } catch (err) {
+      toast.error(err.message || 'Could not update basket quantity');
+    } finally {
+      setUpdatingProductId(null);
+    }
+  };
+
+  const handleRemove = async (productId) => {
+    setUpdatingProductId(productId);
+    try {
+      await removeFromCart(productId);
+    } catch (err) {
+      toast.error(err.message || 'Could not remove item from basket');
+    } finally {
+      setUpdatingProductId(null);
+    }
+  };
+
+  const handleClearCart = async () => {
+    try {
+      await clearCart();
+    } catch (err) {
+      toast.error(err.message || 'Could not clear basket');
+    }
+  };
 
   const fetchQuote = async (codeToUse = '') => {
     if (!cart?.items?.length) return;
@@ -32,8 +65,10 @@ export default function CartPage() {
   };
 
   useEffect(() => {
-    fetchQuote(appliedCoupon);
-  }, [cart]);
+    if (cart?.items?.length) {
+      fetchQuote(appliedCoupon);
+    }
+  }, [cart, appliedCoupon]);
 
   const handleApplyCoupon = async (e) => {
     e.preventDefault();
@@ -51,7 +86,7 @@ export default function CartPage() {
   const summary = quote || cart?.financial_summary || {
     items_subtotal: '0.00',
     customer_platform_fee: '5.00',
-    delivery_fee: '50.00',
+    delivery_fee: '0.00',
     discount_amount: '0.00',
     total_amount: '0.00',
   };
@@ -69,7 +104,7 @@ export default function CartPage() {
         </div>
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is currently empty</h2>
         <p className="text-xs sm:text-sm text-stone-500 max-w-sm mx-auto leading-relaxed">
-          Taste authentic Naga smoked pork, King Chilli, and wild forest condiments cured in Kohima.
+          Taste artisanal smoked pork, King Chilli, and wild forest condiments.
         </p>
         <Link
           to="/products"
@@ -94,23 +129,10 @@ export default function CartPage() {
         </div>
 
         {/* Free Shipping Pill */}
-        <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm max-w-md w-full sm:w-auto text-xs space-y-1.5">
-          <div className="flex justify-between items-center text-[11px] font-bold text-forest-900">
-            <span className="flex items-center gap-1.5">
-              <Truck size={14} className="text-forest-700" />
-              {remainingForFree === 0 ? (
-                <span className="text-emerald-700">Unlocked Free Pan-India Air Delivery!</span>
-              ) : (
-                <span>Add ₹{remainingForFree.toFixed(0)} more for Free Delivery</span>
-              )}
-            </span>
-            <span className="font-mono text-stone-500">{progressPercent}%</span>
-          </div>
-          <div className="w-full sm:w-64 bg-stone-100 h-2 rounded-full overflow-hidden">
-            <div
-              className="bg-gradient-to-r from-forest-600 to-emerald-600 h-full rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            />
+        <div className="bg-emerald-50/90 px-4 py-2.5 rounded-2xl border border-emerald-200 shadow-sm max-w-md w-full sm:w-auto text-xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
+            <Truck size={15} className="text-emerald-700 shrink-0" />
+            <span>100% Free Nationwide Delivery Included on All Orders</span>
           </div>
         </div>
       </div>
@@ -123,8 +145,12 @@ export default function CartPage() {
               <div key={item.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
                 <div className="flex items-center gap-4">
                   <img
-                    src={item.product.primary_image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=300&q=80'}
+                    src={item.product.primary_image_url || '/featured-pouches.png'}
                     alt={item.product.title}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/featured-pouches.png';
+                    }}
                     className="w-20 h-20 object-cover rounded-2xl border border-stone-200 flex-shrink-0 shadow-sm"
                   />
                   <div>
@@ -137,6 +163,11 @@ export default function CartPage() {
                     <p className="text-sm font-bold text-stone-950 mt-1 font-serif">
                       ₹{parseFloat(item.product.price).toFixed(0)} each
                     </p>
+                    {(item.product.is_in_stock === false || (item.product.stock_quantity !== undefined && item.product.stock_quantity <= 0)) && (
+                      <p className="text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md mt-1 inline-block">
+                        All product sold out · Product will be in stock soon
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -144,14 +175,18 @@ export default function CartPage() {
                 <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
                   <div className="flex items-center border border-stone-300 rounded-xl bg-stone-50 overflow-hidden shadow-inner">
                     <button
-                      onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                      onClick={() => changeQuantity(item.product.id, item.quantity - 1)}
+                      disabled={updatingProductId === item.product.id}
+                      aria-label={`Decrease quantity of ${item.product.title}`}
                       className="px-3 py-1.5 text-stone-600 hover:bg-stone-200 transition-colors"
                     >
                       <Minus size={13} />
                     </button>
                     <span className="px-3 text-xs font-black text-stone-900 font-mono">{item.quantity}</span>
                     <button
-                      onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                      onClick={() => changeQuantity(item.product.id, item.quantity + 1)}
+                      disabled={updatingProductId === item.product.id || item.quantity >= item.product.stock_quantity}
+                      aria-label={`Increase quantity of ${item.product.title}`}
                       className="px-3 py-1.5 text-stone-600 hover:bg-stone-200 transition-colors"
                     >
                       <Plus size={13} />
@@ -163,7 +198,8 @@ export default function CartPage() {
                       ₹{(parseFloat(item.product.price) * item.quantity).toFixed(0)}
                     </span>
                     <button
-                      onClick={() => removeFromCart(item.product.id)}
+                      onClick={() => handleRemove(item.product.id)}
+                      disabled={updatingProductId === item.product.id}
                       className="text-xs text-stone-400 hover:text-chilli-700 mt-1 flex items-center gap-1 transition-colors font-medium ml-auto"
                     >
                       <Trash2 size={13} /> Remove
@@ -178,7 +214,7 @@ export default function CartPage() {
             <Link to="/products" className="text-xs text-forest-800 font-bold hover:underline">
               ← Continue Shopping in Pantry
             </Link>
-            <button onClick={clearCart} className="text-xs text-stone-400 hover:text-chilli-700 transition-colors">
+            <button onClick={handleClearCart} className="text-xs text-stone-400 hover:text-chilli-700 transition-colors">
               Clear All Items
             </button>
           </div>
@@ -204,7 +240,7 @@ export default function CartPage() {
                   type="text"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
-                  placeholder="e.g. WANGS10 or NAGA50"
+                  placeholder="e.g. WANGS10 or WANGS50"
                   className="flex-1 px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs uppercase font-mono font-bold focus:outline-none focus:ring-1 focus:ring-forest-800"
                 />
                 <button
@@ -218,7 +254,7 @@ export default function CartPage() {
             )}
             {couponError && <p className="text-[11px] text-red-500">{couponError}</p>}
             <p className="text-[11px] text-stone-400">
-              Try <strong>WANGS10</strong> (10% off) or <strong>NAGA50</strong> (₹50 off on ₹400+).
+              Try <strong>WANGS10</strong> (10% off) or <strong>WANGS50</strong> (₹50 off on ₹400+).
             </p>
           </div>
 
@@ -281,7 +317,7 @@ export default function CartPage() {
               </p>
               <p className="flex items-center gap-1.5 font-medium">
                 <Truck size={14} className="text-forest-600 flex-shrink-0" />
-                <span>Direct express air dispatch from Kohima, Nagaland</span>
+                <span>Direct express air dispatch</span>
               </p>
             </div>
           </div>

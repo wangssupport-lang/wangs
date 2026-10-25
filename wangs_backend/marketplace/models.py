@@ -14,12 +14,29 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.CUSTOMER)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     is_phone_verified = models.BooleanField(default=False)
+    can_sell = models.BooleanField(
+        default=False,
+        help_text="Designates whether admin has authorized this user to access 'Sell with Us' and onboard as a seller."
+    )
+    is_banned = models.BooleanField(
+        default=False,
+        help_text="Designates whether this account has been banned/suspended by platform admin for policy violations."
+    )
+    ban_reason = models.TextField(
+        blank=True,
+        default='',
+        help_text="Reason or violation notes recorded by admin."
+    )
+    banned_at = models.DateTimeField(null=True, blank=True)
 
     def is_manufacturer(self):
         return self.role == self.Role.MANUFACTURER
 
     def is_platform_admin(self):
         return self.role == self.Role.ADMIN or self.is_superuser
+
+    def is_authorized_to_sell(self):
+        return self.can_sell or self.role == self.Role.ADMIN or self.is_superuser
 
 
 class CustomerProfile(models.Model):
@@ -85,9 +102,45 @@ class ManufacturerProfile(models.Model):
         help_text="Custom commission rate (%) for this seller. If empty, uses platform default."
     )
     is_verified_producer = models.BooleanField(default=False)
+    is_featured = models.BooleanField(
+        default=False,
+        help_text="Highlight brand in Amazon-style Brand Spotlight carousel & badges."
+    )
+    tagline = models.CharField(
+        max_length=200,
+        blank=True,
+        default='',
+        help_text="Short brand punchline e.g. 'Kohima’s Heritage Wood-Smoked Workshop'"
+    )
+    brand_badge = models.CharField(
+        max_length=60,
+        blank=True,
+        default='Official Brand Store',
+        help_text="Badge e.g. 'Featured Brand' or 'Amazon-style Brand Spotlight'"
+    )
+    hero_banner = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="Banner image URL for the brand showcase"
+    )
+    logo_image = models.CharField(
+        max_length=500,
+        blank=True,
+        default='',
+        help_text="Brand circular logo URL"
+    )
     admin_review_notes = models.TextField(blank=True, default='')
+    display_priority = models.PositiveIntegerField(
+        default=0,
+        db_index=True,
+        help_text="Admin display priority (higher numbers appear first)."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-display_priority', '-is_featured', 'business_name']
 
     def __str__(self):
         return f"{self.business_name} ({self.get_status_display()})"
@@ -137,8 +190,9 @@ class Product(models.Model):
         FIERY_KING_CHILLI = 'FIERY_KING_CHILLI', 'Fiery King Chilli (Raja Mircha)'
 
     class DietaryType(models.TextChoices):
-        VEG = 'VEG', 'Vegetarian'
-        NON_VEG = 'NON_VEG', 'Non-Vegetarian (Authentic Meat Pickles)'
+        VEG = 'VEG', 'Veg'
+        NON_VEG = 'NON_VEG', 'Non-Veg'
+        VEG_MIXED = 'VEG_MIXED', 'Veg mixed with Non-Veg'
 
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pending Admin Approval'
@@ -152,12 +206,33 @@ class Product(models.Model):
     short_description = models.CharField(max_length=300)
     description = models.TextField()
     
-    price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('1.00'))])
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('100.01'), message="Selling price must be strictly above ₹100.")]
+    )
+    base_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Seller base earnings per unit (Base Price in equation: Base + Commission + Delivery = Customer Price)."
+    )
+    delivery_charge = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('50.00'),
+        help_text="Built-in express courier charge so customer pays zero delivery fee."
+    )
     mrp = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     weight_grams = models.PositiveIntegerField(help_text="Net weight in grams (e.g. 200, 250, 400)")
     
     spice_level = models.CharField(max_length=25, choices=SpiceLevel.choices, default=SpiceLevel.HOT)
-    dietary_type = models.CharField(max_length=15, choices=DietaryType.choices, default=DietaryType.NON_VEG)
+    dietary_type = models.CharField(max_length=20, choices=DietaryType.choices, default=DietaryType.NON_VEG)
+    contains_non_veg_substance = models.BooleanField(
+        default=False,
+        help_text="For veg products: True if it contains animal fat, fish sauce, bone broth, or non-veg ingredients."
+    )
     
     ingredients = models.TextField(help_text="Detailed ingredients list (e.g. Smoked Pork, King Chilli, Axone/Fermented Soybean, Bamboo Shoot, Mustard Oil, Salt)")
     allergens = models.CharField(max_length=255, blank=True, default='May contain traces of mustard or fermented soybeans (Axone)')
@@ -188,9 +263,15 @@ class Product(models.Model):
             self.manufacturer.status == ManufacturerProfile.Status.APPROVED
         )
 
+    def save(self, *args, **kwargs):
+        if self.dietary_type == self.DietaryType.VEG and self.contains_non_veg_substance:
+            self.dietary_type = self.DietaryType.VEG_MIXED
+        elif self.dietary_type == self.DietaryType.VEG_MIXED:
+            self.contains_non_veg_substance = True
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.title} ({self.weight_grams}g) - ₹{self.price}"
-
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
@@ -204,6 +285,56 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.title}"
+
+
+class ProductReview(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    author_name = models.CharField(max_length=120)
+    rating = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+        default=5
+    )
+    title = models.CharField(max_length=200, blank=True, default='')
+    comment = models.TextField()
+    image_url = models.TextField(blank=True, default='', help_text="Optional customer review photo URL or uploaded image data.")
+    is_verified_buyer = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.author_name} - {self.rating}★ on {self.product.title}"
+
+
+class EmailOTP(models.Model):
+    class Purpose(models.TextChoices):
+        LOGIN = 'LOGIN', 'Customer & User Login'
+        REGISTER = 'REGISTER', 'User Registration'
+        SELLER = 'SELLER', 'Seller Verification'
+
+    email = models.EmailField()
+    otp_code = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=20, choices=Purpose.choices, default=Purpose.LOGIN)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        verbose_name = 'Email OTP'
+        verbose_name_plural = 'Email OTPs'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['email', 'otp_code', 'is_used']),
+        ]
+
+    def is_valid(self):
+        from django.utils import timezone
+        return not self.is_used and self.expires_at > timezone.now()
+
+    def __str__(self):
+        return f"OTP for {self.email} ({self.purpose})"
 
 
 class CommissionSetting(models.Model):
@@ -222,6 +353,19 @@ class CommissionSetting(models.Model):
     free_delivery_threshold = models.DecimalField(
         max_digits=8, decimal_places=2, default=Decimal('999.00'),
         help_text="Cart subtotal above which delivery is free"
+    )
+    allow_seller_registration = models.BooleanField(
+        default=False,
+        help_text="When True, the 'Sell with Us' button appears in the footer. Controlled by Admin."
+    )
+    is_maintenance_mode = models.BooleanField(
+        default=False,
+        help_text="When True, the public storefront shows a maintenance page to visitors. Admins can bypass."
+    )
+    maintenance_message = models.CharField(
+        max_length=300,
+        blank=True,
+        default="We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!"
     )
     effective_from = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
@@ -363,6 +507,8 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=30, default='RAZORPAY_TEST')
 
     dispatch_notes = models.TextField(blank=True, default='')
+    courier_partner = models.CharField(max_length=100, blank=True, default='India Post Air Cargo')
+    tracking_number = models.CharField(max_length=100, blank=True, default='', help_text="Airway Bill (AWB) or Tracking number")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -485,3 +631,14 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.created_at.strftime('%Y-%m-%d %H:%M:%S')} - {self.action} by {self.user}"
+
+
+class MaintenanceSubscriber(models.Model):
+    email = models.EmailField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.email

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal, Search, RefreshCw, X, Flame, Sparkles } from 'lucide-react';
+import { Filter, Search, X, ShieldCheck } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
 
@@ -8,54 +8,88 @@ export default function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Filter states
   const categoryParam = searchParams.get('category') || '';
   const searchParam = searchParams.get('search') || '';
+  const brandParam = searchParams.get('brand') || searchParams.get('manufacturer') || '';
   const spiceParam = searchParams.get('spice_level') || '';
   const dietaryParam = searchParams.get('dietary_type') || '';
   const orderingParam = searchParams.get('ordering') || 'popularity';
   const inStockParam = searchParams.get('in_stock') === 'true';
+  const pageParam = Math.max(1, Number.parseInt(searchParams.get('page') || '1', 10) || 1);
 
   useEffect(() => {
-    async function loadCategories() {
+    async function loadMeta() {
       try {
-        const cats = await api.getCategories();
+        const [cats, brnds] = await Promise.all([
+          api.getCategories().catch(() => []),
+          api.getBrands().catch(() => []),
+        ]);
         setCategories(cats?.results || cats || []);
+        setBrands(Array.isArray(brnds) ? brnds : brnds?.results || []);
       } catch (err) {
         console.error(err);
       }
     }
-    loadCategories();
+    loadMeta();
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadProducts() {
-      setLoading(true);
+      if (!cancelled) {
+        setLoading(true);
+        setLoadError('');
+      }
       try {
         const params = {};
         if (categoryParam) params.category = categoryParam;
         if (searchParam) params.search = searchParam;
+        if (brandParam) params.brand = brandParam;
         if (spiceParam) params.spice_level = spiceParam;
         if (dietaryParam) params.dietary_type = dietaryParam;
         if (orderingParam) params.ordering = orderingParam;
         if (inStockParam) params.in_stock = 'true';
+        params.page = String(pageParam);
 
         const data = await api.getProducts(params);
-        setProducts(data.results || data || []);
+        const results = Array.isArray(data) ? data : data?.results || [];
+        if (cancelled) return;
+        setProducts(results);
+        setTotalCount(Array.isArray(data) ? data.length : data?.count || 0);
+        setHasNextPage(Boolean(data?.next));
+        setHasPreviousPage(Boolean(data?.previous));
       } catch (err) {
+        if (cancelled) return;
         console.error('Failed to load products', err);
+        setProducts([]);
+        setTotalCount(0);
+        setHasNextPage(false);
+        setHasPreviousPage(false);
+        setLoadError(err.message || 'Could not load products. Please try again.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
     loadProducts();
-  }, [categoryParam, searchParam, spiceParam, dietaryParam, orderingParam, inStockParam]);
+    return () => {
+      cancelled = true;
+    };
+  }, [categoryParam, searchParam, brandParam, spiceParam, dietaryParam, orderingParam, inStockParam, pageParam, retryCount]);
 
   const updateFilter = (key, value) => {
     const next = new URLSearchParams(searchParams);
+    if (key !== 'page') next.delete('page');
     if (value) {
       next.set(key, value);
     } else {
@@ -68,7 +102,7 @@ export default function ProductListPage() {
     setSearchParams(new URLSearchParams());
   };
 
-  const activeFiltersCount = [categoryParam, searchParam, spiceParam, dietaryParam, inStockParam ? 'true' : ''].filter(Boolean).length;
+  const activeFiltersCount = [categoryParam, searchParam, brandParam, spiceParam, dietaryParam, inStockParam ? 'true' : ''].filter(Boolean).length;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8">
@@ -77,11 +111,24 @@ export default function ProductListPage() {
         <div>
           <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Artisan Curation</span>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">
-            Naga Pickle Pantry
+            Artisanal Pickles
           </h1>
           <p className="text-xs sm:text-sm text-stone-600 mt-2 max-w-xl leading-relaxed">
-            Authentic firewood-smoked meats, fermented bamboo shoot, and wild King Chilli preserves handcrafted in Kohima and Mokokchung.
+            Small-batch firewood-smoked meats, wild chillies, and mountain ferments.
           </p>
+          {brandParam && (
+            <div className="mt-3 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-forest-900 text-cream-100 text-xs font-semibold shadow-sm">
+              <span>Brand Store: <strong className="text-amber-300 font-bold">{products[0]?.manufacturer?.business_name || brandParam.replace(/-/g, ' ')}</strong></span>
+              <button
+                type="button"
+                onClick={() => updateFilter('brand', '')}
+                className="hover:text-amber-300 ml-1 p-0.5 rounded-full hover:bg-forest-800 transition-colors"
+                title="Clear brand filter"
+              >
+                <X size={13} />
+              </button>
+            </div>
+          )}
         </div>
 
         {activeFiltersCount > 0 && (
@@ -106,7 +153,8 @@ export default function ProductListPage() {
           </button>
 
           <span className="text-xs text-stone-500 font-medium">
-            Showing <strong className="text-stone-900 font-bold">{products.length}</strong> authentic products
+            Showing <strong className="text-stone-900 font-bold">{products.length}</strong> of{' '}
+            <strong className="text-stone-900 font-bold">{totalCount}</strong> authentic products
           </span>
         </div>
 
@@ -128,7 +176,7 @@ export default function ProductListPage() {
       </div>
 
       {/* Main Grid with Sidebar Filter */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 gap-5 sm:gap-8 lg:grid-cols-4">
         {/* Desktop Filter Sidebar */}
         <aside className={`lg:block ${mobileFilterOpen ? 'block' : 'hidden'} space-y-6 bg-white lg:bg-transparent p-6 lg:p-0 rounded-3xl border lg:border-none border-stone-200 shadow-artisan lg:shadow-none`}>
           {/* Categories Filter */}
@@ -162,6 +210,43 @@ export default function ProductListPage() {
             </div>
           </div>
 
+          {/* Brand Houses Filter */}
+          {brands.length > 0 && (
+            <div className="bg-white lg:p-5 lg:rounded-2xl lg:border lg:border-stone-200/80 lg:shadow-sm space-y-3">
+              <h3 className="font-serif font-bold text-sm text-stone-950 border-b border-stone-100 pb-2">
+                Brand Houses
+              </h3>
+              <div className="space-y-1 text-xs font-medium max-h-48 overflow-y-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => updateFilter('brand', '')}
+                  className={`w-full text-left py-2 px-3 rounded-xl transition-all ${
+                    !brandParam ? 'bg-forest-900 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-cream-100'
+                  }`}
+                >
+                  All Brand Houses
+                </button>
+                {brands.map((b) => {
+                  const bSlug = b.slug || b.business_name;
+                  const isSelected = brandParam.toLowerCase() === bSlug.toLowerCase() || (b.business_name && brandParam.toLowerCase() === b.business_name.toLowerCase());
+                  return (
+                    <button
+                      key={b.id || b.slug}
+                      type="button"
+                      onClick={() => updateFilter('brand', bSlug)}
+                      className={`w-full text-left py-2 px-3 rounded-xl transition-all flex items-center justify-between ${
+                        isSelected ? 'bg-forest-900 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-cream-100'
+                      }`}
+                    >
+                      <span className="truncate">{b.business_name}</span>
+                      <ShieldCheck size={12} className={isSelected ? 'text-amber-300' : 'text-emerald-600'} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Dietary Type Filter */}
           <div className="bg-white lg:p-5 lg:rounded-2xl lg:border lg:border-stone-200/80 lg:shadow-sm space-y-3">
             <h3 className="font-serif font-bold text-sm text-stone-950 border-b border-stone-100 pb-2">
@@ -170,8 +255,9 @@ export default function ProductListPage() {
             <div className="space-y-2 text-xs">
               {[
                 { label: 'All Specialties', val: '' },
-                { label: 'Non-Vegetarian (Smoked Pork & Beef)', val: 'NON_VEG' },
-                { label: '100% Vegetarian (Axone, Veg, Fruit)', val: 'VEG' },
+                { label: 'Non-Veg', val: 'NON_VEG' },
+                { label: 'Veg', val: 'VEG' },
+                { label: 'Veg mixed with Non-Veg', val: 'VEG_MIXED' },
               ].map((opt) => (
                 <label key={opt.val} className="flex items-center gap-2.5 cursor-pointer text-stone-700 hover:text-stone-950 font-medium">
                   <input
@@ -197,8 +283,8 @@ export default function ProductListPage() {
                 { label: 'All Heat Levels', val: '' },
                 { label: 'Mild Spice (Jaggery, Wild Apple)', val: 'MILD' },
                 { label: 'Medium Spice (Bamboo shoot)', val: 'MEDIUM' },
-                { label: 'Hot Naga Spice (Firewood pork)', val: 'HOT' },
-                { label: 'Fiery King Chilli 🌶️ (Raja Mircha)', val: 'FIERY_KING_CHILLI' },
+                { label: 'Hot Firewood Spice', val: 'HOT' },
+                { label: 'Fiery King Chilli (Raja Mircha)', val: 'FIERY_KING_CHILLI' },
               ].map((opt) => (
                 <label key={opt.val} className="flex items-center gap-2.5 cursor-pointer text-stone-700 hover:text-stone-950 font-medium">
                   <input
@@ -233,17 +319,28 @@ export default function ProductListPage() {
         {/* Product Cards Grid */}
         <div className="lg:col-span-3">
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="h-96 bg-stone-100 rounded-2xl animate-pulse" />
               ))}
+            </div>
+          ) : loadError ? (
+            <div className="rounded-3xl border border-red-200 bg-red-50 p-10 text-center">
+              <h3 className="font-serif text-xl font-bold text-stone-900">Products couldn’t be loaded</h3>
+              <p className="mt-2 text-sm text-stone-600">{loadError}</p>
+              <button
+                onClick={() => setRetryCount((count) => count + 1)}
+                className="mt-4 rounded-xl bg-forest-900 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-forest-950"
+              >
+                Try again
+              </button>
             </div>
           ) : products.length === 0 ? (
             <div className="bg-white rounded-3xl border border-stone-200 p-14 text-center space-y-4 shadow-sm">
               <div className="w-16 h-16 rounded-2xl bg-cream-100 mx-auto flex items-center justify-center text-stone-400">
                 <Search size={28} />
               </div>
-              <h3 className="font-serif font-bold text-xl text-stone-900">No matching Naga pickles found</h3>
+              <h3 className="font-serif font-bold text-xl text-stone-900">No matching pickles found</h3>
               <p className="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
                 Try clearing selected spice or dietary filters to view all handcrafted items.
               </p>
@@ -255,11 +352,32 @@ export default function ProductListPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
               {products.map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
+          )}
+          {!loading && !loadError && totalCount > 0 && (
+            <nav aria-label="Product pages" className="mt-8 flex items-center justify-center gap-4">
+              <button
+                type="button"
+                disabled={!hasPreviousPage}
+                onClick={() => updateFilter('page', String(pageParam - 1))}
+                className="rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="text-sm text-stone-500">Page {pageParam}</span>
+              <button
+                type="button"
+                disabled={!hasNextPage}
+                onClick={() => updateFilter('page', String(pageParam + 1))}
+                className="rounded-xl border border-stone-200 px-4 py-2 text-sm font-medium text-stone-700 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </nav>
           )}
         </div>
       </div>

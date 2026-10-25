@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Package, MapPin, Clock, CheckCircle, Plus, AlertCircle, LogOut } from 'lucide-react';
+import { User, Package, MapPin, Clock, CheckCircle, Plus, AlertCircle, LogOut, Trash2, Truck, Shield, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function CustomerAccountPage() {
-  const { user, logout } = useAuth();
+  const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -23,7 +23,7 @@ export default function CustomerAccountPage() {
     address_line1: '',
     address_line2: '',
     city: '',
-    state: 'Nagaland',
+    state: '',
     postal_code: '',
     is_default: false,
   });
@@ -40,8 +40,9 @@ export default function CustomerAccountPage() {
           api.getMyOrders(),
           api.getAddresses(),
         ]);
-        setOrders(ordData || []);
-        setAddresses(addrData || []);
+        // Handle both paginated and direct list responses
+        setOrders(Array.isArray(ordData) ? ordData : (ordData?.results || []));
+        setAddresses(Array.isArray(addrData) ? addrData : (addrData?.results || []));
       } catch (err) {
         console.error('Failed to load customer account data', err);
       } finally {
@@ -64,12 +65,23 @@ export default function CustomerAccountPage() {
         address_line1: '',
         address_line2: '',
         city: '',
-        state: 'Nagaland',
+        state: '',
         postal_code: '',
         is_default: false,
       });
     } catch (err) {
       toast.error(err.message || 'Failed to add address');
+    }
+  };
+
+  const handleDeleteAddress = async (id) => {
+    if (!window.confirm('Remove this delivery address?')) return;
+    try {
+      await api.deleteAddress(id);
+      setAddresses(addresses.filter((a) => a.id !== id));
+      toast.success('Address removed');
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove address');
     }
   };
 
@@ -85,15 +97,45 @@ export default function CustomerAccountPage() {
           <p className="text-xs text-stone-500 mt-0.5">{user.email} · Account Role: {user.role}</p>
         </div>
 
-        <button
-          onClick={() => {
-            logout();
-            navigate('/');
-          }}
-          className="inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-lg text-xs font-semibold text-stone-700 hover:bg-stone-50 transition-colors"
-        >
-          <LogOut size={14} /> Log Out
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          {/* Track Orders Button */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('orders')}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer ${
+              activeTab === 'orders'
+                ? 'bg-stone-900 text-white shadow-sm'
+                : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 hover:text-stone-900'
+            }`}
+          >
+            <Package size={14} className={activeTab === 'orders' ? 'text-amber-400' : 'text-stone-400'} />
+            <span>Track Orders</span>
+          </button>
+
+          {/* Seller Studio Button - ONLY visible if user is registered as a seller */}
+          {isManufacturer && (
+            <>
+              <span className="hidden sm:inline-block h-4 w-px bg-stone-300" />
+              <Link
+                to="/manufacturer"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-forest-950 text-amber-300 hover:bg-forest-900 font-bold text-xs shadow-xs transition-all active:scale-98"
+              >
+                <ShieldCheck size={14} className="text-amber-400" />
+                <span>Seller Studio</span>
+              </Link>
+            </>
+          )}
+
+          <button
+            onClick={() => {
+              logout();
+              navigate('/');
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors ml-1"
+          >
+            <LogOut size={14} /> Log Out
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -105,7 +147,7 @@ export default function CustomerAccountPage() {
               activeTab === 'orders' ? 'bg-forest-900 text-white' : 'text-stone-700 hover:bg-stone-100'
             }`}
           >
-            <Package size={16} /> My Orders ({orders.length})
+            <Package size={16} /> Track Orders ({orders.length})
           </button>
 
           <button
@@ -125,6 +167,22 @@ export default function CustomerAccountPage() {
           >
             <User size={16} /> Account Profile
           </button>
+
+          {/* Seller Studio Sidebar Link - ONLY visible if user is registered as a seller */}
+          {isManufacturer && (
+            <div className="pt-2">
+              <Link
+                to="/manufacturer"
+                className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl font-bold bg-forest-950 text-amber-300 hover:bg-forest-900 transition-colors shadow-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-amber-400" />
+                  <span>Seller Studio</span>
+                </div>
+                <ArrowRight size={13} className="text-amber-400" />
+              </Link>
+            </div>
+          )}
         </aside>
 
         {/* Tab Content */}
@@ -138,7 +196,7 @@ export default function CustomerAccountPage() {
                   <Package size={32} className="text-stone-400 mx-auto mb-3" />
                   <h3 className="font-serif font-bold text-base text-stone-900">No orders placed yet</h3>
                   <p className="text-xs text-stone-500 mt-1 max-w-xs mx-auto">
-                    Taste authentic Naga pork, King Chilli, and fermented bamboo shoot pickles.
+                    Taste authentic woodfire smoked pork, King Chilli, and fermented bamboo shoot pickles.
                   </p>
                   <Link
                     to="/products"
@@ -166,6 +224,28 @@ export default function CustomerAccountPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Courier Tracking Status if Dispatched */}
+                    {ord.tracking_number && (
+                      <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <Truck size={16} className="text-purple-700 flex-shrink-0" />
+                          <div>
+                            <span className="font-bold text-purple-950">
+                              Shipped via {ord.courier_partner || 'Air Express'}
+                            </span>
+                            <span className="block font-mono text-stone-600 text-[11px]">
+                              AWB Tracking Number: <strong>{ord.tracking_number}</strong>
+                            </span>
+                          </div>
+                        </div>
+                        {ord.dispatch_notes && (
+                          <span className="text-[11px] text-purple-900 italic sm:text-right">
+                            "{ord.dispatch_notes}"
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Order items snapshot */}
                     <div className="divide-y divide-stone-100 text-xs">
@@ -219,6 +299,13 @@ export default function CustomerAccountPage() {
                     <p className="text-stone-700">{addr.address_line1}</p>
                     {addr.address_line2 && <p className="text-stone-700">{addr.address_line2}</p>}
                     <p className="text-stone-900 font-medium">{addr.city}, {addr.state} - {addr.postal_code}</p>
+                    <button
+                      onClick={() => handleDeleteAddress(addr.id)}
+                      className="absolute bottom-3 right-3 p-1.5 text-stone-300 hover:text-chilli-700 transition-colors rounded-lg hover:bg-red-50"
+                      title="Remove address"
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -335,6 +422,27 @@ export default function CustomerAccountPage() {
                   <span className="font-semibold text-forest-800">{user.role}</span>
                 </div>
               </div>
+
+              {isManufacturer && (
+                <div className="mt-4 p-4 rounded-xl bg-forest-950 text-cream-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs">
+                      <ShieldCheck size={14} className="text-amber-400" />
+                      <span>Seller Studio Hub</span>
+                    </div>
+                    <p className="text-[11px] text-stone-300">
+                      Access your artisanal catalog, orders, and sales metrics.
+                    </p>
+                  </div>
+                  <Link
+                    to="/manufacturer"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-forest-950 font-bold text-xs shadow transition-all whitespace-nowrap active:scale-95 self-start sm:self-center"
+                  >
+                    <span>Open Studio</span>
+                    <ArrowRight size={12} />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>

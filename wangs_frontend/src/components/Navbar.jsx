@@ -1,52 +1,60 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  ShoppingBag, Search, User, Menu, X, Shield,
-  Truck, CheckCircle, ChevronDown, Store, LogOut, Package,
-  Sparkles, Flame, Heart, ArrowRight
+  ShoppingBag, Search, User, Menu, X, ChevronDown,
+  Shield, ShieldCheck, Store, MapPin, Truck, CheckCircle,
+  Sparkles, Star, LogOut, Package, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { api } from '../api';
+import { getBrandsFromProducts } from '../utils/brands';
 
 export default function Navbar() {
-  const { user, isAdmin, isManufacturer, logout } = useAuth();
+  const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout } = useAuth();
   const { itemsCount, cart, setIsDrawerOpen } = useCart();
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [searchFocused, setSearchFocused] = useState(false);
-  const [pincode, setPincode] = useState('');
-  const [pincodeResult, setPincodeResult] = useState(null);
+  const [pincode, setPincode] = useState('797001');
+  const [pincodeInput, setPincodeInput] = useState('797001');
+  const [pincodeResult, setPincodeResult] = useState({ valid: true, region: 'Express Air Hub', estimated_delivery: '2-3 business days' });
+  const [pinModalOpen, setPinModalOpen] = useState(false);
   const [checkingPin, setCheckingPin] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-
-  // Rotating Announcement Bar
-  const announcements = [
-    "🔥 Handcrafted in Kohima & Mokokchung · 100% Traditional Firewood Smoking",
-    "🚚 Free Pan-India Air Delivery on Orders Over ₹999",
-    "🌶️ Fresh Batch: GI-Certified Naga King Chilli (Raja Mircha) Now Pickled",
-    "🛡️ Verified FSSAI Artisanal Food Businesses · Direct from Nagaland",
-  ];
-  const [announcementIdx, setAnnouncementIdx] = useState(0);
+  const [brands, setBrands] = useState([]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setAnnouncementIdx((prev) => (prev + 1) % announcements.length);
-    }, 4500);
-    return () => clearInterval(timer);
+    setSearchQuery(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
+    async function loadBrands() {
+      try {
+        const brandsData = await api.getBrands();
+        if (brandsData && brandsData.length > 0) {
+          setBrands(brandsData);
+        } else {
+          const [bestsellers, featured] = await Promise.all([
+            api.getBestsellerProducts(),
+            api.getFeaturedProducts(),
+          ]);
+          setBrands(getBrandsFromProducts(bestsellers, featured));
+        }
+      } catch (err) {
+        console.error('Failed to load brands', err);
+      }
+    }
+    loadBrands();
   }, []);
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setSearchFocused(false);
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-    } else {
-      navigate('/products');
+      setSearchFocused(false);
     }
   };
 
@@ -58,10 +66,9 @@ export default function Navbar() {
 
   const handleCheckPincode = async (e) => {
     e.preventDefault();
-    const cleaned = (pincode || '').replace(/\D/g, '').slice(0, 6);
+    const cleaned = (pincodeInput || '').replace(/\D/g, '').slice(0, 6);
     if (cleaned.length !== 6) {
-      setPincodeResult({ valid: false, message: 'Enter 6 digits' });
-      setTimeout(() => setPincodeResult(null), 3000);
+      setPincodeResult({ valid: false, message: 'Please enter 6 digits' });
       return;
     }
     setCheckingPin(true);
@@ -69,126 +76,161 @@ export default function Navbar() {
       const res = await api.checkPincode(cleaned);
       if (res && res.valid) {
         setPincodeResult(res);
+        setPincode(cleaned);
+        setTimeout(() => setPinModalOpen(false), 1500);
       } else {
-        setPincodeResult({ valid: false, message: res?.message || 'Invalid PIN' });
+        setPincodeResult({ valid: false, message: res?.message || 'Invalid or non-serviceable PIN code' });
       }
-      setTimeout(() => setPincodeResult(null), 7000);
     } catch (err) {
-      // Graceful fallback without jarring popup
-      setPincodeResult({
-        valid: true,
-        region: 'Pan-India',
-        estimated_delivery: '4-6 business days',
-        message: 'Delivery available across India via Air Cargo'
-      });
-      setTimeout(() => setPincodeResult(null), 6000);
+      setPincodeResult({ valid: false, message: 'Unable to check PIN code right now' });
     } finally {
       setCheckingPin(false);
     }
   };
 
   const cartTotal = cart?.financial_summary?.total_amount
-    ? parseFloat(cart.financial_summary.total_amount).toFixed(0)
-    : '0';
+    ? Math.round(parseFloat(cart.financial_summary.total_amount))
+    : 0;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-sm transition-all">
-      {/* Top Notification Announcement Bar */}
-      <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-cream-100 text-xs py-2 px-4 border-b border-forest-800/80">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
-          {/* Rotating Message */}
-          <div className="flex items-center gap-2 overflow-hidden min-h-[1.2rem]">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-xs">
+      {/* 1. Ultra-sleek Top Announcement Bar */}
+      <div className="bg-forest-950 text-cream-100 text-[11px] py-1.5 px-4 sm:px-6 border-b border-forest-900/80">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 truncate">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-forest-900/90 text-amber-300 border border-amber-400/25 font-bold text-[9px] tracking-wider uppercase">
+              <Sparkles size={10} className="text-amber-400" /> Complimentary Air Express
             </span>
-            <span className="text-cream-100 text-[11px] font-medium tracking-wide transition-opacity duration-300">
-              {announcements[announcementIdx]}
+            <span className="text-stone-300 text-xs truncate">
+              Orders over ₹999 ship free nationwide · Code <strong className="text-amber-300 font-semibold tracking-wider">WANGS10</strong> for 10% off
             </span>
           </div>
 
-          {/* Quick PIN Code Serviceability Tool */}
-          <form onSubmit={handleCheckPincode} className="flex items-center gap-1.5 ml-auto">
-            <Truck size={13} className="text-amber-400 flex-shrink-0" />
-            <span className="text-[11px] text-cream-300 hidden sm:inline">Deliver to:</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              value={pincode}
-              onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              placeholder="6-digit PIN"
-              className="w-20 px-2 py-0.5 bg-forest-950/80 border border-forest-700/80 rounded text-[11px] text-cream-100 placeholder:text-forest-400 focus:outline-none focus:border-amber-400 font-mono tracking-wider text-center"
-            />
+          {/* Interactive Delivery Location Pill (Amazon/Blinkit style) */}
+          <div className="relative flex-shrink-0">
             <button
-              type="submit"
-              disabled={checkingPin}
-              className="text-[11px] px-2.5 py-0.5 bg-amber-500 hover:bg-amber-400 text-forest-950 font-bold rounded transition-colors"
+              type="button"
+              onClick={() => setPinModalOpen(!pinModalOpen)}
+              className="flex items-center gap-1.5 text-stone-300 hover:text-white transition-colors text-[11px] font-semibold"
             >
-              {checkingPin ? '...' : 'Check'}
+              <Truck size={13} className="text-amber-400" />
+              <span className="hidden sm:inline">Delivering to:</span>
+              <span className="text-amber-300 font-bold underline decoration-amber-400/50 underline-offset-2">
+                {pincodeResult?.valid ? `${pincodeResult.region?.split(',')[0]} (${pincode})` : `PIN ${pincode}`}
+              </span>
+              <ChevronDown size={12} className={`transition-transform duration-200 ${pinModalOpen ? 'rotate-180' : ''}`} />
             </button>
-            {pincodeResult && (
-              pincodeResult.valid ? (
-                <span className="text-[11px] text-emerald-300 flex items-center gap-1 font-semibold ml-1.5 bg-emerald-950/80 border border-emerald-500/30 px-2 py-0.5 rounded shadow-sm">
-                  <CheckCircle size={12} className="text-emerald-400 flex-shrink-0" /> {pincodeResult.region} ({pincodeResult.estimated_delivery})
-                </span>
-              ) : (
-                <span className="text-[11px] text-amber-300 flex items-center gap-1 font-medium ml-1.5 bg-amber-950/80 border border-amber-500/30 px-2 py-0.5 rounded">
-                  {pincodeResult.message}
-                </span>
-              )
+
+            {/* Pincode Popover Modal */}
+            {pinModalOpen && (
+              <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 text-stone-900 animate-in fade-in zoom-in-95 duration-150">
+                <div className="flex justify-between items-center mb-2">
+                  <p className="font-serif font-bold text-sm text-stone-900 flex items-center gap-1.5">
+                    <MapPin size={15} className="text-forest-800" /> Check Delivery Availability
+                  </p>
+                  <button onClick={() => setPinModalOpen(false)} className="text-stone-400 hover:text-stone-600">
+                    <X size={15} />
+                  </button>
+                </div>
+                <p className="text-xs text-stone-500 mb-3">
+                  Enter your 6-digit postal code to check express air delivery speed. Free shipping on all orders!
+                </p>
+                <form onSubmit={handleCheckPincode} className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={6}
+                      value={pincodeInput}
+                      onChange={(e) => setPincodeInput(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="e.g. 797001 or 110001"
+                      className="flex-1 px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl font-mono text-xs font-bold text-stone-900 focus:outline-none focus:border-forest-800"
+                    />
+                    <button
+                      type="submit"
+                      disabled={checkingPin}
+                      className="px-4 py-2 bg-forest-900 text-white font-bold text-xs rounded-xl hover:bg-forest-950 transition-colors disabled:opacity-50"
+                    >
+                      {checkingPin ? 'Checking...' : 'Apply'}
+                    </button>
+                  </div>
+                  {pincodeResult && (
+                    <div className={`p-2.5 rounded-xl text-xs flex items-start gap-1.5 ${pincodeResult.valid ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                      {pincodeResult.valid ? (
+                        <>
+                          <CheckCircle size={15} className="text-emerald-700 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-bold">{pincodeResult.region}</p>
+                            <p className="text-[11px] text-emerald-800 mt-0.5">
+                              Express Air: {pincodeResult.estimated_delivery} · 100% Free Nationwide Delivery
+                            </p>
+                          </div>
+                        </>
+                      ) : (
+                        <span>{pincodeResult.message}</span>
+                      )}
+                    </div>
+                  )}
+                </form>
+              </div>
             )}
-          </form>
+          </div>
         </div>
       </div>
 
-      {/* Main Header */}
+      {/* 2. Main Header Row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 gap-4">
-          {/* Brand Logo */}
-          <Link to="/" className="flex items-center gap-3 flex-shrink-0 group">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-forest-800 to-forest-950 text-cream-100 flex items-center justify-center font-serif font-black text-2xl shadow-md border border-forest-700/60 group-hover:scale-105 transition-transform duration-300">
-              W
-            </div>
-            <div>
-              <span className="font-serif font-black text-2xl sm:text-3xl tracking-tight text-forest-950 block leading-none">
-                Wangs
-              </span>
-              <span className="text-[10px] tracking-widest text-forest-700 font-bold uppercase block mt-1 font-sans">
-                Naga Pickle Marketplace · wangs.in
-              </span>
-            </div>
+        <div className="flex h-16 sm:h-[4.75rem] items-center justify-between gap-4">
+          {/* Brand Logo & Wordmark */}
+          <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3.5 select-none">
+            <img
+              src="/logo.png"
+              alt="Wangs"
+              className="h-8 w-auto sm:h-9 sm:w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            />
+            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-forest-950 uppercase group-hover:text-forest-800 transition-colors">
+              Wangs
+            </span>
           </Link>
 
-          {/* Search Bar with Popular Naga Pickles Auto-Suggestions */}
-          <div className="hidden md:flex flex-1 max-w-lg relative mx-4">
+          {/* Desktop Search Bar with Auto-Suggestions Popover */}
+          <div className="hidden md:flex flex-1 max-w-xl relative mx-4">
             <form onSubmit={handleSearch} className="w-full relative">
               <input
                 type="text"
                 value={searchQuery}
                 onFocus={() => setSearchFocused(true)}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search smoked pork, fiery king chilli, bastenga..."
-                className="w-full pl-10 pr-20 py-2.5 bg-cream-50/80 border border-stone-200/90 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 transition-all font-medium shadow-inner"
+                placeholder="Search smoked pork, fiery king chilli, bastenga bamboo..."
+                className="w-full pl-11 pr-24 py-2.5 bg-stone-100/80 border border-stone-200/90 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 focus:bg-white transition-all font-medium"
               />
-              <Search size={16} className="absolute left-3.5 top-3 text-stone-400" />
+              <Search size={16} className="absolute left-4 top-3 text-stone-400" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-20 top-3 text-stone-400 hover:text-stone-600"
+                >
+                  <X size={15} />
+                </button>
+              )}
               <button
                 type="submit"
-                className="absolute right-1.5 top-1 px-4 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-semibold rounded-full shadow-sm transition-colors"
+                className="absolute right-1.5 top-1 px-4 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-full shadow-xs transition-colors"
               >
                 Search
               </button>
             </form>
 
-            {/* Trending Suggestions Dropdown */}
+            {/* Quick Autocomplete Suggestions Dropdown */}
             {searchFocused && (
               <div
-                className="absolute left-0 right-0 top-12 mt-1 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 text-xs space-y-3"
+                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 space-y-3"
                 onMouseDown={(e) => e.preventDefault()}
               >
-                <div className="flex justify-between items-center text-stone-400 text-[11px] font-semibold uppercase tracking-wider">
-                  <span>Popular Artisanal Searches</span>
+                <div className="flex justify-between items-center text-stone-400 text-[10px] font-bold uppercase tracking-wider">
+                  <span>Popular Artisanal Cures</span>
                   <button onClick={() => setSearchFocused(false)} className="text-stone-400 hover:text-stone-600">
                     <X size={14} />
                   </button>
@@ -197,16 +239,16 @@ export default function Navbar() {
                   {[
                     'Smoked Pork & King Chilli',
                     'Pure Raja Mircha (Bhut Jolokia)',
+                    'Prawn Fusion Pickle',
                     'Bastenga Bamboo Shoot',
                     'Fermented Axone Soya',
                     'Smoked Beef Pickle',
-                    'Wild Naga Apple',
-                    'Roasted Garlic Paste',
+                    'Wild Mountain Apple',
                   ].map((tag) => (
                     <button
                       key={tag}
                       onClick={() => handleQuickSearch(tag)}
-                      className="px-3 py-1 bg-cream-100 hover:bg-forest-800 hover:text-white rounded-full text-stone-700 transition-colors text-[11px] font-medium"
+                      className="px-3 py-1 bg-stone-100 hover:bg-forest-900 hover:text-white rounded-full text-stone-700 transition-colors text-[11px] font-medium"
                     >
                       {tag}
                     </button>
@@ -216,38 +258,18 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Right Action Controls */}
-          <div className="flex items-center gap-3">
-            {/* Manufacturer Portal Link */}
-            <Link
-              to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
-              className="hidden lg:flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-forest-800 hover:text-forest-950 bg-forest-50 hover:bg-forest-100/80 rounded-xl transition-all border border-forest-200/80 shadow-sm"
-            >
-              <Store size={15} className="text-forest-700" />
-              <span>{isManufacturer ? 'Seller Workspace' : 'Sell with Us'}</span>
-            </Link>
-
-            {/* Admin Portal Link */}
-            {isAdmin && (
-              <Link
-                to="/admin"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-chilli-700 bg-red-50 hover:bg-red-100 rounded-xl border border-red-200 transition-colors shadow-sm"
-              >
-                <Shield size={14} />
-                <span>Admin Hub</span>
-              </Link>
-            )}
-
-            {/* Customer Account / Sign In */}
+          {/* Right Action Icons: Sign In, Cart */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* User Account / Sign In */}
             <div className="relative">
               {user ? (
-                <div className="relative">
+                <div>
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-stone-800 hover:text-forest-950 hover:bg-cream-100 transition-colors border border-transparent hover:border-stone-200"
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-colors border border-stone-200"
                   >
-                    <div className="w-7 h-7 rounded-full bg-forest-800 text-cream-100 flex items-center justify-center font-bold text-xs">
-                      {user.first_name ? user.first_name[0].toUpperCase() : user.username[0].toUpperCase()}
+                    <div className="w-6 h-6 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-[10px]">
+                      {(user.first_name || user.username || 'U')[0].toUpperCase()}
                     </div>
                     <span className="hidden sm:inline">{user.first_name || user.username}</span>
                     <ChevronDown size={13} className="text-stone-400" />
@@ -255,41 +277,36 @@ export default function Navbar() {
 
                   {userDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-stone-200 py-2 z-50 text-xs">
-                      <div className="px-4 py-2.5 border-b border-stone-100 bg-cream-50/50">
+                      <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50">
                         <p className="font-bold text-stone-900">{user.first_name} {user.last_name}</p>
                         <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
-                        <span className="inline-block mt-1 px-2 py-0.5 bg-forest-100 text-forest-800 text-[10px] font-bold rounded-full">
-                          Role: {user.role}
-                        </span>
                       </div>
 
                       <Link
                         to="/account"
                         onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-stone-700 hover:bg-cream-100 transition-colors font-medium"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-stone-700 hover:bg-stone-100 transition-colors font-medium"
                       >
-                        <Package size={15} className="text-forest-700" /> My Orders & Saved Addresses
+                        <Package size={15} className="text-forest-700" /> My Orders & Addresses
                       </Link>
 
-                      {isManufacturer && (
+                      {isManufacturer ? (
                         <Link
                           to="/manufacturer"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-cream-100 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
                         >
-                          <Store size={15} className="text-forest-700" /> Manufacturer Dashboard
+                          <Store size={15} className="text-forest-700" /> Seller Dashboard
                         </Link>
-                      )}
-
-                      {isAdmin && (
+                      ) : isAuthorizedToSell ? (
                         <Link
-                          to="/admin"
+                          to="/manufacturer/register"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-chilli-700 font-bold hover:bg-red-50 transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
                         >
-                          <Shield size={15} /> Superuser Admin Hub
+                          <Store size={15} className="text-forest-700" /> Sell with Us
                         </Link>
-                      )}
+                      ) : null}
 
                       <button
                         onClick={() => {
@@ -307,155 +324,118 @@ export default function Navbar() {
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:text-forest-950 hover:bg-cream-100 transition-all border border-stone-200 shadow-sm"
+                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
                 >
-                  <User size={15} className="text-forest-800" />
-                  <span>Sign In</span>
+                  <User size={15} className="text-forest-900" />
+                  <span className="hidden sm:inline">Sign In</span>
                 </Link>
               )}
             </div>
 
-            {/* Shopping Basket Button with Live Total Amount Pill */}
+            {/* Shopping Basket Button */}
             <button
               onClick={() => setIsDrawerOpen(true)}
-              className="group relative px-3.5 py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md hover:shadow-lg flex items-center gap-2 transition-all duration-200"
+              className="group relative px-3.5 py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
               aria-label="Shopping Basket"
             >
-              <div className="relative">
-                <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
-                {itemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 bg-chilli-600 text-white text-[10px] font-black w-4.5 h-4.5 rounded-full flex items-center justify-center shadow">
-                    {itemsCount}
-                  </span>
-                )}
-              </div>
+              <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
               <span className="hidden sm:inline text-xs font-bold tracking-tight">
-                {itemsCount > 0 ? `₹${cartTotal}` : 'Basket'}
+                Cart
               </span>
-            </button>
-
-            {/* Mobile Menu Hamburger */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 text-stone-700 hover:text-stone-900 rounded-lg hover:bg-stone-100"
-            >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
 
-        {/* Category Navigation Bar */}
-        <nav className="hidden md:flex items-center gap-6 py-3 border-t border-stone-100 text-xs font-semibold text-stone-700 overflow-x-auto">
-          <Link
-            to="/products"
-            className={`transition-colors whitespace-nowrap pb-0.5 ${
-              location.pathname === '/products' && !searchParams.get('category')
-                ? 'text-forest-900 font-bold border-b-2 border-forest-800'
-                : 'hover:text-forest-900'
-            }`}
-          >
-            All Authentic Pickles
-          </Link>
-          <Link
-            to="/products?category=pork-pickle"
-            className={`transition-colors whitespace-nowrap pb-0.5 flex items-center gap-1.5 ${
-              searchParams.get('category') === 'pork-pickle'
-                ? 'text-forest-900 font-bold border-b-2 border-forest-800'
-                : 'hover:text-forest-900'
-            }`}
-          >
-            <span>Smoked Pork Pickles</span>
-            <span className="text-[10px] px-1.5 py-0.2 bg-amber-100 text-amber-800 rounded font-bold">Signature</span>
-          </Link>
-          <Link
-            to="/products?category=chilli-pickle"
-            className={`transition-colors whitespace-nowrap pb-0.5 flex items-center gap-1.5 ${
-              searchParams.get('category') === 'chilli-pickle'
-                ? 'text-forest-900 font-bold border-b-2 border-forest-800'
-                : 'hover:text-forest-900'
-            }`}
-          >
-            <Flame size={12} className="text-chilli-600 fill-chilli-600" />
-            <span>Raja Mircha (King Chilli)</span>
-          </Link>
-          <Link
-            to="/products?category=bamboo-shoot-pickle"
-            className={`transition-colors whitespace-nowrap pb-0.5 ${
-              searchParams.get('category') === 'bamboo-shoot-pickle'
-                ? 'text-forest-900 font-bold border-b-2 border-forest-800'
-                : 'hover:text-forest-900'
-            }`}
-          >
-            Wild Bamboo Shoot (Bastenga)
-          </Link>
-          <Link
-            to="/products?category=vegetarian-pickles"
-            className={`transition-colors whitespace-nowrap pb-0.5 ${
-              searchParams.get('category') === 'vegetarian-pickles'
-                ? 'text-forest-900 font-bold border-b-2 border-forest-800'
-                : 'hover:text-forest-900'
-            }`}
-          >
-            Axone & Veg Pickles
-          </Link>
-          <Link
-            to="/products?category=fruit-pickle"
-            className={`transition-colors whitespace-nowrap pb-0.5 ${
-              searchParams.get('category') === 'fruit-pickle'
-                ? 'text-forest-900 font-bold border-b-2 border-forest-800'
-                : 'hover:text-forest-900'
-            }`}
-          >
-            Wild Fruit & Starfruit
-          </Link>
-          <Link
-            to="/about"
-            className="hover:text-forest-900 transition-colors whitespace-nowrap text-stone-500 ml-auto flex items-center gap-1 font-medium"
-          >
-            <span>Our Naga Heritage</span>
-            <ArrowRight size={12} />
-          </Link>
-        </nav>
+        {/* Mobile Search Bar (Directly accessible without drawer) */}
+        <div className="md:hidden pb-3">
+          <form onSubmit={handleSearch} className="relative w-full">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search smoked pork, king chilli, ferments..."
+              className="w-full pl-9 pr-14 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-forest-800"
+            />
+            <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
+            <button
+              type="submit"
+              className="absolute right-1 top-1 px-3 py-1 bg-forest-900 text-white text-[11px] font-bold rounded-lg"
+            >
+              Go
+            </button>
+          </form>
+        </div>
 
-        {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-stone-200 space-y-3">
-            <form onSubmit={handleSearch} className="relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search authentic pickles..."
-                className="w-full pl-9 pr-4 py-2.5 bg-cream-50 border border-stone-200 rounded-xl text-xs font-medium"
-              />
-              <Search size={16} className="absolute left-3 top-3 text-stone-400" />
-            </form>
+        {/* 3. Refined Artisanal Navigation Ribbon (Balanced Storefront Navigation) */}
+        <nav className="relative z-10 flex items-center justify-between border-t border-stone-200/70 py-2 sm:py-2.5 text-xs font-medium text-stone-600 gap-3">
+          {/* Left: Dietary Filters (Responsive & fluid on mobile) */}
+          <div className="w-full lg:w-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
+            <Link
+              to="/products"
+              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+                !searchParams.get('dietary_type') && !searchParams.get('category') && !searchParams.get('search')
+                  ? 'bg-forest-950 text-white shadow-xs'
+                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+              }`}
+            >
+              <span className="sm:hidden">All</span>
+              <span className="hidden sm:inline">All Pickles</span>
+            </Link>
 
-            <div className="flex flex-col gap-2 text-sm pt-2">
-              <Link to="/products" onClick={() => setMobileMenuOpen(false)} className="py-1.5 font-bold text-forest-900">
-                All Authentic Pickles
-              </Link>
-              <Link to="/products?category=pork-pickle" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-stone-700">
-                Smoked Pork Pickles
-              </Link>
-              <Link to="/products?category=chilli-pickle" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-stone-700 flex items-center gap-1.5">
-                <Flame size={14} className="text-chilli-600" /> King Chilli (Raja Mircha)
-              </Link>
-              <Link to="/products?category=bamboo-shoot-pickle" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-stone-700">
-                Bamboo Shoot (Bastenga)
-              </Link>
-              <Link to="/products?category=vegetarian-pickles" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-stone-700">
-                Axone & Vegetarian
-              </Link>
-              <Link to="/about" onClick={() => setMobileMenuOpen(false)} className="py-1.5 text-stone-600">
-                Our Naga Heritage & Standards
-              </Link>
-              <Link to="/manufacturer/register" onClick={() => setMobileMenuOpen(false)} className="py-2 text-forest-800 font-bold border-t border-stone-100">
-                Apply as Regional Manufacturer
-              </Link>
-            </div>
+            <Link
+              to="/products?dietary_type=NON_VEG"
+              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+                searchParams.get('dietary_type') === 'NON_VEG'
+                  ? 'bg-forest-950 text-white shadow-xs'
+                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+              }`}
+            >
+              Non-Veg
+            </Link>
+
+            <Link
+              to="/products?dietary_type=VEG"
+              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+                searchParams.get('dietary_type') === 'VEG'
+                  ? 'bg-forest-950 text-white shadow-xs'
+                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+              }`}
+            >
+              Veg
+            </Link>
+
+            <Link
+              to="/products?dietary_type=VEG_MIXED"
+              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+                searchParams.get('dietary_type') === 'VEG_MIXED'
+                  ? 'bg-forest-950 text-white shadow-xs'
+                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+              }`}
+            >
+              <span className="sm:hidden">Veg Mixed</span>
+              <span className="hidden sm:inline">Veg mixed with Non-Veg</span>
+            </Link>
           </div>
-        )}
+
+          {/* Right: Quick Curated Storefront Shortcuts (Desktop) */}
+          <div className="hidden lg:flex items-center gap-5 text-xs text-stone-600 flex-shrink-0">
+            <Link
+              to="/brands"
+              className="flex items-center gap-1.5 text-stone-700 hover:text-forest-950 transition-colors font-semibold"
+            >
+              <Store size={13} className="text-amber-600" />
+              <span>Artisan Brands</span>
+            </Link>
+
+            <Link
+              to="/products?bestsellers=true"
+              className="flex items-center gap-1.5 text-stone-700 hover:text-forest-950 transition-colors font-semibold"
+            >
+              <Sparkles size={13} className="text-amber-500" />
+              <span>Bestsellers</span>
+            </Link>
+          </div>
+        </nav>
       </div>
     </header>
   );

@@ -2,10 +2,13 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck, ShieldCheck, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useToast } from '../context/ToastContext';
 
 export default function CartDrawer() {
   const { cart, isDrawerOpen, setIsDrawerOpen, updateQuantity, removeFromCart, itemsCount } = useCart();
+  const toast = useToast();
   const navigate = useNavigate();
+  const [updatingProductId, setUpdatingProductId] = React.useState(null);
 
   if (!isDrawerOpen) return null;
 
@@ -13,7 +16,7 @@ export default function CartDrawer() {
   const summary = cart?.financial_summary || {
     items_subtotal: '0.00',
     customer_platform_fee: '5.00',
-    delivery_fee: '50.00',
+    delivery_fee: '0.00',
     discount_amount: '0.00',
     total_amount: '0.00',
   };
@@ -22,6 +25,28 @@ export default function CartDrawer() {
   const freeThreshold = 999;
   const progressPercent = Math.min(100, Math.round((subtotal / freeThreshold) * 100));
   const remainingForFree = Math.max(0, freeThreshold - subtotal);
+
+  const updateItem = async (productId, quantity) => {
+    setUpdatingProductId(productId);
+    try {
+      await updateQuantity(productId, quantity);
+    } catch (err) {
+      toast.error(err.message || 'Could not update basket quantity');
+    } finally {
+      setUpdatingProductId(null);
+    }
+  };
+
+  const removeItem = async (productId) => {
+    setUpdatingProductId(productId);
+    try {
+      await removeFromCart(productId);
+    } catch (err) {
+      toast.error(err.message || 'Could not remove item from basket');
+    } finally {
+      setUpdatingProductId(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden">
@@ -56,25 +81,12 @@ export default function CartDrawer() {
             </button>
           </div>
 
-          {/* Free Shipping Progress Indicator */}
+          {/* Free Shipping Badge */}
           {items.length > 0 && (
-            <div className="px-6 py-3 bg-forest-50/80 border-b border-forest-100/80 text-xs">
-              <div className="flex items-center justify-between mb-1.5 text-forest-950 font-semibold text-[11px]">
-                <span className="flex items-center gap-1.5">
-                  <Truck size={14} className="text-forest-700" />
-                  {remainingForFree === 0 ? (
-                    <span className="text-emerald-800 font-bold">🎉 Congratulations! You have unlocked Free Pan-India Delivery</span>
-                  ) : (
-                    <span>Add <strong>₹{remainingForFree.toFixed(0)}</strong> more for Free Delivery</span>
-                  )}
-                </span>
-                <span className="font-mono text-forest-800">{progressPercent}%</span>
-              </div>
-              <div className="w-full bg-forest-200/60 h-2 rounded-full overflow-hidden">
-                <div
-                  className="bg-gradient-to-r from-forest-600 to-emerald-600 h-full rounded-full transition-all duration-500 ease-out"
-                  style={{ width: `${progressPercent}%` }}
-                />
+            <div className="px-6 py-2.5 bg-emerald-50/80 border-b border-emerald-100 text-xs">
+              <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-[11px]">
+                <Truck size={14} className="text-emerald-700 shrink-0" />
+                <span>100% Free Nationwide Delivery Unlocked on All Orders!</span>
               </div>
             </div>
           )}
@@ -106,9 +118,13 @@ export default function CartDrawer() {
               items.map((item) => (
                 <div key={item.id} className="py-4 flex gap-4 items-center">
                   <img
-                    src={item.product.primary_image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=200&q=80'}
+                    src={item.product.primary_image_url || '/featured-pouches.png'}
                     alt={item.product.title}
-                    className="w-18 h-18 object-cover rounded-xl border border-stone-200 flex-shrink-0 shadow-sm"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/featured-pouches.png';
+                    }}
+                    className="w-16 h-16 sm:w-18 sm:h-18 object-cover rounded-xl border border-stone-200 flex-shrink-0 shadow-sm"
                   />
                   <div className="flex-1 min-w-0">
                     <Link
@@ -124,19 +140,28 @@ export default function CartDrawer() {
                     <p className="text-sm font-bold text-stone-950 mt-1 font-serif">
                       ₹{parseFloat(item.product.price).toFixed(0)}
                     </p>
+                    {(item.product.is_in_stock === false || (item.product.stock_quantity !== undefined && item.product.stock_quantity <= 0)) && (
+                      <p className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded mt-1 inline-block">
+                        All product sold out · In stock soon
+                      </p>
+                    )}
 
                     {/* Quantity Controls */}
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center border border-stone-200 rounded-lg bg-stone-50 overflow-hidden shadow-inner">
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => updateItem(item.product.id, item.quantity - 1)}
+                          disabled={updatingProductId === item.product.id}
+                          aria-label={`Decrease quantity of ${item.product.title}`}
                           className="px-2 py-1 hover:bg-stone-200 text-stone-600 transition-colors"
                         >
                           <Minus size={12} />
                         </button>
                         <span className="px-2.5 text-xs font-bold text-stone-900 font-mono">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => updateItem(item.product.id, item.quantity + 1)}
+                          disabled={updatingProductId === item.product.id || item.quantity >= item.product.stock_quantity}
+                          aria-label={`Increase quantity of ${item.product.title}`}
                           className="px-2 py-1 hover:bg-stone-200 text-stone-600 transition-colors"
                         >
                           <Plus size={12} />
@@ -144,7 +169,9 @@ export default function CartDrawer() {
                       </div>
 
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeItem(item.product.id)}
+                        disabled={updatingProductId === item.product.id}
+                        aria-label={`Remove ${item.product.title} from basket`}
                         className="text-stone-400 hover:text-chilli-700 p-1 transition-colors"
                         title="Remove item"
                       >
@@ -205,7 +232,7 @@ export default function CartDrawer() {
 
               <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1">
                 <ShieldCheck size={13} className="text-emerald-600" />
-                <span>256-bit Encrypted Escrow · Authentic Naga Producers</span>
+                <span>256-bit Encrypted Escrow · Verified Artisanal Producers</span>
               </p>
             </div>
           )}

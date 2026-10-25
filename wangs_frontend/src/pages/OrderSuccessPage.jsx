@@ -59,7 +59,7 @@ export default function OrderSuccessPage() {
         </h1>
 
         <p className="text-xs sm:text-sm text-stone-600 max-w-md mx-auto leading-relaxed">
-          Your order has been assigned to our artisan kitchens in Nagaland.
+          Your order has been assigned to our verified artisanal producers.
           A confirmation receipt has been sent to <strong>{order.customer_email}</strong>.
         </p>
 

@@ -25,7 +25,7 @@ export default function SpiceMeter({ level, showLabel = true, size = 'sm', showS
     },
     HOT: {
       count: 3,
-      label: 'Hot Naga Spice',
+      label: 'Hot Firewood Spice',
       shu: '~350,000 SHU',
       desc: 'Pungent firewood cure with crushed dry chillies',
       color: 'text-chilli-700',
@@ -46,10 +46,11 @@ export default function SpiceMeter({ level, showLabel = true, size = 'sm', showS
   };
 
   const current = configs[level] || configs.HOT;
-  const iconSize = size === 'sm' ? 13 : size === 'lg' ? 18 : 15;
+  const iconSize = size === 'xs' ? 10 : size === 'sm' ? 12 : size === 'lg' ? 18 : 14;
+  const padding = size === 'xs' ? 'px-1.5 py-0.5' : 'px-2 py-0.5 sm:px-2.5 sm:py-1';
 
   return (
-    <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium tracking-tight ${current.bg} transition-all`}>
+    <div className={`inline-flex items-center gap-1 sm:gap-1.5 ${padding} rounded-full border text-xs font-medium tracking-tight ${current.bg} transition-all`}>
       <div className="flex items-center gap-0.5">
         {Array.from({ length: 4 }).map((_, i) => (
           <Flame

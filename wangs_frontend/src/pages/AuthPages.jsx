@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Lock, Mail, User, ArrowRight, ShieldCheck, Check } from 'lucide-react';
+import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api';
 
 export default function AuthPage() {
   const { login, register } = useAuth();
@@ -9,20 +10,99 @@ export default function AuthPage() {
   const [searchParams] = useSearchParams();
 
   const [isLogin, setIsLogin] = useState(searchParams.get('tab') !== 'register');
+
+  // Customer registration OTP verification state
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(0);
+
+  // Standard form state
   const [formData, setFormData] = useState({
     username: '',
     email: '',
     password: '',
+    confirm_password: '',
     first_name: '',
     last_name: '',
     phone_number: '',
+    address_line1: '',
+    address_line2: '',
+    city: '',
+    state: '',
+    postal_code: '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+
+  // Handle countdown timer for OTP resend
+  useEffect(() => {
+    let interval = null;
+    if (otpTimer > 0) {
+      interval = setInterval(() => {
+        setOtpTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpTimer]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    // Reset OTP verification if email is edited during registration
+    if (name === 'email' && otpVerified) {
+      setOtpVerified(false);
+      setOtpSent(false);
+      setOtpCode('');
+    }
+  };
+
+  const handleSendCustomerOtp = async (e) => {
+    if (e) e.preventDefault();
+    const email = (formData.email || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      setError('Please provide a valid Gmail / email address to receive your verification OTP.');
+      return;
+    }
+    setOtpLoading(true);
+    setError('');
+    setSuccessMsg('');
+
+    try {
+      const res = await api.sendOtp(email, 'REGISTER');
+      setOtpSent(true);
+      setOtpTimer(60);
+      setSuccessMsg(res?.message || `A 6-digit OTP verification code has been dispatched to ${email}. Please check your Gmail inbox.`);
+    } catch (err) {
+      setError(err.message || 'Failed to dispatch OTP email. Please verify your email and try again.');
+    } finally {
+      setOtpLoading(false);
+    }
+  };
+
+  const handleVerifyCustomerOtp = async (e) => {
+    if (e) e.preventDefault();
+    const email = (formData.email || '').trim().toLowerCase();
+    const code = (otpCode || '').trim();
+    if (!code || code.length !== 6) {
+      setError('Please enter the 6-digit OTP verification code.');
+      return;
+    }
+    setOtpLoading(true);
+    setError('');
+
+    try {
+      await api.verifyOtp(email, code, 'REGISTER');
+      setOtpVerified(true);
+      setSuccessMsg(`Email ${email} verified successfully! You can now complete registration.`);
+    } catch (err) {
+      setError(err.message || 'Invalid or expired OTP code. Please check your inbox or request a new code.');
+    } finally {
+      setOtpLoading(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -32,6 +112,7 @@ export default function AuthPage() {
 
     try {
       if (isLogin) {
+        // Direct password login (No OTP in login)
         const loggedInUser = await login(formData.username, formData.password);
         if (loggedInUser.role === 'ADMIN') {
           navigate('/admin');
@@ -41,6 +122,22 @@ export default function AuthPage() {
           navigate('/account');
         }
       } else {
+        // Customer Sign Up: Email OTP verification is mandatory
+        if (!otpVerified) {
+          setError('Gmail / Email verification is mandatory. Please click "Send OTP" and enter the 6-digit code sent to your email.');
+          setLoading(false);
+          return;
+        }
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters.');
+          setLoading(false);
+          return;
+        }
+        if (formData.password !== formData.confirm_password) {
+          setError('Passwords do not match. Please re-enter your password to confirm.');
+          setLoading(false);
+          return;
+        }
         await register(formData);
         navigate('/account');
       }
@@ -51,176 +148,347 @@ export default function AuthPage() {
     }
   };
 
-  // Quick fill helper for review
-  const quickFill = (userType) => {
-    if (userType === 'admin') {
-      setFormData({ ...formData, username: 'admin', password: 'admin12345' });
-    } else if (userType === 'arenla') {
-      setFormData({ ...formData, username: 'arenla_kitchen', password: 'arenla12345' });
-    } else if (userType === 'customer') {
-      setFormData({ ...formData, username: 'customer', password: 'customer12345' });
-    }
-    setIsLogin(true);
-  };
-
   return (
-    <div className="max-w-md mx-auto px-4 py-16">
-      <div className="bg-white p-8 rounded-2xl border border-stone-200 shadow-md space-y-6">
+    <div className="max-w-md mx-auto px-4 py-12 sm:py-16">
+      <div className="bg-white p-7 sm:p-9 rounded-3xl border border-stone-200/90 shadow-xl space-y-6">
+        {/* Brand Crest Header */}
         <div className="text-center">
-          <Link to="/" className="inline-block font-serif font-black text-3xl text-forest-950 mb-1">
-            Wangs
+          <Link to="/" className="inline-flex items-center gap-3 mb-2 group select-none">
+            <img
+              src="/logo.png"
+              alt="Wangs"
+              className="h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            />
+            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-forest-950 uppercase group-hover:text-forest-800 transition-colors">
+              Wangs
+            </span>
           </Link>
-          <p className="text-xs text-stone-500">
-            Authentic Naga Pickle Marketplace · Kohima, Nagaland
+          <p className="text-xs text-stone-500 font-medium">
+            Artisanal Food & Handcrafted Pickles
           </p>
         </div>
 
         {/* Tab switch */}
-        <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-xl text-xs font-semibold text-stone-600">
+        <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl text-xs font-semibold text-stone-600">
           <button
-            onClick={() => { setIsLogin(true); setError(''); }}
-            className={`py-2 rounded-lg transition-all ${isLogin ? 'bg-white text-stone-900 shadow-sm font-bold' : ''}`}
+            type="button"
+            onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); }}
+            className={`py-2.5 rounded-xl transition-all ${isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
           >
             Sign In
           </button>
           <button
-            onClick={() => { setIsLogin(false); setError(''); }}
-            className={`py-2 rounded-lg transition-all ${!isLogin ? 'bg-white text-stone-900 shadow-sm font-bold' : ''}`}
+            type="button"
+            onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); }}
+            className={`py-2.5 rounded-xl transition-all ${!isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
           >
             Create Account
           </button>
         </div>
 
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg">
-            {error}
+          <div className="p-3.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
+            <AlertCircle size={15} className="flex-shrink-0 mt-0.5 text-red-600" />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          {!isLogin && (
+        {successMsg && (
+          <div className="p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl flex items-start gap-2">
+            <CheckCircle size={15} className="flex-shrink-0 text-emerald-600 mt-0.5" />
+            <span>{successMsg}</span>
+          </div>
+        )}
+
+        {/* 1. Direct Password Login Form (No OTP in Login) */}
+        {isLogin && (
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                Username or Email Address
+              </label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                <input
+                  type="text"
+                  required
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  placeholder="Username or registered email"
+                  autoComplete="username"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                <input
+                  type="password"
+                  required
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 font-medium"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span>{loading ? 'Signing In...' : 'Sign In'}</span>
+              <ArrowRight size={15} />
+            </button>
+
+            <div className="text-center pt-2">
+              <p className="text-[11px] text-stone-500">
+                Don’t have an account?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); }}
+                  className="text-forest-900 font-bold hover:underline"
+                >
+                  Create an Account with Email OTP
+                </button>
+              </p>
+            </div>
+          </form>
+        )}
+
+        {/* 2. Customer Sign Up Form (Mandatory Gmail / Email OTP) */}
+        {!isLogin && (
+          <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-stone-700 font-medium mb-1">First Name</label>
+                <label className="block text-stone-700 font-semibold mb-1">First Name *</label>
                 <input
                   type="text"
                   required
                   name="first_name"
                   value={formData.first_name}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg"
+                  placeholder="e.g. Arenla"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
                 />
               </div>
               <div>
-                <label className="block text-stone-700 font-medium mb-1">Last Name</label>
+                <label className="block text-stone-700 font-semibold mb-1">Last Name</label>
                 <input
                   type="text"
                   name="last_name"
                   value={formData.last_name}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg"
+                  placeholder="e.g. Ao"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
                 />
               </div>
             </div>
-          )}
 
-          <div>
-            <label className="block text-stone-700 font-medium mb-1">
-              {isLogin ? 'Username or Email' : 'Desired Username'}
-            </label>
-            <input
-              type="text"
-              required
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              placeholder={isLogin ? 'e.g. admin or customer@wangs.in' : 'e.g. moa_longkumer'}
-              className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg"
-            />
-          </div>
+            {/* Email OTP Verification Block */}
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                Gmail / Email Address *
+              </label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type="email"
+                    required
+                    name="email"
+                    disabled={otpVerified}
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="e.g. shopper@gmail.com"
+                    className={`w-full pl-10 pr-3 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                      otpVerified ? 'border-emerald-400 bg-emerald-50/50' : 'border-stone-200'
+                    }`}
+                  />
+                </div>
+                {!otpVerified ? (
+                  <button
+                    type="button"
+                    disabled={otpLoading || !formData.email || !formData.email.includes('@')}
+                    onClick={handleSendCustomerOtp}
+                    className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors disabled:opacity-50"
+                  >
+                    {otpLoading ? 'Sending...' : otpSent ? 'Resend OTP' : 'Send OTP'}
+                  </button>
+                ) : (
+                  <span className="px-3.5 py-2.5 bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs flex items-center gap-1.5 whitespace-nowrap">
+                    <CheckCircle size={14} className="text-emerald-700" /> Verified
+                  </span>
+                )}
+              </div>
 
-          {!isLogin && (
-            <>
+              {/* OTP Code Entry Popover */}
+              {otpSent && !otpVerified && (
+                <div className="mt-2.5 p-3.5 bg-forest-50/80 border border-forest-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-forest-950">
+                      Enter 6-digit OTP sent to {formData.email}:
+                    </span>
+                    {otpTimer > 0 && (
+                      <span className="text-[10px] text-stone-500 font-medium">Resend in {otpTimer}s</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="6-digit OTP"
+                      className="w-36 px-3 py-1.5 bg-white border border-forest-600 rounded-xl text-center font-mono text-xs font-bold tracking-wider text-stone-900"
+                    />
+                    <button
+                      type="button"
+                      disabled={otpLoading || otpCode.length !== 6}
+                      onClick={handleVerifyCustomerOtp}
+                      className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {otpLoading ? 'Verifying...' : 'Confirm OTP'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">Mobile Phone *</label>
+              <input
+                type="tel"
+                required
+                name="phone_number"
+                value={formData.phone_number}
+                onChange={handleChange}
+                placeholder="+91 98765 43210"
+                className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+              />
+            </div>
+
+            {/* Primary Delivery Address */}
+            <fieldset className="space-y-3 rounded-2xl border border-stone-200 bg-cream-50/60 p-4">
+              <legend className="px-1 font-bold text-stone-800">Primary Delivery Address</legend>
               <div>
-                <label className="block text-stone-700 font-medium mb-1">Email Address</label>
+                <label className="mb-1 block font-medium text-stone-700">Street address, house number *</label>
                 <input
-                  type="email"
+                  type="text"
                   required
-                  name="email"
-                  value={formData.email}
+                  name="address_line1"
+                  autoComplete="address-line1"
+                  value={formData.address_line1}
                   onChange={handleChange}
-                  placeholder="e.g. moa@example.com"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg"
+                  placeholder="House / flat number and street"
+                  className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:border-forest-800"
                 />
               </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="mb-1 block font-medium text-stone-700">City *</label>
+                  <input
+                    type="text"
+                    required
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Kohima"
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:border-forest-800"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block font-medium text-stone-700">State *</label>
+                  <input
+                    type="text"
+                    required
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder="State"
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:border-forest-800"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block font-medium text-stone-700">PIN (6 digits) *</label>
+                  <input
+                    type="text"
+                    required
+                    inputMode="numeric"
+                    maxLength={6}
+                    name="postal_code"
+                    value={formData.postal_code}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        postal_code: e.target.value.replace(/\D/g, '').slice(0, 6),
+                      })
+                    }
+                    placeholder="797001"
+                    className="w-full rounded-xl border border-stone-200 bg-white px-3 py-2 font-mono text-center text-stone-900 focus:outline-none focus:border-forest-800"
+                  />
+                </div>
+              </div>
+            </fieldset>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-stone-700 font-medium mb-1">Mobile Phone (Optional)</label>
+                <label className="block text-stone-700 font-semibold mb-1">
+                  Create Password *
+                </label>
                 <input
-                  type="tel"
-                  name="phone_number"
-                  value={formData.phone_number}
+                  type="password"
+                  required
+                  name="password"
+                  value={formData.password}
                   onChange={handleChange}
-                  placeholder="+91 98765 43210"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg"
+                  autoComplete="new-password"
+                  placeholder="Min. 6 characters"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
                 />
               </div>
-            </>
-          )}
 
-          <div>
-            <label className="block text-stone-700 font-medium mb-1">Password</label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="••••••••"
-              className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg"
-            />
-          </div>
+              <div>
+                <label className="block text-stone-700 font-semibold mb-1">
+                  Confirm Password *
+                </label>
+                <input
+                  type="password"
+                  required
+                  name="confirm_password"
+                  value={formData.confirm_password}
+                  onChange={handleChange}
+                  autoComplete="new-password"
+                  placeholder="Re-enter password"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-forest-800 hover:bg-forest-900 text-white font-bold rounded-xl shadow transition-colors flex items-center justify-center gap-2"
-          >
-            {loading ? <span>Authenticating...</span> : (
-              <>
-                <span>{isLogin ? 'Sign In to Wangs' : 'Create Customer Account'}</span>
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <span>{loading ? 'Creating Account...' : 'Complete Registration'}</span>
+              <ArrowRight size={15} />
+            </button>
+          </form>
+        )}
 
-        {/* Quick Demo Credentials Assistant */}
-        <div className="pt-4 border-t border-stone-100 text-[11px] text-stone-500 space-y-2">
-          <p className="font-semibold text-stone-700">Quick Demo Credentials:</p>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button
-              type="button"
-              onClick={() => quickFill('admin')}
-              className="px-2 py-1 bg-cream-100 hover:bg-cream-200 text-forest-900 rounded font-medium truncate"
-            >
-              Admin Hub
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('arenla')}
-              className="px-2 py-1 bg-cream-100 hover:bg-cream-200 text-forest-900 rounded font-medium truncate"
-            >
-              Arenla Kitchen
-            </button>
-            <button
-              type="button"
-              onClick={() => quickFill('customer')}
-              className="px-2 py-1 bg-cream-100 hover:bg-cream-200 text-forest-900 rounded font-medium truncate"
-            >
-              Customer
-            </button>
-          </div>
+        {/* Security badge footer */}
+        <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2 text-[11px] text-stone-500">
+          <ShieldCheck size={14} className="text-forest-700" />
+          <span>Secured with Gmail / Email OTP & 256-Bit SSL Encryption</span>
         </div>
       </div>
     </div>
