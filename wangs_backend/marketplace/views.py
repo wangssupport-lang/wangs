@@ -976,6 +976,7 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
         mfg = self.get_object()
+        old_status = mfg.status
         new_status = request.data.get('status')
         notes = request.data.get('admin_review_notes', '')
 
@@ -999,12 +1000,21 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
                 Product.objects.filter(manufacturer=mfg).update(is_active=False)
             mfg.save()
 
+            email_sent = False
+            if new_status == ManufacturerProfile.Status.APPROVED and old_status != ManufacturerProfile.Status.APPROVED:
+                try:
+                    from .resend_service import send_seller_approval_email
+                    sent, _ = send_seller_approval_email(manufacturer_profile=mfg, request=request)
+                    email_sent = sent
+                except Exception as exc:
+                    logger.error("Failed to send seller approval email for mfg %s: %s", mfg.business_name, exc)
+
             AuditLog.objects.create(
                 user=request.user,
                 action='MANUFACTURER_STATUS_UPDATE',
                 target_model='ManufacturerProfile',
                 target_id=str(mfg.id),
-                details={'new_status': new_status, 'notes': notes}
+                details={'new_status': new_status, 'notes': notes, 'email_sent': email_sent}
             )
             return Response(ManufacturerProfileSerializer(mfg).data)
         return Response({'detail': 'Invalid status value'}, status=400)
@@ -1192,18 +1202,34 @@ class AdminUserViewSet(viewsets.ReadOnlyModelViewSet):
         target_user.can_sell = not target_user.can_sell
         target_user.save(update_fields=['can_sell'])
 
+        email_sent = False
+        if target_user.can_sell:
+            try:
+                from .resend_service import send_seller_approval_email
+                sent, _ = send_seller_approval_email(user=target_user, request=request)
+                email_sent = sent
+            except Exception as exc:
+                logger.error("Failed to send seller approval email for user %s: %s", target_user.username, exc)
+
         AuditLog.objects.create(
             user=request.user,
             action='SELLER_AUTHORIZATION_TOGGLED',
             target_model='User',
             target_id=str(target_user.id),
-            details={'username': target_user.username, 'can_sell': target_user.can_sell}
+            details={'username': target_user.username, 'can_sell': target_user.can_sell, 'email_sent': email_sent}
         )
+
+        action_word = 'granted' if target_user.can_sell else 'revoked'
+        msg = f"Seller authorization {action_word} for {target_user.username}."
+        if email_sent:
+            msg += f" Confirmation email dispatched to {target_user.email}."
+
         return Response({
             'id': target_user.id,
             'username': target_user.username,
             'can_sell': target_user.can_sell,
-            'message': f"Seller authorization {'granted' if target_user.can_sell else 'revoked'} for {target_user.username}."
+            'email_sent': email_sent,
+            'message': msg
         })
 
     @action(detail=True, methods=['post'])
@@ -1383,9 +1409,18 @@ class AdminSellerRequestView(views.APIView):
             details={'email': email, 'granted_by': request.user.username}
         )
 
+        email_sent = False
+        try:
+            from .resend_service import send_seller_approval_email
+            sent, _ = send_seller_approval_email(user=user_match, request=request)
+            email_sent = sent
+        except Exception as exc:
+            logger.error("Failed to send seller approval email for user %s: %s", user_match.username, exc)
+
         return Response({
             'success': True,
-            'message': f"Seller access granted for {email}.",
+            'message': f"Seller access granted for {email}." + (" Onboarding email sent with portal links." if email_sent else ""),
+            'email_sent': email_sent,
             'user': UserSerializer(user_match).data
         })
 

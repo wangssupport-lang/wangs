@@ -183,7 +183,7 @@ export default function AdminDashboardPage() {
   const handleApproveManufacturer = async (id, status) => {
     try {
       await api.updateManufacturerStatus(id, status, `Reviewed and ${status.toLowerCase()} by admin`);
-      toast.success(`Manufacturer ${status.toLowerCase()} successfully`);
+      toast.success(status === 'APPROVED' ? 'Manufacturer approved! Onboarding email sent with Seller Portal link.' : `Manufacturer ${status.toLowerCase()} successfully`);
       loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Action failed');
@@ -334,8 +334,8 @@ export default function AdminDashboardPage() {
 
   const handleApproveSellerRequest = async (email) => {
     try {
-      await api.approveAdminSellerRequest(email);
-      toast.success(`Seller authorization approved for ${email}`);
+      const res = await api.approveAdminSellerRequest(email);
+      toast.success(res?.message || `Seller authorization approved! Onboarding email sent to ${email}`);
       loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Approval failed');

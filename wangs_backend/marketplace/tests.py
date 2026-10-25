@@ -670,3 +670,104 @@ class WangsFinancialAndOrderTests(TestCase):
         ok_resp = self.client.post(url, req_data, format='json')
         self.assertEqual(ok_resp.status_code, status.HTTP_200_OK)
         self.assertTrue(ok_resp.data['success'])
+
+    def test_seller_approval_email_dispatch_on_admin_actions(self):
+        """
+        Verify that approving a seller via:
+        1. UserManagementViewSet.toggle_can_sell
+        2. AdminSellerRequestView.post
+        3. AdminManufacturerViewSet.update_status
+        dispatches a confirmation email with direct web links to the seller portal (/manufacturer)
+        and storefront.
+        """
+        from unittest.mock import patch
+        from .resend_service import send_seller_approval_email
+
+        admin_user = User.objects.create_superuser(
+            username='platform_admin_approval',
+            email='admin_approval@wangs.in',
+            password='adminpass123'
+        )
+        self.client.force_authenticate(user=admin_user)
+
+        # 1. Test helper directly
+        seller_user = User.objects.create_user(
+            username='artisan_seller',
+            email='artisan@wangs.in',
+            password='password123',
+            role=User.Role.CUSTOMER,
+            can_sell=False
+        )
+
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'mock_email_1'})
+            sent, info = send_seller_approval_email(user=seller_user, site_url='https://wangs.in')
+            self.assertTrue(sent)
+            self.assertTrue(mock_dispatch.called)
+            args, _ = mock_dispatch.call_args
+            to_email, subject, html = args[0], args[1], args[2]
+            self.assertEqual(to_email, 'artisan@wangs.in')
+            self.assertIn('Seller Account Has Been Approved', subject)
+            self.assertIn('https://wangs.in/manufacturer', html)
+            self.assertIn('Open Seller Portal', html)
+            self.assertIn('wangssupport@gmail.com', html)
+
+        # 2. Test toggle_can_sell endpoint triggers email
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'mock_email_2'})
+            toggle_url = reverse('admin-user-toggle-can-sell', kwargs={'pk': seller_user.pk})
+            resp = self.client.post(toggle_url, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            seller_user.refresh_from_db()
+            self.assertTrue(seller_user.can_sell)
+            self.assertTrue(mock_dispatch.called)
+            args, _ = mock_dispatch.call_args
+            self.assertEqual(args[0], 'artisan@wangs.in')
+            self.assertIn('https://wangs.in/manufacturer', args[2])
+
+        # 3. Test AdminSellerRequestView approval triggers email
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'mock_email_3'})
+            approve_req_url = reverse('admin-seller-requests')
+            resp = self.client.post(approve_req_url, {'email': 'new_applicant@wangs.in'}, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            new_seller = User.objects.get(email='new_applicant@wangs.in')
+            self.assertTrue(new_seller.can_sell)
+            self.assertTrue(mock_dispatch.called)
+            args, _ = mock_dispatch.call_args
+            self.assertEqual(args[0], 'new_applicant@wangs.in')
+            self.assertIn('/manufacturer', args[2])
+
+        # 4. Test AdminManufacturerViewSet.update_status to APPROVED triggers email
+        pending_seller = User.objects.create_user(
+            username='pending_mfg_user',
+            email='pending_mfg@wangs.in',
+            password='password123',
+            role=User.Role.MANUFACTURER,
+            can_sell=True
+        )
+        pending_profile = ManufacturerProfile.objects.create(
+            user=pending_seller,
+            business_name="Nagaland Pure Pickles",
+            slug='nagaland-pure-pickles',
+            location_district='Dimapur',
+            contact_email='pending_mfg@wangs.in',
+            contact_phone='9436098765',
+            business_address='Dimapur',
+            postal_code='797112',
+            fssai_license_number='10023064999999',
+            status=ManufacturerProfile.Status.PENDING
+        )
+
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'mock_email_4'})
+            status_url = reverse('admin-manufacturer-update-status', kwargs={'pk': pending_profile.pk})
+            resp = self.client.post(status_url, {'status': 'APPROVED', 'admin_review_notes': 'All FSSAI verified'}, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            pending_profile.refresh_from_db()
+            self.assertEqual(pending_profile.status, ManufacturerProfile.Status.APPROVED)
+            self.assertTrue(mock_dispatch.called)
+            args, _ = mock_dispatch.call_args
+            self.assertEqual(args[0], 'pending_mfg@wangs.in')
+            self.assertIn('Nagaland Pure Pickles', args[2])
+            self.assertIn('/manufacturer', args[2])
