@@ -292,20 +292,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Mobile Trust Assurance Strip */}
-      <div className="bg-forest-950 text-cream-100 py-2.5 px-4 sm:hidden flex items-center justify-around text-[10.5px] font-semibold border-b border-forest-900 shadow-2xs">
-        <span className="flex items-center gap-1 text-amber-300">
-          <Sparkles size={11} className="text-amber-400" /> Free Air Shipping
-        </span>
-        <span className="text-stone-600">·</span>
-        <span className="flex items-center gap-1 text-emerald-300">
-          <ShieldCheck size={11} className="text-emerald-400" /> FSSAI Certified
-        </span>
-        <span className="text-stone-600">·</span>
-        <span className="flex items-center gap-1 text-stone-200">
-          <Award size={11} className="text-amber-300" /> 100% Homemade
-        </span>
-      </div>
 
       {/* 2. Official Verified Brand Houses Showcase */}
       <section className="bg-gradient-to-b from-stone-50 via-cream-50/70 to-stone-100/60 border-b border-stone-200/80 py-5 sm:py-7">
