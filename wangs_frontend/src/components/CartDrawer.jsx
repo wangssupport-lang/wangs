@@ -49,7 +49,7 @@ export default function CartDrawer() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
+    <div className="fixed inset-0 z-[70] overflow-hidden">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-stone-950/60 backdrop-blur-sm transition-opacity duration-300"
@@ -101,7 +101,7 @@ export default function CartDrawer() {
                 <div className="space-y-1">
                   <h3 className="font-serif font-bold text-xl text-stone-900">Your basket is empty</h3>
                   <p className="text-xs text-stone-500 max-w-xs mx-auto leading-relaxed">
-                    Explore firewood-smoked pork, fiery King Chilli, and wild bamboo shoot pickles cured in Kohima.
+                    Explore authentic King Chilli, fermented bamboo shoot, and traditional heritage pickles handcrafted in Kohima.
                   </p>
                 </div>
                 <button

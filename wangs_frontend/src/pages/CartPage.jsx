@@ -104,7 +104,7 @@ export default function CartPage() {
         </div>
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is currently empty</h2>
         <p className="text-xs sm:text-sm text-stone-500 max-w-sm mx-auto leading-relaxed">
-          Taste artisanal smoked pork, King Chilli, and wild forest condiments.
+          Taste authentic King Chilli, bamboo shoot, and wild forest condiments handcrafted by verified heritage producers.
         </p>
         <Link
           to="/products"

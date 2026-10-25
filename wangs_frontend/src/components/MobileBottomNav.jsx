@@ -5,9 +5,12 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function MobileBottomNav({ onOpenCart }) {
-  const { cart, itemsCount } = useCart();
+  const { cart, itemsCount, isDrawerOpen } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Hide bottom nav when full-screen cart drawer or modal is open to prevent overlapping
+  if (isDrawerOpen) return null;
 
   const cartTotal = cart?.financial_summary?.total_amount
     ? Math.round(parseFloat(cart.financial_summary.total_amount))
@@ -16,7 +19,7 @@ export default function MobileBottomNav({ onOpenCart }) {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#faf9f6]/95 backdrop-blur-xl border-t border-stone-200/90 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] pb-[calc(env(safe-area-inset-bottom,0px)+6px)] pt-1.5 px-2"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#faf9f6]/95 backdrop-blur-xl border-t border-stone-200/90 shadow-[0_-8px_25px_rgba(0,0,0,0.08)] pb-[calc(env(safe-area-inset-bottom,0px)+6px)] pt-1.5 px-2"
     >
       <div className="grid grid-cols-5 items-center justify-around max-w-md mx-auto text-center">
         {/* Home */}
