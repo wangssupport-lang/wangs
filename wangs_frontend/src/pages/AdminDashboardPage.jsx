@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
-  Home, LogOut
+  Home, LogOut, Download
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -2152,9 +2152,20 @@ export default function AdminDashboardPage() {
                   </p>
                 </div>
               </div>
-              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
-                <CheckCircle size={13} className="text-emerald-700" /> Active Platform Rules
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href="/documents/wangs_seller_rules.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="wangs_seller_rules.pdf"
+                  className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-colors inline-flex items-center gap-1 shadow-2xs"
+                >
+                  <Download size={12} /> Seller Rules PDF
+                </a>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                  <CheckCircle size={13} className="text-emerald-700" /> Active Platform Rules
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">

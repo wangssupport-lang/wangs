@@ -8,7 +8,7 @@ from .views import (
     CartView, CheckoutQuoteView, CreateOrderView, VerifyPaymentView,
     OrderLookupView, CustomerOrdersView,
     ManufacturerRegisterView, ManufacturerProfileView, ManufacturerProductViewSet,
-    ManufacturerOrdersView, ManufacturerFinancialsView,
+    ManufacturerOrdersView, ManufacturerFinancialsView, SellerRulesPDFView,
     AdminMetricsView, AdminManufacturerViewSet, AdminProductViewSet,
     AdminOrderViewSet, AdminCommissionView, AdminSettlementsView, AdminAuditLogsView,
     AdminUserViewSet, AdminSellerRequestView, PlatformSettingsView, AdminToggleSellerRegistrationView,
@@ -53,6 +53,7 @@ urlpatterns = [
     path('manufacturer/profile/', ManufacturerProfileView.as_view(), name='mfg-profile'),
     path('manufacturer/orders/', ManufacturerOrdersView.as_view(), name='mfg-orders'),
     path('manufacturer/financials/', ManufacturerFinancialsView.as_view(), name='mfg-financials'),
+    path('seller/rules-pdf/', SellerRulesPDFView.as_view(), name='seller-rules-pdf'),
     
     # Public platform configuration
     path('platform-settings/', PlatformSettingsView.as_view(), name='platform-settings'),

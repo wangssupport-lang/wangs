@@ -970,6 +970,29 @@ class ManufacturerFinancialsView(views.APIView):
         })
 
 
+class SellerRulesPDFView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        import os
+        from django.http import FileResponse
+        from django.conf import settings
+        from .management.commands.generate_seller_rules_pdf import generate_seller_rules_pdf
+
+        media_doc_dir = os.path.join(settings.MEDIA_ROOT, 'documents')
+        pdf_path = os.path.join(media_doc_dir, 'wangs_seller_rules.pdf')
+
+        if not os.path.exists(pdf_path):
+            os.makedirs(media_doc_dir, exist_ok=True)
+            pdf_bytes = generate_seller_rules_pdf()
+            with open(pdf_path, 'wb') as f:
+                f.write(pdf_bytes)
+
+        response = FileResponse(open(pdf_path, 'rb'), content_type='application/pdf')
+        response['Content-Disposition'] = 'inline; filename="wangs_seller_rules.pdf"'
+        return response
+
+
 # -------------------------------------------------------------
 # ADMIN DASHBOARD
 # -------------------------------------------------------------

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
   Plus, Edit, Eye, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
-  Printer, X, FileText, Phone, MapPin, Camera, Calculator
+  Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -22,6 +22,7 @@ export default function ManufacturerPortalPage() {
   const [financials, setFinancials] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
+  const [showSellerRulesModal, setShowSellerRulesModal] = useState(false);
 
   // New product form modal state
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -208,14 +209,28 @@ export default function ManufacturerPortalPage() {
             </span>
           </div>
 
-          {profile.status === 'APPROVED' && (
-            <button
-              onClick={() => setShowAddProductModal(true)}
-              className="px-4 py-3 bg-forest-800 hover:bg-forest-900 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+          <div className="flex items-center gap-2 flex-wrap">
+            <a
+              href="/documents/wangs_seller_rules.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              download="wangs_seller_rules.pdf"
+              className="px-3.5 py-3 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
+              title="Download Wangs Seller Rules PDF"
             >
-              <Plus size={15} /> Add New Pickle Batch
-            </button>
-          )}
+              <FileText size={15} className="text-forest-800" />
+              <span>Seller Rules (PDF)</span>
+            </a>
+
+            {profile.status === 'APPROVED' && (
+              <button
+                onClick={() => setShowAddProductModal(true)}
+                className="px-4 py-3 bg-forest-800 hover:bg-forest-900 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+              >
+                <Plus size={15} /> Add New Pickle Batch
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -237,12 +252,35 @@ export default function ManufacturerPortalPage() {
             <p className="text-xs text-stone-700 mt-1 leading-relaxed max-w-3xl">
               Shoppers can now build custom bundles of <strong>2 to 4 items exclusively from your brand</strong> on your product pages. Customers are free to <strong>cut or add recipes</strong> from your brand catalog and receive a <strong>flat 10% bundle discount</strong>. Keep at least 2–4 complementary recipes active in stock to maximize your bundle sales.
             </p>
+            <div className="flex items-center gap-2.5 mt-3 flex-wrap">
+              <a
+                href="/documents/wangs_seller_rules.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                download="wangs_seller_rules.pdf"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+              >
+                <Download size={13} />
+                <span>Download Seller Rules PDF</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowSellerRulesModal(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-stone-50 border border-amber-300 text-stone-800 text-xs font-bold rounded-xl shadow-2xs transition-colors"
+              >
+                <Eye size={13} className="text-amber-700" />
+                <span>View Full Rules Handbook</span>
+              </button>
+            </div>
           </div>
         </div>
-        <div className="bg-white/90 p-3 rounded-xl border border-amber-200 text-center flex-shrink-0 self-start md:self-auto min-w-[180px]">
+        <div className="bg-white/90 p-3.5 rounded-xl border border-amber-200 text-center flex-shrink-0 self-start md:self-auto min-w-[190px]">
           <span className="text-[10px] text-stone-500 block uppercase tracking-wider font-semibold">Active Storefront Rule</span>
           <span className="font-bold text-forest-950 text-sm block mt-0.5">2–4 Items · Save 10%</span>
-          <span className="text-[9px] text-amber-800 font-medium">Same Brand Only</span>
+          <span className="text-[9px] text-amber-800 font-medium block">Same Brand Only</span>
+          <span className="inline-block mt-2 font-mono text-[9px] text-stone-600 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
+            PDF Ref: WNG-SELLER-V2
+          </span>
         </div>
       </div>
 
@@ -334,9 +372,20 @@ export default function ManufacturerPortalPage() {
                   </p>
                 </div>
               </div>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                <CheckCircle size={13} className="text-emerald-700" /> Monitored by Admin
-              </span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <a
+                  href="/documents/wangs_seller_rules.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="wangs_seller_rules.pdf"
+                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-colors shadow-2xs"
+                >
+                  <Download size={12} /> Rules PDF
+                </a>
+                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <CheckCircle size={13} className="text-emerald-700" /> Monitored by Admin
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
@@ -1192,6 +1241,230 @@ export default function ManufacturerPortalPage() {
               {/* Dotted Cut & Affix Notice */}
               <div className="pt-2 text-center text-[10px] text-stone-500 border-t border-dashed border-stone-400 font-mono">
                 ✂ CUT ALONG OUTER DOTTED LINE AND SECURELY AFFIX TO PARCEL EXTERIOR · WANGS ARTISANAL MARKETPLACE
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Official Seller Rules & Policy Handbook Modal */}
+      {showSellerRulesModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-stone-950/70 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-4xl w-full my-8 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
+            {/* Modal Header & Quick Actions Toolbar */}
+            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-5 sm:p-6 flex items-center justify-between gap-4 border-b border-amber-500/40">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 bg-amber-500 text-stone-950 rounded-2xl shadow-xs">
+                  <FileText size={22} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="font-serif font-bold text-lg sm:text-xl text-cream-50">
+                      Wangs Artisan Seller Rules & Policy Handbook
+                    </h2>
+                    <span className="bg-amber-400 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      Official PDF
+                    </span>
+                  </div>
+                  <p className="text-xs text-cream-200 mt-0.5">
+                    Document Ref: WNG-SELLER-2026-V2 · Standard Operating Procedures & Brand Bundle Guidelines
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="/documents/wangs_seller_rules.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="wangs_seller_rules.pdf"
+                  className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
+                  title="Download PDF Document"
+                >
+                  <Download size={14} />
+                  <span className="hidden sm:inline">Download PDF</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-2 bg-forest-800 hover:bg-forest-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors hidden sm:flex"
+                  title="Print Handbook"
+                >
+                  <Printer size={14} />
+                  <span>Print</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowSellerRulesModal(false)}
+                  className="p-2 text-cream-200 hover:text-white hover:bg-forest-800 rounded-xl transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-6 sm:p-8 space-y-8 overflow-y-auto text-xs text-stone-700 leading-relaxed bg-stone-50/50">
+              {/* Executive Summary */}
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm">
+                  1. Marketplace Mission & Partnership Principles
+                </h3>
+                <p>
+                  Wangs operates as a curated platform connecting authentic regional pickle brands and producers with discerning culinary enthusiasts across India. All approved sellers operate their digital storefront under strict adherence to product authenticity, food safety, packaging integrity, and customer satisfaction standards.
+                </p>
+              </div>
+
+              {/* Key Bundle Policy */}
+              <div className="p-5 bg-gradient-to-br from-amber-50 via-cream-100 to-amber-50 rounded-2xl border-2 border-amber-300 shadow-xs space-y-3">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="font-serif font-bold text-stone-950 text-sm flex items-center gap-2">
+                    <Sparkles size={16} className="text-amber-600" />
+                    2. Flexible Brand Bundle Program (2 to 4 Items · Flat 10% Discount Rule)
+                  </h3>
+                  <span className="bg-chilli-700 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                    Mandatory Storefront Rule
+                  </span>
+                </div>
+                <div className="space-y-2 bg-white/80 p-4 rounded-xl border border-amber-200 text-stone-800 text-xs">
+                  <p>
+                    <strong>• Same Brand Exclusivity:</strong> Brand bundles are formed exclusively from items belonging to your brand catalog. Products from different brands cannot be combined into a brand bundle.
+                  </p>
+                  <p>
+                    <strong>• Flexible 2 to 4 Jars Limit:</strong> Customers have full flexibility to <strong>cut (remove)</strong> or <strong>add recipes</strong> from your brand. The bundle size is strictly bounded between a minimum of <strong>2 jars</strong> and a maximum of <strong>4 jars</strong>.
+                  </p>
+                  <p>
+                    <strong>• Flat 10% Bundle Discount:</strong> When a customer selects between 2 and 4 items from your brand, an automated <strong>10% bundle discount</strong> is applied across the combined subtotal at checkout.
+                  </p>
+                  <p>
+                    <strong>• Catalog Depth Recommendation:</strong> Sellers are required to maintain at least 2 to 4 complementary recipes active in stock so shoppers can customize their bundle and maximize basket size.
+                  </p>
+                  <p>
+                    <strong>• Logistics Subsidy:</strong> All 2 to 4 jar bundles receive subsidized priority air cargo dispatch and insulated shock-proof packaging.
+                  </p>
+                </div>
+
+                {/* Bundle Matrix Table */}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs bg-white rounded-xl border border-amber-200 overflow-hidden">
+                    <thead className="bg-forest-900 text-cream-50 font-bold">
+                      <tr>
+                        <th className="p-2.5">Bundle Configuration</th>
+                        <th className="p-2.5">Eligible Selection</th>
+                        <th className="p-2.5">Customer Savings</th>
+                        <th className="p-2.5">Seller Benefit</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-200">
+                      <tr>
+                        <td className="p-2.5 font-bold text-stone-900">Duo Pack (2 Jars)</td>
+                        <td className="p-2.5">Any 2 recipes from your brand</td>
+                        <td className="p-2.5 font-bold text-chilli-700">Save 10% OFF</td>
+                        <td className="p-2.5 text-stone-600">Doubles average order volume</td>
+                      </tr>
+                      <tr className="bg-stone-50">
+                        <td className="p-2.5 font-bold text-stone-900">Tasting Trio (3 Jars)</td>
+                        <td className="p-2.5">Any 3 recipes from your brand</td>
+                        <td className="p-2.5 font-bold text-chilli-700">Save 10% OFF</td>
+                        <td className="p-2.5 text-stone-600">Triples recipe discovery</td>
+                      </tr>
+                      <tr>
+                        <td className="p-2.5 font-bold text-stone-900">Family Pack (4 Jars - Max)</td>
+                        <td className="p-2.5">Any 4 recipes from your brand</td>
+                        <td className="p-2.5 font-bold text-chilli-700">Save 10% OFF</td>
+                        <td className="p-2.5 text-stone-600">Maximum basket size & retention</td>
+                      </tr>
+                      <tr className="bg-stone-50">
+                        <td className="p-2.5 text-stone-500">Single Jar (1 Jar)</td>
+                        <td className="p-2.5 text-stone-500">Standard single purchase</td>
+                        <td className="p-2.5 text-stone-500">0% (Full Price)</td>
+                        <td className="p-2.5 text-stone-500">Full standard retail margin</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recipe Standards & Hygiene */}
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm">
+                  3. Recipe Authenticity & Ingredient Declarations
+                </h3>
+                <p>
+                  Every jar listed on Wangs must celebrate authentic culinary traditions. Pure cold-pressed oils and natural brines must be used. Synthetic chemical preservatives (such as sodium benzoate exceeding permissible limits) or artificial food dyes are prohibited. Listings must state all ingredients, net weights (250g / 500g standard), and allergen advisories clearly.
+                </p>
+              </div>
+
+              {/* FSSAI Licensing */}
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-1.5">
+                  <ShieldCheck size={16} className="text-forest-800" />
+                  4. Mandatory FSSAI Food Licensing & Compliance
+                </h3>
+                <p>
+                  Under Food Safety and Standards Authority of India (FSSAI) regulations, all sellers must hold an active 14-digit FSSAI license or registration. This number must be printed on every product label and registered in your seller profile. Jars must bear clear batch numbers, manufacturing dates, and Best-Before dates (minimum 6 months shelf life).
+                </p>
+              </div>
+
+              {/* Packaging & Dispatch SLAs */}
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-1.5">
+                  <Truck size={16} className="text-forest-800" />
+                  5. Insulated Glass Packaging & Air Cargo SLAs
+                </h3>
+                <p>
+                  Pickles are shipped nationwide in food-grade glass jars. To eliminate leakage during air cargo pressure changes, jars must feature airtight induction foil seals or shrink-wrapped neck bands. Each jar must be wrapped with at least 3 layers of 10mm bubble wrap or honeycomb cushioning. Multi-jar bundles must include corrugated divider inserts. Orders must be packed and ready for courier pickup within <strong>24 to 48 business hours</strong>.
+                </p>
+              </div>
+
+              {/* Commercials & Settlements */}
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm">
+                  6. Commercial Terms, 10% Commission & Weekly Settlements
+                </h3>
+                <p>
+                  A standard 10% platform commission is automatically deducted on retail line items at order snapshot. The seller's listed base product price payout is protected. Settlements are disbursed weekly via direct NEFT/RTGS bank transfer to your verified account.
+                </p>
+              </div>
+
+              {/* Support & Escalation */}
+              <div className="p-4 bg-forest-50/70 rounded-2xl border border-forest-200 text-forest-950 space-y-1.5">
+                <h3 className="font-serif font-bold text-sm">
+                  7. Official Seller Support Desk
+                </h3>
+                <p className="text-xs text-forest-900">
+                  For catalog assistance, packaging inquiries, or payout questions, contact our dedicated seller support desk:
+                </p>
+                <div className="flex flex-wrap items-center gap-4 pt-1 font-semibold text-xs">
+                  <span>✉ Email: <strong>wangssupport@gmail.com</strong></span>
+                  <span>🌐 Portal: <strong>https://wangs.in/manufacturer</strong></span>
+                  <span>🛡 Admin Space: <strong>/wangadminspace</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-stone-100 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-stone-200">
+              <span className="text-[11px] text-stone-500 font-mono">
+                WANGS ARTISAN SELLER POLICY · OCTOBER 2026 EDITION
+              </span>
+              <div className="flex items-center gap-2">
+                <a
+                  href="/documents/wangs_seller_rules.pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  download="wangs_seller_rules.pdf"
+                  className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
+                >
+                  <Download size={14} /> Download PDF (16.5 KB)
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setShowSellerRulesModal(false)}
+                  className="px-4 py-2 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 font-bold text-xs rounded-xl transition-colors"
+                >
+                  Close Handbook
+                </button>
               </div>
             </div>
           </div>
