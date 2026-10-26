@@ -1,4 +1,5 @@
 import datetime
+from unittest.mock import patch
 from decimal import Decimal
 from django.test import TestCase
 from django.urls import reverse
@@ -419,6 +420,30 @@ class WangsFinancialAndOrderTests(TestCase):
         self.assertEqual(detail_resp.status_code, status.HTTP_200_OK)
         self.assertEqual(detail_resp.data['reviews_count'], 1)
         self.assertEqual(detail_resp.data['manufacturer']['fssai_license_number'], '10023064000124')
+
+    def test_review_submission_notifies_seller_via_email(self):
+        """When a customer writes a review, the seller is notified via email."""
+        url = reverse('product-detail', kwargs={'slug': self.product.slug}) + 'add_review/'
+        review_data = {
+            'author_name': 'Kavita M.',
+            'rating': 5,
+            'title': 'Rich authentic flavors',
+            'comment': 'Best pickle I have tasted, will order again!'
+        }
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'email_review_123'})
+            resp = self.client.post(url, review_data, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+            mock_dispatch.assert_called_once()
+            call_args = mock_dispatch.call_args[0]
+            # First arg: recipient email (seller's contact email)
+            self.assertEqual(call_args[0], self.mfg_profile.contact_email)
+            # Second arg: subject
+            self.assertIn("New 5-Star Review", call_args[1])
+            self.assertIn(self.product.title, call_args[1])
+            # Third arg: HTML content contains reviewer and comment
+            self.assertIn("Kavita M.", call_args[2])
+            self.assertIn("Best pickle I have tasted", call_args[2])
 
     def test_platform_settings_and_admin_toggle(self):
         """Public platform settings can be checked and admin can toggle seller registration visibility."""

@@ -511,6 +511,15 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             image_url=image_url,
             is_verified_buyer=True
         )
+
+        # Notify seller about new review via email
+        try:
+            from .resend_service import send_seller_new_review_notification
+            send_seller_new_review_notification(review)
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Failed to dispatch seller review notification email: %s", exc)
+
         return Response(ProductReviewSerializer(review).data, status=status.HTTP_201_CREATED)
 
 

@@ -294,7 +294,7 @@ export default function ProductDetailPage() {
     setSubmittingReview(true);
     try {
       await api.addProductReview(product.slug, reviewForm);
-      toast.success('Thank you! Your verified review has been published.');
+      toast.success('Thank you! Your verified review has been published and the seller has been notified via email.');
       setShowReviewModal(false);
       setReviewForm({ author_name: '', rating: 5, title: '', comment: '', image_url: '' });
       // Reload product details to show new review

@@ -451,3 +451,148 @@ def send_seller_approval_email(user=None, manufacturer_profile=None, request=Non
     print(f"==========================================\n")
 
     return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_seller_new_review_notification(review):
+    """
+    Sends an artisanal email notification to the seller whenever a customer posts a review.
+    """
+    product = review.product
+    if not product or not product.manufacturer:
+        return False, {"error": "Product has no associated seller profile"}
+
+    mfg = product.manufacturer
+    recipient_email = (mfg.contact_email or (mfg.user.email if mfg.user else '')).strip()
+    if not recipient_email:
+        return False, {"error": f"No contact email found for brand {mfg.business_name}"}
+
+    business_name = mfg.business_name or 'Artisan Brand'
+    product_title = product.title
+    rating = int(review.rating or 5)
+    author_name = review.author_name or 'Artisanal Food Lover'
+    review_title = review.title or 'Exceptional Flavor'
+    review_comment = review.comment or ''
+
+    # Star visual
+    stars_str = '★' * rating + '☆' * (5 - rating)
+
+    base_url = (os.getenv('FRONTEND_URL') or getattr(settings, 'FRONTEND_URL', 'https://wangs.in')).rstrip('/')
+    product_url = f"{base_url}/product/{product.slug}"
+    seller_portal_url = f"{base_url}/manufacturer"
+    support_email = "wangssupport@gmail.com"
+
+    subject = f"New {rating}-Star Review on '{product_title}' from {author_name} - Wangs"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>{subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f6f4ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f6f4ee;padding:36px 12px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);border:1px solid #e7e3dc;">
+              <!-- Header Bar -->
+              <tr>
+                <td style="background-color:#0e3820;padding:32px 36px;text-align:center;">
+                  <div style="display:inline-block;background:#f59e0b;color:#0e3820;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;padding:4px 12px;border-radius:20px;margin-bottom:12px;">
+                    New Customer Review
+                  </div>
+                  <h1 style="color:#ffffff;font-size:24px;font-family:Georgia,serif;font-weight:700;margin:0 0 6px;">
+                    Wangs Marketplace
+                  </h1>
+                  <p style="color:#a7c4b0;font-size:13px;margin:0;">
+                    Storefront Review Notification for {business_name}
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Main Content -->
+              <tr>
+                <td style="padding:36px;">
+                  <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#292524;">
+                    Hello <strong>{business_name}</strong>,
+                  </p>
+                  <p style="font-size:14px;line-height:1.6;margin:0 0 24px;color:#57534e;">
+                    A customer has just posted a new review on your product listing <strong>{product_title}</strong> on Wangs:
+                  </p>
+
+                  <!-- Review Card -->
+                  <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:22px;margin-bottom:26px;">
+                    <div style="margin-bottom:12px;">
+                      <span style="font-size:20px;color:#f59e0b;letter-spacing:2px;display:inline-block;">{stars_str}</span>
+                      <span style="font-size:13px;font-weight:700;color:#1c1917;margin-left:8px;">({rating} out of 5 stars)</span>
+                    </div>
+
+                    <h3 style="margin:0 0 8px;color:#1c1917;font-size:15px;font-weight:700;">
+                      "{review_title}"
+                    </h3>
+                    <p style="margin:0 0 16px;color:#44403c;font-size:13px;line-height:1.6;font-style:italic;">
+                      "{review_comment}"
+                    </p>
+
+                    <div style="border-top:1px solid #e7e3dc;padding-top:12px;font-size:12px;color:#78716c;">
+                      <div>Reviewed by: <strong style="color:#1c1917;">{author_name}</strong> (Verified Customer)</div>
+                      <div style="margin-top:4px;">Product: <strong style="color:#0e3820;">{product_title}</strong></div>
+                    </div>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div style="text-align:center;margin-bottom:28px;">
+                    <a href="{product_url}" target="_blank" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:12px 24px;border-radius:10px;margin:4px;box-shadow:0 3px 8px rgba(14,56,32,0.25);">
+                      View Product & Reviews
+                    </a>
+                    <a href="{seller_portal_url}" target="_blank" style="display:inline-block;background:#ffffff;color:#0e3820;border:1.5px solid #0e3820;text-decoration:none;font-weight:700;font-size:13px;padding:11px 22px;border-radius:10px;margin:4px;">
+                      Open Seller Portal
+                    </a>
+                  </div>
+
+                  <!-- Tips for Producer Success -->
+                  <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+                    <p style="margin:0;color:#92400e;font-size:12px;line-height:1.5;">
+                      <strong>Seller Tip:</strong> Positive customer reviews drive higher sales conversions and eligibility for Wangs Brand Spotlight features. Keep up the high standard of authentic recipe crafting!
+                    </p>
+                  </div>
+
+                  <!-- Support Desk -->
+                  <div style="background:#f4f1ea;border-radius:10px;padding:14px;text-align:center;">
+                    <p style="margin:0;color:#57534e;font-size:12px;">
+                      Questions about customer reviews? Contact the seller support desk at <a href="mailto:{support_email}" style="color:#0e3820;font-weight:700;text-decoration:none;">{support_email}</a>.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background:#f5f2eb;padding:20px 32px;border-top:1px solid #e7e3dc;text-align:center;">
+                  <p style="margin:0 0 4px;color:#78716c;font-size:12px;font-weight:600;">
+                    Wangs Artisanal Marketplace
+                  </p>
+                  <p style="margin:0;color:#a8a29e;font-size:11px;">
+                    Connecting authentic regional producers directly to food lovers across India | <a href="{base_url}" target="_blank" style="color:#0e3820;text-decoration:none;font-weight:600;">wangs.in</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"[WANGS SELLER REVIEW EMAIL DISPATCH]")
+    print(f"Recipient:      {recipient_email}")
+    print(f"Business:       {business_name}")
+    print(f"Product:        {product_title}")
+    print(f"Rating:         {rating}/5")
+    print(f"Reviewer:       {author_name}")
+    print(f"Review Title:   {review_title}")
+    print(f"==========================================\n")
+
+    return dispatch_email(recipient_email, subject, html_content)
