@@ -68,67 +68,80 @@ export default function HomePage() {
   return (
     <div>
       {/* 1. Vibrant Artisanal Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-forest-950 via-forest-900 to-[#10331e] text-white py-4 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
+      <section className="relative overflow-hidden bg-gradient-to-br from-forest-950 via-forest-900 to-[#10331e] text-white pt-5 pb-7 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
         
-        {/* MOBILE HERO (Modern App Banner: Authentic Regional Artisanal Pickles) */}
-        <div className="sm:hidden relative max-w-7xl mx-auto px-4 py-3.5">
-          <div className="grid grid-cols-12 gap-3 items-center">
-            {/* Left Content */}
-            <div className="col-span-7 flex flex-col justify-center space-y-2.5">
-              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-forest-950/90 border border-amber-400/40 text-amber-300 text-[10px] font-bold w-fit shadow-xs">
-                <Sparkles size={10} className="text-amber-400 flex-shrink-0 animate-pulse" />
-                <span>Artisan Cured</span>
-              </div>
-
-              <h1 className="font-serif text-[1.28rem] font-black leading-[1.2] tracking-tight text-white">
-                Authentic Regional<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
-                  Pickles, Delivered Fresh.
-                </span>
-              </h1>
-
-              <p className="text-[10.5px] text-stone-200/90 leading-normal line-clamp-2">
-                Slow-cured King Chilli, shredded chicken & authentic traditional pickles from verified brands.
-              </p>
-
-              <div className="flex items-center gap-2 pt-0.5">
-                <Link
-                  to="/products"
-                  className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/25 active:scale-95 transition-all whitespace-nowrap"
-                >
-                  <span>Shop Pickles</span>
-                  <ArrowRight size={12} />
-                </Link>
-                <Link
-                  to="/brands"
-                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-stone-200 text-xs font-semibold rounded-xl border border-white/20 active:scale-95 transition-all whitespace-nowrap"
-                >
-                  <Store size={12} className="text-amber-400" />
-                  <span>Brands</span>
-                </Link>
-              </div>
+        {/* MOBILE HERO (Refined App Showcase: Balanced Alignment & Generous Size) */}
+        <div className="sm:hidden relative max-w-md mx-auto px-4 py-1">
+          <div className="flex flex-col items-center text-center space-y-3">
+            {/* Top Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-forest-950/90 border border-amber-400/40 text-amber-300 text-[11px] font-bold shadow-xs">
+              <Sparkles size={11} className="text-amber-400 flex-shrink-0 animate-pulse" />
+              <span>Artisan Cured · Direct from Verified Brands</span>
             </div>
 
-            {/* Right Pickle Packet Image (Clean, no floating badges) */}
-            <div className="col-span-5 relative flex flex-col items-center justify-center">
-              {/* Backglow aura */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/35 via-red-600/30 to-transparent rounded-full blur-2xl pointer-events-none" />
+            {/* Headline with natural balanced typographic wrap */}
+            <h1 className="font-serif text-[1.62rem] font-black leading-[1.18] tracking-tight text-white max-w-sm px-1">
+              Authentic Regional <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
+                Pickles, Delivered Fresh.
+              </span>
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-[11.5px] text-stone-200/90 leading-relaxed max-w-xs mx-auto">
+              Slow-cured King Chilli, shredded chicken & authentic traditional recipes direct from verified artisan producers.
+            </p>
+
+            {/* Centerpiece Pouches Showcase (Full width, crisp & appetizing) */}
+            <div className="relative w-full max-w-[320px] my-1 flex flex-col items-center justify-center">
+              {/* Warm ambient golden aura glow */}
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/35 via-orange-500/25 to-transparent rounded-full blur-2xl pointer-events-none scale-105" />
 
               <Link
                 to="/products?brand=lia-chuka"
-                className="relative w-full flex flex-col items-center justify-center active:scale-95 transition-transform"
+                className="relative w-full flex flex-col items-center active:scale-98 transition-transform group"
               >
-                <div className="relative animate-hero-float flex flex-col items-center">
+                <div className="relative animate-hero-float flex flex-col items-center w-full">
                   <img
                     src="/featured-pouches.png"
-                    alt="Authentic Artisanal Pickles"
-                    className="w-full h-auto max-h-[170px] object-contain drop-shadow-[0_14px_28px_rgba(0,0,0,0.75)]"
+                    alt="Authentic Artisanal Regional Pickles"
+                    className="w-full h-auto max-h-[175px] object-contain drop-shadow-[0_14px_28px_rgba(0,0,0,0.7)]"
                   />
                   {/* Grounding contact shadow */}
                   <div className="w-[85%] h-3 bg-black/60 rounded-full blur-md -mt-1 pointer-events-none" />
                 </div>
               </Link>
+            </div>
+
+            {/* CTAs: Side-by-side balanced action buttons */}
+            <div className="flex items-center gap-2.5 w-full max-w-xs pt-0.5">
+              <Link
+                to="/products"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/25 active:scale-95 transition-all text-center whitespace-nowrap"
+              >
+                <span>Shop Pickles</span>
+                <ArrowRight size={13} />
+              </Link>
+              <Link
+                to="/brands"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 bg-white/10 hover:bg-white/15 text-stone-100 text-xs font-bold rounded-xl border border-white/20 active:scale-95 transition-all text-center whitespace-nowrap"
+              >
+                <Store size={13} className="text-amber-400" />
+                <span>Artisan Brands</span>
+              </Link>
+            </div>
+
+            {/* Micro Trust Ribbon */}
+            <div className="flex items-center justify-center gap-2.5 pt-1 text-[10.5px] text-stone-300/85 font-medium">
+              <span className="flex items-center gap-1">
+                <Award size={12} className="text-amber-400 flex-shrink-0" />
+                <span>Verified Brands</span>
+              </span>
+              <span className="text-stone-500">•</span>
+              <span>Fresh Dispatch</span>
+              <span className="text-stone-500">•</span>
+              <span>FSSAI Certified</span>
             </div>
           </div>
         </div>
