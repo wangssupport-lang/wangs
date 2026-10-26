@@ -243,7 +243,7 @@ export default function Navbar() {
                 )}
               </div>
               <span className="hidden sm:inline text-xs font-bold tracking-tight">
-                Cart {itemsCount > 0 ? `· ₹${cartTotal}` : ''}
+                Cart
               </span>
             </button>
           </div>

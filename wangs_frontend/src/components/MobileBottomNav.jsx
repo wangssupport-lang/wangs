@@ -101,7 +101,7 @@ export default function MobileBottomNav({ onOpenCart }) {
             )}
           </div>
           <span className="text-[10px] tracking-tight mt-0.5 font-bold text-forest-950">
-            {itemsCount > 0 ? `₹${cartTotal}` : 'Cart'}
+            Cart
           </span>
         </button>
 
