@@ -68,22 +68,23 @@ export default function HomePage() {
   return (
     <div>
       {/* 1. Vibrant Artisanal Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-forest-950 via-forest-900 to-[#10331e] text-white pt-3 pb-4 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#06180f] via-[#0b2417] to-[#081b11] text-white pt-3.5 pb-4 sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
         <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_40%,rgba(245,158,11,0.14),transparent)] pointer-events-none" />
         
-        {/* MOBILE HERO (Compact, Balanced & Proportional App Banner) */}
+        {/* MOBILE HERO (Refined App Showcase: Balanced, Luxury Visuals & Optimal Size) */}
         <div className="sm:hidden relative max-w-sm mx-auto px-4">
           <div className="flex flex-col items-center text-center space-y-2">
             {/* Top Micro-Badge */}
-            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-forest-950/90 border border-amber-400/35 text-amber-300 text-[10px] font-bold shadow-xs">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/35 text-amber-300 text-[10px] font-bold shadow-2xs backdrop-blur-md">
               <Sparkles size={10} className="text-amber-400 flex-shrink-0 animate-pulse" />
               <span>Artisan Cured · Verified Brands</span>
             </div>
 
             {/* Headline with natural balanced typographic wrap */}
-            <h1 className="font-serif text-[1.32rem] xs:text-[1.45rem] font-black leading-[1.16] tracking-tight text-white max-w-xs">
+            <h1 className="font-serif text-[1.42rem] xs:text-[1.58rem] font-black leading-[1.14] tracking-tight text-white max-w-xs">
               Authentic Regional <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-300 to-amber-400 drop-shadow-xs">
                 Pickles, Delivered Fresh.
               </span>
             </h1>
@@ -93,10 +94,22 @@ export default function HomePage() {
               Slow-cured King Chilli, shredded chicken & traditional recipes shipped fresh nationwide.
             </p>
 
-            {/* Centerpiece Pouches Showcase (Compact & appetizing scale) */}
-            <div className="relative w-full max-w-[210px] xs:max-w-[230px] py-0.5 flex flex-col items-center justify-center">
+            {/* Centerpiece Pouches Showcase with Floating Micro-Badges & Halo */}
+            <div className="relative w-full max-w-[240px] xs:max-w-[260px] py-1 flex flex-col items-center justify-center">
               {/* Warm ambient golden aura glow */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/30 via-orange-500/20 to-transparent rounded-full blur-xl pointer-events-none scale-105" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-amber-500/35 via-orange-500/20 to-transparent rounded-full blur-xl pointer-events-none scale-105" />
+
+              {/* Floating left proof badge */}
+              <div className="absolute -left-3 top-2.5 z-10 bg-forest-950/90 backdrop-blur-md border border-amber-400/40 px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 text-[9px] font-bold text-amber-200">
+                <Flame size={10} className="text-amber-400" />
+                <span>King Chilli</span>
+              </div>
+
+              {/* Floating right proof badge */}
+              <div className="absolute -right-3 bottom-3.5 z-10 bg-forest-950/90 backdrop-blur-md border border-emerald-400/40 px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 text-[9px] font-bold text-emerald-300">
+                <ShieldCheck size={10} className="text-emerald-400" />
+                <span>Small Batch</span>
+              </div>
 
               <Link
                 to="/products?brand=lia-chuka"
@@ -106,41 +119,41 @@ export default function HomePage() {
                   <img
                     src="/featured-pouches.png"
                     alt="Authentic Artisanal Regional Pickles"
-                    className="w-full h-auto max-h-[112px] xs:max-h-[122px] object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.65)]"
+                    className="w-full h-auto max-h-[116px] xs:max-h-[126px] object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.7)]"
                   />
                   {/* Grounding contact shadow */}
-                  <div className="w-[80%] h-2 bg-black/60 rounded-full blur-sm -mt-0.5 pointer-events-none" />
+                  <div className="w-[82%] h-2.5 bg-black/70 rounded-full blur-sm -mt-0.5 pointer-events-none" />
                 </div>
               </Link>
             </div>
 
-            {/* CTAs: Sleek side-by-side action buttons */}
-            <div className="flex items-center gap-2 w-full max-w-[270px] pt-0.5">
+            {/* CTAs: Sleek rounded full action pills */}
+            <div className="flex items-center gap-2.5 w-full max-w-[280px] pt-0.5">
               <Link
                 to="/products"
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-xs rounded-xl shadow-md shadow-amber-500/25 active:scale-95 transition-all text-center whitespace-nowrap"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:brightness-105 text-stone-950 font-black text-xs rounded-full shadow-md shadow-amber-500/25 active:scale-95 transition-all text-center whitespace-nowrap"
               >
                 <span>Shop Pickles</span>
-                <ArrowRight size={12} />
+                <ArrowRight size={13} className="text-stone-950" />
               </Link>
               <Link
                 to="/brands"
-                className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-white/10 hover:bg-white/15 text-stone-100 text-xs font-bold rounded-xl border border-white/20 active:scale-95 transition-all text-center whitespace-nowrap"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 px-3 bg-white/10 hover:bg-white/15 text-stone-100 font-bold text-xs rounded-full border border-white/20 active:scale-95 transition-all text-center whitespace-nowrap backdrop-blur-md"
               >
-                <Store size={12} className="text-amber-400" />
+                <Store size={13} className="text-amber-400" />
                 <span>Artisan Brands</span>
               </Link>
             </div>
 
             {/* Micro Trust Ribbon */}
-            <div className="flex items-center justify-center gap-2 pt-0.5 text-[9.5px] text-stone-300/80 font-medium">
+            <div className="flex items-center justify-center gap-2.5 pt-0.5 text-[9.5px] text-stone-300/85 font-medium tracking-wide">
               <span className="flex items-center gap-1">
                 <Award size={11} className="text-amber-400 flex-shrink-0" />
                 <span>Verified Brands</span>
               </span>
-              <span className="text-stone-500">•</span>
+              <span className="text-stone-600">•</span>
               <span>Fresh Dispatch</span>
-              <span className="text-stone-500">•</span>
+              <span className="text-stone-600">•</span>
               <span>FSSAI Certified</span>
             </div>
           </div>
