@@ -926,3 +926,50 @@ class WangsFinancialAndOrderTests(TestCase):
 
         # Verify user no longer exists
         self.assertFalse(User.objects.filter(id=target_customer.id).exists())
+
+    def test_admin_research_report_pdf_and_csv(self):
+        """Admin can access and maintain research records in PDF and CSV formats for customers, sellers, and products."""
+        admin_boss = User.objects.create_user(
+            username='admin_researcher', email='research_boss@wangs.in',
+            password='adminpassword123', role=User.Role.ADMIN, is_staff=True
+        )
+        target_customer = User.objects.create_user(
+            username='shopper_subject', email='subject@wangs.in',
+            password='password123', role=User.Role.CUSTOMER
+        )
+
+        url = reverse('admin-research-reports')
+
+        # 1. Anonymous access rejected
+        anon_resp = self.client.get(url)
+        self.assertEqual(anon_resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 2. Regular customer rejected
+        self.client.force_authenticate(user=target_customer)
+        cust_resp = self.client.get(url)
+        self.assertEqual(cust_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Admin retrieves JSON metadata
+        self.client.force_authenticate(user=admin_boss)
+        json_resp = self.client.get(url, {'format': 'json'})
+        self.assertEqual(json_resp.status_code, status.HTTP_200_OK)
+        self.assertIn('stats', json_resp.data)
+        self.assertIn('downloads', json_resp.data)
+        self.assertGreaterEqual(json_resp.data['stats']['total_users'], 2)
+
+        # 4. Admin exports CSV format
+        csv_resp = self.client.get(url, {'format': 'csv', 'type': 'all'})
+        self.assertEqual(csv_resp.status_code, status.HTTP_200_OK)
+        self.assertIn('text/csv', csv_resp['Content-Type'])
+        content = csv_resp.content.decode('utf-8')
+        self.assertIn("WANGS MARKETPLACE PLATFORM RESEARCH", content)
+        self.assertIn("SECTION 1: CUSTOMER RESEARCH DIRECTORY", content)
+        self.assertIn("SECTION 2: ARTISAN SELLER & PRODUCER ECOSYSTEM", content)
+        self.assertIn("SECTION 3: PRODUCT CATALOG PERFORMANCE & INVENTORY", content)
+
+        # 5. Admin exports PDF format
+        pdf_resp = self.client.get(url, {'format': 'pdf'})
+        self.assertEqual(pdf_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(pdf_resp['Content-Type'], 'application/pdf')
+        self.assertTrue(pdf_resp.content.startswith(b'%PDF-1.4'))
+        self.assertTrue(pdf_resp.content.endswith(b'%%EOF\n'))

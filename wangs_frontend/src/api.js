@@ -107,6 +107,32 @@ export const api = {
 
   // Admin & Monitoring Console
   getAdminMetrics: () => apiRequest('/admin/metrics/'),
+  getAdminResearchMetadata: () => apiRequest('/admin/research-reports/?format=json'),
+  downloadResearchFile: async (format = 'csv', type = 'all') => {
+    const token = localStorage.getItem('wangs_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    let res;
+    try {
+      res = await fetch(`/api/admin/research-reports/?format=${format}&type=${type}`, { headers });
+    } catch (e) {
+      res = await fetch(`http://127.0.0.1:8000/api/admin/research-reports/?format=${format}&type=${type}`, { headers });
+    }
+    if (!res.ok) {
+      throw new Error(`Failed to download report: ${res.statusText}`);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const filename = format === 'pdf'
+      ? `wangs_research_report_${new Date().toISOString().slice(0, 10)}.pdf`
+      : `wangs_${type}_research_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  },
   getAdminUsers: () => apiRequest('/admin/users/'),
   deleteAdminUser: (id) => apiRequest(`/admin/users/${id}/`, { method: 'DELETE' }),
   toggleAdminUserSeller: (id) => apiRequest(`/admin/users/${id}/toggle_can_sell/`, { method: 'POST' }),

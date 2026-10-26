@@ -12,7 +12,8 @@ from .views import (
     AdminMetricsView, AdminManufacturerViewSet, AdminProductViewSet,
     AdminOrderViewSet, AdminCommissionView, AdminSettlementsView, AdminAuditLogsView,
     AdminUserViewSet, AdminSellerRequestView, PlatformSettingsView, AdminToggleSellerRegistrationView,
-    AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView
+    AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
+    AdminResearchReportView
 )
 
 router = DefaultRouter()
@@ -68,6 +69,7 @@ urlpatterns = [
     path('admin/settlements/', AdminSettlementsView.as_view(), name='admin-settlements'),
     path('admin/maintenance-subscribers/', AdminMaintenanceSubscribersView.as_view(), name='admin-maintenance-subscribers'),
     path('admin/audit-logs/', AdminAuditLogsView.as_view(), name='admin-audit-logs'),
+    path('admin/research-reports/', AdminResearchReportView.as_view(), name='admin-research-reports'),
 
     # Router endpoints
     path('', include(router.urls)),

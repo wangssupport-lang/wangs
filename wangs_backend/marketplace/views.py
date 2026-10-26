@@ -7,6 +7,7 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Sum, Count, ProtectedError
 from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -1885,3 +1886,70 @@ class MaintenanceNotifyView(views.APIView):
             'success': True,
             'message': "Thank you! We'll alert you the moment our doors open."
         })
+
+
+class AdminResearchReportView(views.APIView):
+    """
+    Maintains and exports official research, study, and statistical records
+    for Customers, Artisan Sellers, and Products in publication-grade PDF and CSV formats.
+    """
+    permission_classes = [IsAdminUserRole]
+
+    def perform_content_negotiation(self, request, force=False):
+        renderers = self.get_renderers()
+        return (renderers[0], renderers[0].media_type)
+
+    def get(self, request):
+        req_format = (
+            request.query_params.get('export_format') or
+            request.query_params.get('file_format') or
+            request.query_params.get('format') or
+            'json'
+        ).lower()
+        dataset_type = request.query_params.get('type', 'all').lower()
+
+        from .research_service import (
+            get_research_data,
+            generate_research_csv,
+            generate_research_pdf,
+            save_maintained_research_files
+        )
+
+        today_str = datetime.date.today().strftime('%Y%m%d')
+
+        if req_format == 'pdf':
+            pdf_bytes = generate_research_pdf()
+            try:
+                save_maintained_research_files()
+            except Exception as exc:
+                logger.warning("Failed background disk update for research files: %s", exc)
+
+            response = HttpResponse(pdf_bytes, content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="wangs_research_report_{today_str}.pdf"'
+            return response
+
+        elif req_format == 'csv':
+            csv_content = generate_research_csv(dataset_type)
+            try:
+                save_maintained_research_files()
+            except Exception as exc:
+                logger.warning("Failed background disk update for research files: %s", exc)
+
+            response = HttpResponse(csv_content, content_type='text/csv; charset=utf-8')
+            filename = f"wangs_{dataset_type}_research_{today_str}.csv"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+
+        else:
+            data = get_research_data()
+            base_url = request.build_absolute_uri('/api/admin/research-reports/')
+            return Response({
+                'stats': data['stats'],
+                'downloads': {
+                    'pdf_dossier': f"{base_url}?format=pdf",
+                    'full_csv': f"{base_url}?format=csv&type=all",
+                    'customers_csv': f"{base_url}?format=csv&type=customers",
+                    'sellers_csv': f"{base_url}?format=csv&type=sellers",
+                    'products_csv': f"{base_url}?format=csv&type=products",
+                }
+            })

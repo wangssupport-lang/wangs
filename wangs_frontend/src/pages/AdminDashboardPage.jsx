@@ -53,6 +53,7 @@ export default function AdminDashboardPage() {
 
   // Dedicated "Yet to be Approved" Space State
   const [pendingTabFilter, setPendingTabFilter] = useState('PENDING'); // 'PENDING', 'ALL', 'AUTHORIZED', 'PROFILES'
+  const [downloadingResearch, setDownloadingResearch] = useState(null); // 'pdf', 'all', 'customers', 'sellers', 'products'
   const [pendingSearch, setPendingSearch] = useState('');
   const [approvingEmail, setApprovingEmail] = useState('');
 
@@ -393,6 +394,23 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleDownloadResearch = async (format = 'csv', type = 'all') => {
+    const key = format === 'pdf' ? 'pdf' : type;
+    setDownloadingResearch(key);
+    try {
+      await api.downloadResearchFile(format, type);
+      toast.success(
+        format === 'pdf'
+          ? 'Platform Research Dossier (PDF) generated and downloaded successfully!'
+          : `Wangs ${type.toUpperCase()} research dataset (CSV) downloaded successfully!`
+      );
+    } catch (err) {
+      toast.error(err.message || 'Failed to download research file');
+    } finally {
+      setDownloadingResearch(null);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="max-w-7xl mx-auto py-24 px-4 text-center">
@@ -659,6 +677,7 @@ export default function AdminDashboardPage() {
           { id: 'orders', label: `Orders (${ordersList.length})` },
           { id: 'commission', label: 'Commission & Fees' },
           { id: 'settlements', label: 'Payout Settlements' },
+          { id: 'research', label: 'Research & Study Records (PDF/CSV)' },
           { id: 'logs', label: `Audit Trail (${auditLogsList.length})` },
         ].map((tab) => (
           <button
@@ -982,6 +1001,52 @@ export default function AdminDashboardPage() {
                 </p>
                 <p className="text-[11px] text-emerald-800">Automated volume incentives active on product pages</p>
               </div>
+            </div>
+          </div>
+
+          {/* Quick Research & Analytics Study Records Card */}
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center flex-shrink-0">
+                <FileText size={22} />
+              </div>
+              <div>
+                <h4 className="font-serif font-bold text-sm text-stone-900">
+                  Platform Research & Study Records (PDF / CSV)
+                </h4>
+                <p className="text-xs text-stone-500">
+                  Maintained research dossiers and statistical records on Customers ({metrics?.total_users ?? usersList.length}), Artisan Sellers ({manufacturersList.length}), and Cataloged Products ({productsList.length}).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+              <button
+                type="button"
+                disabled={downloadingResearch === 'pdf'}
+                onClick={() => handleDownloadResearch('pdf')}
+                className="px-3.5 py-2 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 whitespace-nowrap"
+              >
+                <FileText size={13} />
+                <span>{downloadingResearch === 'pdf' ? 'Generating...' : 'Download PDF Dossier'}</span>
+              </button>
+              <button
+                type="button"
+                disabled={downloadingResearch === 'all'}
+                onClick={() => handleDownloadResearch('csv', 'all')}
+                className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl text-xs font-bold transition-all border border-stone-200 flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap"
+              >
+                <Download size={13} />
+                <span>{downloadingResearch === 'all' ? 'Exporting...' : 'Export Full CSV'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('research')}
+                className="px-3.5 py-2 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-bold transition-all border border-amber-200 flex items-center gap-1 cursor-pointer whitespace-nowrap"
+              >
+                <span>Open Research Space</span>
+                <ArrowRight size={13} />
+              </button>
             </div>
           </div>
         </div>
@@ -2288,6 +2353,225 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Platform Research & Study Records */}
+      {activeTab === 'research' && (
+        <div className="space-y-6">
+          {/* Main Hero Card for Research Dossier */}
+          <div className="bg-gradient-to-br from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 sm:p-8 rounded-3xl border border-forest-800 shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-forest-800/80 pb-6">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-forest-950 text-[10px] font-black uppercase tracking-wider shadow-sm">
+                  <Sparkles size={12} />
+                  <span>Platform Intelligence & Research Dossier</span>
+                </div>
+                <h2 className="font-serif font-bold text-2xl text-white">
+                  Official Market Study & Statistical Records
+                </h2>
+                <p className="text-xs text-forest-200/90 leading-relaxed">
+                  Export verifiable statistical records on registered customers, vetted artisan producers, and product sales performance. Maintained continuously for demographic study, supply-chain verification, and operational research in publication-grade PDF and CSV formats.
+                </p>
+              </div>
+
+              {/* Primary Download Buttons (PDF & CSV) */}
+              <div className="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  type="button"
+                  disabled={downloadingResearch === 'pdf'}
+                  onClick={() => handleDownloadResearch('pdf')}
+                  className="px-5 py-3 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 text-forest-950 font-black text-xs rounded-xl shadow-lg shadow-amber-500/25 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <FileText size={15} />
+                  <span>{downloadingResearch === 'pdf' ? 'Generating PDF...' : 'Download Research Dossier (PDF)'}</span>
+                </button>
+                <button
+                  type="button"
+                  disabled={downloadingResearch === 'all'}
+                  onClick={() => handleDownloadResearch('csv', 'all')}
+                  className="px-5 py-3 bg-white/10 hover:bg-white/15 text-cream-50 font-bold text-xs rounded-xl border border-white/20 flex items-center justify-center gap-2 active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+                >
+                  <Download size={15} className="text-amber-400" />
+                  <span>{downloadingResearch === 'all' ? 'Exporting CSV...' : 'Export Complete Dataset (CSV)'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick KPI Stat Ribbon */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="p-4 bg-forest-900/60 border border-forest-800 rounded-2xl">
+                <span className="text-[10px] text-forest-300 uppercase font-bold tracking-wider block">Customer Cohort</span>
+                <span className="text-xl font-bold text-white mt-1 block">
+                  {usersList.filter((u) => u.role === 'CUSTOMER').length} Shoppers
+                </span>
+                <span className="text-[11px] text-forest-300 mt-0.5 block">{usersList.length} Total Users</span>
+              </div>
+              <div className="p-4 bg-forest-900/60 border border-forest-800 rounded-2xl">
+                <span className="text-[10px] text-forest-300 uppercase font-bold tracking-wider block">Vetted Sellers</span>
+                <span className="text-xl font-bold text-white mt-1 block">
+                  {manufacturersList.filter((m) => m.status === 'APPROVED').length} Approved Brands
+                </span>
+                <span className="text-[11px] text-forest-300 mt-0.5 block">{manufacturersList.length} Total Producers</span>
+              </div>
+              <div className="p-4 bg-forest-900/60 border border-forest-800 rounded-2xl">
+                <span className="text-[10px] text-forest-300 uppercase font-bold tracking-wider block">Inventory Health</span>
+                <span className="text-xl font-bold text-white mt-1 block">
+                  {productsList.filter((p) => p.is_active && p.status === 'APPROVED').length} Live Listings
+                </span>
+                <span className="text-[11px] text-forest-300 mt-0.5 block">{productsList.length} Total Recipes</span>
+              </div>
+              <div className="p-4 bg-forest-900/60 border border-forest-800 rounded-2xl">
+                <span className="text-[10px] text-forest-300 uppercase font-bold tracking-wider block">Gross Volume (GMV)</span>
+                <span className="text-xl font-bold text-amber-300 mt-1 block">
+                  ₹{parseFloat(metrics?.total_revenue || 0).toLocaleString('en-IN')}
+                </span>
+                <span className="text-[11px] text-forest-300 mt-0.5 block">{ordersList.length} Orders Logged</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Individual Research Sections (Customers, Sellers, Products) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 1. Customers Record Card */}
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-center justify-center">
+                  <Users size={22} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Customer Study & Demographics
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                    Examines buyer accounts, order counts, repeat purchase velocity, lifetime spend (LTV), average order value (AOV), and regional delivery hubs.
+                  </p>
+                </div>
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 text-[11px] text-stone-600 space-y-1">
+                  <p>• <strong>Included Fields:</strong> User ID, Contact Email, Phone, Role, Orders Placed, Lifetime Spend, AOV, Primary District.</p>
+                  <p>• <strong>Current Records:</strong> {usersList.length} user profiles.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={downloadingResearch === 'customers'}
+                onClick={() => handleDownloadResearch('csv', 'customers')}
+                className="w-full py-2.5 bg-stone-100 hover:bg-forest-900 text-stone-800 hover:text-white font-bold text-xs rounded-xl border border-stone-200 hover:border-forest-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Download size={13} />
+                <span>{downloadingResearch === 'customers' ? 'Exporting...' : 'Export Customer Records (CSV)'}</span>
+              </button>
+            </div>
+
+            {/* 2. Artisan Sellers Record Card */}
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-center justify-center">
+                  <Store size={22} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Artisan Seller Ecosystem
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                    Audits verified regional food producers, FSSAI regulatory compliance, active jar catalog depth, units dispatched, and gross earnings.
+                  </p>
+                </div>
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 text-[11px] text-stone-600 space-y-1">
+                  <p>• <strong>Included Fields:</strong> Brand Name, District, FSSAI Number, Status, Verification, Active Jars, Units Sold, Gross GMV.</p>
+                  <p>• <strong>Current Records:</strong> {manufacturersList.length} producer profiles.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={downloadingResearch === 'sellers'}
+                onClick={() => handleDownloadResearch('csv', 'sellers')}
+                className="w-full py-2.5 bg-stone-100 hover:bg-forest-900 text-stone-800 hover:text-white font-bold text-xs rounded-xl border border-stone-200 hover:border-forest-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Download size={13} />
+                <span>{downloadingResearch === 'sellers' ? 'Exporting...' : 'Export Seller Directory (CSV)'}</span>
+              </button>
+            </div>
+
+            {/* 3. Products Performance Record Card */}
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-red-50 border border-red-200 text-red-800 flex items-center justify-center">
+                  <Package size={22} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Product Performance & Inventory
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-1 leading-relaxed">
+                    Tracks pickle recipes, dietary classifications (Non-Veg, Veg, Veg Mixed), spice levels (King Chilli), weight, price points, and review ratings.
+                  </p>
+                </div>
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 text-[11px] text-stone-600 space-y-1">
+                  <p>• <strong>Included Fields:</strong> Title, Brand, Dietary Type, Spice Level, Net Weight, Price, Stock, Rating, Units Sold, Revenue.</p>
+                  <p>• <strong>Current Records:</strong> {productsList.length} cataloged products.</p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={downloadingResearch === 'products'}
+                onClick={() => handleDownloadResearch('csv', 'products')}
+                className="w-full py-2.5 bg-stone-100 hover:bg-forest-900 text-stone-800 hover:text-white font-bold text-xs rounded-xl border border-stone-200 hover:border-forest-900 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <Download size={13} />
+                <span>{downloadingResearch === 'products' ? 'Exporting...' : 'Export Product Catalog (CSV)'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Server-Maintained File Location & Integrity Info */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-3">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2">
+                <FileText size={18} className="text-forest-900" />
+                <h4 className="font-serif font-bold text-sm text-stone-900">
+                  Maintained Production Record Files
+                </h4>
+              </div>
+              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full">
+                Auto-Synced on Demand
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Every download or compilation maintains standardized publication copies directly in the production server storage. These files can be cited for academic food science research, regional artisan producer support, or platform compliance auditing:
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 font-mono text-[11px] text-stone-700 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-stone-900 block">Publication PDF Dossier</span>
+                  <span className="text-stone-500 text-[10px]">media/reports/wangs_research_report.pdf</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadResearch('pdf')}
+                  className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg text-[10px] font-bold text-stone-800 cursor-pointer shadow-2xs"
+                >
+                  Download PDF
+                </button>
+              </div>
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 font-mono text-[11px] text-stone-700 flex items-center justify-between">
+                <div>
+                  <span className="font-bold text-stone-900 block">Complete Analytics Dataset</span>
+                  <span className="text-stone-500 text-[10px]">media/reports/wangs_research_report.csv</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleDownloadResearch('csv', 'all')}
+                  className="px-2.5 py-1 bg-white hover:bg-stone-100 border border-stone-200 rounded-lg text-[10px] font-bold text-stone-800 cursor-pointer shadow-2xs"
+                >
+                  Download CSV
+                </button>
+              </div>
             </div>
           </div>
         </div>
