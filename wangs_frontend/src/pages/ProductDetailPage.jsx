@@ -91,6 +91,20 @@ export default function ProductDetailPage() {
     }
   }, [product?.manufacturer?.slug, product?.id]);
 
+  const productImages = React.useMemo(() => {
+    const list = [];
+    if (product?.images && product.images.length > 0) {
+      product.images.forEach((img) => {
+        const url = typeof img === 'string' ? img : img?.image_url;
+        if (url && !list.includes(url)) list.push(url);
+      });
+    }
+    if (product?.primary_image_url && !list.includes(product.primary_image_url)) {
+      list.unshift(product.primary_image_url);
+    }
+    return list.length > 0 ? list : ['/featured-pouches.png'];
+  }, [product]);
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 py-20 text-center">
@@ -257,20 +271,6 @@ export default function ProductDetailPage() {
   // Manufacturer FSSAI License Number
   const fssaiNumber = product.manufacturer?.fssai_license_number || '10023064000124';
   const reviewsList = product.reviews || [];
-
-  const productImages = React.useMemo(() => {
-    const list = [];
-    if (product?.images && product.images.length > 0) {
-      product.images.forEach((img) => {
-        const url = typeof img === 'string' ? img : img.image_url;
-        if (url && !list.includes(url)) list.push(url);
-      });
-    }
-    if (product?.primary_image_url && !list.includes(product.primary_image_url)) {
-      list.unshift(product.primary_image_url);
-    }
-    return list.length > 0 ? list : ['/featured-pouches.png'];
-  }, [product]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-12 space-y-10 sm:space-y-16">
