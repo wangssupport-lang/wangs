@@ -52,34 +52,36 @@ function AppLayout() {
       {!isAdminRoute && <CartDrawer />}
 
       <main className="flex-1">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/brands" element={<BrandsPage />} />
-          <Route path="/products" element={<ProductListPage />} />
-          <Route path="/product/:slug" element={<ProductDetailPage />} />
-          <Route path="/cart" element={<CartPage />} />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
-          <Route path="/account" element={<CustomerAccountPage />} />
-          <Route path="/login" element={<AuthPage />} />
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/brands" element={<BrandsPage />} />
+            <Route path="/products" element={<ProductListPage />} />
+            <Route path="/product/:slug" element={<ProductDetailPage />} />
+            <Route path="/cart" element={<CartPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
+            <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
+            <Route path="/account" element={<CustomerAccountPage />} />
+            <Route path="/login" element={<AuthPage />} />
 
-          {/* Manufacturer */}
-          <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
-          <Route path="/manufacturer/register" element={<ManufacturerRegisterPage />} />
+            {/* Manufacturer */}
+            <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
+            <Route path="/manufacturer/register" element={<ManufacturerRegisterPage />} />
 
-          {/* Admin Space - Accessible EXCLUSIVELY via /wangadminspace */}
-          <Route path="/wangadminspace" element={<AdminDashboardPage />} />
-          <Route path="/adminspace" element={<Navigate to="/" replace />} />
-          <Route path="/admin" element={<Navigate to="/" replace />} />
+            {/* Admin Space - Accessible EXCLUSIVELY via /wangadminspace */}
+            <Route path="/wangadminspace" element={<AdminDashboardPage />} />
+            <Route path="/adminspace" element={<Navigate to="/" replace />} />
+            <Route path="/admin" element={<Navigate to="/" replace />} />
 
-          {/* Static & Legal */}
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/shipping" element={<ShippingPage />} />
-          <Route path="/refunds" element={<RefundsPage />} />
-          <Route path="/contact" element={<ContactPage />} />
-        </Routes>
+            {/* Static & Legal */}
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/shipping" element={<ShippingPage />} />
+            <Route path="/refunds" element={<RefundsPage />} />
+            <Route path="/contact" element={<ContactPage />} />
+          </Routes>
+        </ErrorBoundary>
       </main>
 
       {!isAdminRoute && <Footer />}
@@ -113,16 +115,28 @@ class ErrorBoundary extends React.Component {
             <p className="text-xs text-stone-500">
               An unexpected error occurred while loading this view. You can refresh or return to the storefront.
             </p>
+            {this.state.error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-left overflow-auto max-h-48">
+                <p className="text-[11px] font-mono font-bold text-red-700 break-words">
+                  {this.state.error?.message || String(this.state.error)}
+                </p>
+                {this.state.error?.stack && (
+                  <pre className="text-[9px] font-mono text-red-600/80 mt-1 whitespace-pre-wrap">
+                    {this.state.error.stack.split('\n').slice(0, 4).join('\n')}
+                  </pre>
+                )}
+              </div>
+            )}
             <div className="flex gap-2 justify-center pt-2">
               <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-forest-900 text-white rounded-xl text-xs font-bold shadow"
+                onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+                className="px-4 py-2 bg-forest-900 text-white rounded-xl text-xs font-bold shadow cursor-pointer"
               >
                 Reload View
               </button>
               <a
                 href="/"
-                className="px-4 py-2 bg-stone-100 text-stone-700 rounded-xl text-xs font-bold border border-stone-200"
+                className="px-4 py-2 bg-stone-100 text-stone-700 rounded-xl text-xs font-bold border border-stone-200 cursor-pointer"
               >
                 Home
               </a>

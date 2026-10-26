@@ -279,10 +279,14 @@ export default function ProductDetailPage() {
         <Link to="/" className="shrink-0 hover:text-forest-900 transition-colors">Home</Link>
         <ChevronRight size={13} />
         <Link to="/products" className="shrink-0 hover:text-forest-900 transition-colors">Pickle Pantry</Link>
-        <ChevronRight size={13} />
-        <Link to={`/products?category=${product.category?.slug}`} className="shrink-0 hover:text-forest-900 transition-colors">
-          {product.category?.name}
-        </Link>
+        {product.category?.name && (
+          <>
+            <ChevronRight size={13} />
+            <Link to={`/products?category=${product.category?.slug}`} className="shrink-0 hover:text-forest-900 transition-colors">
+              {product.category.name}
+            </Link>
+          </>
+        )}
         <span className="hidden shrink-0 items-center gap-2 sm:inline-flex">
           <ChevronRight size={13} />
           <span className="max-w-xs truncate font-bold text-stone-900">{product.title}</span>
@@ -366,8 +370,8 @@ export default function ProductDetailPage() {
                 to={`/products?brand=${encodeURIComponent(product.manufacturer?.slug || product.manufacturer?.business_name || '')}`}
                 className="group/brand inline-flex items-center gap-1.5 text-xs text-forest-900 hover:text-forest-950 font-bold"
               >
-                <span>Visit the <span className="underline decoration-forest-700 decoration-1 underline-offset-2">{product.manufacturer?.business_name}</span> Store</span>
-                <span className="px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 text-[9px] font-extrabold uppercase">
+                <span>Visit the <span className="underline decoration-forest-700 decoration-1 underline-offset-2">{product.manufacturer?.business_name || 'Artisan Brand'}</span> Store</span>
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[9px] font-extrabold uppercase">
                   Official Brand
                 </span>
               </Link>
@@ -646,7 +650,7 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Curated Brand Tasting Trio Bundle (If brand has companion recipes) */}
-          {brandCompanions.length >= 2 && (
+          {brandCompanions && brandCompanions.length >= 2 && brandCompanions[0] && brandCompanions[1] && (
             <div className="bg-gradient-to-br from-cream-100 via-amber-50/50 to-cream-100 p-5 rounded-3xl border border-amber-200/90 shadow-sm space-y-3.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -655,7 +659,7 @@ export default function ProductDetailPage() {
                   </span>
                   <div>
                     <h4 className="font-serif font-bold text-stone-900 text-sm">
-                      Curated {product.manufacturer?.business_name} Tasting Trio Bundle
+                      Curated {product.manufacturer?.business_name || 'Artisan Brand'} Tasting Trio Bundle
                     </h4>
                     <p className="text-[11px] text-stone-500">
                       3 Authentic Recipes from this Artisan Brand · Save 15% Platform Bundle Offer
@@ -668,17 +672,17 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="grid grid-cols-3 gap-2.5 pt-1">
-                {[product, brandCompanions[0], brandCompanions[1]].map((item, idx) => (
-                  <div key={item.id} className="bg-white p-2.5 rounded-2xl border border-stone-200 text-center space-y-1 relative group">
+                {[product, brandCompanions[0], brandCompanions[1]].filter(Boolean).map((item, idx) => (
+                  <div key={item.id || idx} className="bg-white p-2.5 rounded-2xl border border-stone-200 text-center space-y-1 relative group">
                     <div className="aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1.5">
                       <img
                         src={item.primary_image_url || '/featured-pouches.png'}
-                        alt={item.title}
+                        alt={item.title || 'Pickle Jar'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
                     <p className="font-bold text-[11px] text-stone-900 line-clamp-1 leading-snug">{item.title}</p>
-                    <p className="text-[10px] text-stone-500 font-medium">₹{parseFloat(item.price).toFixed(0)}</p>
+                    <p className="text-[10px] text-stone-500 font-medium">₹{parseFloat(item.price || 0).toFixed(0)}</p>
                     {idx < 2 && (
                       <span className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-4 h-4 rounded-full bg-forest-900 text-cream-100 font-black text-[10px] flex items-center justify-center shadow">
                         +
@@ -690,8 +694,8 @@ export default function ProductDetailPage() {
 
               {(() => {
                 const p1 = parseFloat(product.price) || 0;
-                const p2 = parseFloat(brandCompanions[0].price) || 0;
-                const p3 = parseFloat(brandCompanions[1].price) || 0;
+                const p2 = parseFloat(brandCompanions[0]?.price || 0) || 0;
+                const p3 = parseFloat(brandCompanions[1]?.price || 0) || 0;
                 const orig = p1 + p2 + p3;
                 const disc = Math.round(orig * 0.85);
                 const save = orig - disc;
@@ -801,7 +805,7 @@ export default function ProductDetailPage() {
                               )}
                             </div>
                             <div className="flex text-amber-500">
-                              {[...Array(rev.rating || 5)].map((_, i) => (
+                              {Array.from({ length: Math.max(1, Math.min(5, Math.floor(Number(rev.rating) || 5))) }).map((_, i) => (
                                 <Star key={i} size={11} className="fill-amber-400 text-amber-400" />
                               ))}
                             </div>
