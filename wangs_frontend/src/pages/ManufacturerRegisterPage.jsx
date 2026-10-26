@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock } from 'lucide-react';
+import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 
@@ -826,6 +826,16 @@ export default function ManufacturerRegisterPage() {
                 />
               </div>
             </div>
+          </div>
+
+          {/* Marketplace Seller Policy Summary */}
+          <div className="p-4 bg-amber-50/70 border border-amber-200 rounded-xl text-stone-700 text-xs space-y-1">
+            <span className="font-bold text-stone-900 flex items-center gap-1.5">
+              <Sparkles size={14} className="text-amber-600" /> Platform Multi-Jar Bundle Rule (10% Discount)
+            </span>
+            <p className="text-[11px] text-stone-600 leading-relaxed">
+              Customers can build flexible bundles containing 2 to 4 products exclusively from your brand and receive a 10% bundle discount. Customers can add or cut recipes within the 2–4 jar range.
+            </p>
           </div>
 
           <button

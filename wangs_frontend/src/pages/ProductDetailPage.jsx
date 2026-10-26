@@ -24,7 +24,8 @@ export default function ProductDetailPage() {
 
   // Bundle tier selector (Single, Duo 8% OFF, Trio 15% OFF)
   const [selectedBundleIndex, setSelectedBundleIndex] = useState(1); // Default to Duo Pack (Recommended)
-  const [brandCompanions, setBrandCompanions] = useState([]);
+  const [brandCatalog, setBrandCatalog] = useState([]);
+  const [bundleItems, setBundleItems] = useState([]);
   const [addingBrandBundle, setAddingBrandBundle] = useState(false);
 
   // PIN code checker state
@@ -84,8 +85,17 @@ export default function ProductDetailPage() {
       api.getProducts({ brand: product.manufacturer.slug })
         .then((res) => {
           const list = Array.isArray(res) ? res : res?.results || [];
-          const others = list.filter((p) => p.id !== product.id && p.is_in_stock);
-          setBrandCompanions(others.slice(0, 2));
+          const inStock = list.filter((p) => p.is_in_stock !== false);
+          setBrandCatalog(inStock);
+          const others = inStock.filter((p) => p.id !== product.id);
+          // Initialize flexible bundle: 2 to 4 items from the same brand
+          if (others.length >= 2) {
+            setBundleItems([product, others[0], others[1]]);
+          } else if (others.length === 1) {
+            setBundleItems([product, others[0]]);
+          } else if (product) {
+            setBundleItems([product, product]);
+          }
         })
         .catch((err) => console.error('Could not load brand companions', err));
     }
@@ -206,18 +216,47 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleAddBrandBundle = async () => {
-    if (!product || brandCompanions.length < 2 || addingBrandBundle) return;
+  const handleCutBundleItem = (index) => {
+    if (bundleItems.length <= 2) {
+      toast.info('Brand bundles require a minimum of 2 items to qualify for the 10% discount.');
+      return;
+    }
+    const removedItem = bundleItems[index];
+    const updated = bundleItems.filter((_, i) => i !== index);
+    setBundleItems(updated);
+    toast.success(`Removed ${removedItem?.title || 'item'} from bundle.`);
+  };
+
+  const handleAddToBundle = (itemToAdd) => {
+    if (bundleItems.length >= 4) {
+      toast.info('Brand bundles can have a maximum of 4 items.');
+      return;
+    }
+    // Verify item is exclusively from the same brand
+    if (itemToAdd?.manufacturer?.slug && product?.manufacturer?.slug && itemToAdd.manufacturer.slug !== product.manufacturer.slug) {
+      toast.error('Only items from the same brand can be bundled together.');
+      return;
+    }
+    setBundleItems([...bundleItems, itemToAdd]);
+    toast.success(`Added ${itemToAdd.title} to your brand bundle!`);
+  };
+
+  const handleAddFlexibleBundle = async () => {
+    if (!product || bundleItems.length < 2 || bundleItems.length > 4 || addingBrandBundle) return;
     setAddingBrandBundle(true);
     try {
-      await Promise.all([
-        addToCart(product.id, 1),
-        addToCart(brandCompanions[0].id, 1),
-        addToCart(brandCompanions[1].id, 1)
-      ]);
-      toast.success(`Added Curated 3-Jar Brand Tasting Bundle from ${product.manufacturer?.business_name || 'Artisan Brand'} to your basket!`);
+      // Group items by product ID
+      const qtyMap = {};
+      bundleItems.forEach((it) => {
+        qtyMap[it.id] = (qtyMap[it.id] || 0) + 1;
+      });
+      for (const [pId, qty] of Object.entries(qtyMap)) {
+        await addToCart(Number(pId), qty);
+      }
+      const bName = product.manufacturer?.business_name || 'Artisan Brand';
+      toast.success(`Added ${bundleItems.length}-Jar ${bName} Bundle (10% OFF) to your basket!`);
     } catch (err) {
-      toast.error(err.message || 'Failed to add curated bundle');
+      toast.error(err.message || 'Failed to add flexible brand bundle');
     } finally {
       setAddingBrandBundle(false);
     }
@@ -649,31 +688,64 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Curated Brand Tasting Trio Bundle (If brand has companion recipes) */}
-          {brandCompanions && brandCompanions.length >= 2 && brandCompanions[0] && brandCompanions[1] && (
-            <div className="bg-gradient-to-br from-cream-100 via-amber-50/50 to-cream-100 p-5 rounded-3xl border border-amber-200/90 shadow-sm space-y-3.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="p-1.5 bg-amber-500 text-stone-950 rounded-xl shadow-xs">
+          {/* Flexible Brand Bundle Builder (2-4 Items · Same Brand Only · Save 10%) */}
+          {bundleItems && bundleItems.length >= 2 && (
+            <div className="bg-gradient-to-br from-cream-100 via-amber-50/50 to-cream-100 p-5 sm:p-6 rounded-3xl border border-amber-200/90 shadow-sm space-y-4">
+              {/* Header */}
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2.5">
+                  <span className="p-2 bg-amber-500 text-stone-950 rounded-xl shadow-xs">
                     <Sparkles size={16} />
                   </span>
                   <div>
-                    <h4 className="font-serif font-bold text-stone-900 text-sm">
-                      Curated {product.manufacturer?.business_name || 'Artisan Brand'} Tasting Trio Bundle
-                    </h4>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-serif font-bold text-stone-900 text-sm sm:text-base">
+                        Curated {product.manufacturer?.business_name || 'Artisan Brand'} Bundle
+                      </h4>
+                      <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
+                        {bundleItems.length}/4 Jars Selected
+                      </span>
+                    </div>
                     <p className="text-[11px] text-stone-500">
-                      3 Authentic Recipes from this Artisan Brand · Save 15% Platform Bundle Offer
+                      Flexible 2–4 Recipes from this Artisan Brand only · Save 10% Platform Bundle Offer
                     </p>
                   </div>
                 </div>
                 <span className="bg-chilli-700 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs">
-                  Save 15%
+                  Save 10%
                 </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 pt-1">
-                {[product, brandCompanions[0], brandCompanions[1]].filter(Boolean).map((item, idx) => (
-                  <div key={item.id || idx} className="bg-white p-2.5 rounded-2xl border border-stone-200 text-center space-y-1 relative group">
+              {/* Bundle Rule Info Strip */}
+              <div className="flex items-center justify-between text-[11px] bg-amber-100/70 border border-amber-200/80 px-3 py-1.5 rounded-xl text-stone-700">
+                <span>
+                  💡 <strong>Brand Bundle Rule:</strong> Select 2 to 4 items from {product.manufacturer?.business_name || 'this brand'} only. Cut or add items below.
+                </span>
+                <span className="font-bold text-forest-900 hidden sm:inline">Save 10% Bundle Discount</span>
+              </div>
+
+              {/* Active Bundle Items Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                {bundleItems.map((item, idx) => (
+                  <div
+                    key={`${item.id}-${idx}`}
+                    className="bg-white p-2.5 sm:p-3 rounded-2xl border-2 border-amber-300/80 text-center space-y-1 relative group shadow-xs hover:border-forest-800 transition-all"
+                  >
+                    {/* Cut / Remove Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleCutBundleItem(idx)}
+                      disabled={bundleItems.length <= 2}
+                      title={bundleItems.length <= 2 ? 'Minimum 2 items required for 10% brand bundle discount' : 'Cut this item from bundle'}
+                      className={`absolute -top-2 -right-2 z-20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-md transition-all ${
+                        bundleItems.length <= 2
+                          ? 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-60'
+                          : 'bg-red-500 hover:bg-red-600 active:scale-95 text-white cursor-pointer'
+                      }`}
+                    >
+                      <X size={13} strokeWidth={3} />
+                    </button>
+
                     <div className="aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1.5">
                       <img
                         src={item.primary_image_url || '/featured-pouches.png'}
@@ -681,23 +753,83 @@ export default function ProductDetailPage() {
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
-                    <p className="font-bold text-[11px] text-stone-900 line-clamp-1 leading-snug">{item.title}</p>
-                    <p className="text-[10px] text-stone-500 font-medium">₹{parseFloat(item.price || 0).toFixed(0)}</p>
-                    {idx < 2 && (
-                      <span className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-4 h-4 rounded-full bg-forest-900 text-cream-100 font-black text-[10px] flex items-center justify-center shadow">
+                    <p className="font-bold text-[11px] text-stone-900 line-clamp-1 leading-snug" title={item.title}>
+                      {item.title}
+                    </p>
+                    <p className="text-[11px] text-stone-600 font-bold">
+                      ₹{parseFloat(item.price || 0).toFixed(0)}
+                    </p>
+                    <span className="inline-block text-[9px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                      10% OFF in bundle
+                    </span>
+
+                    {/* Connector '+' between items */}
+                    {idx < bundleItems.length - 1 && (
+                      <span className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 rounded-full bg-forest-900 text-cream-100 font-black text-[10px] items-center justify-center shadow">
                         +
                       </span>
                     )}
                   </div>
                 ))}
+
+                {/* Empty Slot Placeholder if bundleItems.length < 4 */}
+                {bundleItems.length < 4 && (
+                  <div className="border-2 border-dashed border-amber-300/80 rounded-2xl p-3 flex flex-col items-center justify-center text-center space-y-1.5 bg-white/40 min-h-[130px]">
+                    <span className="w-7 h-7 rounded-full bg-amber-200/70 text-amber-900 font-black text-xs flex items-center justify-center">
+                      +
+                    </span>
+                    <span className="text-[11px] font-bold text-stone-700">Add Slot</span>
+                    <span className="text-[9px] text-stone-500 leading-tight">
+                      Up to 4 items from {product.manufacturer?.business_name || 'this brand'}
+                    </span>
+                  </div>
+                )}
               </div>
 
+              {/* Add More Items from the Same Brand Picker */}
+              {brandCatalog.length > 0 && bundleItems.length < 4 && (
+                <div className="pt-2 border-t border-amber-200/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                      <Plus size={14} className="text-amber-700" />
+                      Add more items from {product.manufacturer?.business_name || 'this brand'} (Same Brand Only):
+                    </span>
+                    <span className="text-[10px] text-stone-500">
+                      {4 - bundleItems.length} slot{4 - bundleItems.length > 1 ? 's' : ''} remaining
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {brandCatalog.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => handleAddToBundle(opt)}
+                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-forest-50 hover:border-forest-600 active:scale-98 rounded-xl border border-stone-200 text-left text-xs font-medium text-stone-800 transition-all shadow-2xs group"
+                      >
+                        <img
+                          src={opt.primary_image_url || '/featured-pouches.png'}
+                          alt={opt.title}
+                          className="w-5 h-5 rounded-md object-cover flex-shrink-0"
+                        />
+                        <span className="font-semibold text-stone-900 text-[11px] max-w-[150px] truncate">
+                          {opt.title}
+                        </span>
+                        <span className="text-stone-500 font-mono text-[10px]">
+                          +₹{parseFloat(opt.price || 0).toFixed(0)}
+                        </span>
+                        <span className="w-4 h-4 rounded-full bg-forest-900 text-white font-bold text-[10px] flex items-center justify-center ml-1 group-hover:scale-110 transition-transform">
+                          +
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Summary & Pricing Row */}
               {(() => {
-                const p1 = parseFloat(product.price) || 0;
-                const p2 = parseFloat(brandCompanions[0]?.price || 0) || 0;
-                const p3 = parseFloat(brandCompanions[1]?.price || 0) || 0;
-                const orig = p1 + p2 + p3;
-                const disc = Math.round(orig * 0.85);
+                const orig = bundleItems.reduce((acc, it) => acc + (parseFloat(it?.price || 0) || 0), 0);
+                const disc = Math.round(orig * 0.90);
                 const save = orig - disc;
                 return (
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-amber-200/60">
@@ -706,7 +838,7 @@ export default function ProductDetailPage() {
                         <span className="text-xl font-serif font-black text-stone-950">₹{disc}</span>
                         <span className="text-xs text-stone-400 line-through font-serif">₹{orig}</span>
                         <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                          Save ₹{save} (15% OFF)
+                          Save ₹{save} (10% OFF)
                         </span>
                       </div>
                       <p className="text-[10px] text-stone-500 mt-0.5">Includes free air cargo dispatch & protective bundle packaging</p>
@@ -714,16 +846,22 @@ export default function ProductDetailPage() {
 
                     <button
                       type="button"
-                      onClick={handleAddBrandBundle}
-                      disabled={addingBrandBundle || !isInStock}
+                      onClick={handleAddFlexibleBundle}
+                      disabled={addingBrandBundle || !isInStock || bundleItems.length < 2 || bundleItems.length > 4}
                       className={`w-full sm:w-auto px-5 py-2.5 text-xs font-bold rounded-xl shadow flex items-center justify-center gap-1.5 transition-all ${
-                        isInStock
+                        isInStock && bundleItems.length >= 2 && bundleItems.length <= 4
                           ? 'bg-forest-900 hover:bg-forest-950 text-white active:scale-98'
                           : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
                       }`}
                     >
                       <ShoppingBag size={14} />
-                      <span>{addingBrandBundle ? 'Adding Brand Trio...' : !isInStock ? 'All Product Sold Out' : 'Add 3-Jar Brand Bundle'}</span>
+                      <span>
+                        {addingBrandBundle
+                          ? `Adding ${bundleItems.length}-Jar Bundle...`
+                          : !isInStock
+                          ? 'All Product Sold Out'
+                          : `Add ${bundleItems.length}-Jar Brand Bundle`}
+                      </span>
                     </button>
                   </div>
                 );

@@ -2170,21 +2170,21 @@ export default function AdminDashboardPage() {
 
               <div className="p-4 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900">Tier 2: Duo Pack (2 Jars)</span>
-                  <span className="text-[10px] font-mono bg-amber-500 text-stone-950 font-bold px-2 py-0.5 rounded">8% Bundle OFF</span>
+                  <span className="font-bold text-stone-900">Tier 2: Flexible Brand Bundle (2–4 Jars)</span>
+                  <span className="text-[10px] font-mono bg-amber-500 text-stone-950 font-bold px-2 py-0.5 rounded">10% Bundle OFF</span>
                 </div>
                 <p className="text-stone-700 text-[11px] leading-relaxed">
-                  Recommended tier highlighted on product pages. Drives repeat volume and multi-jar orders.
+                  Customers can mix & match 2 to 4 items exclusively from the same brand catalog with a flat 10% discount. Free to cut or add recipes.
                 </p>
               </div>
 
               <div className="p-4 bg-purple-50/70 rounded-xl border border-purple-200 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900">Tier 3: Tasting Trio (3 Jars)</span>
-                  <span className="text-[10px] font-mono bg-purple-700 text-white font-bold px-2 py-0.5 rounded">15% Bundle OFF</span>
+                  <span className="font-bold text-stone-900">Tier 3: Multi-Jar Cargo Care</span>
+                  <span className="text-[10px] font-mono bg-purple-700 text-white font-bold px-2 py-0.5 rounded">All Bundles</span>
                 </div>
                 <p className="text-stone-700 text-[11px] leading-relaxed">
-                  Best value tier + qualifies for Free Express Delivery threshold. Maximum customer retention.
+                  Shock-proof insulated packaging and air cargo dispatch automatically applied across all verified multi-jar bundles.
                 </p>
               </div>
             </div>

@@ -219,6 +219,33 @@ export default function ManufacturerPortalPage() {
         </div>
       </div>
 
+      {/* Official Seller Policy Notice: Brand Bundle Rule */}
+      <div className="mb-8 p-5 bg-gradient-to-r from-amber-50 via-cream-100 to-amber-50 border border-amber-300 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <span className="p-2.5 bg-amber-500 text-stone-950 rounded-xl mt-0.5 flex-shrink-0 shadow-xs">
+            <Sparkles size={20} />
+          </span>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-serif font-bold text-stone-950 text-base">
+                Seller Policy Notice: Flexible Brand Bundling (2–4 Items · 10% Discount)
+              </h3>
+              <span className="bg-chilli-700 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                10% Off Rule
+              </span>
+            </div>
+            <p className="text-xs text-stone-700 mt-1 leading-relaxed max-w-3xl">
+              Shoppers can now build custom bundles of <strong>2 to 4 items exclusively from your brand</strong> on your product pages. Customers are free to <strong>cut or add recipes</strong> from your brand catalog and receive a <strong>flat 10% bundle discount</strong>. Keep at least 2–4 complementary recipes active in stock to maximize your bundle sales.
+            </p>
+          </div>
+        </div>
+        <div className="bg-white/90 p-3 rounded-xl border border-amber-200 text-center flex-shrink-0 self-start md:self-auto min-w-[180px]">
+          <span className="text-[10px] text-stone-500 block uppercase tracking-wider font-semibold">Active Storefront Rule</span>
+          <span className="font-bold text-forest-950 text-sm block mt-0.5">2–4 Items · Save 10%</span>
+          <span className="text-[9px] text-amber-800 font-medium">Same Brand Only</span>
+        </div>
+      </div>
+
       {profile.status === 'PENDING' && (
         <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-3">
           <AlertCircle size={18} className="text-amber-700 mt-0.5 flex-shrink-0" />
@@ -303,7 +330,7 @@ export default function ManufacturerPortalPage() {
                     Artisan Bundle & Volume Program Monitor
                   </h3>
                   <p className="text-xs text-stone-500">
-                    Active automated volume tiers incentivizing customers to buy multi-jar bundles
+                    Official platform rules: Customers save 10% when curating flexible 2–4 jar bundles from your brand
                   </p>
                 </div>
               </div>
@@ -314,8 +341,8 @@ export default function ManufacturerPortalPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
               <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-                <span className="font-bold text-stone-900 block">Single Jar Option</span>
-                <p className="text-stone-500 text-[11px]">Standard batch retail price.</p>
+                <span className="font-bold text-stone-900 block">Single Jar Option (1 Jar)</span>
+                <p className="text-stone-500 text-[11px]">Standard batch retail price set by your brand.</p>
                 <span className="inline-block mt-1 font-mono text-[10px] text-stone-600 bg-white px-2 py-0.5 rounded border border-stone-200">
                   Tier 1 · Full Margin
                 </span>
@@ -323,23 +350,27 @@ export default function ManufacturerPortalPage() {
 
               <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900 block">Duo Pack (2 Jars)</span>
-                  <span className="bg-amber-500 text-stone-950 font-black text-[9px] px-1.5 py-0.2 rounded">Save 8%</span>
+                  <span className="font-bold text-stone-900 block">Flexible Brand Bundle (2–4 Jars)</span>
+                  <span className="bg-amber-500 text-stone-950 font-black text-[9px] px-1.5 py-0.2 rounded">Save 10%</span>
                 </div>
-                <p className="text-stone-600 text-[11px]">8% volume discount applied. Doubles unit movement.</p>
+                <p className="text-stone-700 text-[11px] leading-relaxed">
+                  Shoppers can mix & match 2 to 4 items from your brand only. Free to cut or add recipes with a flat 10% bundle discount.
+                </p>
                 <span className="inline-block mt-1 font-mono text-[10px] text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-200">
-                  Recommended Tier · Customer Favorite
+                  Storefront Rule · Same Brand Only
                 </span>
               </div>
 
               <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900 block">Tasting Trio (3 Jars)</span>
-                  <span className="bg-purple-700 text-white font-black text-[9px] px-1.5 py-0.2 rounded">Save 15%</span>
+                  <span className="font-bold text-stone-900 block">Protective Bundle Logistics</span>
+                  <span className="bg-purple-700 text-white font-black text-[9px] px-1.5 py-0.2 rounded">Air Cargo</span>
                 </div>
-                <p className="text-stone-600 text-[11px]">15% discount + Free air cargo delivery incentive.</p>
+                <p className="text-stone-700 text-[11px] leading-relaxed">
+                  Insulated shock-proof packaging & priority express cargo dispatch for multi-jar bundles.
+                </p>
                 <span className="inline-block mt-1 font-mono text-[10px] text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200">
-                  Best Value Tier · High Volume
+                  Safe Delivery Guarantee
                 </span>
               </div>
             </div>
