@@ -332,6 +332,21 @@ class RequestSellerAccessView(views.APIView):
             }
         )
 
+        # Notify wangssupport@gmail.com immediately about the new seller request
+        try:
+            from .resend_service import send_admin_new_seller_registration_email
+            send_admin_new_seller_registration_email({
+                'email': email,
+                'business_name': business_name,
+                'location_district': location_district,
+                'fssai_number': fssai_number,
+                'phone': phone,
+                'message': message,
+                'type': 'Seller Authorization Request'
+            })
+        except Exception as exc:
+            logger.warning("Failed to dispatch admin notification for seller request: %s", exc)
+
         return Response({
             'success': True,
             'message': 'Your request has been submitted to the Wangs Administrator. Once reviewed and authorized, you will receive an invitation email to complete onboarding.'
@@ -811,9 +826,31 @@ class ManufacturerRegisterView(views.APIView):
         serializer = ManufacturerApplicationSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             profile = serializer.save()
+
+            # If user was already authorized by admin, approve the profile directly so they can sell immediately
+            if user and user.can_sell:
+                profile.status = ManufacturerProfile.Status.APPROVED
+                profile.is_verified_producer = True
+                profile.save(update_fields=['status', 'is_verified_producer'])
+
+            # Notify wangssupport@gmail.com about the new seller registration
+            try:
+                from .resend_service import send_admin_new_seller_registration_email
+                send_admin_new_seller_registration_email({
+                    'email': profile.contact_email or (profile.user.email if profile.user else ''),
+                    'business_name': profile.business_name,
+                    'location_district': profile.location_district,
+                    'fssai_number': profile.fssai_license_number,
+                    'phone': profile.contact_phone,
+                    'message': profile.brand_story,
+                    'type': 'Full Seller Application'
+                })
+            except Exception as exc:
+                logger.warning("Failed to dispatch admin notification for seller registration: %s", exc)
+
             refresh = RefreshToken.for_user(profile.user)
             return Response({
-                'message': 'Manufacturer application submitted successfully. An administrator will review your compliance details before approval.',
+                'message': 'Manufacturer application submitted successfully. Your account is activated and ready for product listings.',
                 'profile': ManufacturerProfileSerializer(profile).data,
                 'token': str(refresh.access_token),
             }, status=201)
@@ -879,10 +916,12 @@ class ManufacturerProductViewSet(viewsets.ModelViewSet):
             slug = f"{original_slug}-{count}"
             count += 1
 
+        initial_status = Product.Status.APPROVED if profile.status == ManufacturerProfile.Status.APPROVED else Product.Status.PENDING
         product = serializer.save(
             manufacturer=profile,
             slug=slug,
-            status=Product.Status.PENDING
+            status=initial_status,
+            is_active=True
         )
         raw_images = self.request.data.get('images') or self.request.data.get('image_urls')
         if raw_images:
@@ -1102,10 +1141,13 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
                 mfg.is_verified_producer = True
                 mfg.user.is_banned = False
                 mfg.user.is_active = True
+                mfg.user.can_sell = True
+                mfg.user.role = User.Role.MANUFACTURER
                 mfg.user.ban_reason = ''
                 mfg.user.banned_at = None
-                mfg.user.save(update_fields=['is_banned', 'is_active', 'ban_reason', 'banned_at'])
-                Product.objects.filter(manufacturer=mfg).update(is_active=True)
+                mfg.user.save(update_fields=['is_banned', 'is_active', 'can_sell', 'role', 'ban_reason', 'banned_at'])
+                # Automatically approve seller products so they can immediately sell on the marketplace
+                Product.objects.filter(manufacturer=mfg).update(status=Product.Status.APPROVED, is_active=True)
             elif new_status == ManufacturerProfile.Status.SUSPENDED:
                 mfg.user.is_banned = True
                 mfg.user.is_active = False
@@ -1499,7 +1541,8 @@ class AdminSellerRequestView(views.APIView):
         user_match = User.objects.filter(email__iexact=email).first()
         if user_match:
             user_match.can_sell = True
-            user_match.save(update_fields=['can_sell'])
+            user_match.role = User.Role.MANUFACTURER
+            user_match.save(update_fields=['can_sell', 'role'])
         else:
             username = email.split('@')[0]
             c = 1
@@ -1511,10 +1554,48 @@ class AdminSellerRequestView(views.APIView):
                 username=username,
                 email=email,
                 can_sell=True,
-                role=User.Role.CUSTOMER
+                role=User.Role.MANUFACTURER
             )
             user_match.set_unusable_password()
             user_match.save()
+
+        # Find request details from AuditLog to create or activate ManufacturerProfile
+        req_log = AuditLog.objects.filter(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            details__email=email
+        ).order_by('-created_at').first()
+        details = req_log.details if (req_log and isinstance(req_log.details, dict)) else {}
+
+        mfg = ManufacturerProfile.objects.filter(user=user_match).first()
+        if not mfg:
+            b_name = details.get('business_name') or user_match.username
+            slug = slugify(b_name) or f"seller-{user_match.id}"
+            count = 1
+            orig_slug = slug
+            while ManufacturerProfile.objects.filter(slug=slug).exists():
+                slug = f"{orig_slug}-{count}"
+                count += 1
+
+            mfg = ManufacturerProfile.objects.create(
+                user=user_match,
+                business_name=b_name,
+                slug=slug,
+                contact_email=email,
+                contact_phone=details.get('phone', '') or 'N/A',
+                location_district=details.get('location_district', '') or 'Nagaland',
+                business_address=details.get('business_address', '') or details.get('location_district', '') or 'Artisan Workshop',
+                postal_code=details.get('postal_code', '') or '797001',
+                fssai_license_number=details.get('fssai_number', '') or '',
+                is_verified_producer=True,
+                status=ManufacturerProfile.Status.APPROVED
+            )
+        else:
+            mfg.status = ManufacturerProfile.Status.APPROVED
+            mfg.is_verified_producer = True
+            mfg.save(update_fields=['status', 'is_verified_producer'])
+
+        # Automatically approve any products for this seller so they can sell immediately
+        Product.objects.filter(manufacturer=mfg).update(status=Product.Status.APPROVED, is_active=True)
 
         AuditLog.objects.create(
             user=request.user,

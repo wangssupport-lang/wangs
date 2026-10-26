@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock } from 'lucide-react';
+import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock, Store } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
@@ -341,6 +341,24 @@ export default function AuthPage() {
           <p className="text-xs text-stone-500 font-medium">
             Artisanal Food & Handcrafted Pickles
           </p>
+        </div>
+
+        {/* Artisan Seller Gateway link */}
+        <div className="p-2.5 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="p-1 bg-amber-500 text-stone-950 rounded-lg">
+              <Store size={13} />
+            </span>
+            <span className="text-stone-800 text-[11px] font-medium">
+              Are you an <strong>Artisan Seller</strong>?
+            </span>
+          </div>
+          <Link
+            to="/manufacturer/login"
+            className="text-forest-900 hover:text-forest-950 font-bold underline whitespace-nowrap text-[11px]"
+          >
+            Seller Login Space →
+          </Link>
         </div>
 
         {/* Tab switch / Header */}

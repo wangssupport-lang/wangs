@@ -218,13 +218,23 @@ export default function Navbar() {
                   )}
                 </div>
               ) : (
-                <Link
-                  to="/login"
-                  className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
-                >
-                  <User size={15} className="text-forest-900" />
-                  <span className="hidden sm:inline">Sign In</span>
-                </Link>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Link
+                    to="/manufacturer/login"
+                    className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
+                    title="Artisan Seller Portal & Login"
+                  >
+                    <Store size={14} className="text-amber-600" />
+                    <span>Seller Login</span>
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
+                  >
+                    <User size={15} className="text-forest-900" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </Link>
+                </div>
               )}
             </div>
 

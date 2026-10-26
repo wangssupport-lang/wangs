@@ -596,3 +596,142 @@ def send_seller_new_review_notification(review):
     print(f"==========================================\n")
 
     return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_admin_new_seller_registration_email(applicant_data: dict):
+    """
+    Notifies wangssupport@gmail.com whenever a new seller requests authorization or submits an onboarding application.
+    """
+    recipient_email = "wangssupport@gmail.com"
+    business_name = applicant_data.get('business_name', 'Artisan Seller Applicant')
+    applicant_email = applicant_data.get('email', '')
+    phone = applicant_data.get('phone', 'Not provided')
+    location_district = applicant_data.get('location_district', 'Not provided')
+    fssai_number = applicant_data.get('fssai_number', 'Not provided')
+    message = applicant_data.get('message', 'None provided')
+    app_type = applicant_data.get('type', 'Seller Authorization Request')
+
+    base_url = (os.getenv('FRONTEND_URL') or getattr(settings, 'FRONTEND_URL', 'https://wangs.in')).rstrip('/')
+    admin_space_url = f"{base_url}/wangadminspace"
+
+    subject = f"New Seller Registration Request: {business_name} ({applicant_email}) - Wangs"
+
+    msg_row = f"""
+    <tr>
+      <td style="padding:6px 0;color:#78716c;font-weight:600;vertical-align:top;">Applicant Message:</td>
+      <td style="padding:6px 0;color:#1c1917;font-style:italic;">"{message}"</td>
+    </tr>
+    """ if message and message != 'None provided' else ""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>{subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f6f4ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f6f4ee;padding:36px 12px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);border:1px solid #e7e3dc;">
+              <!-- Header Bar -->
+              <tr>
+                <td style="background-color:#0e3820;padding:32px 36px;text-align:center;">
+                  <div style="display:inline-block;background:#f59e0b;color:#0e3820;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;padding:4px 12px;border-radius:20px;margin-bottom:12px;">
+                    Admin Alert - New Seller Request
+                  </div>
+                  <h1 style="color:#ffffff;font-size:24px;font-family:Georgia,serif;font-weight:700;margin:0 0 6px;">
+                    Wangs Marketplace Admin
+                  </h1>
+                  <p style="color:#a7c4b0;font-size:13px;margin:0;">
+                    New Artisan Producer Account Onboarding
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Main Content -->
+              <tr>
+                <td style="padding:36px;">
+                  <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#292524;">
+                    Hello <strong>Wangs Administrator</strong>,
+                  </p>
+                  <p style="font-size:14px;line-height:1.6;margin:0 0 24px;color:#57534e;">
+                    A new artisan pickle brand has registered and requested authorization to sell on Wangs:
+                  </p>
+
+                  <!-- Application Details Box -->
+                  <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:22px;margin-bottom:26px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#44403c;line-height:1.8;">
+                      <tr>
+                        <td width="38%" style="padding:6px 0;color:#78716c;font-weight:600;">Brand / Producer:</td>
+                        <td width="62%" style="padding:6px 0;font-weight:700;color:#0e3820;font-size:14px;">{business_name}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Applicant Email:</td>
+                        <td style="padding:6px 0;font-weight:700;color:#1c1917;"><a href="mailto:{applicant_email}" style="color:#0e3820;text-decoration:none;">{applicant_email}</a></td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Phone / WhatsApp:</td>
+                        <td style="padding:6px 0;font-weight:600;color:#1c1917;">{phone}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Location District:</td>
+                        <td style="padding:6px 0;color:#1c1917;">{location_district}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">FSSAI Registration #:</td>
+                        <td style="padding:6px 0;font-family:monospace;font-weight:700;color:#0e3820;">{fssai_number or 'Pending submission'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Registration Mode:</td>
+                        <td style="padding:6px 0;color:#1c1917;">{app_type}</td>
+                      </tr>
+                      {msg_row}
+                    </table>
+                  </div>
+
+                  <!-- Action Buttons -->
+                  <div style="text-align:center;margin-bottom:28px;">
+                    <a href="{admin_space_url}" target="_blank" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:12px 28px;border-radius:10px;box-shadow:0 3px 8px rgba(14,56,32,0.25);">
+                      Review & Approve in Admin Space
+                    </a>
+                  </div>
+
+                  <!-- Note on Auto-Approval -->
+                  <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+                    <p style="margin:0;color:#92400e;font-size:12px;line-height:1.5;">
+                      <strong>Next Step:</strong> Approving this seller in the Wangs Admin Space will automatically dispatch their welcome credentials and enable their dedicated Seller Login Space.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background:#f5f2eb;padding:20px 32px;border-top:1px solid #e7e3dc;text-align:center;">
+                  <p style="margin:0 0 4px;color:#78716c;font-size:12px;font-weight:600;">
+                    Wangs Artisanal Marketplace
+                  </p>
+                  <p style="margin:0;color:#a8a29e;font-size:11px;">
+                    Automated Administrative Alert | <a href="{base_url}" target="_blank" style="color:#0e3820;text-decoration:none;font-weight:600;">wangs.in</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"[WANGS ADMIN NOTIFICATION DISPATCH]")
+    print(f"Recipient:      {recipient_email}")
+    print(f"Applicant:      {applicant_email}")
+    print(f"Business:       {business_name}")
+    print(f"Admin Space:    {admin_space_url}")
+    print(f"==========================================\n")
+
+    return dispatch_email(recipient_email, subject, html_content)

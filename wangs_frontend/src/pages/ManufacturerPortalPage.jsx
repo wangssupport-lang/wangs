@@ -3,14 +3,15 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
   Plus, Edit, Eye, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
-  Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download
+  Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download,
+  Lock, Mail, KeyRound, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function ManufacturerPortalPage() {
-  const { user, isManufacturer } = useAuth();
+  const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -23,6 +24,26 @@ export default function ManufacturerPortalPage() {
   const [loading, setLoading] = useState(true);
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
   const [showSellerRulesModal, setShowSellerRulesModal] = useState(false);
+
+  // Dedicated Seller Login Space State
+  const [sellerLoginMode, setSellerLoginMode] = useState('otp'); // 'otp' or 'password'
+  const [sellerEmail, setSellerEmail] = useState('');
+  const [sellerOtpCode, setSellerOtpCode] = useState('');
+  const [sellerOtpSent, setSellerOtpSent] = useState(false);
+  const [sellerOtpLoading, setSellerOtpLoading] = useState(false);
+  const [sellerOtpTimer, setSellerOtpTimer] = useState(0);
+  const [sellerPasswordIdentifier, setSellerPasswordIdentifier] = useState('');
+  const [sellerPassword, setSellerPassword] = useState('');
+  const [sellerLoginLoading, setSellerLoginLoading] = useState(false);
+  const [sellerLoginError, setSellerLoginError] = useState('');
+
+  useEffect(() => {
+    let interval = null;
+    if (sellerOtpTimer > 0) {
+      interval = setInterval(() => setSellerOtpTimer((t) => t - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [sellerOtpTimer]);
 
   // New product form modal state
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -105,11 +126,69 @@ export default function ManufacturerPortalPage() {
 
   useEffect(() => {
     if (!user) {
-      navigate('/login');
+      setLoading(false);
       return;
     }
     loadData();
   }, [user]);
+
+  const handleSendSellerOtp = async (e) => {
+    if (e) e.preventDefault();
+    const emailToUse = (sellerEmail || '').trim().toLowerCase();
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setSellerLoginError('Please enter a valid registered seller email.');
+      return;
+    }
+    setSellerOtpLoading(true);
+    setSellerLoginError('');
+    try {
+      await api.sendOtp(emailToUse, 'LOGIN');
+      setSellerOtpSent(true);
+      setSellerOtpTimer(60);
+      toast.success(`Verification code dispatched to ${emailToUse}!`);
+    } catch (err) {
+      setSellerLoginError(err.message || 'Failed to dispatch verification code.');
+    } finally {
+      setSellerOtpLoading(false);
+    }
+  };
+
+  const handleSellerOtpLogin = async (e) => {
+    e.preventDefault();
+    const cleanCode = (sellerOtpCode || '').trim();
+    if (!cleanCode || cleanCode.length !== 6) {
+      setSellerLoginError('Enter the 6-digit verification code.');
+      return;
+    }
+    setSellerLoginLoading(true);
+    setSellerLoginError('');
+    try {
+      await loginWithOtp(sellerEmail.trim().toLowerCase(), cleanCode);
+      toast.success('Welcome back to your Artisan Seller Workspace!');
+    } catch (err) {
+      setSellerLoginError(err.message || 'Invalid or expired OTP code.');
+    } finally {
+      setSellerLoginLoading(false);
+    }
+  };
+
+  const handleSellerPasswordLogin = async (e) => {
+    e.preventDefault();
+    if (!sellerPasswordIdentifier.trim() || !sellerPassword) {
+      setSellerLoginError('Please enter both your email/username and password.');
+      return;
+    }
+    setSellerLoginLoading(true);
+    setSellerLoginError('');
+    try {
+      await login(sellerPasswordIdentifier.trim(), sellerPassword);
+      toast.success('Welcome back to your Artisan Seller Workspace!');
+    } catch (err) {
+      setSellerLoginError(err.message || 'Invalid username or password.');
+    } finally {
+      setSellerLoginLoading(false);
+    }
+  };
 
   const handleCreateProduct = async (e) => {
     e.preventDefault();
@@ -130,7 +209,11 @@ export default function ManufacturerPortalPage() {
     };
     try {
       await api.createManufacturerProduct(payload);
-      toast.success('Product submitted for Admin approval');
+      toast.success(
+        profile?.status === 'APPROVED'
+          ? 'Pickle batch published and is now live for sale on the marketplace!'
+          : 'Product submitted for Admin approval'
+      );
       setShowAddProductModal(false);
       loadData();
     } catch (err) {
@@ -157,14 +240,266 @@ export default function ManufacturerPortalPage() {
     );
   }
 
+  // 1. Dedicated Seller Login Space (when not authenticated)
+  if (!user) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 bg-stone-50/50">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-stone-200/90 shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in">
+          {/* Header */}
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-500 text-stone-950 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
+              <Store size={28} />
+            </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-900 bg-amber-100 px-3 py-0.5 rounded-full inline-block">
+              Wangs Artisan Seller Portal
+            </span>
+            <h1 className="font-serif text-2xl font-bold text-stone-900">
+              Seller Space Sign In
+            </h1>
+            <p className="text-xs text-stone-500 max-w-xs mx-auto">
+              Sign in to manage your artisanal pickle recipes, customer orders, and brand bundles
+            </p>
+          </div>
+
+          {/* Login Mode Switcher */}
+          <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl text-xs font-semibold text-stone-600">
+            <button
+              type="button"
+              onClick={() => { setSellerLoginMode('otp'); setSellerLoginError(''); }}
+              className={`py-2 rounded-xl transition-all cursor-pointer ${
+                sellerLoginMode === 'otp'
+                  ? 'bg-white text-forest-950 shadow-sm font-bold'
+                  : 'hover:text-stone-900'
+              }`}
+            >
+              Instant OTP Login
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSellerLoginMode('password'); setSellerLoginError(''); }}
+              className={`py-2 rounded-xl transition-all cursor-pointer ${
+                sellerLoginMode === 'password'
+                  ? 'bg-white text-forest-950 shadow-sm font-bold'
+                  : 'hover:text-stone-900'
+              }`}
+            >
+              Password Login
+            </button>
+          </div>
+
+          {sellerLoginError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
+              <AlertCircle size={15} className="flex-shrink-0 mt-0.5 text-red-600" />
+              <span>{sellerLoginError}</span>
+            </div>
+          )}
+
+          {/* Mode 1: Instant Email OTP Login (Passwordless - Great for Approved Sellers) */}
+          {sellerLoginMode === 'otp' && (
+            <form onSubmit={handleSellerOtpLogin} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-stone-700 font-semibold mb-1">
+                  Registered Seller Email *
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                    <input
+                      type="email"
+                      required
+                      value={sellerEmail}
+                      onChange={(e) => setSellerEmail(e.target.value)}
+                      placeholder="e.g. seller@brand.in"
+                      className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={sellerOtpLoading || sellerOtpTimer > 0 || !sellerEmail.includes('@')}
+                    onClick={handleSendSellerOtp}
+                    className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl transition-all disabled:opacity-50 shrink-0 shadow-xs cursor-pointer whitespace-nowrap"
+                  >
+                    {sellerOtpLoading ? 'Sending...' : sellerOtpTimer > 0 ? `Resend (${sellerOtpTimer}s)` : sellerOtpSent ? 'Resend Code' : 'Send Code'}
+                  </button>
+                </div>
+              </div>
+
+              {sellerOtpSent && (
+                <div className="p-3.5 bg-forest-50 border border-forest-200 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-forest-950 font-bold text-xs">
+                      Enter 6-digit Code sent to {sellerEmail}:
+                    </label>
+                    <span className="text-[10px] text-stone-500 font-mono">10 min expiry</span>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    inputMode="numeric"
+                    value={sellerOtpCode}
+                    onChange={(e) => setSellerOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit OTP"
+                    className="w-full px-3.5 py-2.5 bg-white border border-forest-600 rounded-xl font-mono text-center text-sm font-bold tracking-widest text-stone-900 focus:outline-none"
+                  />
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={sellerLoginLoading || !sellerOtpSent || sellerOtpCode.length !== 6}
+                className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                <span>{sellerLoginLoading ? 'Verifying...' : 'Sign In to Seller Space'}</span>
+                <ArrowRight size={15} />
+              </button>
+            </form>
+          )}
+
+          {/* Mode 2: Password Login */}
+          {sellerLoginMode === 'password' && (
+            <form onSubmit={handleSellerPasswordLogin} className="space-y-4 text-xs">
+              <div>
+                <label className="block text-stone-700 font-semibold mb-1">
+                  Registered Email or Username *
+                </label>
+                <div className="relative">
+                  <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type="text"
+                    required
+                    value={sellerPasswordIdentifier}
+                    onChange={(e) => setSellerPasswordIdentifier(e.target.value)}
+                    placeholder="e.g. seller@brand.in or username"
+                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-stone-700 font-semibold">
+                    Account Password *
+                  </label>
+                  <Link
+                    to="/login?tab=forgot-password"
+                    className="text-[11px] text-forest-800 hover:text-forest-950 font-bold hover:underline"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <Lock size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                  <input
+                    type="password"
+                    required
+                    value={sellerPassword}
+                    onChange={(e) => setSellerPassword(e.target.value)}
+                    placeholder="Enter your seller account password"
+                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={sellerLoginLoading}
+                className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                <span>{sellerLoginLoading ? 'Signing In...' : 'Sign In to Seller Space'}</span>
+                <ArrowRight size={15} />
+              </button>
+            </form>
+          )}
+
+          {/* Quick Guidance & Links */}
+          <div className="pt-2 border-t border-stone-100 space-y-2.5 text-center text-xs">
+            <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-stone-700 text-[11px] leading-relaxed text-left flex items-start gap-2">
+              <Sparkles size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>New Approved Seller?</strong> Use <em>Instant OTP Login</em> with your approved email. Once logged in, your seller dashboard is fully unlocked so you can add recipes and sell your products immediately.
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-1.5 pt-1">
+              <Link
+                to="/manufacturer/register"
+                className="text-stone-600 hover:text-forest-900 font-medium"
+              >
+                Not yet authorized? <strong className="text-forest-900 underline">Apply to Sell on Wangs</strong>
+              </Link>
+              <a
+                href="/documents/wangs_seller_rules.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                download="wangs_seller_rules.pdf"
+                className="text-stone-500 hover:text-stone-800 text-[11px] inline-flex items-center justify-center gap-1"
+              >
+                <FileText size={12} /> Download Official Seller Rules (PDF)
+              </a>
+              <Link
+                to="/"
+                className="text-stone-400 hover:text-stone-600 text-[11px] pt-1"
+              >
+                ← Return to Wangs Storefront
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Logged in, but seller profile not found or pending brand setup
   if (!profile) {
     return (
-      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
-        <h2 className="font-serif text-2xl font-bold text-stone-900">No Manufacturer Profile Found</h2>
-        <p className="text-xs text-stone-500 mt-2">You need an approved seller application to access this dashboard.</p>
-        <Link to="/manufacturer/register" className="mt-4 inline-block px-4 py-2 bg-forest-800 text-white rounded-lg text-xs font-semibold">
-          Apply as Manufacturer
-        </Link>
+      <div className="max-w-xl mx-auto py-16 px-4 text-center space-y-4">
+        <div className="w-16 h-16 bg-amber-50 border border-amber-200 text-amber-700 rounded-3xl flex items-center justify-center mx-auto shadow-sm">
+          <Store size={28} />
+        </div>
+        {isAuthorizedToSell || user?.can_sell ? (
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-800 bg-emerald-100 px-3 py-1 rounded-full">
+              Authorization Granted
+            </span>
+            <h2 className="font-serif text-2xl font-bold text-stone-900">
+              Welcome, Authorized Seller!
+            </h2>
+            <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
+              Your seller account has been approved by the Wangs Administrator. Click below to complete your brand setup so your products can go live immediately.
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/manufacturer/register"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold shadow transition-all"
+              >
+                <span>Set Up Brand & Start Selling</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100 px-3 py-1 rounded-full">
+              Authorization Required
+            </span>
+            <h2 className="font-serif text-2xl font-bold text-stone-900">
+              Seller Application Required
+            </h2>
+            <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
+              Wangs operates a curated marketplace. To protect food safety and consumer trust, seller accounts require administrator authorization.
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/manufacturer/register"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold shadow transition-all"
+              >
+                <span>Apply for Seller Authorization</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

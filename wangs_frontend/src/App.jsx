@@ -64,8 +64,9 @@ function AppLayout() {
             <Route path="/account" element={<CustomerAccountPage />} />
             <Route path="/login" element={<AuthPage />} />
 
-            {/* Manufacturer */}
+            {/* Manufacturer / Seller Portal */}
             <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
+            <Route path="/manufacturer/login" element={<ManufacturerPortalPage />} />
             <Route path="/manufacturer/register" element={<ManufacturerRegisterPage />} />
 
             {/* Admin Space - Accessible EXCLUSIVELY via /wangadminspace */}
