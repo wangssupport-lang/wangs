@@ -528,8 +528,8 @@ class OrderItem(models.Model):
         CANCELLED = 'CANCELLED', 'Cancelled'
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
-    product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name='order_items')
-    manufacturer = models.ForeignKey(ManufacturerProfile, on_delete=models.PROTECT, related_name='order_items')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
+    manufacturer = models.ForeignKey(ManufacturerProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_items')
     
     # Snapshots to preserve integrity
     product_title = models.CharField(max_length=200)

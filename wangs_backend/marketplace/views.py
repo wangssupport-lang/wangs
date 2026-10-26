@@ -1381,6 +1381,12 @@ class AdminUserViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
         role = target_user.role
 
         try:
+            # Safely nullify OrderItem snapshots so historical orders persist without blocking user deletion
+            mfg = getattr(target_user, 'manufacturer_profile', None)
+            if mfg:
+                OrderItem.objects.filter(manufacturer=mfg).update(manufacturer=None)
+                OrderItem.objects.filter(product__manufacturer=mfg).update(product=None)
+
             target_user.delete()
 
             AuditLog.objects.create(

@@ -927,6 +927,56 @@ class WangsFinancialAndOrderTests(TestCase):
         # Verify user no longer exists
         self.assertFalse(User.objects.filter(id=target_customer.id).exists())
 
+        # 5. Admin can delete a seller who has products and historical order items
+        seller_user = User.objects.create_user(
+            username='seller_delete_tester', email='seller_del@wangs.in',
+            password='password123', role=User.Role.MANUFACTURER
+        )
+        seller_profile = ManufacturerProfile.objects.create(
+            user=seller_user, business_name='Delete Test Pickles', slug='del-test-pickles',
+            contact_email='seller_del@wangs.in', contact_phone='9000000000'
+        )
+        cat = Category.objects.first()
+        prod = Product.objects.create(
+            manufacturer=seller_profile, category=cat, title='Sample Pickle',
+            slug='sample-pickle-del', price=Decimal('250.00'), weight_grams=250
+        )
+        test_order = Order.objects.create(
+            order_number='TEST-DEL-ORD-01',
+            customer_name='Tester',
+            customer_email='t@wangs.in',
+            customer_phone='9000000001',
+            shipping_address_line1='10 Valley View',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('250.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('50.00'),
+            total_amount=Decimal('305.00'),
+            platform_commission_total=Decimal('25.00'),
+            manufacturer_payout_total=Decimal('225.00'),
+        )
+        order_item = OrderItem.objects.create(
+            order=test_order, product=prod, manufacturer=seller_profile,
+            product_title='Sample Pickle', weight_grams=250, unit_price=Decimal('250.00'),
+            quantity=1, subtotal=Decimal('250.00'), commission_rate=Decimal('10.00'),
+            commission_amount=Decimal('25.00'), manufacturer_payout=Decimal('225.00')
+        )
+
+        seller_url = reverse('admin-user-detail', kwargs={'pk': seller_user.id})
+        seller_del_resp = self.client.delete(seller_url)
+        self.assertEqual(seller_del_resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(User.objects.filter(id=seller_user.id).exists())
+        self.assertFalse(ManufacturerProfile.objects.filter(id=seller_profile.id).exists())
+        self.assertFalse(Product.objects.filter(id=prod.id).exists())
+        # Historical order and order item persist with snapshot preserved
+        order_item.refresh_from_db()
+        self.assertIsNone(order_item.manufacturer)
+        self.assertIsNone(order_item.product)
+        self.assertEqual(order_item.product_title, 'Sample Pickle')
+        self.assertEqual(order_item.subtotal, Decimal('250.00'))
+
     def test_admin_research_report_pdf_and_csv(self):
         """Admin can access and maintain research records in PDF and CSV formats for customers, sellers, and products."""
         admin_boss = User.objects.create_user(
