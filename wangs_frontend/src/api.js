@@ -108,6 +108,7 @@ export const api = {
   // Admin & Monitoring Console
   getAdminMetrics: () => apiRequest('/admin/metrics/'),
   getAdminUsers: () => apiRequest('/admin/users/'),
+  deleteAdminUser: (id) => apiRequest(`/admin/users/${id}/`, { method: 'DELETE' }),
   toggleAdminUserSeller: (id) => apiRequest(`/admin/users/${id}/toggle_can_sell/`, { method: 'POST' }),
   toggleAdminUserBan: (id, payload = {}) => apiRequest(`/admin/users/${id}/toggle_ban/`, { method: 'POST', body: JSON.stringify(payload) }),
   updateAdminUserRole: (id, role) => apiRequest(`/admin/users/${id}/update_role/`, { method: 'POST', body: JSON.stringify({ role }) }),

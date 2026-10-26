@@ -1,18 +1,21 @@
 import uuid
 import random
 import datetime
+import logging
 from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Sum, Count
+from django.db.models import Q, Sum, Count, ProtectedError
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.text import slugify
 
-from rest_framework import status, views, viewsets, permissions, generics
+from rest_framework import status, views, viewsets, permissions, generics, mixins
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
+
+logger = logging.getLogger(__name__)
 
 from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
@@ -1347,11 +1350,63 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
         return Response(OrderSerializer(order).data)
 
 
-class AdminUserViewSet(viewsets.ReadOnlyModelViewSet):
+class AdminUserViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
     queryset = User.objects.all().order_by('-date_joined')
     serializer_class = AdminUserSerializer
     permission_classes = [IsAdminUserRole]
     pagination_class = None
+
+    def destroy(self, request, *args, **kwargs):
+        target_user = self.get_object()
+
+        if target_user.id == request.user.id:
+            return Response({
+                'detail': 'You cannot delete your own admin account.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        if target_user.is_superuser and not request.user.is_superuser:
+            return Response({
+                'detail': 'Only a superuser can delete another superuser account.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        if target_user.role == User.Role.ADMIN and User.objects.filter(role=User.Role.ADMIN).count() <= 1:
+            return Response({
+                'detail': 'Cannot delete the sole administrator account on the marketplace.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user_id = target_user.id
+        username = target_user.username
+        email = target_user.email
+        role = target_user.role
+
+        try:
+            target_user.delete()
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='USER_DELETED',
+                target_model='User',
+                target_id=str(user_id),
+                details={
+                    'username': username,
+                    'email': email,
+                    'role': role
+                }
+            )
+
+            return Response({
+                'success': True,
+                'message': f"User account '{username}' ({email}) has been permanently deleted."
+            }, status=status.HTTP_200_OK)
+        except ProtectedError:
+            return Response({
+                'detail': 'Cannot delete user because they have historical orders or protected financial records. Consider banning or revoking their seller permissions instead.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error("Failed to delete user %s: %s", username, exc)
+            return Response({
+                'detail': f'Failed to delete user: {str(exc)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'])
     def toggle_can_sell(self, request, pk=None):

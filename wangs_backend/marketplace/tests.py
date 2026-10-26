@@ -889,3 +889,40 @@ class WangsFinancialAndOrderTests(TestCase):
             'password': 'mynewpassword999'
         }, format='json')
         self.assertEqual(login_resp.status_code, status.HTTP_200_OK)
+
+    def test_admin_delete_user(self):
+        """Admin can delete users from admin page, but cannot delete themselves."""
+        admin_boss = User.objects.create_user(
+            username='admin_delete_tester', email='admin_tester@wangs.in',
+            password='adminpassword123', role=User.Role.ADMIN, is_staff=True
+        )
+        target_customer = User.objects.create_user(
+            username='spam_customer', email='spam@wangs.in',
+            password='password123', role=User.Role.CUSTOMER
+        )
+
+        url = reverse('admin-user-detail', kwargs={'pk': target_customer.id})
+
+        # 1. Anonymous fails
+        anon_resp = self.client.delete(url)
+        self.assertEqual(anon_resp.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # 2. Regular customer fails
+        self.client.force_authenticate(user=target_customer)
+        cust_resp = self.client.delete(url)
+        self.assertEqual(cust_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Admin cannot delete themselves
+        self.client.force_authenticate(user=admin_boss)
+        self_url = reverse('admin-user-detail', kwargs={'pk': admin_boss.id})
+        self_resp = self.client.delete(self_url)
+        self.assertEqual(self_resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("own admin account", self_resp.data['detail'])
+
+        # 4. Admin successfully deletes target customer
+        del_resp = self.client.delete(url)
+        self.assertEqual(del_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(del_resp.data.get('success'))
+
+        # Verify user no longer exists
+        self.assertFalse(User.objects.filter(id=target_customer.id).exists())

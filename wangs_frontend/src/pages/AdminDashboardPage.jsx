@@ -338,6 +338,26 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleDeleteUser = async (targetUser) => {
+    if (!targetUser) return;
+    const displayName = targetUser.first_name || targetUser.last_name
+      ? `${targetUser.first_name} ${targetUser.last_name} (${targetUser.email || targetUser.username})`
+      : `${targetUser.username} (${targetUser.email})`;
+
+    if (!window.confirm(`Are you sure you want to permanently delete user account "${displayName}"?\n\nThis will remove their profile and access immediately. This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const res = await api.deleteAdminUser(targetUser.id);
+      toast.success(res?.message || `User ${targetUser.username} deleted successfully.`);
+      setUsersList((prev) => prev.filter((u) => u.id !== targetUser.id));
+      loadAdminData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete user account');
+    }
+  };
+
   const handleApproveSellerRequest = async (email) => {
     setApprovingEmail(email);
     try {
@@ -1398,6 +1418,7 @@ export default function AdminDashboardPage() {
                   <th className="p-3">Total Spend (LTV)</th>
                   <th className="p-3">Brand Association</th>
                   <th className="p-3">Joined Date</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
@@ -1414,7 +1435,7 @@ export default function AdminDashboardPage() {
                     return matchesSearch && matchesRole && matchesStatus;
                   }).length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="p-8 text-center text-stone-500">
+                      <td colSpan={9} className="p-8 text-center text-stone-500">
                         <div className="flex flex-col items-center justify-center gap-2">
                           <Users size={28} className="text-stone-300" />
                           <p className="font-semibold text-stone-700">No user accounts found matching current filters.</p>
@@ -1548,6 +1569,21 @@ export default function AdminDashboardPage() {
                       </td>
                       <td className="p-3 text-stone-500 text-[11px]">
                         {u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        {u.id === user?.id ? (
+                          <span className="text-[10px] text-stone-400 font-medium italic">Current Admin</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteUser(u)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-600 text-red-700 hover:text-white font-bold text-[11px] border border-red-200 transition-all cursor-pointer shadow-2xs group"
+                            title={`Delete user account ${u.username}`}
+                          >
+                            <Trash2 size={12} className="group-hover:scale-110 transition-transform" />
+                            <span>Delete</span>
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))
