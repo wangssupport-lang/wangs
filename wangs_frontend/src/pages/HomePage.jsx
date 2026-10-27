@@ -165,10 +165,10 @@ export default function HomePage() {
               <div className="w-[78%] h-2 bg-black/60 rounded-full blur-xs -mt-1 pointer-events-none" />
             </div>
 
-            {/* Small Batch Indicator */}
+            {/* Freshly Crafted Indicator */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1b4832] text-emerald-300 text-[10.5px] font-semibold border border-emerald-500/20 shadow-2xs">
-              <RotateCw size={11} className="text-emerald-400" />
-              <span>Small batch</span>
+              <Sparkles size={11} className="text-emerald-400" />
+              <span>Freshly crafted</span>
             </div>
 
             {/* Action Buttons */}
