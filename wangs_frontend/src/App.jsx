@@ -43,11 +43,15 @@ function AppLayout() {
   const { isAdmin, isMaintenanceMode, maintenanceMessage } = useAuth();
   const location = useLocation();
 
-  // Lock page scroll behind the cart drawer so the background doesn't scroll on phones
+  // Lock page scroll behind the cart drawer ONLY when it is actively open
   useEffect(() => {
-    document.body.style.overflow = isDrawerOpen ? 'hidden' : '';
+    if (isDrawerOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.removeProperty('overflow');
+    }
     return () => {
-      document.body.style.overflow = '';
+      document.body.style.removeProperty('overflow');
     };
   }, [isDrawerOpen]);
 
