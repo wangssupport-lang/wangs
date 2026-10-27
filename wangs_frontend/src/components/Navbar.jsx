@@ -194,19 +194,11 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMobileProfileOpen(!mobileProfileOpen)}
-                  className={`w-9 h-9 rounded-full flex items-center justify-center shadow-2xs active:scale-95 transition-all ${
-                    user
-                      ? 'bg-forest-900 text-white font-bold text-xs'
-                      : 'bg-white border border-stone-200 text-stone-700 hover:text-stone-950'
-                  }`}
+                  className="w-9 h-9 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:text-stone-900 active:scale-95 transition-all"
                   aria-label="User Profile"
                   title={user ? `${user.first_name || user.username}` : 'Profile & Account'}
                 >
-                  {user ? (
-                    <span>{(user.first_name || user.username || 'U')[0].toUpperCase()}</span>
-                  ) : (
-                    <User size={17} className="text-stone-700" />
-                  )}
+                  <User size={18} className="text-stone-700" />
                 </button>
 
                 {/* Mobile Profile Dropdown (User Info, Track Item, Logout) */}
