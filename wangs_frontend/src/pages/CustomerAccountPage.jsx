@@ -91,18 +91,11 @@ const getShipmentMilestones = (order) => {
       detail: `Express domestic air cargo transit connecting to ${order.shipping_state || 'destination state'}.`
     },
     {
-      stage: 'Arrived at Destination Post / Hub',
-      location: `${order.shipping_city}, ${order.shipping_state} (${order.shipping_postal_code})`,
-      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 08:30 AM' : 'Estimated in 2-3 business days',
-      status: isDelivered ? 'completed' : (isDispatched ? 'upcoming' : 'upcoming'),
-      detail: `Consignment sorted at local delivery beat for delivery to ${order.customer_name}.`
-    },
-    {
-      stage: 'Doorstep Delivery',
-      location: `${order.shipping_address_line1}, ${order.shipping_city}`,
-      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 02:40 PM' : 'Scheduled',
+      stage: 'Delivered',
+      location: `${order.shipping_address_line1 || ''}${order.shipping_city ? `, ${order.shipping_city}` : ''}${order.shipping_state ? `, ${order.shipping_state}` : ''}${order.shipping_postal_code ? ` (${order.shipping_postal_code})` : ''}`.replace(/^,\s*/, '') || 'Destination Address',
+      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 02:40 PM' : 'Estimated in 2-3 business days',
       status: isDelivered ? 'completed' : 'upcoming',
-      detail: isDelivered ? 'Parcel delivered successfully.' : 'Final delivery with recipient confirmation.'
+      detail: isDelivered ? `Parcel successfully delivered to ${order.customer_name || 'recipient'}.` : 'Final doorstep delivery with recipient confirmation.'
     }
   ];
 };
