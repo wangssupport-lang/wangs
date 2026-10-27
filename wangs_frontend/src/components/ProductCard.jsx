@@ -122,47 +122,28 @@ export default function ProductCard({ product }) {
         </Link>
 
         {/* Card Body */}
-        <div className="p-3 sm:p-4">
-          {/* Brand Name & Rating */}
-          <div className="flex items-center justify-between gap-1.5">
-            <Link
-              to={`/products?brand=${encodeURIComponent(brandName)}`}
-              className="text-[10.5px] sm:text-[11px] font-bold uppercase tracking-wider text-forest-800 hover:text-forest-950 truncate transition-colors"
-            >
-              {brandName}
-            </Link>
-
-            {product.average_rating && product.reviews_count > 0 ? (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-900 shrink-0">
-                <Star size={10} className="fill-amber-500 text-amber-500" />
-                <span>{parseFloat(product.average_rating).toFixed(1)}</span>
-              </span>
-            ) : null}
-          </div>
-
+        <div className="p-3 sm:p-4 space-y-1">
           {/* Product Title */}
-          <Link to={`/product/${product.slug}`} className="block mt-1">
-            <h3 className="font-serif font-bold text-stone-900 text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[2rem] sm:min-h-[2.4rem] group-hover:text-forest-900 transition-colors">
+          <Link to={`/product/${product.slug}`} className="block">
+            <h3 className="font-bold text-stone-900 text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[1.9rem] sm:min-h-[2.4rem] group-hover:text-forest-900 transition-colors">
               {product.title}
             </h3>
           </Link>
 
-          {/* Origin / Provenance Subtitle */}
-          {provenance && (
-            <p className="text-[10.5px] text-stone-500 truncate mt-0.5">
-              📍 {provenance}
-            </p>
-          )}
+          {/* Subtitle: Brand · Weight */}
+          <p className="text-[11px] text-stone-500 truncate">
+            {brandName} {weightText ? `· ${weightText}` : ''}
+          </p>
         </div>
       </div>
 
       {/* Pricing & Cart Action Bar */}
       <div className="p-3 sm:p-4 pt-0 sm:pt-0 mt-auto">
-        <div className="pt-2.5 border-t border-stone-100 flex items-center justify-between gap-2">
+        <div className="pt-2 flex items-center justify-between gap-2 border-t border-stone-100">
           {/* Price block */}
           <div className="min-w-0">
             <div className="flex items-baseline gap-1">
-              <span className="font-serif font-black text-sm sm:text-base text-stone-950">
+              <span className="font-bold text-sm sm:text-base text-stone-950">
                 ₹{priceNum}
               </span>
               {hasDiscount && (
@@ -183,7 +164,7 @@ export default function ProductCard({ product }) {
             ) : null}
           </div>
 
-          {/* Action: Add Button or Stepper */}
+          {/* Action: Add Button (+) or Stepper */}
           {cartItem ? (
             <div className="flex items-center rounded-xl bg-forest-50 border border-forest-900/70 overflow-hidden shadow-2xs h-8 sm:h-9 shrink-0">
               <button
@@ -212,7 +193,8 @@ export default function ProductCard({ product }) {
               type="button"
               onClick={handleAddToCart}
               disabled={!inStock || adding}
-              className={`h-8 sm:h-9 px-3 sm:px-4 rounded-xl text-xs font-bold flex items-center justify-center gap-1 shadow-2xs transition-all active:scale-95 shrink-0 ${
+              aria-label={`Add ${product.title} to cart`}
+              className={`w-8 h-8 sm:h-9 sm:w-9 rounded-xl text-xs font-bold flex items-center justify-center shadow-xs transition-all active:scale-90 shrink-0 ${
                 added
                   ? 'bg-emerald-600 text-white'
                   : inStock
@@ -221,19 +203,13 @@ export default function ProductCard({ product }) {
               }`}
             >
               {added ? (
-                <>
-                  <CheckCircle size={13} className="text-white" />
-                  <span>Added</span>
-                </>
+                <CheckCircle size={15} className="text-white" />
               ) : adding ? (
-                <span className="animate-pulse">...</span>
+                <span className="animate-pulse text-xs">...</span>
               ) : !inStock ? (
-                <span>Sold Out</span>
+                <span className="text-[9px]">Sold</span>
               ) : (
-                <>
-                  <Plus size={13} />
-                  <span>ADD</span>
-                </>
+                <Plus size={16} strokeWidth={2.5} />
               )}
             </button>
           )}

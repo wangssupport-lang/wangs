@@ -26,19 +26,19 @@ export default function MobileBottomNav({ onOpenCart }) {
         <NavLink
           to="/"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
-              isActive
-                ? 'text-forest-900 font-bold scale-105'
-                : 'text-stone-500 hover:text-stone-900 font-medium'
+            `flex flex-col items-center justify-center py-1 transition-all ${
+              isActive ? 'text-forest-950 font-bold' : 'text-stone-500 hover:text-stone-900 font-medium'
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <div className={`p-1 rounded-full ${isActive ? 'bg-forest-100 text-forest-900' : ''}`}>
-                <Home size={19} strokeWidth={isActive ? 2.5 : 2} />
+              <div className={`flex items-center justify-center transition-all ${isActive ? 'px-3.5 py-1 rounded-full bg-[#dbe7de] text-forest-900' : 'p-1 text-stone-500'}`}>
+                <Home size={18} strokeWidth={isActive ? 2.4 : 1.9} />
               </div>
-              <span className="text-[10px] tracking-tight mt-0.5">Home</span>
+              <span className={`text-[10px] tracking-tight mt-0.5 ${isActive ? 'font-bold text-stone-900' : 'text-stone-500'}`}>
+                Home
+              </span>
             </>
           )}
         </NavLink>
@@ -47,19 +47,19 @@ export default function MobileBottomNav({ onOpenCart }) {
         <NavLink
           to="/products"
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
-              isActive
-                ? 'text-forest-900 font-bold scale-105'
-                : 'text-stone-500 hover:text-stone-900 font-medium'
+            `flex flex-col items-center justify-center py-1 transition-all ${
+              isActive ? 'text-forest-950 font-bold' : 'text-stone-500 hover:text-stone-900 font-medium'
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <div className={`p-1 rounded-full ${isActive ? 'bg-forest-100 text-forest-900' : ''}`}>
-                <Compass size={19} strokeWidth={isActive ? 2.5 : 2} />
+              <div className={`flex items-center justify-center transition-all ${isActive ? 'px-3.5 py-1 rounded-full bg-[#dbe7de] text-forest-900' : 'p-1 text-stone-500'}`}>
+                <Compass size={18} strokeWidth={isActive ? 2.4 : 1.9} />
               </div>
-              <span className="text-[10px] tracking-tight mt-0.5">Explore</span>
+              <span className={`text-[10px] tracking-tight mt-0.5 ${isActive ? 'font-bold text-stone-900' : 'text-stone-500'}`}>
+                Explore
+              </span>
             </>
           )}
         </NavLink>
@@ -68,19 +68,19 @@ export default function MobileBottomNav({ onOpenCart }) {
         <NavLink
           to="/brands"
           className={({ isActive }) =>
-            `relative flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
-              isActive
-                ? 'text-forest-900 font-bold scale-105'
-                : 'text-stone-500 hover:text-stone-900 font-medium'
+            `relative flex flex-col items-center justify-center py-1 transition-all ${
+              isActive ? 'text-forest-950 font-bold' : 'text-stone-500 hover:text-stone-900 font-medium'
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <div className={`p-1 rounded-full ${isActive ? 'bg-forest-100 text-forest-900' : ''}`}>
-                <Store size={19} strokeWidth={isActive ? 2.5 : 2} />
+              <div className={`flex items-center justify-center transition-all ${isActive ? 'px-3.5 py-1 rounded-full bg-[#dbe7de] text-forest-900' : 'p-1 text-stone-500'}`}>
+                <Store size={18} strokeWidth={isActive ? 2.4 : 1.9} />
               </div>
-              <span className="text-[10px] tracking-tight mt-0.5">Brands</span>
+              <span className={`text-[10px] tracking-tight mt-0.5 ${isActive ? 'font-bold text-stone-900' : 'text-stone-500'}`}>
+                Brands
+              </span>
             </>
           )}
         </NavLink>
@@ -89,18 +89,18 @@ export default function MobileBottomNav({ onOpenCart }) {
         <button
           type="button"
           onClick={onOpenCart}
-          className="relative flex flex-col items-center justify-center py-1 rounded-xl transition-all text-stone-600 hover:text-stone-950 font-medium active:scale-95"
+          className="relative flex flex-col items-center justify-center py-1 transition-all text-stone-500 hover:text-stone-950 font-medium active:scale-95"
           aria-label={`Shopping Cart with ${itemsCount} items`}
         >
-          <div className="relative p-1 rounded-full text-forest-900">
-            <ShoppingBag size={20} strokeWidth={2.2} />
+          <div className="relative p-1 text-stone-500 flex items-center justify-center">
+            <ShoppingBag size={18} strokeWidth={1.9} />
             {itemsCount > 0 && (
-              <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 bg-amber-400 text-forest-950 font-black text-[10px] leading-tight rounded-full flex items-center justify-center shadow-xs border border-white animate-scale-up">
+              <span className="absolute -top-1 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center shadow-xs border border-white">
                 {itemsCount > 99 ? '99+' : itemsCount}
               </span>
             )}
           </div>
-          <span className="text-[10px] tracking-tight mt-0.5 font-bold text-forest-950">
+          <span className="text-[10px] tracking-tight mt-0.5 font-medium text-stone-500">
             Cart
           </span>
         </button>
@@ -109,25 +109,17 @@ export default function MobileBottomNav({ onOpenCart }) {
         <NavLink
           to={user ? '/account' : '/login'}
           className={({ isActive }) =>
-            `flex flex-col items-center justify-center py-1 rounded-xl transition-all ${
-              isActive
-                ? 'text-forest-900 font-bold scale-105'
-                : 'text-stone-500 hover:text-stone-900 font-medium'
+            `flex flex-col items-center justify-center py-1 transition-all ${
+              isActive ? 'text-forest-950 font-bold' : 'text-stone-500 hover:text-stone-900 font-medium'
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <div className={`p-1 rounded-full ${isActive ? 'bg-forest-100 text-forest-900' : ''}`}>
-                {user ? (
-                  <div className="w-5 h-5 rounded-full bg-forest-900 text-white text-[10px] font-bold flex items-center justify-center">
-                    {(user.first_name || user.username || 'U')[0].toUpperCase()}
-                  </div>
-                ) : (
-                  <User size={19} strokeWidth={isActive ? 2.5 : 2} />
-                )}
+              <div className={`flex items-center justify-center transition-all ${isActive ? 'px-3.5 py-1 rounded-full bg-[#dbe7de] text-forest-900' : 'p-1 text-stone-500'}`}>
+                <User size={18} strokeWidth={isActive ? 2.4 : 1.9} />
               </div>
-              <span className="text-[10px] tracking-tight mt-0.5">
+              <span className={`text-[10px] tracking-tight mt-0.5 ${isActive ? 'font-bold text-stone-900' : 'text-stone-500'}`}>
                 {user ? 'Account' : 'Sign In'}
               </span>
             </>

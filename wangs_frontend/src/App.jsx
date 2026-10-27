@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Link, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
@@ -29,31 +29,18 @@ import {
 
 import MobileBottomNav from './components/MobileBottomNav';
 
-// Always start a new page at the top (otherwise product pages open mid-scroll on phones)
 function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => {
+  React.useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
 }
 
 function AppLayout() {
-  const { setIsDrawerOpen, isDrawerOpen } = useCart();
+  const { setIsDrawerOpen } = useCart();
   const { isAdmin, isMaintenanceMode, maintenanceMessage } = useAuth();
   const location = useLocation();
-
-  // Lock page scroll behind the cart drawer ONLY when it is actively open
-  useEffect(() => {
-    if (isDrawerOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.removeProperty('overflow');
-    }
-    return () => {
-      document.body.style.removeProperty('overflow');
-    };
-  }, [isDrawerOpen]);
 
   // When website is in maintenance mode, NO items or storefront pages are ever displayed.
   // The storefront strictly displays the MaintenancePage to everyone.
@@ -68,12 +55,12 @@ function AppLayout() {
   const isAdminRoute = location.pathname.startsWith('/wangadminspace');
 
   return (
-    <div className={`min-h-[100dvh] flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white ${isAdminRoute ? 'pb-10' : 'mobile-nav-offset md:pb-0'}`}>
+    <div className={`min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white ${isAdminRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
       <ScrollToTop />
       {!isAdminRoute && <Navbar />}
       {!isAdminRoute && <CartDrawer />}
 
-      <main className="flex-1 min-w-0">
+      <main className="flex-1">
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<HomePage />} />
@@ -132,35 +119,34 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-[70vh] flex items-center justify-center px-4 py-12 bg-cream-50 text-center">
-          <div className="max-w-md w-full bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-xl space-y-4">
+        <div className="min-h-[70vh] flex items-center justify-center px-4 py-16 bg-cream-50 text-center">
+          <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-stone-200 shadow-xl space-y-4">
             <h2 className="font-serif text-xl font-bold text-stone-900">Something went wrong</h2>
-            <p className="text-sm text-stone-500">
+            <p className="text-xs text-stone-500">
               An unexpected error occurred while loading this view. You can refresh or return to the storefront.
             </p>
-            {/* Technical details only shown in development, never to customers */}
-            {import.meta.env.DEV && this.state.error && (
+            {this.state.error && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-left overflow-auto max-h-48">
-                <p className="text-xs font-mono font-bold text-red-700 break-words">
+                <p className="text-[11px] font-mono font-bold text-red-700 break-words">
                   {this.state.error?.message || String(this.state.error)}
                 </p>
                 {this.state.error?.stack && (
-                  <pre className="text-[10px] font-mono text-red-600/80 mt-1 whitespace-pre-wrap">
+                  <pre className="text-[9px] font-mono text-red-600/80 mt-1 whitespace-pre-wrap">
                     {this.state.error.stack.split('\n').slice(0, 4).join('\n')}
                   </pre>
                 )}
               </div>
             )}
-            <div className="flex flex-col sm:flex-row gap-2 justify-center pt-2">
+            <div className="flex gap-2 justify-center pt-2">
               <button
                 onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
-                className="min-h-[44px] px-5 py-2 bg-forest-900 text-white rounded-xl text-sm font-bold shadow cursor-pointer"
+                className="px-4 py-2 bg-forest-900 text-white rounded-xl text-xs font-bold shadow cursor-pointer"
               >
                 Reload View
               </button>
               <a
                 href="/"
-                className="min-h-[44px] px-5 py-2 inline-flex items-center justify-center bg-stone-100 text-stone-700 rounded-xl text-sm font-bold border border-stone-200 cursor-pointer"
+                className="px-4 py-2 bg-stone-100 text-stone-700 rounded-xl text-xs font-bold border border-stone-200 cursor-pointer"
               >
                 Home
               </a>

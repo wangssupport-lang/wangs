@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag, Search, User, Menu, X, ChevronDown, Home,
   Shield, ShieldCheck, Store,
-  Sparkles, Star, LogOut, Package, ArrowRight
+  Sparkles, Star, LogOut, Package, ArrowRight, Heart
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -14,6 +14,7 @@ export default function Navbar() {
   const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout } = useAuth();
   const { itemsCount, cart, setIsDrawerOpen } = useCart();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
@@ -178,169 +179,199 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Right Action Icons: Home, Sign In / Account, Cart */}
+          {/* Right Action Icons */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Homepage Link Button */}
-            <Link
-              to="/"
-              className="flex items-center justify-center p-2 sm:px-3 sm:py-2 rounded-xl text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs active:scale-95"
-              aria-label="Home"
-              title="Home"
-            >
-              <Home size={16} className="text-forest-900" />
-              <span className="hidden sm:inline text-xs font-bold ml-1.5">Home</span>
-            </Link>
+            {/* Mobile Actions (Matching Screenshot): Circular Wishlist & Circular Cart */}
+            <div className="flex md:hidden items-center gap-2">
+              <Link
+                to="/account"
+                className="w-9 h-9 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:text-stone-900 active:scale-95 transition-all"
+                aria-label="Wishlist"
+                title="Wishlist"
+              >
+                <Heart size={18} className="text-stone-700" />
+              </Link>
 
-            {/* User Account / Sign In */}
-            <div className="flex items-center gap-2">
-              {/* Direct Seller Space button for logged-in registered sellers */}
-              {isRegisteredSellerUser && (
-                <Link
-                  to="/manufacturer"
-                  className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
-                  title="Artisan Seller Space"
-                >
-                  <Store size={14} className="text-amber-600" />
-                  <span>Seller Space</span>
-                </Link>
-              )}
-
-              {user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-colors border border-stone-200"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-[10px]">
-                      {(user.first_name || user.username || 'U')[0].toUpperCase()}
-                    </div>
-                    <span className="hidden sm:inline">{user.first_name || user.username}</span>
-                    <ChevronDown size={13} className="text-stone-400" />
-                  </button>
-
-                  {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-stone-200 py-2 z-50 text-xs">
-                      <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50">
-                        <p className="font-bold text-stone-900">{user.first_name} {user.last_name}</p>
-                        <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
-                      </div>
-
-                      <Link
-                        to="/account"
-                        onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-stone-700 hover:bg-stone-100 transition-colors font-medium"
-                      >
-                        <Package size={15} className="text-forest-700" /> My Orders & Addresses
-                      </Link>
-
-                      {isManufacturer ? (
-                        <Link
-                          to="/manufacturer"
-                          onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
-                        >
-                          <Store size={15} className="text-forest-700" /> Seller Dashboard
-                        </Link>
-                      ) : isAuthorizedToSell ? (
-                        <Link
-                          to="/manufacturer/register"
-                          onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
-                        >
-                          <Store size={15} className="text-forest-700" /> Sell with Us
-                        </Link>
-                      ) : null}
-
-                      <button
-                        onClick={() => {
-                          setUserDropdownOpen(false);
-                          logout();
-                          navigate('/');
-                        }}
-                        className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-stone-600 hover:bg-red-50 hover:text-red-700 border-t border-stone-100 mt-1 transition-colors"
-                      >
-                        <LogOut size={15} /> Sign Out
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Keep this button to sellers only who have registered else don't */}
-                  {isRegisteredSellerDevice && (
-                    <Link
-                      to="/manufacturer/login"
-                      className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
-                      title="Artisan Seller Portal & Login"
-                    >
-                      <Store size={14} className="text-amber-600" />
-                      <span>Seller Login</span>
-                    </Link>
-                  )}
-                  <Link
-                    to="/login"
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
-                  >
-                    <User size={15} className="text-forest-900" />
-                    <span className="hidden sm:inline">Sign In</span>
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Shopping Basket Button */}
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              className="group relative px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
-              aria-label={`Shopping Basket with ${itemsCount} items`}
-            >
-              <div className="relative">
-                <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="relative w-9 h-9 rounded-full bg-forest-950 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform"
+                aria-label={`Shopping Basket with ${itemsCount} items`}
+              >
+                <ShoppingBag size={17} className="text-white" />
                 {itemsCount > 0 && (
-                  <span className="absolute -top-2 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-forest-950 shadow-xs animate-scale-up">
+                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-forest-950 shadow-xs">
                     {itemsCount > 99 ? '99+' : itemsCount}
                   </span>
                 )}
+              </button>
+            </div>
+
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center gap-2 sm:gap-2.5">
+              {/* Homepage Link Button */}
+              <Link
+                to="/"
+                className="flex items-center justify-center p-2 sm:px-3 sm:py-2 rounded-xl text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs active:scale-95"
+                aria-label="Home"
+                title="Home"
+              >
+                <Home size={16} className="text-forest-900" />
+                <span className="hidden sm:inline text-xs font-bold ml-1.5">Home</span>
+              </Link>
+
+              {/* User Account / Sign In */}
+              <div className="flex items-center gap-2">
+                {/* Direct Seller Space button for logged-in registered sellers */}
+                {isRegisteredSellerUser && (
+                  <Link
+                    to="/manufacturer"
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
+                    title="Artisan Seller Space"
+                  >
+                    <Store size={14} className="text-amber-600" />
+                    <span>Seller Space</span>
+                  </Link>
+                )}
+
+                {user ? (
+                  <div className="relative">
+                    <button
+                      onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-colors border border-stone-200"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-[10px]">
+                        {(user.first_name || user.username || 'U')[0].toUpperCase()}
+                      </div>
+                      <span className="hidden sm:inline">{user.first_name || user.username}</span>
+                      <ChevronDown size={13} className="text-stone-400" />
+                    </button>
+
+                    {userDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-stone-200 py-2 z-50 text-xs">
+                        <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50">
+                          <p className="font-bold text-stone-900">{user.first_name} {user.last_name}</p>
+                          <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
+                        </div>
+
+                        <Link
+                          to="/account"
+                          onClick={() => setUserDropdownOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-stone-700 hover:bg-stone-100 transition-colors font-medium"
+                        >
+                          <Package size={15} className="text-forest-700" /> My Orders & Addresses
+                        </Link>
+
+                        {isManufacturer ? (
+                          <Link
+                            to="/manufacturer"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
+                          >
+                            <Store size={15} className="text-forest-700" /> Seller Dashboard
+                          </Link>
+                        ) : isAuthorizedToSell ? (
+                          <Link
+                            to="/manufacturer/register"
+                            onClick={() => setUserDropdownOpen(false)}
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
+                          >
+                            <Store size={15} className="text-forest-700" /> Sell with Us
+                          </Link>
+                        ) : null}
+
+                        <button
+                          onClick={() => {
+                            setUserDropdownOpen(false);
+                            logout();
+                            navigate('/');
+                          }}
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-stone-600 hover:bg-red-50 hover:text-red-700 border-t border-stone-100 mt-1 transition-colors"
+                        >
+                          <LogOut size={15} /> Sign Out
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 sm:gap-2">
+                    {/* Keep this button to sellers only who have registered else don't */}
+                    {isRegisteredSellerDevice && (
+                      <Link
+                        to="/manufacturer/login"
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
+                        title="Artisan Seller Portal & Login"
+                      >
+                        <Store size={14} className="text-amber-600" />
+                        <span>Seller Login</span>
+                      </Link>
+                    )}
+                    <Link
+                      to="/login"
+                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
+                    >
+                      <User size={15} className="text-forest-900" />
+                      <span className="hidden sm:inline">Sign In</span>
+                    </Link>
+                  </div>
+                )}
               </div>
-              <span className="hidden sm:inline text-xs font-bold tracking-tight">
-                Cart
-              </span>
-            </button>
+
+              {/* Desktop Shopping Basket Button */}
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="group relative px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
+                aria-label={`Shopping Basket with ${itemsCount} items`}
+              >
+                <div className="relative">
+                  <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
+                  {itemsCount > 0 && (
+                    <span className="absolute -top-2 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-forest-950 shadow-xs animate-scale-up">
+                      {itemsCount > 99 ? '99+' : itemsCount}
+                    </span>
+                  )}
+                </div>
+                <span className="hidden sm:inline text-xs font-bold tracking-tight">
+                  Cart
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Mobile Search Bar (Directly accessible without drawer) */}
-        <div className="md:hidden pb-2.5 pt-0.5">
-          <form onSubmit={handleSearch} className="relative w-full">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search king chilli, bamboo shoot, artisan pickles..."
-              className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-forest-800 focus:bg-white shadow-2xs font-medium"
-            />
-            <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
-            {searchQuery && (
+        {/* Mobile Search Bar (Only shown on non-homepage, as mobile homepage features the hero search input matching screenshot) */}
+        {location.pathname !== '/' && (
+          <div className="md:hidden pb-2.5 pt-0.5">
+            <form onSubmit={handleSearch} className="relative w-full">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search king chilli, bamboo shoot, artisan pickles..."
+                className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-forest-800 focus:bg-white shadow-2xs font-medium"
+              />
+              <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-12 top-2.5 text-stone-400 hover:text-stone-600 p-0.5"
+                  aria-label="Clear search query"
+                >
+                  <X size={13} />
+                </button>
+              )}
               <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-12 top-2.5 text-stone-400 hover:text-stone-600 p-0.5"
-                aria-label="Clear search query"
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-[11px] font-bold rounded-lg shadow-2xs active:scale-95 transition-transform"
               >
-                <X size={13} />
+                Go
               </button>
-            )}
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-[11px] font-bold rounded-lg shadow-2xs active:scale-95 transition-transform"
-            >
-              Go
-            </button>
-          </form>
-        </div>
+            </form>
+          </div>
+        )}
 
-        {/* 3. Refined Artisanal Navigation Ribbon (Balanced Storefront Navigation) */}
-        <nav className="relative z-10 flex items-center justify-between border-t border-stone-200/70 py-2 sm:py-2.5 text-xs font-medium text-stone-600 gap-3">
+        {/* 3. Refined Artisanal Navigation Ribbon (Hidden on mobile homepage to match screenshot design) */}
+        <nav className={`relative z-10 items-center justify-between border-t border-stone-200/70 py-2 sm:py-2.5 text-xs font-medium text-stone-600 gap-3 ${location.pathname === '/' ? 'hidden md:flex' : 'flex'}`}>
           {/* Left: Dietary Filters (Responsive & fluid on mobile) */}
           <div className="w-full lg:w-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
             <Link
