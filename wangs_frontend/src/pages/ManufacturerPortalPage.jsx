@@ -1819,12 +1819,12 @@ export default function ManufacturerPortalPage() {
                     </div>
                     <div className="text-center bg-white p-1 rounded border border-stone-300 shrink-0">
                       <QRCodeSVG
-                        value={`DELIVERY:${selectedParcelOrder.order_number}|DEST:${selectedParcelOrder.shipping_postal_code}|PHONE:${selectedParcelOrder.customer_phone}`}
-                        size={36}
+                        value={`${typeof window !== 'undefined' ? window.location.origin : 'https://wangs.in'}/delivery?order=${selectedParcelOrder.order_number}`}
+                        size={38}
                         margin={1}
                         className="mx-auto"
                       />
-                      <span className="text-[7px] font-mono font-bold text-stone-600 block mt-0.5">DELIVERY QR</span>
+                      <span className="text-[7px] font-mono font-bold text-stone-600 block mt-0.5">SCAN FOR MAP & DELIVERY</span>
                     </div>
                   </div>
                 </div>

@@ -7,6 +7,7 @@ from .views import (
     CategoryViewSet, ProductViewSet, check_pincode_serviceability,
     CartView, CheckoutQuoteView, CreateOrderView, VerifyPaymentView,
     OrderLookupView, CustomerOrdersView,
+    DeliveryOrderLookupView, DeliveryOrderMarkDeliveredView, DeliveryActiveOrdersView,
     ManufacturerRegisterView, ManufacturerProfileView, ManufacturerProductViewSet,
     ManufacturerOrdersView, ManufacturerFinancialsView, SellerRulesPDFView,
     AdminMetricsView, AdminManufacturerViewSet, AdminProductViewSet,
@@ -48,6 +49,11 @@ urlpatterns = [
     path('payments/verify/', VerifyPaymentView.as_view(), name='payment-verify'),
     path('orders/lookup/<str:order_number>/', OrderLookupView.as_view(), name='order-lookup'),
     path('orders/my-orders/', CustomerOrdersView.as_view(), name='customer-orders'),
+    
+    # Delivery Portal (Accessed directly via /delivery & QR scan)
+    path('delivery/active/', DeliveryActiveOrdersView.as_view(), name='delivery-active-orders'),
+    path('delivery/order/<str:identifier>/mark-delivered/', DeliveryOrderMarkDeliveredView.as_view(), name='delivery-order-delivered'),
+    path('delivery/order/<path:identifier>/', DeliveryOrderLookupView.as_view(), name='delivery-order-lookup'),
     
     # Manufacturer Portal
     path('manufacturer/register/', ManufacturerRegisterView.as_view(), name='mfg-register'),

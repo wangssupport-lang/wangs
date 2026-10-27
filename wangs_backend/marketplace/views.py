@@ -3,6 +3,7 @@ import uuid
 import random
 import datetime
 import logging
+import urllib.parse
 from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
@@ -910,6 +911,164 @@ class CustomerOrdersView(views.APIView):
     def get(self, request):
         orders = Order.objects.filter(user=request.user).order_by('-created_at')
         return Response(OrderSerializer(orders, many=True).data)
+
+
+# -------------------------------------------------------------
+# DELIVERY PORTAL (Direct link /delivery & QR scan)
+# -------------------------------------------------------------
+
+class DeliveryOrderLookupView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, identifier):
+        raw = identifier.strip()
+        order_key = raw
+        if 'order=' in raw:
+            order_key = raw.split('order=')[-1].split('&')[0]
+        elif 'DELIVERY:' in raw:
+            parts = raw.split('|')
+            order_key = parts[0].replace('DELIVERY:', '').strip()
+        
+        order = Order.objects.filter(order_number__iexact=order_key).first()
+        if not order:
+            order = Order.objects.filter(tracking_number__iexact=order_key).first()
+        if not order:
+            order = Order.objects.filter(order_number__icontains=order_key).first()
+        if not order:
+            return Response({'detail': f'No delivery order found for "{raw}".'}, status=status.HTTP_404_NOT_FOUND)
+
+        items_data = []
+        for item in order.items.select_related('product', 'manufacturer').all():
+            items_data.append({
+                'id': item.id,
+                'product_title': item.product_title,
+                'weight_grams': item.weight_grams,
+                'quantity': item.quantity,
+                'unit_price': str(item.unit_price),
+                'subtotal': str(item.subtotal),
+                'fulfillment_status': item.fulfillment_status,
+                'product_image': item.product.primary_image_url if item.product and item.product.primary_image_url else '',
+                'brand_name': item.manufacturer.business_name if item.manufacturer else '',
+            })
+
+        CITY_COORDS = {
+            'kohima': (25.6751, 94.1086),
+            'dimapur': (25.9042, 93.7275),
+            'mokokchung': (26.3262, 94.5159),
+            'tuensang': (26.2709, 94.8291),
+            'wokha': (26.0967, 94.2619),
+            'zunheboto': (25.9712, 94.5204),
+            'mon': (26.7327, 95.0569),
+            'phek': (25.6833, 94.4833),
+            'guwahati': (26.1445, 91.7362),
+            'shillong': (25.5788, 91.8933),
+            'delhi': (28.6139, 77.2090),
+            'new delhi': (28.6139, 77.2090),
+            'mumbai': (19.0760, 72.8777),
+            'bengaluru': (12.9716, 77.5946),
+            'bangalore': (12.9716, 77.5946),
+            'kolkata': (22.5726, 88.3639),
+            'hyderabad': (17.3850, 78.4867),
+            'chennai': (13.0827, 80.2707),
+            'pune': (18.5204, 73.8567),
+        }
+
+        city_lower = (order.shipping_city or '').strip().lower()
+        coords = CITY_COORDS.get(city_lower)
+        if not coords:
+            for key, val in CITY_COORDS.items():
+                if key in city_lower:
+                    coords = val
+                    break
+        if not coords:
+            coords = (25.6751, 94.1086)
+
+        address_parts = [
+            order.shipping_address_line1,
+            order.shipping_address_line2,
+            order.shipping_city,
+            order.shipping_state,
+            order.shipping_postal_code
+        ]
+        full_address = ", ".join([p for p in address_parts if p and p.strip()])
+
+        return Response({
+            'id': order.id,
+            'order_number': order.order_number,
+            'customer_name': order.customer_name,
+            'customer_phone': order.customer_phone,
+            'customer_email': order.customer_email,
+            'shipping_address_line1': order.shipping_address_line1,
+            'shipping_address_line2': order.shipping_address_line2,
+            'shipping_city': order.shipping_city,
+            'shipping_state': order.shipping_state,
+            'shipping_postal_code': order.shipping_postal_code,
+            'formatted_address': full_address,
+            'status': order.status,
+            'payment_status': order.payment_status,
+            'payment_method': order.payment_method,
+            'total_amount': str(order.total_amount),
+            'tracking_number': order.tracking_number,
+            'courier_partner': order.courier_partner,
+            'dispatch_notes': order.dispatch_notes,
+            'created_at': order.created_at.isoformat(),
+            'updated_at': order.updated_at.isoformat(),
+            'items': items_data,
+            'total_items_count': sum(it['quantity'] for it in items_data),
+            'coordinates': {
+                'lat': coords[0],
+                'lng': coords[1]
+            },
+            'maps_url': f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(full_address)}",
+        })
+
+
+class DeliveryOrderMarkDeliveredView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, identifier):
+        raw = identifier.strip()
+        order = Order.objects.filter(order_number__iexact=raw).first()
+        if not order:
+            order = Order.objects.filter(tracking_number__iexact=raw).first()
+        if not order:
+            return Response({'detail': f'Order {raw} not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        order.status = Order.Status.DELIVERED
+        notes = request.data.get('notes', '').strip()
+        if notes:
+            order.dispatch_notes = (order.dispatch_notes + f"\n[Delivered]: {notes}").strip()
+        order.save()
+
+        order.items.all().update(fulfillment_status=OrderItem.FulfillmentStatus.DELIVERED)
+
+        return Response({
+            'success': True,
+            'order_number': order.order_number,
+            'status': order.status,
+            'delivered_at': timezone.now().isoformat()
+        })
+
+
+class DeliveryActiveOrdersView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        orders = Order.objects.exclude(status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED]).order_by('-created_at')[:12]
+        result = []
+        for o in orders:
+            result.append({
+                'order_number': o.order_number,
+                'customer_name': o.customer_name,
+                'customer_phone': o.customer_phone,
+                'shipping_city': o.shipping_city,
+                'shipping_postal_code': o.shipping_postal_code,
+                'status': o.status,
+                'total_amount': str(o.total_amount),
+                'items_count': o.items.count(),
+                'created_at': o.created_at.isoformat()
+            })
+        return Response(result)
 
 
 # -------------------------------------------------------------

@@ -90,6 +90,11 @@ export const api = {
   lookupOrder: (orderNumber, verify = '') => apiRequest(`/orders/lookup/${orderNumber}/${verify ? `?verify=${verify}` : ''}`),
   getMyOrders: () => apiRequest('/orders/my-orders/'),
 
+  // Delivery Portal (Direct link /delivery & QR scan)
+  getDeliveryOrder: (identifier) => apiRequest(`/delivery/order/${encodeURIComponent(identifier)}/`),
+  markDeliveryOrderDelivered: (identifier, notes = '') => apiRequest(`/delivery/order/${encodeURIComponent(identifier)}/mark-delivered/`, { method: 'POST', body: JSON.stringify({ notes }) }),
+  getActiveDeliveryOrders: () => apiRequest('/delivery/active/'),
+
   // Manufacturer
   registerManufacturer: (payload) => apiRequest('/manufacturer/register/', { method: 'POST', body: JSON.stringify(payload) }),
   getManufacturerProfile: () => apiRequest('/manufacturer/profile/'),

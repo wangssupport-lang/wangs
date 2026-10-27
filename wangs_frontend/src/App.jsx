@@ -21,6 +21,7 @@ import ManufacturerRegisterPage from './pages/ManufacturerRegisterPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AuthPage from './pages/AuthPages';
 import MaintenancePage from './pages/MaintenancePage';
+import DeliveryPage from './pages/DeliveryPage';
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -53,12 +54,13 @@ function AppLayout() {
   }
 
   const isAdminRoute = location.pathname.startsWith('/wangadminspace');
+  const isDeliveryRoute = location.pathname.startsWith('/delivery');
 
   return (
-    <div className={`min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white ${isAdminRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
+    <div className={`min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white ${isAdminRoute || isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
       <ScrollToTop />
-      {!isAdminRoute && <Navbar />}
-      {!isAdminRoute && <CartDrawer />}
+      {!isAdminRoute && !isDeliveryRoute && <Navbar />}
+      {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
 
       <main className="flex-1">
         <ErrorBoundary>
@@ -72,6 +74,10 @@ function AppLayout() {
             <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
             <Route path="/account" element={<CustomerAccountPage />} />
             <Route path="/login" element={<AuthPage />} />
+
+            {/* Delivery Courier Portal - Accessible EXCLUSIVELY via /delivery */}
+            <Route path="/delivery" element={<DeliveryPage />} />
+            <Route path="/delivery/:orderNumber" element={<DeliveryPage />} />
 
             {/* Manufacturer / Seller Portal */}
             <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
@@ -94,8 +100,8 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
 
-      {!isAdminRoute && <Footer />}
-      {!isAdminRoute && location.pathname !== '/checkout' && (
+      {!isAdminRoute && !isDeliveryRoute && <Footer />}
+      {!isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && (
         <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
       )}
     </div>

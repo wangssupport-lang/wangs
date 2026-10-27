@@ -1245,3 +1245,73 @@ class WangsFinancialAndOrderTests(TestCase):
         }, format='json')
         self.assertEqual(resp.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
         self.assertIn('temporarily restricted', resp.data['detail'])
+
+    def test_delivery_portal_lookup_and_mark_delivered(self):
+        """
+        Verify Delivery Portal:
+        1. Courier can look up order via /api/delivery/order/<identifier>/
+        2. Customer products, address, coordinates, and maps link are returned.
+        3. Courier can mark parcel delivered via /mark-delivered/
+        4. Active parcels queue returns active orders.
+        """
+        buyer = User.objects.create_user(
+            username='delivery_buyer',
+            email='delbuyer@wangs.in',
+            password='buyerpass123',
+            role=User.Role.CUSTOMER
+        )
+        del_order = Order.objects.create(
+            order_number='WNG-TEST-DEL-1',
+            user=buyer,
+            customer_name='Delivery Recipient',
+            customer_email='delbuyer@wangs.in',
+            customer_phone='+91 94360 22222',
+            shipping_address_line1='Opposite Post Office, High School Area',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('350.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('50.00'),
+            total_amount=Decimal('405.00'),
+            platform_commission_total=Decimal('35.00'),
+            manufacturer_payout_total=Decimal('315.00'),
+            status=Order.Status.DISPATCHED,
+            payment_status=Order.PaymentStatus.PAID
+        )
+        OrderItem.objects.create(
+            order=del_order,
+            product_title='Organic King Chilli Pickle',
+            weight_grams=250,
+            unit_price=Decimal('350.00'),
+            quantity=1,
+            subtotal=Decimal('350.00'),
+            commission_rate=Decimal('10.00'),
+            commission_amount=Decimal('35.00'),
+            manufacturer_payout=Decimal('315.00'),
+            fulfillment_status=OrderItem.FulfillmentStatus.DISPATCHED
+        )
+
+        # 1. Lookup
+        resp = self.client.get(f'/api/delivery/order/{del_order.order_number}/')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data['customer_name'], 'Delivery Recipient')
+        self.assertEqual(resp.data['shipping_city'], 'Kohima')
+        self.assertIn('coordinates', resp.data)
+        self.assertIn('items', resp.data)
+        self.assertEqual(len(resp.data['items']), 1)
+
+        # 2. Mark delivered
+        mark_resp = self.client.post(f'/api/delivery/order/{del_order.order_number}/mark-delivered/', {
+            'notes': 'Delivered to recipient with signature.'
+        }, format='json')
+        self.assertEqual(mark_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(mark_resp.data['success'])
+
+        del_order.refresh_from_db()
+        self.assertEqual(del_order.status, Order.Status.DELIVERED)
+
+        # 3. Active queue
+        queue_resp = self.client.get('/api/delivery/active/')
+        self.assertEqual(queue_resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(any(o['order_number'] == 'WNG-TEST-DEL-1' for o in queue_resp.data))
