@@ -688,65 +688,49 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* Flexible Brand Bundle Builder (2-4 Items · Same Brand Only · Save 10%) */}
+          {/* Flexible Brand Bundle Builder (2-4 Items · Save 10%) */}
           {bundleItems && bundleItems.length >= 2 && (
-            <div className="bg-gradient-to-br from-cream-100 via-amber-50/50 to-cream-100 p-5 sm:p-6 rounded-3xl border border-amber-200/90 shadow-sm space-y-4">
+            <div className="bg-gradient-to-br from-cream-100 via-amber-50/40 to-cream-100 p-4 sm:p-5 rounded-3xl border border-amber-200/90 shadow-2xs space-y-3.5">
               {/* Header */}
               <div className="flex items-center justify-between gap-2 flex-wrap">
                 <div className="flex items-center gap-2.5">
-                  <span className="p-2 bg-amber-500 text-stone-950 rounded-xl shadow-xs">
+                  <span className="w-8 h-8 rounded-xl bg-amber-400 text-forest-950 flex items-center justify-center shadow-2xs font-bold shrink-0">
                     <Sparkles size={16} />
                   </span>
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-serif font-bold text-stone-900 text-sm sm:text-base">
-                        Curated {product.manufacturer?.business_name || 'Artisan Brand'} Bundle
-                      </h4>
-                      <span className="text-[10px] font-mono font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2 py-0.5 rounded-full">
-                        {bundleItems.length}/4 Jars Selected
-                      </span>
-                    </div>
+                    <h4 className="font-serif font-bold text-stone-900 text-sm sm:text-base leading-tight">
+                      Custom {product.manufacturer?.business_name || 'Brand'} Bundle
+                    </h4>
                     <p className="text-[11px] text-stone-500">
-                      Flexible 2–4 Recipes from this Artisan Brand only · Save 10% Platform Bundle Offer
+                      Mix 2 to 4 jars & get 10% off automatically
                     </p>
                   </div>
                 </div>
-                <span className="bg-chilli-700 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-xs">
-                  Save 10%
+                <span className="bg-amber-400 text-forest-950 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
+                  10% OFF
                 </span>
-              </div>
-
-              {/* Bundle Rule Info Strip */}
-              <div className="flex items-center justify-between text-[11px] bg-amber-100/70 border border-amber-200/80 px-3 py-1.5 rounded-xl text-stone-700">
-                <span>
-                  💡 <strong>Brand Bundle Rule:</strong> Select 2 to 4 items from {product.manufacturer?.business_name || 'this brand'} only. Cut or add items below.
-                </span>
-                <span className="font-bold text-forest-900 hidden sm:inline">Save 10% Bundle Discount</span>
               </div>
 
               {/* Active Bundle Items Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 {bundleItems.map((item, idx) => (
                   <div
                     key={`${item.id}-${idx}`}
-                    className="bg-white p-2.5 sm:p-3 rounded-2xl border-2 border-amber-300/80 text-center space-y-1 relative group shadow-xs hover:border-forest-800 transition-all"
+                    className="bg-white p-2.5 rounded-2xl border border-stone-200/90 text-center space-y-1 relative group shadow-2xs hover:border-forest-700 transition-all flex flex-col justify-between"
                   >
-                    {/* Cut / Remove Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleCutBundleItem(idx)}
-                      disabled={bundleItems.length <= 2}
-                      title={bundleItems.length <= 2 ? 'Minimum 2 items required for 10% brand bundle discount' : 'Cut this item from bundle'}
-                      className={`absolute -top-2 -right-2 z-20 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shadow-md transition-all ${
-                        bundleItems.length <= 2
-                          ? 'bg-stone-200 text-stone-400 cursor-not-allowed opacity-60'
-                          : 'bg-red-500 hover:bg-red-600 active:scale-95 text-white cursor-pointer'
-                      }`}
-                    >
-                      <X size={13} strokeWidth={3} />
-                    </button>
+                    {/* Remove Button */}
+                    {bundleItems.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleCutBundleItem(idx)}
+                        aria-label="Remove item"
+                        className="absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-stone-100 hover:bg-red-500 hover:text-white text-stone-500 flex items-center justify-center text-xs font-bold shadow-xs transition-colors"
+                      >
+                        <X size={12} strokeWidth={2.5} />
+                      </button>
+                    )}
 
-                    <div className="aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1.5">
+                    <div className="aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1">
                       <img
                         src={item.primary_image_url || '/featured-pouches.png'}
                         alt={item.title || 'Pickle Jar'}
@@ -756,75 +740,86 @@ export default function ProductDetailPage() {
                     <p className="font-bold text-[11px] text-stone-900 line-clamp-1 leading-snug" title={item.title}>
                       {item.title}
                     </p>
-                    <p className="text-[11px] text-stone-600 font-bold">
-                      ₹{parseFloat(item.price || 0).toFixed(0)}
-                    </p>
-                    <span className="inline-block text-[9px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                      10% OFF in bundle
-                    </span>
-
-                    {/* Connector '+' between items */}
-                    {idx < bundleItems.length - 1 && (
-                      <span className="hidden sm:flex absolute -right-3 top-1/2 -translate-y-1/2 z-10 w-4 h-4 rounded-full bg-forest-900 text-cream-100 font-black text-[10px] items-center justify-center shadow">
-                        +
+                    <div className="flex items-center justify-center gap-1.5 pt-0.5">
+                      <span className="text-xs font-bold text-stone-950 font-mono">
+                        ₹{Math.round(parseFloat(item.price || 0) * 0.90)}
                       </span>
-                    )}
+                      <span className="text-[10px] text-stone-400 line-through font-mono">
+                        ₹{parseFloat(item.price || 0).toFixed(0)}
+                      </span>
+                    </div>
                   </div>
                 ))}
 
                 {/* Empty Slot Placeholder if bundleItems.length < 4 */}
                 {bundleItems.length < 4 && (
-                  <div className="border-2 border-dashed border-amber-300/80 rounded-2xl p-3 flex flex-col items-center justify-center text-center space-y-1.5 bg-white/40 min-h-[130px]">
-                    <span className="w-7 h-7 rounded-full bg-amber-200/70 text-amber-900 font-black text-xs flex items-center justify-center">
-                      +
+                  <div className="border-2 border-dashed border-stone-300 rounded-2xl p-2.5 flex flex-col items-center justify-center text-center space-y-1 bg-white/40 min-h-[110px]">
+                    <span className="w-6 h-6 rounded-full bg-stone-100 text-stone-600 font-bold text-xs flex items-center justify-center">
+                      <Plus size={13} />
                     </span>
-                    <span className="text-[11px] font-bold text-stone-700">Add Slot</span>
-                    <span className="text-[9px] text-stone-500 leading-tight">
-                      Up to 4 items from {product.manufacturer?.business_name || 'this brand'}
+                    <span className="text-[11px] font-bold text-stone-700">Add Jar</span>
+                    <span className="text-[9.5px] text-stone-400">
+                      Slot {bundleItems.length + 1} of 4
                     </span>
                   </div>
                 )}
               </div>
 
               {/* Add More Items from the Same Brand Picker */}
-              {brandCatalog.length > 0 && bundleItems.length < 4 && (
-                <div className="pt-2 border-t border-amber-200/60 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
-                      <Plus size={14} className="text-amber-700" />
-                      Add more items from {product.manufacturer?.business_name || 'this brand'} (Same Brand Only):
-                    </span>
-                    <span className="text-[10px] text-stone-500">
-                      {4 - bundleItems.length} slot{4 - bundleItems.length > 1 ? 's' : ''} remaining
-                    </span>
+              {(() => {
+                const uniqueBrandCatalog = brandCatalog.reduce((acc, current) => {
+                  const exists = acc.find(
+                    (it) => it.id === current.id || it.title?.toLowerCase() === current.title?.toLowerCase()
+                  );
+                  if (!exists) acc.push(current);
+                  return acc;
+                }, []);
+
+                if (uniqueBrandCatalog.length === 0 || bundleItems.length >= 4) return null;
+
+                return (
+                  <div className="pt-2 border-t border-amber-200/50 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-stone-900">
+                        Add more from {product.manufacturer?.business_name || 'this brand'}:
+                      </span>
+                      <span className="text-[10.5px] font-semibold text-amber-900 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                        {4 - bundleItems.length} slot{4 - bundleItems.length > 1 ? 's' : ''} left
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {uniqueBrandCatalog.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleAddToBundle(opt)}
+                          className="flex items-center justify-between p-2 rounded-xl bg-white border border-stone-200/90 hover:border-forest-700 hover:bg-forest-50/40 active:scale-98 transition-all text-left shadow-2xs group"
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={opt.primary_image_url || '/featured-pouches.png'}
+                              alt={opt.title}
+                              className="w-9 h-9 rounded-lg object-cover shrink-0 bg-stone-100"
+                            />
+                            <div className="min-w-0">
+                              <p className="font-semibold text-stone-900 text-xs truncate">
+                                {opt.title}
+                              </p>
+                              <p className="text-[11px] text-stone-500 font-mono">
+                                +₹{parseFloat(opt.price || 0).toFixed(0)}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="w-6 h-6 rounded-full bg-forest-900 group-hover:bg-forest-950 text-white flex items-center justify-center shrink-0 ml-2 shadow-2xs">
+                            <Plus size={13} strokeWidth={2.5} />
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {brandCatalog.map((opt) => (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => handleAddToBundle(opt)}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-forest-50 hover:border-forest-600 active:scale-98 rounded-xl border border-stone-200 text-left text-xs font-medium text-stone-800 transition-all shadow-2xs group"
-                      >
-                        <img
-                          src={opt.primary_image_url || '/featured-pouches.png'}
-                          alt={opt.title}
-                          className="w-5 h-5 rounded-md object-cover flex-shrink-0"
-                        />
-                        <span className="font-semibold text-stone-900 text-[11px] max-w-[150px] truncate">
-                          {opt.title}
-                        </span>
-                        <span className="text-stone-500 font-mono text-[10px]">
-                          +₹{parseFloat(opt.price || 0).toFixed(0)}
-                        </span>
-                        <span className="w-4 h-4 rounded-full bg-forest-900 text-white font-bold text-[10px] flex items-center justify-center ml-1 group-hover:scale-110 transition-transform">
-                          +
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Summary & Pricing Row */}
               {(() => {
@@ -832,25 +827,25 @@ export default function ProductDetailPage() {
                 const disc = Math.round(orig * 0.90);
                 const save = orig - disc;
                 return (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2 border-t border-amber-200/60">
-                    <div>
-                      <div className="flex items-baseline gap-2">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-amber-200/60">
+                    <div className="text-center sm:text-left">
+                      <div className="flex items-baseline justify-center sm:justify-start gap-2">
                         <span className="text-xl font-serif font-black text-stone-950">₹{disc}</span>
-                        <span className="text-xs text-stone-400 line-through font-serif">₹{orig}</span>
-                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
+                        <span className="text-xs text-stone-400 line-through font-mono">₹{orig}</span>
+                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
                           Save ₹{save} (10% OFF)
                         </span>
                       </div>
-                      <p className="text-[10px] text-stone-500 mt-0.5">Includes free air cargo dispatch & protective bundle packaging</p>
+                      <p className="text-[10px] text-stone-500 mt-0.5">Free air shipping included with bundle packaging</p>
                     </div>
 
                     <button
                       type="button"
                       onClick={handleAddFlexibleBundle}
                       disabled={addingBrandBundle || !isInStock || bundleItems.length < 2 || bundleItems.length > 4}
-                      className={`w-full sm:w-auto px-5 py-2.5 text-xs font-bold rounded-xl shadow flex items-center justify-center gap-1.5 transition-all ${
+                      className={`w-full sm:w-auto px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all ${
                         isInStock && bundleItems.length >= 2 && bundleItems.length <= 4
-                          ? 'bg-forest-900 hover:bg-forest-950 text-white active:scale-98'
+                          ? 'bg-forest-900 hover:bg-forest-950 text-white active:scale-95'
                           : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
                       }`}
                     >
@@ -859,8 +854,8 @@ export default function ProductDetailPage() {
                         {addingBrandBundle
                           ? `Adding ${bundleItems.length}-Jar Bundle...`
                           : !isInStock
-                          ? 'All Product Sold Out'
-                          : `Add ${bundleItems.length}-Jar Brand Bundle`}
+                          ? 'Sold Out'
+                          : `Add ${bundleItems.length}-Jar Bundle · ₹${disc}`}
                       </span>
                     </button>
                   </div>
