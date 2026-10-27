@@ -12,6 +12,7 @@ import { getBrandsFromProducts } from '../utils/brands';
 export default function HomePage() {
   const navigate = useNavigate();
   const [bestsellers, setBestsellers] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,12 +44,15 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [bestData, catData] = await Promise.all([
+        const [bestData, catData, prodData] = await Promise.all([
           api.getBestsellerProducts(),
           api.getCategories(),
+          api.getProducts({ page_size: 24 }),
         ]);
         const bestProducts = bestData?.results || bestData || [];
-        setBestsellers(bestProducts);
+        const allProds = prodData?.results || prodData || [];
+        setBestsellers(bestProducts.length > 0 ? bestProducts : allProds);
+        setAllProducts(allProds);
         setCategories(catData?.results || catData || []);
         try {
           const brandsData = await api.getBrands();
@@ -77,13 +81,23 @@ export default function HomePage() {
     }
   };
 
-  const filteredBestsellers = bestsellers.filter((product) => {
+  // 1. Filter bestsellers matching selected dietary type
+  let displayedBestsellers = bestsellers.filter((product) => {
     if (selectedDietary === 'ALL') return true;
-    if (selectedDietary === 'NON_VEG') return product.dietary_type === 'NON_VEG';
-    if (selectedDietary === 'VEG') return product.dietary_type === 'VEG';
-    if (selectedDietary === 'VEG_MIXED') return product.dietary_type === 'VEG_MIXED';
-    return true;
+    return product.dietary_type === selectedDietary;
   });
+
+  // 2. If no bestsellers in this category, look into all catalog items for this dietary type
+  if (displayedBestsellers.length === 0 && selectedDietary !== 'ALL') {
+    displayedBestsellers = allProducts.filter((product) => product.dietary_type === selectedDietary);
+  }
+
+  // 3. When no bestsellers or items can be predicted for this specific filter (or in a new store),
+  // instead of an empty screen ("No pickles found in this category"), show available artisan favorites!
+  const isFallbackCategory = displayedBestsellers.length === 0;
+  if (isFallbackCategory) {
+    displayedBestsellers = bestsellers.length > 0 ? bestsellers : allProducts;
+  }
 
   return (
     <div>
@@ -197,9 +211,16 @@ export default function HomePage() {
         {/* 5. Mobile Bestsellers Section */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif font-bold text-base text-stone-900">
-              Bestsellers
-            </h2>
+            <div>
+              <h2 className="font-serif font-bold text-base text-stone-900">
+                Bestsellers
+              </h2>
+              {isFallbackCategory && selectedDietary !== 'ALL' && (
+                <p className="text-[10px] text-amber-800 font-medium">
+                  Artisan favorites curated for you
+                </p>
+              )}
+            </div>
             <Link
               to="/products"
               className="text-xs font-semibold text-stone-500 hover:text-stone-900"
@@ -213,8 +234,8 @@ export default function HomePage() {
               [1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-64 rounded-2xl bg-stone-100 animate-pulse" />
               ))
-            ) : filteredBestsellers.length > 0 ? (
-              filteredBestsellers.slice(0, 6).map((product) => (
+            ) : displayedBestsellers.length > 0 ? (
+              displayedBestsellers.slice(0, 6).map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))
             ) : (
@@ -486,7 +507,7 @@ export default function HomePage() {
               ? [1, 2, 3, 4].map((i) => (
                   <div key={i} className="h-96 rounded-2xl bg-stone-100 animate-pulse" />
                 ))
-              : bestsellers.slice(0, 8).map((product) => (
+              : (bestsellers.length > 0 ? bestsellers : allProducts).slice(0, 8).map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))
             }

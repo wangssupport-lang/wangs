@@ -581,7 +581,28 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def bestsellers(self, request):
-        bestsellers = self.get_queryset().filter(is_bestseller=True)[:8]
+        base_qs = Product.objects.filter(
+            is_active=True,
+            status=Product.Status.APPROVED,
+            manufacturer__status=ManufacturerProfile.Status.APPROVED
+        ).select_related('category', 'manufacturer').prefetch_related('images')
+
+        dietary_type = request.query_params.get('dietary_type')
+        filtered_qs = base_qs
+        if dietary_type:
+            filtered_qs = base_qs.filter(dietary_type=dietary_type)
+
+        bestsellers = list(filtered_qs.filter(is_bestseller=True)[:8])
+        if len(bestsellers) < 6:
+            # Fallback to featured or active products when no bestsellers can be predicted yet
+            existing_ids = [p.id for p in bestsellers]
+            fallback = list(filtered_qs.exclude(id__in=existing_ids).order_by('-is_featured', '-created_at')[: (8 - len(bestsellers))])
+            bestsellers.extend(fallback)
+
+        # If a specific dietary filter had zero items, fall back to overall active products so storefront is never empty
+        if not bestsellers:
+            bestsellers = list(base_qs.order_by('-is_featured', '-is_bestseller', '-created_at')[:8])
+
         return Response(ProductSerializer(bestsellers, many=True).data)
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
