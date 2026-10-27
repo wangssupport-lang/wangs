@@ -20,7 +20,14 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [searchFocused, setSearchFocused] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
   const [brands, setBrands] = useState([]);
+
+  // Auto-close open menus on page change
+  useEffect(() => {
+    setMobileProfileOpen(false);
+    setUserDropdownOpen(false);
+  }, [location.pathname]);
 
   // Detect whether this client/device has a registered seller account
   const [isRegisteredSellerDevice, setIsRegisteredSellerDevice] = useState(() => {
@@ -181,16 +188,106 @@ export default function Navbar() {
 
           {/* Right Action Icons */}
           <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Mobile Actions (Matching Screenshot): Circular Wishlist & Circular Cart */}
+            {/* Mobile Actions: Circular Profile Logo & Circular Cart */}
             <div className="flex md:hidden items-center gap-2">
-              <Link
-                to="/account"
-                className="w-9 h-9 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:text-stone-900 active:scale-95 transition-all"
-                aria-label="Wishlist"
-                title="Wishlist"
-              >
-                <Heart size={18} className="text-stone-700" />
-              </Link>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setMobileProfileOpen(!mobileProfileOpen)}
+                  className={`w-9 h-9 rounded-full flex items-center justify-center shadow-2xs active:scale-95 transition-all ${
+                    user
+                      ? 'bg-forest-900 text-white font-bold text-xs'
+                      : 'bg-white border border-stone-200 text-stone-700 hover:text-stone-950'
+                  }`}
+                  aria-label="User Profile"
+                  title={user ? `${user.first_name || user.username}` : 'Profile & Account'}
+                >
+                  {user ? (
+                    <span>{(user.first_name || user.username || 'U')[0].toUpperCase()}</span>
+                  ) : (
+                    <User size={17} className="text-stone-700" />
+                  )}
+                </button>
+
+                {/* Mobile Profile Dropdown (User Info, Track Item, Logout) */}
+                {mobileProfileOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40 bg-black/15"
+                      onClick={() => setMobileProfileOpen(false)}
+                    />
+                    <div className="absolute right-0 top-11 w-64 bg-white rounded-2xl shadow-2xl border border-stone-200 z-50 overflow-hidden text-xs animate-in fade-in zoom-in-95">
+                      {/* User Info */}
+                      {user ? (
+                        <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                            {(user.first_name || user.username || 'U')[0].toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-bold text-stone-900 truncate">
+                              {user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}
+                            </p>
+                            <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 space-y-2">
+                          <p className="font-bold text-stone-900">Welcome to Wangs</p>
+                          <p className="text-[11px] text-stone-500">Sign in to track orders and save your address</p>
+                          <Link
+                            to="/login"
+                            onClick={() => setMobileProfileOpen(false)}
+                            className="block text-center w-full py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-2xs"
+                          >
+                            Sign In / Register
+                          </Link>
+                        </div>
+                      )}
+
+                      {/* Track Item & Orders */}
+                      <Link
+                        to="/account"
+                        onClick={() => setMobileProfileOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-stone-800 hover:bg-stone-50 transition-colors font-medium border-b border-stone-100"
+                      >
+                        <Package size={16} className="text-forest-700 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="font-semibold text-stone-900">Track Item & Orders</p>
+                          <p className="text-[10px] text-stone-500">Live order shipment status</p>
+                        </div>
+                      </Link>
+
+                      {/* Seller space if registered */}
+                      {isManufacturer ? (
+                        <Link
+                          to="/manufacturer"
+                          onClick={() => setMobileProfileOpen(false)}
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-50 transition-colors border-b border-stone-100"
+                        >
+                          <Store size={15} className="text-forest-700 shrink-0" />
+                          <span>Seller Dashboard</span>
+                        </Link>
+                      ) : null}
+
+                      {/* Logout */}
+                      {user && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileProfileOpen(false);
+                            logout();
+                            navigate('/');
+                          }}
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors font-semibold"
+                        >
+                          <LogOut size={15} className="shrink-0" />
+                          <span>Sign Out</span>
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
 
               <button
                 onClick={() => setIsDrawerOpen(true)}
