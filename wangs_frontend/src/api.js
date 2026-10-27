@@ -97,8 +97,9 @@ export const api = {
   getManufacturerProducts: () => apiRequest('/manufacturer/products/'),
   createManufacturerProduct: (payload) => apiRequest('/manufacturer/products/', { method: 'POST', body: JSON.stringify(payload) }),
   updateManufacturerProduct: (id, payload) => apiRequest(`/manufacturer/products/${id}/`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteManufacturerProduct: (id) => apiRequest(`/manufacturer/products/${id}/`, { method: 'DELETE' }),
   getManufacturerOrders: () => apiRequest('/manufacturer/orders/'),
-  updateFulfillmentStatus: (orderItemId, status) => apiRequest('/manufacturer/orders/', { method: 'PATCH', body: JSON.stringify({ order_item_id: orderItemId, fulfillment_status: status }) }),
+  updateFulfillmentStatus: (orderItemId, status, extra = {}) => apiRequest('/manufacturer/orders/', { method: 'PATCH', body: JSON.stringify({ order_item_id: orderItemId, fulfillment_status: status, ...extra }) }),
   getManufacturerFinancials: () => apiRequest('/manufacturer/financials/'),
 
   // Platform Public Configuration
@@ -144,7 +145,7 @@ export const api = {
   toggleAdminMaintenanceMode: (payload = {}) => apiRequest('/admin/toggle-maintenance-mode/', { method: 'POST', body: JSON.stringify(payload) }),
   getAdminSellerRequests: () => apiRequest('/admin/seller-requests/'),
   approveAdminSellerRequest: (email) => apiRequest('/admin/seller-requests/', { method: 'POST', body: JSON.stringify({ email }) }),
-  deleteAdminSellerRequest: (id) => apiRequest('/admin/seller-requests/', { method: 'DELETE', body: JSON.stringify({ id }) }),
+  deleteAdminSellerRequest: (payload) => apiRequest('/admin/seller-requests/', { method: 'DELETE', body: JSON.stringify(typeof payload === 'object' && payload !== null ? payload : { id: payload }) }),
   getAdminManufacturers: () => apiRequest('/admin/manufacturers/'),
   updateManufacturerStatus: (id, status, notes = '') => apiRequest(`/admin/manufacturers/${id}/update_status/`, { method: 'POST', body: JSON.stringify({ status, admin_review_notes: notes }) }),
   toggleManufacturerFeatured: (id, payload = {}) => apiRequest(`/admin/manufacturers/${id}/toggle_featured/`, { method: 'POST', body: JSON.stringify(payload) }),

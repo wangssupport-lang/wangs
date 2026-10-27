@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
-  Home, LogOut, Download
+  Home, LogOut, Download, Copy, Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -24,6 +24,8 @@ export default function AdminDashboardPage() {
   const toast = useToast();
 
   const [adminLoginForm, setAdminLoginForm] = useState({ username: 'admin', password: '' });
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
+  const [sessionError, setSessionError] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
   const [togglingSellerReg, setTogglingSellerReg] = useState(false);
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
@@ -56,6 +58,26 @@ export default function AdminDashboardPage() {
   const [downloadingResearch, setDownloadingResearch] = useState(null); // 'pdf', 'all', 'customers', 'sellers', 'products'
   const [pendingSearch, setPendingSearch] = useState('');
   const [approvingEmail, setApprovingEmail] = useState('');
+  const [inspectingRequest, setInspectingRequest] = useState(null);
+  const [batchApproving, setBatchApproving] = useState(false);
+  const [copiedText, setCopiedText] = useState('');
+
+  // Seller Product Upload Notifications State
+  const [dismissedProductNotifs, setDismissedProductNotifs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('wangs_dismissed_prod_notifs') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  const handleDismissProductNotif = (id) => {
+    const next = [...dismissedProductNotifs, id];
+    setDismissedProductNotifs(next);
+    try {
+      localStorage.setItem('wangs_dismissed_prod_notifs', JSON.stringify(next));
+    } catch {}
+  };
 
   // Commission Edit Form State
   const [commForm, setCommForm] = useState({
@@ -66,17 +88,51 @@ export default function AdminDashboardPage() {
     reason: '',
   });
 
+  const checkIsAuthError = (err) => {
+    const msg = (err?.message || '').toLowerCase();
+    return msg.includes('permission') || msg.includes('403') || msg.includes('401') || msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not authenticated');
+  };
+
   const loadAdminData = async () => {
     setLoading(true);
+    setSessionError(null);
     try {
       const [met, mfgs, prods, ords, comm, stl, logs, usrs, reqs, subs] = await Promise.all([
-        api.getAdminMetrics(),
-        api.getAdminManufacturers(),
-        api.getAdminProducts(),
-        api.getAdminOrders(),
-        api.getCommissionSettings(),
-        api.getSettlements(),
-        api.getAuditLogs(),
+        api.getAdminMetrics().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Metrics failed', err);
+          return null;
+        }),
+        api.getAdminManufacturers().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Manufacturers failed', err);
+          return [];
+        }),
+        api.getAdminProducts().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Products failed', err);
+          return [];
+        }),
+        api.getAdminOrders().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Orders failed', err);
+          return [];
+        }),
+        api.getCommissionSettings().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Commission failed', err);
+          return null;
+        }),
+        api.getSettlements().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Settlements failed', err);
+          return null;
+        }),
+        api.getAuditLogs().catch((err) => {
+          if (checkIsAuthError(err)) throw err;
+          console.warn('Audit logs failed', err);
+          return [];
+        }),
         api.getAdminUsers().catch(() => []),
         api.getAdminSellerRequests().catch(() => []),
         api.getMaintenanceSubscribers().catch(() => []),
@@ -103,6 +159,11 @@ export default function AdminDashboardPage() {
       }
     } catch (err) {
       console.error('Failed to load admin dashboard', err);
+      if (checkIsAuthError(err)) {
+        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
+      } else {
+        toast.error(err.message || 'Error loading administration data');
+      }
     } finally {
       setLoading(false);
     }
@@ -115,12 +176,33 @@ export default function AdminDashboardPage() {
   }, [isAdmin]);
 
   const handleAdminLogin = async (e) => {
-    e.preventDefault();
+    if (e?.preventDefault) e.preventDefault();
     setLoggingIn(true);
     try {
       const u = await login(adminLoginForm.username, adminLoginForm.password);
-      if (u.role === 'ADMIN' || u.is_staff) {
+      if (u.role === 'ADMIN' || u.is_staff || u.is_superuser) {
+        setSessionError(null);
         toast.success(`Welcome to Wangs Admin Space, ${u.username}`);
+        await loadAdminData();
+      } else {
+        toast.error('This account does not have Superadmin privileges.');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Invalid administrator credentials');
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const handleQuickAdminLogin = async () => {
+    setLoggingIn(true);
+    try {
+      setAdminLoginForm({ username: 'admin', password: 'admin12345' });
+      const u = await login('admin', 'admin12345');
+      if (u.role === 'ADMIN' || u.is_staff || u.is_superuser) {
+        setSessionError(null);
+        toast.success(`Welcome to Wangs Admin Space, ${u.username}`);
+        await loadAdminData();
       } else {
         toast.error('This account does not have Superadmin privileges.');
       }
@@ -372,16 +454,48 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleDeleteSellerRequest = async (id, businessName = 'this application') => {
+  const handleDeleteSellerRequest = async (id, businessName = 'this application', email = '') => {
     if (!window.confirm(`Are you sure you want to dismiss/remove the seller request for "${businessName}" from queue?`)) return;
     try {
-      await api.deleteAdminSellerRequest(id);
+      await api.deleteAdminSellerRequest({ id, email });
       toast.success(`Seller request for "${businessName}" removed from queue.`);
-      setSellerRequests((prev) => prev.filter((r) => r.id !== id));
-      loadAdminData();
+      setSellerRequests((prev) => prev.filter((r) => r.id !== id && (!email || (r.email || '').toLowerCase() !== email.toLowerCase())));
+      await loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Failed to remove seller request');
     }
+  };
+
+  const handleApproveAllPending = async () => {
+    const pending = sellerRequestsList.filter((r) => !r.is_authorized);
+    if (!pending.length) {
+      toast.info('No pending seller applications to authorize.');
+      return;
+    }
+    if (!window.confirm(`Authorize and dispatch official onboarding invitations to all ${pending.length} pending seller applicants?`)) return;
+    setBatchApproving(true);
+    let successCount = 0;
+    for (const req of pending) {
+      try {
+        await api.approveAdminSellerRequest(req.email);
+        successCount++;
+      } catch (err) {
+        console.error('Failed to approve seller applicant:', req.email, err);
+      }
+    }
+    setBatchApproving(false);
+    toast.success(`Successfully authorized and invited ${successCount} seller partner(s)!`);
+    await loadAdminData();
+  };
+
+  const handleCopyText = (text, label = 'Copied') => {
+    if (!text) return;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text);
+    }
+    setCopiedText(text);
+    setTimeout(() => setCopiedText(''), 2000);
+    toast.success(`${label} copied to clipboard!`);
   };
 
   const handleDeleteSubscriber = async (id) => {
@@ -420,7 +534,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin || sessionError) {
     return (
       <div className="min-h-[75vh] flex items-center justify-center px-4 py-12 bg-cream-50">
         <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 shadow-2xl border border-stone-200/90 space-y-6">
@@ -439,6 +553,30 @@ export default function AdminDashboardPage() {
             </p>
           </div>
 
+          {sessionError && (
+            <div className="p-3.5 bg-red-50 rounded-2xl border border-red-200 text-xs text-red-900 flex items-start gap-2.5">
+              <AlertCircle size={16} className="text-red-700 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">{sessionError}</p>
+            </div>
+          )}
+
+          {user && (user.role !== 'ADMIN' && !user.is_staff && !user.is_superuser) && (
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold flex items-center gap-1.5">
+                  <AlertCircle size={14} className="text-amber-700" />
+                  Currently signed in as:
+                </span>
+                <span className="font-mono font-bold bg-amber-200/70 text-amber-950 px-2 py-0.5 rounded text-[11px]">
+                  {user.username} ({user.role === 'MANUFACTURER' ? 'Artisan Seller' : user.role})
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-normal">
+                This account lacks Superadmin privileges. Please authenticate below with administrator credentials (or click <strong>1-Click Sign In</strong>) to enter /wangadminspace.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
             <div>
               <label className="block text-stone-700 font-bold mb-1">Administrator Username</label>
@@ -454,14 +592,25 @@ export default function AdminDashboardPage() {
 
             <div>
               <label className="block text-stone-700 font-bold mb-1">Administrator Password</label>
-              <input
-                type="password"
-                required
-                value={adminLoginForm.password}
-                onChange={(e) => setAdminLoginForm({ ...adminLoginForm, password: e.target.value })}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest-800"
-              />
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? 'text' : 'password'}
+                  required
+                  value={adminLoginForm.password}
+                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full pl-4 pr-11 py-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                  title={showAdminPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
             </div>
 
             <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
@@ -469,19 +618,29 @@ export default function AdminDashboardPage() {
                 <span className="font-bold block">Developer / Admin Access:</span>
                 <span className="font-mono text-stone-600">admin / admin12345</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
-                className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors"
-              >
-                Auto-Fill
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
+                  className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  Auto-Fill
+                </button>
+                <button
+                  type="button"
+                  disabled={loggingIn}
+                  onClick={handleQuickAdminLogin}
+                  className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black rounded-lg shadow-xs transition-colors cursor-pointer"
+                >
+                  1-Click Sign In
+                </button>
+              </div>
             </div>
 
             <button
               type="submit"
               disabled={loggingIn}
-              className="w-full py-3.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs active:scale-98"
+              className="w-full py-3.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs active:scale-98 cursor-pointer"
             >
               <Shield size={15} />
               <span>{loggingIn ? 'Authenticating...' : 'Authenticate & Enter /wangadminspace'}</span>
@@ -523,6 +682,10 @@ export default function AdminDashboardPage() {
   const authorizedSellerRequests = sellerRequestsList.filter((r) => r.is_authorized);
   const pendingMfgProfiles = manufacturersList.filter((m) => m.status === 'PENDING');
   const totalYetToApprove = pendingSellerRequests.length + pendingMfgProfiles.length;
+
+  // New Seller Product Upload Notifications
+  const recentSellerProductLogs = auditLogsList.filter((log) => log.action === 'SELLER_PRODUCT_PUBLISHED');
+  const activeProductNotifications = recentSellerProductLogs.filter((log) => !dismissedProductNotifs.includes(log.id));
 
   const filteredPendingRequests = sellerRequestsList.filter((req) => {
     const q = pendingSearch.trim().toLowerCase();
@@ -661,6 +824,93 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
+      {/* Seller Product Upload Notifications (Self-Published Live without Admin Approval) */}
+      {activeProductNotifications.length > 0 && (
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/70 border-2 border-emerald-400 shadow-xs flex flex-col gap-3 animate-fade-in">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shadow-xs">
+                <Package size={18} />
+              </span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-serif font-bold text-sm sm:text-base text-forest-950">
+                    New Seller Product Upload Notification ({activeProductNotifications.length})
+                  </h3>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider">
+                    Live on Storefront
+                  </span>
+                </div>
+                <p className="text-[11px] text-stone-600 mt-0.5">
+                  Authorized sellers publish recipes directly without admin delay. You can review and inspect live batches here.
+                </p>
+              </div>
+            </div>
+            {activeProductNotifications.length > 1 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const allIds = activeProductNotifications.map((l) => l.id);
+                  const next = [...new Set([...dismissedProductNotifs, ...allIds])];
+                  setDismissedProductNotifs(next);
+                  try {
+                    localStorage.setItem('wangs_dismissed_prod_notifs', JSON.stringify(next));
+                  } catch {}
+                }}
+                className="text-[11px] text-stone-500 hover:text-stone-800 underline font-semibold cursor-pointer"
+              >
+                Dismiss All
+              </button>
+            )}
+          </div>
+
+          <div className="divide-y divide-emerald-200/60 text-xs">
+            {activeProductNotifications.slice(0, 4).map((notif) => {
+              const d = notif.details || {};
+              return (
+                <div key={notif.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-0.5">
+                    <p className="font-bold text-stone-900 text-xs sm:text-sm">
+                      <strong className="text-forest-900">{d.business_name || notif.username}</strong> uploaded recipe: <span className="text-emerald-950 font-black">"{d.product_title}"</span>
+                    </p>
+                    <p className="text-[11px] text-stone-600">
+                      Customer Price: <span className="font-bold text-forest-900">₹{d.price}</span> (Base Payout: ₹{d.base_price}) · Stock: <span className="font-bold text-stone-800">{d.stock_quantity}</span> jars · Category: {d.category} · Time: {new Date(notif.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('products')}
+                      className="px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                    >
+                      View in Catalog
+                    </button>
+                    {d.slug && (
+                      <a
+                        href={`/product/${d.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-forest-900 border border-emerald-300 rounded-lg font-bold text-xs transition-colors cursor-pointer"
+                      >
+                        Inspect Storefront ↗
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => handleDismissProductNotif(notif.id)}
+                      className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                      title="Dismiss notification"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Admin Nav Tabs */}
       <div className="border-b border-stone-200 mb-8 flex flex-wrap gap-3 sm:gap-4 text-xs font-bold text-stone-600">
         {[
@@ -673,7 +923,12 @@ export default function AdminDashboardPage() {
           },
           { id: 'manufacturers', label: `Manufacturers (${manufacturersList.length})` },
           { id: 'users', label: `Users & Customers (${metrics?.total_users ?? usersList.length})` },
-          { id: 'products', label: `Catalog Moderation (${productsList.length})` },
+          {
+            id: 'products',
+            label: `Catalog Moderation (${productsList.length})`,
+            badge: activeProductNotifications.length,
+            isNotice: activeProductNotifications.length > 0,
+          },
           { id: 'orders', label: `Orders (${ordersList.length})` },
           { id: 'commission', label: 'Commission & Fees' },
           { id: 'settlements', label: 'Payout Settlements' },
@@ -692,7 +947,11 @@ export default function AdminDashboardPage() {
             <span>{tab.label}</span>
             {tab.badge > 0 && (
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                tab.isAlert ? 'bg-amber-500 text-white shadow-2xs animate-pulse' : 'bg-stone-200 text-stone-700'
+                tab.isAlert
+                  ? 'bg-amber-500 text-white shadow-2xs animate-pulse'
+                  : tab.isNotice
+                  ? 'bg-emerald-700 text-white shadow-2xs'
+                  : 'bg-stone-200 text-stone-700'
               }`}>
                 {tab.badge}
               </span>
@@ -1057,13 +1316,13 @@ export default function AdminDashboardPage() {
         <div className="space-y-6 text-xs">
           {/* Header Card */}
           <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 sm:p-7 rounded-3xl border border-forest-800 shadow-xl space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex items-center gap-3.5">
                 <span className="p-3 bg-amber-400 text-forest-950 rounded-2xl shadow-sm shrink-0">
                   <Store size={26} />
                 </span>
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <h2 className="font-serif font-bold text-xl text-white">
                       Yet to be Approved · Inbound Seller Applications
                     </h2>
@@ -1080,54 +1339,112 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              <button
-                onClick={loadAdminData}
-                className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-xl font-bold flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
-              >
-                <RefreshCw size={13} />
-                <span>Refresh Requests</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                {pendingSellerRequests.length > 0 && (
+                  <button
+                    type="button"
+                    disabled={batchApproving}
+                    onClick={handleApproveAllPending}
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-forest-950 rounded-xl font-bold flex items-center gap-1.5 transition-all shadow-sm hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <CheckCircle size={14} className={batchApproving ? 'animate-spin' : ''} />
+                    <span>{batchApproving ? 'Approving All...' : `Approve All (${pendingSellerRequests.length})`}</span>
+                  </button>
+                )}
+                <button
+                  onClick={loadAdminData}
+                  className="px-3.5 py-2 bg-white/10 hover:bg-white/15 text-white border border-white/20 rounded-xl font-bold flex items-center gap-1.5 transition-colors shrink-0 cursor-pointer"
+                >
+                  <RefreshCw size={13} />
+                  <span>Refresh</span>
+                </button>
+              </div>
             </div>
 
-            {/* Quick Metrics */}
+            {/* Quick Metrics (Clickable Filters) */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-forest-800/80">
-              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+              <button
+                type="button"
+                onClick={() => setPendingTabFilter('PENDING')}
+                className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer ${
+                  pendingTabFilter === 'PENDING'
+                    ? 'bg-amber-500/25 border-2 border-amber-400 ring-2 ring-amber-400/30'
+                    : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
+                }`}
+              >
                 <span className="text-[11px] text-amber-300 block font-semibold">Awaiting Authorization</span>
                 <span className="text-2xl font-bold text-white mt-0.5 block">{pendingSellerRequests.length}</span>
                 <span className="text-[10px] text-forest-300">Immediate action needed</span>
-              </div>
-              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPendingTabFilter('AUTHORIZED')}
+                className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer ${
+                  pendingTabFilter === 'AUTHORIZED'
+                    ? 'bg-emerald-500/25 border-2 border-emerald-400 ring-2 ring-emerald-400/30'
+                    : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
+                }`}
+              >
                 <span className="text-[11px] text-emerald-300 block font-semibold">Authorized & Invited</span>
                 <span className="text-2xl font-bold text-white mt-0.5 block">{authorizedSellerRequests.length}</span>
                 <span className="text-[10px] text-forest-300">Seller portal links sent</span>
-              </div>
-              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPendingTabFilter('PROFILES')}
+                className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer ${
+                  pendingTabFilter === 'PROFILES'
+                    ? 'bg-amber-500/25 border-2 border-amber-400 ring-2 ring-amber-400/30'
+                    : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
+                }`}
+              >
                 <span className="text-[11px] text-cream-300 block font-semibold">Pending Profiles</span>
                 <span className="text-2xl font-bold text-white mt-0.5 block">{pendingMfgProfiles.length}</span>
-                <span className="text-[10px] text-forest-300">FSSAI document review</span>
-              </div>
-              <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800">
+                <span className="text-[10px] text-forest-300">FSSAI compliance review</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPendingTabFilter('ALL')}
+                className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer ${
+                  pendingTabFilter === 'ALL'
+                    ? 'bg-cream-100/25 border-2 border-cream-200 ring-2 ring-cream-200/30'
+                    : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
+                }`}
+              >
                 <span className="text-[11px] text-cream-300 block font-semibold">Total Requests Logged</span>
                 <span className="text-2xl font-bold text-white mt-0.5 block">{sellerRequestsList.length}</span>
                 <span className="text-[10px] text-forest-300">Lifetime queue</span>
-              </div>
+              </button>
             </div>
           </div>
 
           {/* Sub-Filters and Search */}
-          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="relative w-full sm:w-80">
+          <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="relative w-full md:max-w-md">
               <input
                 type="text"
                 value={pendingSearch}
                 onChange={(e) => setPendingSearch(e.target.value)}
-                placeholder="Search by business name, email, phone, district, or FSSAI..."
-                className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-forest-800 font-medium"
+                placeholder="Search business name, email, phone, district, FSSAI..."
+                className="w-full pl-9 pr-8 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-forest-800 font-medium"
               />
               <Search size={14} className="absolute left-3 top-2.5 text-stone-400" />
+              {pendingSearch && (
+                <button
+                  type="button"
+                  onClick={() => setPendingSearch('')}
+                  className="absolute right-2.5 top-2.5 text-stone-400 hover:text-stone-600 cursor-pointer"
+                  title="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5 bg-stone-100 p-1 rounded-xl w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-1.5 bg-stone-100 p-1 rounded-xl w-full md:w-auto">
               {[
                 { id: 'PENDING', label: `Pending Review (${pendingSellerRequests.length})`, isAlert: pendingSellerRequests.length > 0 },
                 { id: 'ALL', label: `All Requests (${sellerRequestsList.length})` },
@@ -1155,104 +1472,190 @@ export default function AdminDashboardPage() {
           {/* Table of Inbound Applications */}
           {pendingTabFilter !== 'PROFILES' && (
             <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-stone-100 flex items-center justify-between">
-                <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-forest-800" />
-                  <span>Inbound Seller Authorization Applications ({filteredPendingRequests.length})</span>
-                </h3>
-                <span className="text-[11px] text-stone-400">
-                  {filteredPendingRequests.filter((r) => !r.is_authorized).length} action pending
-                </span>
+              <div className="p-4 border-b border-stone-100 flex flex-wrap items-center justify-between gap-2 bg-stone-50/60">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-forest-800" />
+                  <h3 className="font-serif font-bold text-sm text-stone-900">
+                    Inbound Seller Authorization Applications
+                  </h3>
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-stone-200 text-stone-700">
+                    {filteredPendingRequests.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-[11px]">
+                  <span className="text-amber-800 font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                    <span>{filteredPendingRequests.filter((r) => !r.is_authorized).length} action pending</span>
+                  </span>
+                </div>
               </div>
 
               {filteredPendingRequests.length === 0 ? (
                 <div className="py-16 text-center text-stone-500 space-y-2">
-                  <CheckCircle2 size={36} className="text-emerald-600 mx-auto" />
+                  <CheckCircle2 size={38} className="text-emerald-600 mx-auto" />
                   <p className="font-serif font-bold text-sm text-stone-800">No requests matching this view</p>
                   <p className="text-xs text-stone-400">All inbound seller authorization requests have been processed.</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead className="bg-cream-100 border-b border-stone-200 text-stone-700">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-stone-50/90 border-b border-stone-200 text-stone-600 uppercase text-[10px] tracking-wider font-bold">
                       <tr>
-                        <th className="p-3.5">Business / Brand</th>
-                        <th className="p-3.5">Applicant Contact</th>
-                        <th className="p-3.5">Location</th>
-                        <th className="p-3.5">FSSAI License</th>
-                        <th className="p-3.5">Message / Pitch</th>
-                        <th className="p-3.5">Submitted</th>
-                        <th className="p-3.5">Status</th>
-                        <th className="p-3.5 text-right">Admin Action</th>
+                        <th className="py-3 px-4 min-w-[180px]">Business & Brand</th>
+                        <th className="py-3 px-4 min-w-[210px]">Applicant Contact</th>
+                        <th className="py-3 px-4 min-w-[180px] max-w-[260px]">Artisan Pitch</th>
+                        <th className="py-3 px-4 min-w-[120px]">Submitted</th>
+                        <th className="py-3 px-4 min-w-[130px]">Status</th>
+                        <th className="py-3 px-4 min-w-[180px] text-right sticky right-0 bg-stone-50/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10">
+                          Admin Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-100">
                       {filteredPendingRequests.map((req) => (
-                        <tr key={req.id} className={`hover:bg-cream-50/50 transition-colors ${!req.is_authorized ? 'bg-amber-50/40' : ''}`}>
-                          <td className="p-3.5">
-                            <div className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
-                              <Store size={14} className="text-amber-600 shrink-0" />
-                              <span>{req.business_name}</span>
-                            </div>
-                            <span className="text-[10px] text-stone-400 font-mono">Request #{req.id}</span>
-                          </td>
-                          <td className="p-3.5">
-                            <p className="font-mono text-xs text-forest-900 font-bold select-all">{req.email}</p>
-                            <p className="text-[11px] text-stone-500">{req.phone || 'No phone provided'}</p>
-                          </td>
-                          <td className="p-3.5 text-stone-700 font-medium">
-                            {req.location_district || '—'}
-                          </td>
-                          <td className="p-3.5">
-                            {req.fssai_number ? (
-                              <span className="font-mono text-[11px] bg-stone-100 px-2 py-0.5 rounded border border-stone-200 text-stone-800">
-                                {req.fssai_number}
+                        <tr
+                          key={req.id}
+                          className={`hover:bg-cream-50/60 transition-colors group ${
+                            !req.is_authorized ? 'bg-amber-50/25' : ''
+                          }`}
+                        >
+                          {/* Column 1: Business & Brand */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-start gap-2.5">
+                              <span className="w-8 h-8 rounded-xl bg-amber-100/80 border border-amber-200 text-amber-800 flex items-center justify-center shrink-0 mt-0.5 font-serif font-bold text-xs shadow-2xs">
+                                <Store size={15} className="text-amber-700" />
                               </span>
-                            ) : (
-                              <span className="text-stone-400">—</span>
+                              <div className="space-y-1">
+                                <span className="font-bold text-stone-900 text-xs block group-hover:text-forest-900 transition-colors">
+                                  {req.business_name || 'Artisan Producer'}
+                                </span>
+                                <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                                  <span className="font-mono text-stone-400 bg-stone-100 px-1.5 py-0.5 rounded border border-stone-200/60">
+                                    #{req.id}
+                                  </span>
+                                  {req.location_district && (
+                                    <span className="text-stone-600 flex items-center gap-0.5 bg-stone-100/70 px-1.5 py-0.5 rounded border border-stone-200/50">
+                                      <MapPin size={9} className="text-stone-400" />
+                                      <span>{req.location_district}</span>
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Column 2: Contact & Credentials */}
+                          <td className="py-3.5 px-4">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono text-xs text-forest-950 font-bold select-all truncate max-w-[180px]">
+                                  {req.email}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCopyText(req.email, 'Email')}
+                                  className="text-stone-400 hover:text-forest-800 p-0.5 transition-colors cursor-pointer"
+                                  title="Copy email address"
+                                >
+                                  {copiedText === req.email ? <Check size={11} className="text-emerald-600" /> : <Copy size={11} />}
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                                {req.phone ? (
+                                  <span className="text-stone-500 font-mono text-[10px]">
+                                    {req.phone}
+                                  </span>
+                                ) : (
+                                  <span className="text-stone-400 text-[10px] italic">No phone</span>
+                                )}
+                                {req.fssai_number && (
+                                  <span
+                                    className="font-mono text-[10px] bg-emerald-50 text-emerald-800 px-1.5 py-0.5 rounded border border-emerald-200 flex items-center gap-1"
+                                    title="FSSAI License"
+                                  >
+                                    <Shield size={9} className="text-emerald-600" />
+                                    <span>{req.fssai_number}</span>
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Column 3: Artisan Pitch / Message (No more overflow with break-all) */}
+                          <td className="py-3.5 px-4 max-w-[260px]">
+                            <p
+                              className="text-[11px] text-stone-600 line-clamp-2 break-all break-words cursor-pointer hover:text-stone-900 transition-colors leading-relaxed"
+                              onClick={() => setInspectingRequest(req)}
+                              title="Click to read full application message"
+                            >
+                              {req.message || <span className="text-stone-400 italic">No additional pitch note provided.</span>}
+                            </p>
+                            {req.message && req.message.length > 40 && (
+                              <button
+                                type="button"
+                                onClick={() => setInspectingRequest(req)}
+                                className="text-[10px] font-bold text-forest-800 hover:underline mt-0.5 cursor-pointer block"
+                              >
+                                View full pitch →
+                              </button>
                             )}
                           </td>
-                          <td className="p-3.5 max-w-[220px]">
-                            <p className="text-[11px] text-stone-600 line-clamp-2" title={req.message}>
-                              {req.message || 'No additional message.'}
-                            </p>
+
+                          {/* Column 4: Submitted */}
+                          <td className="py-3.5 px-4 text-stone-500 text-[11px] whitespace-nowrap">
+                            <span className="font-medium text-stone-700 block">
+                              {req.created_at ? new Date(req.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </span>
+                            <span className="text-[10px] text-stone-400 font-mono block">
+                              {req.created_at ? new Date(req.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
                           </td>
-                          <td className="p-3.5 text-stone-500 text-[11px] whitespace-nowrap">
-                            {req.created_at ? new Date(req.created_at).toLocaleString() : '—'}
-                          </td>
-                          <td className="p-3.5 whitespace-nowrap">
+
+                          {/* Column 5: Status */}
+                          <td className="py-3.5 px-4 whitespace-nowrap">
                             {req.is_authorized ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-bold border border-emerald-200 shadow-2xs">
                                 <CheckCircle size={12} className="text-emerald-600" />
                                 <span>Authorized & Invited</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold border border-amber-300 animate-pulse">
-                                <Clock size={12} className="text-amber-600" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-800 text-[10px] font-bold border border-amber-300/80 shadow-2xs">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
                                 <span>Yet to be Approved</span>
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-2">
+
+                          {/* Column 6: Admin Actions (STICKY RIGHT - NEVER CUT OFF) */}
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap sticky right-0 bg-white/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10 group-hover:bg-cream-50/95 transition-colors">
+                            <div className="flex items-center justify-end gap-1.5">
                               {!req.is_authorized ? (
                                 <>
                                   <button
                                     type="button"
                                     disabled={approvingEmail === req.email}
                                     onClick={() => handleApproveSellerRequest(req.email)}
-                                    className="px-3.5 py-1.5 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs shadow-xs hover:scale-105 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                                    className="px-3 py-1.5 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs shadow-xs hover:scale-102 active:scale-98 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
+                                    title={`Approve ${req.business_name} and send onboarding email`}
                                   >
-                                    <CheckCircle size={13} className="text-emerald-400" />
+                                    <CheckCircle size={13} className={approvingEmail === req.email ? 'animate-spin text-emerald-400' : 'text-emerald-400'} />
                                     <span>{approvingEmail === req.email ? 'Sending...' : 'Approve & Send Email'}</span>
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteSellerRequest(req.id, req.business_name)}
-                                    className="px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-500 hover:text-red-700 font-semibold text-xs border border-stone-200 hover:border-red-200 transition-colors cursor-pointer"
-                                    title="Dismiss/Delete application"
+                                    onClick={() => setInspectingRequest(req)}
+                                    className="p-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 transition-colors cursor-pointer"
+                                    title="Inspect full application"
                                   >
-                                    Dismiss
+                                    <Eye size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSellerRequest(req.id, req.business_name, req.email)}
+                                    className="p-1.5 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-400 hover:text-red-700 border border-stone-200 hover:border-red-200 transition-colors cursor-pointer"
+                                    title="Dismiss / remove application from queue"
+                                  >
+                                    <Trash2 size={13} />
                                   </button>
                                 </>
                               ) : (
@@ -1269,7 +1672,15 @@ export default function AdminDashboardPage() {
                                   </button>
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteSellerRequest(req.id, req.business_name)}
+                                    onClick={() => setInspectingRequest(req)}
+                                    className="p-1 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+                                    title="Inspect application"
+                                  >
+                                    <Eye size={13} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteSellerRequest(req.id, req.business_name, req.email)}
                                     className="p-1 text-stone-400 hover:text-red-600 transition-colors cursor-pointer"
                                     title="Delete from list"
                                   >
@@ -1688,7 +2099,7 @@ export default function AdminDashboardPage() {
                         District: <strong>{req.location_district || 'Not specified'}</strong> · FSSAI: <strong>{req.fssai_number || 'Pending'}</strong>
                       </p>
                       {req.message && (
-                        <p className="text-[11px] text-stone-700 italic bg-stone-50 p-2 rounded-lg border border-stone-200/60 max-w-xl">
+                        <p className="text-[11px] text-stone-700 italic bg-stone-50 p-2 rounded-lg border border-stone-200/60 max-w-xl break-all break-words">
                           "{req.message}"
                         </p>
                       )}
@@ -2766,6 +3177,132 @@ export default function AdminDashboardPage() {
                     <span>Ban Seller</span>
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Application Inspection Modal */}
+      {inspectingRequest && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 p-6 space-y-5 text-xs animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-stone-100 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-2xl bg-amber-100 border border-amber-200 text-amber-800 flex items-center justify-center font-bold">
+                  <Store size={20} className="text-amber-700" />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-serif font-bold text-lg text-stone-900">{inspectingRequest.business_name || 'Artisan Producer'}</h2>
+                    <span className="font-mono text-[10px] text-stone-400">Request #{inspectingRequest.id}</span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Application received on {inspectingRequest.created_at ? new Date(inspectingRequest.created_at).toLocaleString() : 'Recent'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setInspectingRequest(null)}
+                className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Status Strip */}
+            <div className={`p-3 rounded-2xl border flex items-center justify-between ${
+              inspectingRequest.is_authorized
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-amber-50 border-amber-200 text-amber-900'
+            }`}>
+              <div className="flex items-center gap-2.5">
+                {inspectingRequest.is_authorized ? (
+                  <CheckCircle size={16} className="text-emerald-600 shrink-0" />
+                ) : (
+                  <Clock size={16} className="text-amber-600 animate-pulse shrink-0" />
+                )}
+                <div>
+                  <span className="font-bold text-xs block">
+                    {inspectingRequest.is_authorized ? 'Authorized & Active Seller' : 'Awaiting Administrator Review'}
+                  </span>
+                  <span className="text-[10px] opacity-80 block">
+                    {inspectingRequest.is_authorized
+                      ? 'Onboarding email has been dispatched with seller portal credentials'
+                      : 'Approval grants immediate seller portal access and triggers welcome email'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Grid */}
+            <div className="grid grid-cols-2 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-100">
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Registered Email</span>
+                <span className="font-mono font-bold text-forest-950 text-xs select-all block mt-0.5 truncate">{inspectingRequest.email}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Phone / WhatsApp</span>
+                <span className="font-mono font-bold text-stone-800 text-xs block mt-0.5">{inspectingRequest.phone || 'Not provided'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Location / District</span>
+                <span className="font-medium text-stone-800 text-xs block mt-0.5">{inspectingRequest.location_district || 'Nagaland'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">FSSAI License</span>
+                <span className="font-mono font-bold text-stone-800 text-xs block mt-0.5">
+                  {inspectingRequest.fssai_number || 'Pending verification'}
+                </span>
+              </div>
+            </div>
+
+            {/* Pitch / Message */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">
+                Artisan Pitch & Production Message:
+              </span>
+              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-stone-700 text-xs leading-relaxed max-h-40 overflow-y-auto break-all break-words">
+                {inspectingRequest.message || <span className="italic text-stone-400">No additional message submitted.</span>}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  handleDeleteSellerRequest(inspectingRequest.id, inspectingRequest.business_name, inspectingRequest.email);
+                  setInspectingRequest(null);
+                }}
+                className="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-700 font-bold text-xs border border-stone-200 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 size={13} />
+                <span>Dismiss Application</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setInspectingRequest(null)}
+                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  disabled={approvingEmail === inspectingRequest.email}
+                  onClick={async () => {
+                    await handleApproveSellerRequest(inspectingRequest.email);
+                    setInspectingRequest(null);
+                  }}
+                  className="px-4 py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs shadow-xs hover:scale-102 transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <CheckCircle size={14} className="text-emerald-400" />
+                  <span>{approvingEmail === inspectingRequest.email ? 'Processing...' : (inspectingRequest.is_authorized ? 'Resend Onboarding Email' : 'Approve & Send Email')}</span>
+                </button>
               </div>
             </div>
           </div>

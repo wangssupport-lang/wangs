@@ -14,6 +14,10 @@ def send_smtp_email(to_email: str, subject: str, html_content: str):
     """
     Sends an email using standard Django SMTP (e.g. Gmail SMTP smtp.gmail.com:587).
     """
+    to_email = (to_email or '').strip().lower()
+    if not to_email:
+        return False, {"error": "No recipient email address provided."}
+
     host_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '')).strip()
     host_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '')).replace(' ', '').strip()
     if not host_user or not host_pass:
@@ -33,17 +37,20 @@ def send_smtp_email(to_email: str, subject: str, html_content: str):
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', host_user) or host_user
         msg = EmailMultiAlternatives(
             subject=subject,
-            body="Your Wangs verification code is inside this email. Please view in an HTML-capable email client.",
+            body="Your Wangs communication is inside this email. Please view in an HTML-capable email client.",
             from_email=from_email,
             to=[to_email],
+            reply_to=[host_user],
             connection=connection
         )
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
         logger.info("Email successfully dispatched via SMTP to %s", to_email)
+        print(f"[WANGS SMTP DISPATCH SUCCESS] Delivered to: {to_email} | Subject: {subject}")
         return True, {"provider": "SMTP", "to": to_email}
     except Exception as exc:
         logger.error("SMTP email delivery failed to %s: %s", to_email, exc)
+        print(f"[WANGS SMTP DISPATCH ERROR] Failed to deliver to {to_email}: {exc}")
         return False, {"provider": "SMTP", "error": str(exc)}
 
 
@@ -51,11 +58,27 @@ def send_resend_email(to_email: str, subject: str, html_content: str):
     """
     Sends an email using the Resend API with the configured RESEND_API_KEY.
     """
-    api_key = getattr(settings, 'RESEND_API_KEY', '')
-    from_email = getattr(settings, 'RESEND_FROM_EMAIL', 'onboarding@resend.dev')
+    to_email = (to_email or '').strip().lower()
+    if not to_email:
+        return False, {"error": "No recipient email address provided."}
+
+    api_key = (os.getenv('RESEND_API_KEY') or getattr(settings, 'RESEND_API_KEY', '')).strip()
+    from_email = (os.getenv('RESEND_FROM_EMAIL') or getattr(settings, 'RESEND_FROM_EMAIL', 'onboarding@resend.dev')).strip()
 
     if not api_key:
         return False, {"error": "RESEND_API_KEY not configured."}
+
+    # Resend testing domain (onboarding@resend.dev) is restricted by Resend to only send to the account owner (wangssupport@gmail.com).
+    # Sending to external recipient with onboarding@resend.dev causes a 403 validation error from Resend.
+    if 'resend.dev' in from_email and to_email != 'wangssupport@gmail.com':
+        logger.warning(
+            "Resend test domain (%s) cannot deliver to external recipient %s. Use SMTP or verify custom domain on Resend.",
+            from_email, to_email
+        )
+        return False, {
+            "provider": "RESEND",
+            "error": f"Resend {from_email} only allows sending to account owner. Cannot deliver to external user {to_email}."
+        }
 
     headers = {
         "Authorization": f"Bearer {api_key}",
@@ -78,6 +101,7 @@ def send_resend_email(to_email: str, subject: str, html_content: str):
         if response.status_code in (200, 201):
             data = response.json()
             logger.info("Resend email sent successfully to %s: %s", to_email, data)
+            print(f"[WANGS RESEND DISPATCH SUCCESS] Delivered to: {to_email} | Subject: {subject}")
             return True, data
         else:
             logger.warning(
@@ -100,6 +124,10 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
     1. Checks if SMTP credentials (e.g. Gmail) are present.
     2. Otherwise attempts Resend API.
     """
+    to_email = (to_email or '').strip().lower()
+    if not to_email:
+        return False, {"error": "No recipient email address provided."}
+
     try:
         from dotenv import load_dotenv
         load_dotenv(settings.BASE_DIR / '.env', override=True)
@@ -107,7 +135,7 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
     except Exception:
         pass
 
-    # Try SMTP first if credentials are present
+    # Try SMTP first if credentials are present (capable of delivering to ANY valid Gmail / external address)
     smtp_user = os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '')
     smtp_pass = os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '')
     if smtp_user and smtp_pass:
@@ -731,6 +759,249 @@ def send_admin_new_seller_registration_email(applicant_data: dict):
     print(f"Recipient:      {recipient_email}")
     print(f"Applicant:      {applicant_email}")
     print(f"Business:       {business_name}")
+    print(f"Admin Space:    {admin_space_url}")
+    print(f"==========================================\n")
+
+    return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_seller_application_received_email(to_email: str, business_name: str, applicant_data: dict = None, request=None, site_url: str = None):
+    """
+    Renders an artisanal branded confirmation email dispatched directly to the applicant's entered Gmail / email address
+    confirming that Wangs has received their Seller Registration / Authorization Request.
+    """
+    to_email = (to_email or '').strip().lower()
+    if not to_email:
+        return False, {"error": "No recipient email provided for seller application confirmation."}
+
+    applicant_data = applicant_data or {}
+    business_name = (business_name or 'Artisan Producer Partner').strip()
+    district = applicant_data.get('location_district', 'Nagaland')
+    fssai = applicant_data.get('fssai_number', 'Pending verification')
+
+    base_url = (site_url or get_site_url(request)).rstrip('/')
+    support_email = "wangssupport@gmail.com"
+
+    subject = f"Application Received: Your Wangs Seller Request for {business_name}"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>{subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#faf8f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#faf8f5;padding:36px 12px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:580px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);border:1px solid #e7e3dc;">
+              <!-- Header Bar -->
+              <tr>
+                <td style="background-color:#0e3820;padding:32px 36px;text-align:center;">
+                  <div style="display:inline-block;background:#f59e0b;color:#0e3820;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;padding:4px 12px;border-radius:20px;margin-bottom:12px;">
+                    Application Received
+                  </div>
+                  <h1 style="color:#ffffff;font-size:24px;font-family:Georgia,serif;font-weight:700;margin:0 0 6px;">
+                    WANGS
+                  </h1>
+                  <p style="color:#c7d6cc;font-size:12px;margin:0;letter-spacing:1px;text-transform:uppercase;">
+                    Authentic Food & Artisanal Pickle Marketplace
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Main Content -->
+              <tr>
+                <td style="padding:36px 32px 28px;">
+                  <p style="font-size:16px;line-height:1.6;margin:0 0 16px;color:#1c1917;">
+                    Hello <strong>{business_name}</strong>,
+                  </p>
+                  <p style="font-size:14px;line-height:1.6;margin:0 0 20px;color:#44403c;">
+                    Thank you for applying to sell your authentic artisanal pickles and foods on Wangs! We have successfully received your producer onboarding request.
+                  </p>
+
+                  <!-- Application Summary Card -->
+                  <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:20px;margin-bottom:24px;">
+                    <div style="font-size:11px;font-weight:700;color:#0e3820;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+                      Your Application Summary
+                    </div>
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#44403c;line-height:1.8;">
+                      <tr>
+                        <td width="40%" style="color:#78716c;font-weight:600;">Registered Brand:</td>
+                        <td width="60%" style="font-weight:700;color:#0e3820;">{business_name}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#78716c;font-weight:600;">Contact Email:</td>
+                        <td style="font-weight:700;color:#1c1917;">{to_email}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#78716c;font-weight:600;">Origin District:</td>
+                        <td style="color:#1c1917;">{district}</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#78716c;font-weight:600;">FSSAI Registration:</td>
+                        <td style="font-family:monospace;font-weight:700;color:#0e3820;">{fssai}</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <!-- What Happens Next -->
+                  <h3 style="margin:0 0 12px;font-size:15px;color:#0e3820;font-family:Georgia,serif;font-weight:700;">
+                    What Happens Next?
+                  </h3>
+                  <ol style="margin:0 0 24px;padding-left:20px;font-size:13px;color:#57534e;line-height:1.7;">
+                    <li style="margin-bottom:8px;"><strong>Compliance Review:</strong> Our administrative desk verifies your FSSAI food business registration and checks our authentic small-batch standard (typically within 24 hours).</li>
+                    <li style="margin-bottom:8px;"><strong>Approval Notification:</strong> Once authorized, an official invitation email will be dispatched to <strong>{to_email}</strong> with your Seller Space access.</li>
+                    <li><strong>Storefront Activation:</strong> You can then upload products, configure pack sizes, set retail pricing, and start receiving direct orders.</li>
+                  </ol>
+
+                  <!-- Direct Support Contact -->
+                  <div style="background:#f4f1ea;border-radius:12px;padding:16px;text-align:center;margin-bottom:20px;">
+                    <p style="margin:0;color:#57534e;font-size:12px;line-height:1.6;">
+                      Have questions about your seller application? Reach our dedicated seller desk directly at <a href="mailto:{support_email}" style="color:#0e3820;font-weight:700;text-decoration:none;">{support_email}</a>.
+                    </p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background:#f5f2eb;padding:18px 32px;border-top:1px solid #e7e3dc;text-align:center;">
+                  <p style="margin:0 0 4px;color:#78716c;font-size:11px;font-weight:600;">
+                    © 2026 Wangs Marketplace · Authentic Artisanal Pickles
+                  </p>
+                  <p style="margin:0;color:#a8a29e;font-size:10px;">
+                    Small-batch slow cured meats, King Chilli, and authentic ferments | <a href="{base_url}" style="color:#0e3820;text-decoration:none;font-weight:600;">wangs.in</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"[WANGS APPLICANT CONFIRMATION DISPATCH]")
+    print(f"Recipient (Seller): {to_email}")
+    print(f"Business:           {business_name}")
+    print(f"==========================================\n")
+
+    return dispatch_email(to_email, subject, html_content)
+
+
+def send_admin_new_product_notification(product, profile):
+    """
+    Notifies wangssupport@gmail.com whenever an authorized seller uploads a new product.
+    Product goes live immediately without needing admin approval; admin is kept informed.
+    """
+    recipient_email = "wangssupport@gmail.com"
+    business_name = getattr(profile, 'business_name', 'Artisan Seller')
+    seller_email = getattr(getattr(profile, 'user', None), 'email', 'Unknown')
+    product_title = getattr(product, 'title', 'Artisan Pickle')
+    price = getattr(product, 'price', '0')
+    base_price = getattr(product, 'base_price', '0')
+    weight_grams = getattr(product, 'weight_grams', '250')
+    stock_quantity = getattr(product, 'stock_quantity', '0')
+    category_name = product.category.name if getattr(product, 'category', None) else 'Artisan Pickle'
+    dietary_type = getattr(product, 'dietary_type', 'NON_VEG')
+    slug = getattr(product, 'slug', '')
+
+    base_url = (os.getenv('FRONTEND_URL') or getattr(settings, 'FRONTEND_URL', 'https://wangs.in')).rstrip('/')
+    admin_space_url = f"{base_url}/wangadminspace"
+    product_url = f"{base_url}/product/{slug}" if slug else base_url
+
+    subject = f"New Product Live on Wangs: '{product_title}' by {business_name}"
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>{subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f6f4ee;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f6f4ee;padding:36px 12px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);border:1px solid #e7e3dc;">
+              <tr>
+                <td style="background-color:#0e3820;padding:32px 36px;text-align:center;">
+                  <div style="display:inline-block;background:#10b981;color:#ffffff;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;padding:4px 12px;border-radius:20px;margin-bottom:12px;">
+                    Catalog Notification · Live on Storefront
+                  </div>
+                  <h1 style="color:#ffffff;font-size:24px;font-family:Georgia,serif;font-weight:700;margin:0 0 6px;">
+                    New Product Uploaded
+                  </h1>
+                  <p style="color:#a7c4b0;font-size:13px;margin:0;">
+                    Seller self-published a new artisan recipe batch
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:36px;">
+                  <p style="font-size:15px;line-height:1.6;margin:0 0 16px;color:#292524;">
+                    Hello <strong>Wangs Administrator</strong>,
+                  </p>
+                  <p style="font-size:14px;line-height:1.6;margin:0 0 24px;color:#57534e;">
+                    An authorized seller has uploaded a new product recipe to the marketplace. It is active and available to customers immediately:
+                  </p>
+
+                  <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:22px;margin-bottom:26px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" style="font-size:13px;color:#44403c;line-height:1.8;">
+                      <tr>
+                        <td width="38%" style="padding:6px 0;color:#78716c;font-weight:600;">Product Title:</td>
+                        <td width="62%" style="padding:6px 0;font-weight:700;color:#0e3820;font-size:15px;">{product_title}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Seller / Brand:</td>
+                        <td style="padding:6px 0;font-weight:700;color:#1c1917;">{business_name} ({seller_email})</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Category:</td>
+                        <td style="padding:6px 0;font-weight:600;color:#1c1917;">{category_name} ({dietary_type})</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Customer Price:</td>
+                        <td style="padding:6px 0;font-weight:700;color:#0e3820;font-size:14px;">₹{price} (Seller Base: ₹{base_price})</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Pack Weight & Stock:</td>
+                        <td style="padding:6px 0;color:#1c1917;">{weight_grams}g · {stock_quantity} jars in stock</td>
+                      </tr>
+                      <tr>
+                        <td style="padding:6px 0;color:#78716c;font-weight:600;">Status:</td>
+                        <td style="padding:6px 0;font-weight:700;color:#047857;">Live & Active (No approval needed)</td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div style="text-align:center;margin:32px 0 20px;">
+                    <a href="{admin_space_url}" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:13px;padding:14px 28px;border-radius:12px;margin:0 6px 10px;">
+                      Open Admin Space &rarr;
+                    </a>
+                    {f'<a href="{product_url}" style="display:inline-block;background:#faf8f5;color:#0e3820;text-decoration:none;font-weight:700;font-size:13px;padding:14px 28px;border-radius:12px;border:1px solid #e7dfd4;margin:0 6px 10px;">View on Storefront &rarr;</a>' if slug else ''}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"[WANGS ADMIN NEW PRODUCT DISPATCH]")
+    print(f"Recipient:      {recipient_email}")
+    print(f"Seller:         {business_name}")
+    print(f"Product:        {product_title} (₹{price})")
+    print(f"Status:         LIVE")
     print(f"Admin Space:    {admin_space_url}")
     print(f"==========================================\n")
 

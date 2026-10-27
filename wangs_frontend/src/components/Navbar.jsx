@@ -21,6 +21,41 @@ export default function Navbar() {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [brands, setBrands] = useState([]);
 
+  // Detect whether this client/device has a registered seller account
+  const [isRegisteredSellerDevice, setIsRegisteredSellerDevice] = useState(() => {
+    try {
+      return localStorage.getItem('wangs_is_registered_seller') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleStatusChange = () => {
+      try {
+        setIsRegisteredSellerDevice(localStorage.getItem('wangs_is_registered_seller') === 'true');
+      } catch {
+        setIsRegisteredSellerDevice(false);
+      }
+    };
+    window.addEventListener('wangs_seller_status_changed', handleStatusChange);
+    window.addEventListener('storage', handleStatusChange);
+    return () => {
+      window.removeEventListener('wangs_seller_status_changed', handleStatusChange);
+      window.removeEventListener('storage', handleStatusChange);
+    };
+  }, []);
+
+  const isRegisteredSellerUser = Boolean(
+    user && (
+      isManufacturer ||
+      isAuthorizedToSell ||
+      user?.can_sell ||
+      user?.role === 'MANUFACTURER' ||
+      user?.role === 'ADMIN'
+    )
+  );
+
   useEffect(() => {
     setSearchQuery(searchParams.get('search') || '');
   }, [searchParams]);
@@ -157,9 +192,21 @@ export default function Navbar() {
             </Link>
 
             {/* User Account / Sign In */}
-            <div className="relative">
+            <div className="flex items-center gap-2">
+              {/* Direct Seller Space button for logged-in registered sellers */}
+              {isRegisteredSellerUser && (
+                <Link
+                  to="/manufacturer"
+                  className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
+                  title="Artisan Seller Space"
+                >
+                  <Store size={14} className="text-amber-600" />
+                  <span>Seller Space</span>
+                </Link>
+              )}
+
               {user ? (
-                <div>
+                <div className="relative">
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                     className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-colors border border-stone-200"
@@ -219,14 +266,17 @@ export default function Navbar() {
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  <Link
-                    to="/manufacturer/login"
-                    className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
-                    title="Artisan Seller Portal & Login"
-                  >
-                    <Store size={14} className="text-amber-600" />
-                    <span>Seller Login</span>
-                  </Link>
+                  {/* Keep this button to sellers only who have registered else don't */}
+                  {isRegisteredSellerDevice && (
+                    <Link
+                      to="/manufacturer/login"
+                      className="hidden md:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
+                      title="Artisan Seller Portal & Login"
+                    >
+                      <Store size={14} className="text-amber-600" />
+                      <span>Seller Login</span>
+                    </Link>
+                  )}
                   <Link
                     to="/login"
                     className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"

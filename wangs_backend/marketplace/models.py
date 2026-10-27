@@ -244,7 +244,7 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     is_bestseller = models.BooleanField(default=False)
-    primary_image_url = models.CharField(max_length=500, blank=True, default='')
+    primary_image_url = models.TextField(blank=True, default='')
     
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -275,7 +275,7 @@ class Product(models.Model):
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    image_url = models.CharField(max_length=500)
+    image_url = models.TextField(blank=True, default='')
     alt_text = models.CharField(max_length=200, blank=True, default='')
     is_primary = models.BooleanField(default=False)
     display_order = models.PositiveIntegerField(default=0)

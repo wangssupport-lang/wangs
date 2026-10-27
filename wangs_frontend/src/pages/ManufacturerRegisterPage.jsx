@@ -1,8 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles } from 'lucide-react';
+import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+
+function checkEmailTypo(email) {
+  if (!email || !email.includes('@')) return null;
+  const parts = email.split('@');
+  if (parts.length !== 2) return null;
+  const domain = parts[1].toLowerCase().trim();
+  const commonTypos = {
+    'gmial.com': 'gmail.com',
+    'gamil.com': 'gmail.com',
+    'gmaill.com': 'gmail.com',
+    'gemail.com': 'gmail.com',
+    'gmai.com': 'gmail.com',
+    'yaho.com': 'yahoo.com',
+    'yahooo.com': 'yahoo.com',
+    'hotmial.com': 'hotmail.com',
+    'outlok.com': 'outlook.com',
+  };
+  if (commonTypos[domain]) {
+    return `${parts[0]}@${commonTypos[domain]}`;
+  }
+  return null;
+}
 
 export default function ManufacturerRegisterPage() {
   const navigate = useNavigate();
@@ -10,15 +32,15 @@ export default function ManufacturerRegisterPage() {
 
   // Full onboarding form data (for authorized users)
   const [formData, setFormData] = useState({
-    username: user ? user.username : '',
-    email: user ? user.email : '',
+    username: user && user.role !== 'ADMIN' ? user.username : '',
+    email: user && user.role !== 'ADMIN' ? user.email : '',
     password: '',
     confirm_password: '',
-    full_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '',
+    full_name: user && user.role !== 'ADMIN' ? `${user.first_name || ''} ${user.last_name || ''}`.trim() : '',
     business_name: '',
     brand_story: '',
     location_district: '',
-    contact_email: user ? user.email : '',
+    contact_email: user && user.role !== 'ADMIN' ? user.email : '',
     contact_phone: user?.phone_number || '',
     business_address: '',
     postal_code: '',
@@ -34,7 +56,9 @@ export default function ManufacturerRegisterPage() {
   // Request Access form data (for unauthorized users)
   const [requestData, setRequestData] = useState({
     business_name: '',
-    email: user ? user.email : '',
+    email: user && user.role !== 'ADMIN' ? user.email : '',
+    password: '',
+    confirm_password: '',
     phone: user?.phone_number || '',
     location_district: 'Kohima',
     fssai_number: '',
@@ -42,6 +66,10 @@ export default function ManufacturerRegisterPage() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [showMfgPassword, setShowMfgPassword] = useState(false);
+  const [showMfgConfirmPassword, setShowMfgConfirmPassword] = useState(false);
+  const [showReqPassword, setShowReqPassword] = useState(false);
+  const [showReqConfirmPassword, setShowReqConfirmPassword] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [requestSuccess, setRequestSuccess] = useState(false);
@@ -129,7 +157,7 @@ export default function ManufacturerRegisterPage() {
       if (res?.delivered_via_email === false) {
         setErrorMsg(res?.warning || 'Notice: Email delivery credentials are not configured in wangs_backend/.env.');
       } else {
-        setSuccessMsg(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your Gmail inbox.`);
+        setSuccessMsg(res?.message || `A 6-digit verification code has been dispatched directly to your entered email (${emailToVerify}). Please check that inbox (and spam folder).`);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to dispatch verification email. Please check your email and try again.');
@@ -167,9 +195,29 @@ export default function ManufacturerRegisterPage() {
       return;
     }
 
+    if (!requestData.password || requestData.password.length < 6) {
+      setErrorMsg('Password must be at least 6 characters long.');
+      return;
+    }
+
+    if (requestData.password !== requestData.confirm_password) {
+      setErrorMsg('Passwords do not match. Please re-enter your password to confirm.');
+      return;
+    }
+
+    const fssai = (requestData.fssai_number || '').trim();
+    if (!fssai || fssai.length !== 14 || !/^\d{14}$/.test(fssai)) {
+      setErrorMsg('A valid 14-digit FSSAI Food Business License / Registration Number is mandatory. Please enter exactly 14 numeric digits.');
+      return;
+    }
+
     setLoading(true);
     try {
       await api.requestSellerAccess(requestData);
+      try {
+        localStorage.setItem('wangs_is_registered_seller', 'true');
+        window.dispatchEvent(new Event('wangs_seller_status_changed'));
+      } catch {}
       setRequestSuccess(true);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit seller access request.');
@@ -206,6 +254,10 @@ export default function ManufacturerRegisterPage() {
     setLoading(true);
     try {
       const res = await api.registerManufacturer(formData);
+      try {
+        localStorage.setItem('wangs_is_registered_seller', 'true');
+        window.dispatchEvent(new Event('wangs_seller_status_changed'));
+      } catch {}
       setSuccessMsg(res.message || 'Application submitted successfully! Our compliance team will review your details.');
       setTimeout(() => {
         navigate('/manufacturer');
@@ -361,15 +413,41 @@ export default function ManufacturerRegisterPage() {
                   )}
                 </div>
 
-                {/* OTP Code Entry Popover */}
+                {/* Domain Typo Alert */}
+                {(() => {
+                  const typoSuggestion = checkEmailTypo(requestData.email);
+                  if (typoSuggestion && !reqOtpVerified) {
+                    return (
+                      <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-xs text-amber-900">
+                        <span>Did you mean <strong>{typoSuggestion}</strong>?</span>
+                        <button
+                          type="button"
+                          onClick={() => setRequestData({ ...requestData, email: typoSuggestion })}
+                          className="font-bold underline text-amber-950 hover:text-amber-800 ml-2"
+                        >
+                          Correct it
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                {/* OTP Code Entry Popover with Explicit Recipient Target */}
                 {reqOtpSent && !reqOtpVerified && (
-                  <div className="mt-2.5 p-3.5 bg-forest-50/80 border border-forest-200 rounded-xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-forest-950">
-                        Enter 6-digit OTP sent to {requestData.email}:
+                  <div className="mt-2.5 p-3.5 bg-forest-50/90 border border-forest-200 rounded-xl space-y-2.5">
+                    <div className="flex items-start gap-2">
+                      <Sparkles size={15} className="text-forest-700 mt-0.5 shrink-0" />
+                      <div className="text-[12px] text-forest-950 leading-relaxed">
+                        Verification code sent directly to: <strong className="font-mono text-forest-900 bg-white px-1.5 py-0.5 rounded border border-forest-200">{requestData.email}</strong>. Please check that Gmail/email inbox (and spam folder).
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-forest-200/60">
+                      <span className="text-[11px] font-semibold text-forest-900">
+                        Enter 6-digit code:
                       </span>
                       {reqOtpTimer > 0 && (
-                        <span className="text-[10px] text-stone-500 font-medium">Resend in {reqOtpTimer}s</span>
+                        <span className="text-[10px] text-stone-500 font-medium">Resend available in {reqOtpTimer}s</span>
                       )}
                     </div>
                     <div className="flex gap-2">
@@ -379,19 +457,78 @@ export default function ManufacturerRegisterPage() {
                         value={reqOtpCode}
                         onChange={(e) => setReqOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="6-digit OTP"
-                        className="w-36 px-3 py-1.5 bg-white border border-forest-600 rounded-xl text-center font-mono text-xs font-bold tracking-wider text-stone-900"
+                        className="w-36 px-3 py-2 bg-white border border-forest-600 rounded-xl text-center font-mono text-sm font-bold tracking-widest text-stone-900 shadow-inner"
                       />
                       <button
                         type="button"
                         disabled={reqOtpLoading || reqOtpCode.length !== 6}
                         onClick={handleVerifyRequestOtp}
-                        className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-sm"
                       >
                         {reqOtpLoading ? 'Verifying...' : 'Confirm OTP'}
                       </button>
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Account Password & Confirm Password */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-stone-700 font-semibold mb-1">
+                    Password *
+                  </label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                    <input
+                      type={showReqPassword ? 'text' : 'password'}
+                      required
+                      value={requestData.password}
+                      onChange={(e) => setRequestData({ ...requestData, password: e.target.value })}
+                      placeholder="Min. 6 characters"
+                      className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowReqPassword(!showReqPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                      title={showReqPassword ? 'Hide password' : 'Show password'}
+                      tabIndex={-1}
+                    >
+                      {showReqPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-stone-700 font-semibold mb-1">
+                    Confirm Password *
+                  </label>
+                  <div className="relative">
+                    <Lock size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                    <input
+                      type={showReqConfirmPassword ? 'text' : 'password'}
+                      required
+                      value={requestData.confirm_password}
+                      onChange={(e) => setRequestData({ ...requestData, confirm_password: e.target.value })}
+                      placeholder="Re-enter password"
+                      className={`w-full pl-10 pr-11 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                        requestData.confirm_password && requestData.password === requestData.confirm_password
+                          ? 'border-emerald-500 bg-emerald-50/20'
+                          : 'border-stone-200'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowReqConfirmPassword(!showReqConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                      title={showReqConfirmPassword ? 'Hide password' : 'Show password'}
+                      tabIndex={-1}
+                    >
+                      {showReqConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -423,17 +560,28 @@ export default function ManufacturerRegisterPage() {
               </div>
 
               <div>
-                <label className="block text-stone-700 font-semibold mb-1">
-                  FSSAI License # (if available)
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-stone-700 font-semibold">
+                    FSSAI License / Registration # (14 Digits) *
+                  </label>
+                  <span className={`text-[11px] font-mono font-bold ${requestData.fssai_number?.length === 14 ? 'text-emerald-700' : 'text-stone-400'}`}>
+                    {requestData.fssai_number?.length || 0}/14
+                  </span>
+                </div>
                 <input
                   type="text"
+                  required
                   maxLength={14}
                   value={requestData.fssai_number}
                   onChange={(e) => setRequestData({ ...requestData, fssai_number: e.target.value.replace(/\D/g, '').slice(0, 14) })}
-                  placeholder="14-digit numeric code"
-                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-mono text-stone-900"
+                  placeholder="Enter 14-digit numeric FSSAI registration code"
+                  className={`w-full px-3 py-2.5 bg-stone-50 border rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                    requestData.fssai_number?.length === 14 ? 'border-emerald-400 bg-emerald-50/30' : 'border-stone-200'
+                  }`}
                 />
+                <p className="text-[11px] text-stone-500 mt-1">
+                  Mandatory 14-digit Food Safety and Standards Authority of India (FSSAI) license number.
+                </p>
               </div>
 
               <div>
@@ -549,27 +697,49 @@ export default function ManufacturerRegisterPage() {
               </div>
               <div>
                 <label className="block text-stone-700 font-medium mb-1">Account Password *</label>
-                <input
-                  type="password"
-                  required
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Min. 6 characters"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
-                />
+                <div className="relative">
+                  <input
+                    type={showMfgPassword ? 'text' : 'password'}
+                    required
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Min. 6 characters"
+                    className="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700 text-stone-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMfgPassword(!showMfgPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                    title={showMfgPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showMfgPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-stone-700 font-medium mb-1">Confirm Password *</label>
-                <input
-                  type="password"
-                  required
-                  name="confirm_password"
-                  value={formData.confirm_password}
-                  onChange={handleChange}
-                  placeholder="Re-enter password"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
-                />
+                <div className="relative">
+                  <input
+                    type={showMfgConfirmPassword ? 'text' : 'password'}
+                    required
+                    name="confirm_password"
+                    value={formData.confirm_password}
+                    onChange={handleChange}
+                    placeholder="Re-enter password"
+                    className="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700 text-stone-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowMfgConfirmPassword(!showMfgConfirmPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                    title={showMfgConfirmPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showMfgConfirmPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

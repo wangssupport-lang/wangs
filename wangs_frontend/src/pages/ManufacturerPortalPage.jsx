@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
-  Plus, Edit, Eye, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
+  Plus, Edit, Eye, EyeOff, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
   Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download,
-  Lock, Mail, KeyRound, ArrowRight
+  Lock, Mail, KeyRound, ArrowRight, Trash2, Edit3, Boxes, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
+import QRCodeSVG from '../components/QRCodeSVG';
 
 export default function ManufacturerPortalPage() {
   const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp } = useAuth();
@@ -25,25 +26,19 @@ export default function ManufacturerPortalPage() {
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
   const [showSellerRulesModal, setShowSellerRulesModal] = useState(false);
 
-  // Dedicated Seller Login Space State
-  const [sellerLoginMode, setSellerLoginMode] = useState('otp'); // 'otp' or 'password'
-  const [sellerEmail, setSellerEmail] = useState('');
-  const [sellerOtpCode, setSellerOtpCode] = useState('');
-  const [sellerOtpSent, setSellerOtpSent] = useState(false);
-  const [sellerOtpLoading, setSellerOtpLoading] = useState(false);
-  const [sellerOtpTimer, setSellerOtpTimer] = useState(0);
+  // Dedicated Seller Login Space State (Username/Email & Password only)
   const [sellerPasswordIdentifier, setSellerPasswordIdentifier] = useState('');
   const [sellerPassword, setSellerPassword] = useState('');
+  const [showSellerPassword, setShowSellerPassword] = useState(false);
   const [sellerLoginLoading, setSellerLoginLoading] = useState(false);
   const [sellerLoginError, setSellerLoginError] = useState('');
 
-  useEffect(() => {
-    let interval = null;
-    if (sellerOtpTimer > 0) {
-      interval = setInterval(() => setSellerOtpTimer((t) => t - 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [sellerOtpTimer]);
+  // Product management & stock monitoring states
+  const [editingProductId, setEditingProductId] = useState(null);
+  const [deletingProductId, setDeletingProductId] = useState(null);
+  const [updatingStockId, setUpdatingStockId] = useState(null);
+  const [quickStockModal, setQuickStockModal] = useState(null);
+  const [productStockFilter, setProductStockFilter] = useState('ALL');
 
   // New product form modal state
   const [showAddProductModal, setShowAddProductModal] = useState(false);
@@ -52,9 +47,9 @@ export default function ManufacturerPortalPage() {
     category_id: '',
     short_description: '',
     description: '',
-    base_price: '200',
-    price: '270',
-    mrp: '320',
+    base_price: '',
+    price: '',
+    mrp: '',
     weight_grams: '250',
     spice_level: 'HOT',
     dietary_type: 'NON_VEG',
@@ -63,19 +58,19 @@ export default function ManufacturerPortalPage() {
     allergens: 'May contain traces of mustard or fermented soybeans (Axone)',
     storage_instructions: 'Store in cool dry place. Keep submerged in oil.',
     shelf_life: '9 Months',
-    stock_quantity: '20',
-    primary_image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
-    images: [
-      'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
-      '',
-      ''
-    ],
+    stock_quantity: '',
+    primary_image_url: '',
+    images: ['', '', ''],
   });
 
   const commissionRate = parseFloat(profile?.commission_rate_override) || 10;
   const deliveryCharge = 50;
 
   const handleBasePriceChange = (val) => {
+    if (val === '') {
+      setNewProd((prev) => ({ ...prev, base_price: '', price: '', mrp: '' }));
+      return;
+    }
     const base = parseFloat(val) || 0;
     const comm = Math.round((base * commissionRate) / 100);
     const actual = Math.max(101, Math.round(base + comm + deliveryCharge));
@@ -88,6 +83,10 @@ export default function ManufacturerPortalPage() {
   };
 
   const handleActualPriceChange = (val) => {
+    if (val === '') {
+      setNewProd((prev) => ({ ...prev, price: '', base_price: '', mrp: '' }));
+      return;
+    }
     const actual = parseFloat(val) || 0;
     const withoutDelivery = Math.max(0, actual - deliveryCharge);
     const base = Math.max(1, Math.round(withoutDelivery / (1 + commissionRate / 100)));
@@ -109,13 +108,17 @@ export default function ManufacturerPortalPage() {
         api.getManufacturerOrders(),
         api.getManufacturerFinancials(),
       ]);
+      const rawProducts = Array.isArray(prodsData) ? prodsData : (prodsData?.results || []);
+      const rawCategories = Array.isArray(catsData) ? catsData : (catsData?.results || []);
+      const rawOrders = Array.isArray(ordsData) ? ordsData : (ordsData?.results || []);
+
       setProfile(profData);
-      setProducts(prodsData || []);
-      setCategories(catsData || []);
-      setOrders(ordsData || []);
+      setProducts(rawProducts);
+      setCategories(rawCategories);
+      setOrders(rawOrders);
       setFinancials(finData);
-      if (catsData?.length && !newProd.category_id) {
-        setNewProd((p) => ({ ...p, category_id: catsData[0].id }));
+      if (rawCategories?.length && !newProd.category_id) {
+        setNewProd((p) => ({ ...p, category_id: rawCategories[0].id }));
       }
     } catch (err) {
       console.error('Failed to load manufacturer portal data', err);
@@ -132,46 +135,6 @@ export default function ManufacturerPortalPage() {
     loadData();
   }, [user]);
 
-  const handleSendSellerOtp = async (e) => {
-    if (e) e.preventDefault();
-    const emailToUse = (sellerEmail || '').trim().toLowerCase();
-    if (!emailToUse || !emailToUse.includes('@')) {
-      setSellerLoginError('Please enter a valid registered seller email.');
-      return;
-    }
-    setSellerOtpLoading(true);
-    setSellerLoginError('');
-    try {
-      await api.sendOtp(emailToUse, 'LOGIN');
-      setSellerOtpSent(true);
-      setSellerOtpTimer(60);
-      toast.success(`Verification code dispatched to ${emailToUse}!`);
-    } catch (err) {
-      setSellerLoginError(err.message || 'Failed to dispatch verification code.');
-    } finally {
-      setSellerOtpLoading(false);
-    }
-  };
-
-  const handleSellerOtpLogin = async (e) => {
-    e.preventDefault();
-    const cleanCode = (sellerOtpCode || '').trim();
-    if (!cleanCode || cleanCode.length !== 6) {
-      setSellerLoginError('Enter the 6-digit verification code.');
-      return;
-    }
-    setSellerLoginLoading(true);
-    setSellerLoginError('');
-    try {
-      await loginWithOtp(sellerEmail.trim().toLowerCase(), cleanCode);
-      toast.success('Welcome back to your Artisan Seller Workspace!');
-    } catch (err) {
-      setSellerLoginError(err.message || 'Invalid or expired OTP code.');
-    } finally {
-      setSellerLoginLoading(false);
-    }
-  };
-
   const handleSellerPasswordLogin = async (e) => {
     e.preventDefault();
     if (!sellerPasswordIdentifier.trim() || !sellerPassword) {
@@ -182,6 +145,10 @@ export default function ManufacturerPortalPage() {
     setSellerLoginError('');
     try {
       await login(sellerPasswordIdentifier.trim(), sellerPassword);
+      try {
+        localStorage.setItem('wangs_is_registered_seller', 'true');
+        window.dispatchEvent(new Event('wangs_seller_status_changed'));
+      } catch {}
       toast.success('Welcome back to your Artisan Seller Workspace!');
     } catch (err) {
       setSellerLoginError(err.message || 'Invalid username or password.');
@@ -208,16 +175,61 @@ export default function ManufacturerPortalPage() {
       image_urls: cleanImages.slice(0, 3)
     };
     try {
-      await api.createManufacturerProduct(payload);
-      toast.success(
-        profile?.status === 'APPROVED'
-          ? 'Pickle batch published and is now live for sale on the marketplace!'
-          : 'Product submitted for Admin approval'
-      );
+      if (editingProductId) {
+        await api.updateManufacturerProduct(editingProductId, payload);
+        toast.success(`"${newProd.title}" updated successfully!`);
+      } else {
+        await api.createManufacturerProduct(payload);
+        toast.success('Pickle batch published and is now live for sale on the marketplace!');
+      }
       setShowAddProductModal(false);
+      setEditingProductId(null);
       loadData();
     } catch (err) {
-      toast.error(err.message || 'Failed to submit product');
+      toast.error(err.message || 'Failed to save product');
+    }
+  };
+
+  const handleDeleteProduct = async (product) => {
+    if (!product) return;
+    const confirmMsg = `Are you sure you want to delete "${product.title}"?\n\nThis will permanently remove the product listing from your catalog and the live storefront.`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setDeletingProductId(product.id);
+    try {
+      await api.deleteManufacturerProduct(product.id);
+      toast.success(`"${product.title}" has been deleted.`);
+      setProducts((prev) => (Array.isArray(prev) ? prev.filter((p) => p.id !== product.id) : prev));
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete product');
+    } finally {
+      setDeletingProductId(null);
+    }
+  };
+
+  const handleQuickUpdateStock = async (productId, nextQuantity) => {
+    const qty = parseInt(nextQuantity, 10);
+    if (isNaN(qty) || qty < 0) {
+      toast.error('Stock quantity must be a non-negative number (0 or more).');
+      return;
+    }
+    setUpdatingStockId(productId);
+    try {
+      await api.updateManufacturerProduct(productId, { stock_quantity: qty });
+      setProducts((prev) =>
+        Array.isArray(prev)
+          ? prev.map((p) => (p.id === productId ? { ...p, stock_quantity: qty } : p))
+          : prev
+      );
+      toast.success(`Inventory stock updated to ${qty} jars`);
+      if (quickStockModal?.id === productId) {
+        setQuickStockModal(null);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Failed to update stock quantity');
+    } finally {
+      setUpdatingStockId(null);
     }
   };
 
@@ -261,32 +273,6 @@ export default function ManufacturerPortalPage() {
             </p>
           </div>
 
-          {/* Login Mode Switcher */}
-          <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl text-xs font-semibold text-stone-600">
-            <button
-              type="button"
-              onClick={() => { setSellerLoginMode('otp'); setSellerLoginError(''); }}
-              className={`py-2 rounded-xl transition-all cursor-pointer ${
-                sellerLoginMode === 'otp'
-                  ? 'bg-white text-forest-950 shadow-sm font-bold'
-                  : 'hover:text-stone-900'
-              }`}
-            >
-              Instant OTP Login
-            </button>
-            <button
-              type="button"
-              onClick={() => { setSellerLoginMode('password'); setSellerLoginError(''); }}
-              className={`py-2 rounded-xl transition-all cursor-pointer ${
-                sellerLoginMode === 'password'
-                  ? 'bg-white text-forest-950 shadow-sm font-bold'
-                  : 'hover:text-stone-900'
-              }`}
-            >
-              Password Login
-            </button>
-          </div>
-
           {sellerLoginError && (
             <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-start gap-2">
               <AlertCircle size={15} className="flex-shrink-0 mt-0.5 text-red-600" />
@@ -294,130 +280,75 @@ export default function ManufacturerPortalPage() {
             </div>
           )}
 
-          {/* Mode 1: Instant Email OTP Login (Passwordless - Great for Approved Sellers) */}
-          {sellerLoginMode === 'otp' && (
-            <form onSubmit={handleSellerOtpLogin} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-stone-700 font-semibold mb-1">
-                  Registered Seller Email *
+          {/* Credentials Login */}
+          <form onSubmit={handleSellerPasswordLogin} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-stone-700 font-semibold mb-1">
+                Username or Registered Email *
+              </label>
+              <div className="relative">
+                <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                <input
+                  type="text"
+                  required
+                  value={sellerPasswordIdentifier}
+                  onChange={(e) => setSellerPasswordIdentifier(e.target.value)}
+                  placeholder="e.g. seller@brand.in or username"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-stone-700 font-semibold">
+                  Account Password *
                 </label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
-                    <input
-                      type="email"
-                      required
-                      value={sellerEmail}
-                      onChange={(e) => setSellerEmail(e.target.value)}
-                      placeholder="e.g. seller@brand.in"
-                      className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    disabled={sellerOtpLoading || sellerOtpTimer > 0 || !sellerEmail.includes('@')}
-                    onClick={handleSendSellerOtp}
-                    className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl transition-all disabled:opacity-50 shrink-0 shadow-xs cursor-pointer whitespace-nowrap"
-                  >
-                    {sellerOtpLoading ? 'Sending...' : sellerOtpTimer > 0 ? `Resend (${sellerOtpTimer}s)` : sellerOtpSent ? 'Resend Code' : 'Send Code'}
-                  </button>
-                </div>
+                <Link
+                  to="/login?tab=forgot-password"
+                  className="text-[11px] text-forest-800 hover:text-forest-950 font-bold hover:underline"
+                >
+                  Forgot Password?
+                </Link>
               </div>
-
-              {sellerOtpSent && (
-                <div className="p-3.5 bg-forest-50 border border-forest-200 rounded-xl space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-forest-950 font-bold text-xs">
-                      Enter 6-digit Code sent to {sellerEmail}:
-                    </label>
-                    <span className="text-[10px] text-stone-500 font-mono">10 min expiry</span>
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    inputMode="numeric"
-                    value={sellerOtpCode}
-                    onChange={(e) => setSellerOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="Enter 6-digit OTP"
-                    className="w-full px-3.5 py-2.5 bg-white border border-forest-600 rounded-xl font-mono text-center text-sm font-bold tracking-widest text-stone-900 focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={sellerLoginLoading || !sellerOtpSent || sellerOtpCode.length !== 6}
-                className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                <span>{sellerLoginLoading ? 'Verifying...' : 'Sign In to Seller Space'}</span>
-                <ArrowRight size={15} />
-              </button>
-            </form>
-          )}
-
-          {/* Mode 2: Password Login */}
-          {sellerLoginMode === 'password' && (
-            <form onSubmit={handleSellerPasswordLogin} className="space-y-4 text-xs">
-              <div>
-                <label className="block text-stone-700 font-semibold mb-1">
-                  Registered Email or Username *
-                </label>
-                <div className="relative">
-                  <Mail size={16} className="absolute left-3.5 top-3 text-stone-400" />
-                  <input
-                    type="text"
-                    required
-                    value={sellerPasswordIdentifier}
-                    onChange={(e) => setSellerPasswordIdentifier(e.target.value)}
-                    placeholder="e.g. seller@brand.in or username"
-                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
-                  />
-                </div>
+              <div className="relative">
+                <Lock size={16} className="absolute left-3.5 top-3 text-stone-400" />
+                <input
+                  type={showSellerPassword ? 'text' : 'password'}
+                  required
+                  value={sellerPassword}
+                  onChange={(e) => setSellerPassword(e.target.value)}
+                  placeholder="Enter your seller account password"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSellerPassword(!showSellerPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                  title={showSellerPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showSellerPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+            </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-stone-700 font-semibold">
-                    Account Password *
-                  </label>
-                  <Link
-                    to="/login?tab=forgot-password"
-                    className="text-[11px] text-forest-800 hover:text-forest-950 font-bold hover:underline"
-                  >
-                    Forgot Password?
-                  </Link>
-                </div>
-                <div className="relative">
-                  <Lock size={16} className="absolute left-3.5 top-3 text-stone-400" />
-                  <input
-                    type="password"
-                    required
-                    value={sellerPassword}
-                    onChange={(e) => setSellerPassword(e.target.value)}
-                    placeholder="Enter your seller account password"
-                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={sellerLoginLoading}
-                className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-              >
-                <span>{sellerLoginLoading ? 'Signing In...' : 'Sign In to Seller Space'}</span>
-                <ArrowRight size={15} />
-              </button>
-            </form>
-          )}
+            <button
+              type="submit"
+              disabled={sellerLoginLoading}
+              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              <span>{sellerLoginLoading ? 'Signing In...' : 'Sign In to Seller Space'}</span>
+              <ArrowRight size={15} />
+            </button>
+          </form>
 
           {/* Quick Guidance & Links */}
           <div className="pt-2 border-t border-stone-100 space-y-2.5 text-center text-xs">
             <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-stone-700 text-[11px] leading-relaxed text-left flex items-start gap-2">
               <Sparkles size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
               <span>
-                <strong>New Approved Seller?</strong> Use <em>Instant OTP Login</em> with your approved email. Once logged in, your seller dashboard is fully unlocked so you can add recipes and sell your products immediately.
+                <strong>Approved Seller?</strong> Sign in with your registered username or email and your chosen password to access your recipes, manage customer orders, and dispatch parcels.
               </span>
             </div>
 
@@ -504,11 +435,87 @@ export default function ManufacturerPortalPage() {
     );
   }
 
+  // Safe array references to prevent any runtime filter/map crashes
+  const safeProducts = Array.isArray(products) ? products : (products?.results || []);
+  const safeOrders = Array.isArray(orders) ? orders : (orders?.results || []);
+  const safeCategories = Array.isArray(categories) ? categories : (categories?.results || []);
+
+  const openAddProductModal = () => {
+    setEditingProductId(null);
+    setNewProd({
+      title: '',
+      category_id: safeCategories[0]?.id || '',
+      short_description: '',
+      description: '',
+      base_price: '',
+      price: '',
+      mrp: '',
+      weight_grams: '250',
+      spice_level: 'HOT',
+      dietary_type: 'NON_VEG',
+      contains_non_veg_substance: false,
+      ingredients: '',
+      allergens: 'May contain traces of mustard or fermented soybeans (Axone)',
+      storage_instructions: 'Store in cool dry place. Keep submerged in oil.',
+      shelf_life: '9 Months',
+      stock_quantity: '',
+      primary_image_url: '',
+      images: ['', '', ''],
+    });
+    setShowAddProductModal(true);
+  };
+
+  const openEditProductModal = (p) => {
+    setEditingProductId(p.id);
+    const existingImgs = (p.images || []).map((img) => (typeof img === 'string' ? img : (img?.image_url || '')));
+    if (!existingImgs.length && p.primary_image_url) {
+      existingImgs.push(p.primary_image_url);
+    }
+    while (existingImgs.length < 3) existingImgs.push('');
+
+    const baseVal = p.base_price !== undefined && p.base_price !== null ? String(p.base_price) : '';
+    setNewProd({
+      title: p.title || '',
+      category_id: p.category?.id || p.category_id || safeCategories[0]?.id || '',
+      short_description: p.short_description || '',
+      description: p.description || '',
+      base_price: baseVal,
+      price: p.price ? String(p.price) : '',
+      mrp: p.mrp ? String(p.mrp) : '',
+      weight_grams: p.weight_grams ? String(p.weight_grams) : '250',
+      spice_level: p.spice_level || 'HOT',
+      dietary_type: p.dietary_type || 'NON_VEG',
+      contains_non_veg_substance: Boolean(p.contains_non_veg_substance),
+      ingredients: p.ingredients || '',
+      allergens: p.allergens || 'May contain traces of mustard or fermented soybeans (Axone)',
+      storage_instructions: p.storage_instructions || 'Store in cool dry place. Keep submerged in oil.',
+      shelf_life: p.shelf_life || '9 Months',
+      stock_quantity: p.stock_quantity !== undefined && p.stock_quantity !== null ? String(p.stock_quantity) : '0',
+      primary_image_url: p.primary_image_url || '',
+      images: existingImgs.slice(0, 3),
+    });
+    setShowAddProductModal(true);
+  };
+
+  // Stock & Inventory Monitoring Calculations
+  const totalStockJars = safeProducts.reduce((sum, p) => sum + (parseInt(p.stock_quantity, 10) || 0), 0);
+  const lowStockCount = safeProducts.filter((p) => (p.stock_quantity > 0 && p.stock_quantity <= 5)).length;
+  const outOfStockCount = safeProducts.filter((p) => (!p.stock_quantity || p.stock_quantity <= 0)).length;
+  const healthyStockCount = safeProducts.filter((p) => p.stock_quantity > 5).length;
+
+  const filteredProducts = safeProducts.filter((p) => {
+    const qty = parseInt(p.stock_quantity, 10) || 0;
+    if (productStockFilter === 'LOW') return qty > 0 && qty <= 5;
+    if (productStockFilter === 'OUT') return qty === 0;
+    if (productStockFilter === 'HEALTHY') return qty > 5;
+    return true;
+  });
+
   // Bundle order metrics calculation
-  const bundleOrdersCount = orders.filter((o) => o.quantity >= 2).length;
-  const bundlePercentage = orders.length > 0 ? Math.round((bundleOrdersCount / orders.length) * 100) : 0;
-  const totalJarsSold = orders.reduce((sum, o) => sum + (o.quantity || 1), 0);
-  const avgBasketSize = orders.length > 0 ? (totalJarsSold / orders.length).toFixed(1) : '1.0';
+  const bundleOrdersCount = safeOrders.filter((o) => o.quantity >= 2).length;
+  const bundlePercentage = safeOrders.length > 0 ? Math.round((bundleOrdersCount / safeOrders.length) * 100) : 0;
+  const totalJarsSold = safeOrders.reduce((sum, o) => sum + (o.quantity || 1), 0);
+  const avgBasketSize = safeOrders.length > 0 ? (totalJarsSold / safeOrders.length).toFixed(1) : '1.0';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -559,8 +566,8 @@ export default function ManufacturerPortalPage() {
 
             {profile.status === 'APPROVED' && (
               <button
-                onClick={() => setShowAddProductModal(true)}
-                className="px-4 py-3 bg-forest-800 hover:bg-forest-900 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors"
+                onClick={openAddProductModal}
+                className="px-4 py-3 bg-forest-800 hover:bg-forest-900 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Plus size={15} /> Add New Pickle Batch
               </button>
@@ -644,13 +651,13 @@ export default function ManufacturerPortalPage() {
           onClick={() => setActiveTab('products')}
           className={`pb-3 border-b-2 transition-colors ${activeTab === 'products' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
         >
-          My Products ({products.length})
+          My Products ({safeProducts.length})
         </button>
         <button
           onClick={() => setActiveTab('orders')}
           className={`pb-3 border-b-2 transition-colors ${activeTab === 'orders' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
         >
-          Fulfillment Orders ({orders.length})
+          Fulfillment Orders ({safeOrders.length})
         </button>
         <button
           onClick={() => setActiveTab('financials')}
@@ -678,7 +685,7 @@ export default function ManufacturerPortalPage() {
             </div>
             <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm">
               <span className="text-xs text-stone-500 font-medium">Active Products</span>
-              <p className="text-2xl font-serif font-bold text-stone-900 mt-1">{products.filter((p) => p.status === 'APPROVED').length}</p>
+              <p className="text-2xl font-serif font-bold text-stone-900 mt-1">{safeProducts.filter((p) => p.status === 'APPROVED').length}</p>
             </div>
             <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-xl border border-amber-200 shadow-sm">
               <span className="text-xs text-amber-900 font-bold flex items-center gap-1">
@@ -762,11 +769,11 @@ export default function ManufacturerPortalPage() {
 
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
             <h3 className="font-serif font-bold text-base text-stone-900">Recent Customer Orders for Your Brand</h3>
-            {orders.length === 0 ? (
+            {safeOrders.length === 0 ? (
               <p className="text-xs text-stone-500">No orders placed yet.</p>
             ) : (
               <div className="divide-y divide-stone-100 text-xs">
-                {orders.slice(0, 5).map((o) => (
+                {safeOrders.slice(0, 5).map((o) => (
                   <div key={o.order_item_id} className="py-3 flex items-center justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-1.5 flex-wrap">
@@ -813,12 +820,64 @@ export default function ManufacturerPortalPage() {
       {/* Tab 2: Products */}
       {activeTab === 'products' && (
         <div className="space-y-4">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-serif font-bold text-base text-stone-900">Product Listings</h3>
+          {/* Inventory Health & Quantity Monitoring Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
+              <span className="text-stone-500 text-[11px] block font-medium">Total Listed Products</span>
+              <span className="text-xl font-serif font-bold text-stone-900 mt-0.5 block">{safeProducts.length}</span>
+              <span className="text-[10px] text-stone-400">Recipes in brand store</span>
+            </div>
+            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
+              <span className="text-stone-500 text-[11px] block font-medium">Total Jars in Inventory</span>
+              <span className="text-xl font-serif font-bold text-forest-950 mt-0.5 block">{totalStockJars}</span>
+              <span className="text-[10px] text-emerald-700 font-semibold">Ready for cargo dispatch</span>
+            </div>
+            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
+              <span className="text-stone-500 text-[11px] block font-medium">Low Stock Watch (≤ 5 jars)</span>
+              <span className={`text-xl font-serif font-bold mt-0.5 block ${lowStockCount > 0 ? 'text-amber-600 font-black' : 'text-stone-900'}`}>
+                {lowStockCount}
+              </span>
+              <span className="text-[10px] text-amber-700">Restock recommended</span>
+            </div>
+            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
+              <span className="text-stone-500 text-[11px] block font-medium">Out of Stock (0 jars)</span>
+              <span className={`text-xl font-serif font-bold mt-0.5 block ${outOfStockCount > 0 ? 'text-red-600 font-black' : 'text-stone-900'}`}>
+                {outOfStockCount}
+              </span>
+              <span className="text-[10px] text-stone-400">Hidden from instant checkout</span>
+            </div>
+          </div>
+
+          {/* Table Header with Filter Pills and Add Product Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { id: 'ALL', label: `All Products (${safeProducts.length})` },
+                { id: 'LOW', label: `Low Stock (${lowStockCount})`, alert: lowStockCount > 0 },
+                { id: 'OUT', label: `Out of Stock (${outOfStockCount})`, alert: outOfStockCount > 0 },
+                { id: 'HEALTHY', label: `Healthy Stock (${healthyStockCount})` }
+              ].map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setProductStockFilter(pill.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    productStockFilter === pill.id
+                      ? 'bg-forest-900 text-white shadow-xs'
+                      : pill.alert
+                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                      : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200'
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
+
             {profile.status === 'APPROVED' && (
               <button
-                onClick={() => setShowAddProductModal(true)}
-                className="px-3 py-1.5 bg-forest-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                onClick={openAddProductModal}
+                className="px-3.5 py-2 bg-forest-800 hover:bg-forest-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 self-start sm:self-auto"
               >
                 <Plus size={14} /> Add Product
               </button>
@@ -833,16 +892,18 @@ export default function ManufacturerPortalPage() {
                   <th className="p-3">Category</th>
                   <th className="p-3">Customer Price</th>
                   <th className="p-3">Pricing Equation (Base + Comm + Delivery)</th>
-                  <th className="p-3">Weight & Stock</th>
+                  <th className="p-3">Weight & Quantity Monitor</th>
                   <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100 text-stone-800">
-                {products.map((p) => {
+                {filteredProducts.map((p) => {
                   const actual = parseFloat(p.price) || 0;
                   const withoutDelivery = Math.max(0, actual - deliveryCharge);
                   const base = Math.max(0, Math.round(withoutDelivery / (1 + commissionRate / 100)));
                   const comm = Math.max(0, withoutDelivery - base);
+                  const qty = parseInt(p.stock_quantity, 10) || 0;
 
                   return (
                     <tr key={p.id} className="hover:bg-cream-50/50">
@@ -851,14 +912,14 @@ export default function ManufacturerPortalPage() {
                           <img
                             src={p.primary_image_url || '/featured-pouches.png'}
                             alt={p.title}
-                            className="w-10 h-10 object-cover rounded-lg border border-stone-200"
+                            className="w-10 h-10 object-cover rounded-lg border border-stone-200 shrink-0"
                             onError={(e) => {
                               e.target.onerror = null;
                               e.target.src = '/featured-pouches.png';
                             }}
                           />
                           <div>
-                            <p className="font-semibold text-stone-900">{p.title}</p>
+                            <p className="font-semibold text-stone-900 leading-tight">{p.title}</p>
                             <span className="text-[10px] text-stone-500">{p.dietary_type}</span>
                           </div>
                         </div>
@@ -875,10 +936,49 @@ export default function ManufacturerPortalPage() {
                         <span className="text-[10px] text-stone-500 font-semibold">= ₹{actual.toFixed(0)} Customer Price</span>
                       </td>
                       <td className="p-3">
-                        <span className="block font-medium text-stone-700">{p.weight_grams}g</span>
-                        <span className={p.stock_quantity > 0 ? 'text-emerald-700 font-semibold' : 'text-red-500 font-bold'}>
-                          {p.stock_quantity} left
-                        </span>
+                        <span className="block font-medium text-stone-600 text-[11px]">{p.weight_grams}g jar</span>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
+                            qty === 0
+                              ? 'bg-red-100 text-red-800 border border-red-200'
+                              : qty <= 5
+                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                          }`}>
+                            {qty === 0 ? 'Out of Stock' : `${qty} left`}
+                          </span>
+                        </div>
+
+                        {/* Interactive Quantity Quick Control */}
+                        <div className="flex items-center gap-1 mt-1.5">
+                          <button
+                            type="button"
+                            disabled={qty <= 0 || updatingStockId === p.id}
+                            onClick={() => handleQuickUpdateStock(p.id, Math.max(0, qty - 1))}
+                            className="w-5 h-5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40 shadow-2xs"
+                            title="Decrease stock by 1 jar"
+                          >
+                            -
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingStockId === p.id}
+                            onClick={() => setQuickStockModal({ id: p.id, title: p.title, currentStock: qty, nextStock: qty })}
+                            className="px-2 py-0.5 font-mono text-[11px] font-bold text-forest-950 hover:bg-amber-100 bg-cream-100 rounded border border-stone-200 cursor-pointer shadow-2xs"
+                            title="Click to set exact jar quantity or quick restock"
+                          >
+                            {updatingStockId === p.id ? '...' : `${qty} jars`}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={updatingStockId === p.id}
+                            onClick={() => handleQuickUpdateStock(p.id, qty + 1)}
+                            className="w-5 h-5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40 shadow-2xs"
+                            title="Increase stock by 1 jar"
+                          >
+                            +
+                          </button>
+                        </div>
                       </td>
                       <td className="p-3">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -888,11 +988,49 @@ export default function ManufacturerPortalPage() {
                           {p.status}
                         </span>
                       </td>
+                      <td className="p-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setQuickStockModal({ id: p.id, title: p.title, currentStock: qty, nextStock: qty })}
+                            className="px-2 py-1 bg-stone-50 hover:bg-forest-50 hover:text-forest-900 text-stone-700 rounded-lg text-[11px] font-semibold border border-stone-200 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
+                            title="Manage quantity / stock"
+                          >
+                            <Boxes size={12} className="text-forest-800" />
+                            <span>Stock</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditProductModal(p)}
+                            className="p-1.5 text-stone-600 hover:text-forest-950 hover:bg-stone-100 rounded-lg border border-stone-200 transition-colors cursor-pointer shadow-2xs"
+                            title="Edit recipe details & photos"
+                          >
+                            <Edit3 size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={deletingProductId === p.id}
+                            onClick={() => handleDeleteProduct(p)}
+                            className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg border border-red-200 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
+                            title="Delete product"
+                          >
+                            <Trash2 size={13} className={deletingProductId === p.id ? 'animate-spin' : ''} />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+
+            {filteredProducts.length === 0 && (
+              <div className="p-8 text-center text-stone-500">
+                <Boxes size={32} className="mx-auto text-stone-300 mb-2" />
+                <p className="font-semibold text-stone-700">No products found matching current stock filter.</p>
+                <p className="text-xs text-stone-400 mt-1">Try switching the stock filter above or click "Add Product" to list a new recipe.</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -915,7 +1053,7 @@ export default function ManufacturerPortalPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-stone-100">
-                {orders.map((o) => (
+                {safeOrders.map((o) => (
                   <tr key={o.order_item_id} className="hover:bg-cream-50/50">
                     <td className="p-3">
                       <span className="font-mono font-bold text-stone-900 block">{o.order_number}</span>
@@ -956,9 +1094,24 @@ export default function ManufacturerPortalPage() {
                     </td>
                     <td className="p-3 font-bold text-forest-900 font-mono">₹{parseFloat(o.manufacturer_payout).toFixed(2)}</td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded bg-stone-100 text-[10px] font-bold text-stone-800 block w-max">
-                        {o.fulfillment_status}
-                      </span>
+                      <div className="space-y-1">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold block w-max ${
+                          o.fulfillment_status === 'DISPATCHED'
+                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                            : o.fulfillment_status === 'DELIVERED'
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                            : o.fulfillment_status === 'PACKED'
+                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                            : 'bg-stone-100 text-stone-800'
+                        }`}>
+                          {o.fulfillment_status}
+                        </span>
+                        {o.tracking_number && (
+                          <span className="font-mono text-[9px] text-purple-900 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 block w-max" title={o.courier_partner}>
+                            AWB: {o.tracking_number}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1042,13 +1195,135 @@ export default function ManufacturerPortalPage() {
         </div>
       )}
 
-      {/* Add Product Modal */}
+      {/* Quick Quantity & Restock Management Modal */}
+      {quickStockModal && (
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-stone-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Boxes size={18} className="text-forest-900" />
+                <h3 className="font-serif font-bold text-base text-stone-900">Manage Stock Quantity</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuickStockModal(null)}
+                className="p-1 rounded-lg hover:bg-stone-100 text-stone-400 hover:text-stone-700 cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              <p className="font-bold text-stone-900 text-xs">{quickStockModal.title}</p>
+              <p className="text-[11px] text-stone-500">
+                Currently listed stock: <strong className="font-mono text-stone-900">{quickStockModal.currentStock} jars</strong>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 mb-1">
+                Available Jars in Inventory:
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setQuickStockModal((prev) => ({ ...prev, nextStock: Math.max(0, (parseInt(prev.nextStock, 10) || 0) - 1) }))}
+                  className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-base flex items-center justify-center cursor-pointer select-none"
+                  title="Subtract 1 jar"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min="0"
+                  value={quickStockModal.nextStock}
+                  onChange={(e) => setQuickStockModal((prev) => ({ ...prev, nextStock: e.target.value }))}
+                  className="flex-1 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-center font-mono font-bold text-stone-900 text-base focus:outline-none focus:ring-2 focus:ring-forest-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => setQuickStockModal((prev) => ({ ...prev, nextStock: (parseInt(prev.nextStock, 10) || 0) + 1 }))}
+                  className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-base flex items-center justify-center cursor-pointer select-none"
+                  title="Add 1 jar"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Add Batch Presets */}
+            <div className="space-y-1">
+              <span className="text-[10px] text-stone-500 uppercase font-bold tracking-wider block">Quick Restock Batch:</span>
+              <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
+                {[5, 10, 25, 50].map((batch) => (
+                  <button
+                    key={batch}
+                    type="button"
+                    onClick={() => setQuickStockModal((prev) => ({
+                      ...prev,
+                      nextStock: (parseInt(prev.nextStock, 10) || 0) + batch
+                    }))}
+                    className="py-1.5 rounded-lg bg-cream-100 hover:bg-amber-100 border border-stone-200 text-stone-800 text-[11px] cursor-pointer transition-colors"
+                  >
+                    +{batch}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-stone-100 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setQuickStockModal(null)}
+                className="px-3.5 py-2 rounded-xl text-xs font-semibold text-stone-600 hover:bg-stone-100 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={updatingStockId === quickStockModal.id}
+                onClick={() => handleQuickUpdateStock(quickStockModal.id, quickStockModal.nextStock)}
+                className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+              >
+                <span>{updatingStockId === quickStockModal.id ? 'Updating...' : 'Save Stock'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add / Edit Product Modal */}
       {showAddProductModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-stone-200 space-y-4 my-8">
-            <h3 className="font-serif font-bold text-lg text-stone-900">Add New Pickle Batch for Approval</h3>
-            <form onSubmit={handleCreateProduct} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
+        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full my-auto shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-fade-in">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white flex items-center justify-between border-b border-amber-500/30 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center shadow-xs shrink-0">
+                  <Package size={20} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base sm:text-lg text-cream-50 leading-tight">
+                    {editingProductId ? 'Edit Recipe & Stock Details' : 'Add New Pickle Batch'}
+                  </h3>
+                  <p className="text-[11px] text-cream-200 mt-0.5">
+                    {editingProductId ? 'Updates are saved directly to your storefront listing' : 'Publishes directly to the marketplace; administrator is automatically notified'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowAddProductModal(false)}
+                className="p-2 text-stone-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="flex flex-col flex-1 overflow-hidden text-xs">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block text-stone-700 font-medium mb-1">Product Title *</label>
                   <input
@@ -1067,7 +1342,7 @@ export default function ManufacturerPortalPage() {
                     onChange={(e) => setNewProd({ ...newProd, category_id: e.target.value })}
                     className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
                   >
-                    {categories.map((c) => (
+                    {safeCategories.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -1295,7 +1570,7 @@ export default function ManufacturerPortalPage() {
                           <div className="space-y-1">
                             <label className="w-full py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg cursor-pointer text-stone-700 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition-colors">
                               <Camera size={12} className="text-forest-800" />
-                              <span>Upload Photo</span>
+                              <span>{imgVal ? 'Change Photo' : 'Upload Photo'}</span>
                               <input
                                 type="file"
                                 accept="image/*"
@@ -1314,7 +1589,7 @@ export default function ManufacturerPortalPage() {
                                       setNewProd({
                                         ...newProd,
                                         images: updated,
-                                        primary_image_url: slotIdx === 0 ? reader.result : (updated[0] || reader.result)
+                                        primary_image_url: updated.find(Boolean) || reader.result
                                       });
                                     };
                                     reader.readAsDataURL(file);
@@ -1322,21 +1597,42 @@ export default function ManufacturerPortalPage() {
                                 }}
                               />
                             </label>
-                            <input
-                              type="url"
-                              value={imgVal}
-                              onChange={(e) => {
-                                const updated = [...(newProd.images || ['', '', ''])];
-                                updated[slotIdx] = e.target.value;
-                                setNewProd({
-                                  ...newProd,
-                                  images: updated,
-                                  primary_image_url: slotIdx === 0 ? e.target.value : (updated[0] || e.target.value)
-                                });
-                              }}
-                              placeholder="Or paste image URL"
-                              className="w-full px-2 py-1 text-[10px] border border-stone-200 rounded-lg bg-white"
-                            />
+                            {imgVal && imgVal.startsWith('data:image/') ? (
+                              <div className="flex items-center justify-between px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] text-emerald-800">
+                                <span className="font-semibold truncate">Photo attached</span>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...(newProd.images || ['', '', ''])];
+                                    updated[slotIdx] = '';
+                                    setNewProd({
+                                      ...newProd,
+                                      images: updated,
+                                      primary_image_url: updated.find(Boolean) || ''
+                                    });
+                                  }}
+                                  className="text-stone-400 hover:text-red-600 font-bold ml-1 cursor-pointer"
+                                >
+                                  Clear
+                                </button>
+                              </div>
+                            ) : (
+                              <input
+                                type="url"
+                                value={imgVal}
+                                onChange={(e) => {
+                                  const updated = [...(newProd.images || ['', '', ''])];
+                                  updated[slotIdx] = e.target.value;
+                                  setNewProd({
+                                    ...newProd,
+                                    images: updated,
+                                    primary_image_url: updated.find(Boolean) || e.target.value
+                                  });
+                                }}
+                                placeholder="Or paste image URL"
+                                className="w-full px-2 py-1 text-[10px] border border-stone-200 rounded-lg bg-white"
+                              />
+                            )}
                           </div>
                         </div>
                       );
@@ -1366,20 +1662,23 @@ export default function ManufacturerPortalPage() {
                   />
                 </div>
               </div>
+            </div>
 
-              <div className="flex gap-2 pt-3 border-t border-stone-200">
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 bg-forest-800 text-white font-bold rounded-lg"
-                >
-                  Submit for Admin Approval
-                </button>
+              {/* Action Buttons Sticky Footer */}
+              <div className="flex items-center justify-end gap-3 p-4 px-6 bg-stone-50 border-t border-stone-200 shrink-0">
                 <button
                   type="button"
-                  onClick={() => setShowAddProductModal(false)}
-                  className="py-2.5 px-4 border border-stone-200 rounded-lg"
+                  onClick={() => { setShowAddProductModal(false); setEditingProductId(null); }}
+                  className="px-4 py-2.5 border border-stone-300 hover:bg-stone-100 text-stone-700 font-bold rounded-xl transition-colors cursor-pointer text-xs"
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2 text-xs"
+                >
+                  {editingProductId ? <CheckCircle size={15} /> : <Plus size={15} />}
+                  <span>{editingProductId ? 'Save Recipe Changes' : 'Publish Pickle Batch (Live)'}</span>
                 </button>
               </div>
             </form>
@@ -1391,8 +1690,8 @@ export default function ManufacturerPortalPage() {
           PARCEL SHIPPING SLIP / PACKING LABEL MODAL (READY TO PRINT & AFFIX)
          ===================================================================== */}
       {selectedParcelOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl relative space-y-4 my-8">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl relative space-y-4 my-auto max-h-[90vh] overflow-y-auto">
             {/* Top Toolbar (Hidden during print) */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-200 no-print">
               <div className="flex items-center gap-2.5">
@@ -1432,8 +1731,8 @@ export default function ManufacturerPortalPage() {
               id="printable-parcel-slip"
               className="bg-white border-2 border-dashed border-stone-900 rounded-2xl p-5 text-stone-900 space-y-4"
             >
-              {/* Header: Platform Branding & Order Reference */}
-              <div className="flex items-center justify-between border-b-2 border-stone-900 pb-3">
+              {/* Header: Platform Branding, Dispatch Tracking QR & Order Reference */}
+              <div className="flex items-center justify-between border-b-2 border-stone-900 pb-3 gap-3">
                 <div>
                   <h2 className="font-serif font-black text-2xl tracking-wider text-stone-900">
                     WANGS
@@ -1441,16 +1740,37 @@ export default function ManufacturerPortalPage() {
                   <p className="text-[10px] uppercase font-bold tracking-widest text-stone-600">
                     Authentic Food Marketplace · www.wangs.in
                   </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="text-[9px] font-mono text-stone-500 uppercase">Air Cargo Priority Label</span>
+                    <span className="text-[9px] text-stone-400">·</span>
+                    <span className="text-[9px] font-mono font-bold text-stone-700">Origin Hub: Dimapur (797112)</span>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <div className="bg-stone-900 text-white px-3 py-1 rounded-md font-mono font-black text-sm tracking-widest inline-block">
-                    #{selectedParcelOrder.order_number}
+
+                <div className="flex items-center gap-3">
+                  {/* Primary Order & Dispatch Tracking QR Code */}
+                  <div className="text-center bg-stone-50 border border-stone-300 rounded-xl p-1.5 shadow-2xs">
+                    <QRCodeSVG
+                      value={`https://wangs.in/account?track=${selectedParcelOrder.order_number}`}
+                      size={54}
+                      margin={1}
+                      className="mx-auto"
+                    />
+                    <span className="text-[7.5px] font-mono font-bold text-stone-700 block mt-0.5 tracking-tight uppercase">
+                      Track Parcel
+                    </span>
                   </div>
-                  <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider mt-1">
-                    ● PREPAID / PAYMENT CONFIRMED
-                  </div>
-                  <div className="text-[10px] text-stone-500 font-mono">
-                    Date: {new Date(selectedParcelOrder.order_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+
+                  <div className="text-right">
+                    <div className="bg-stone-900 text-white px-3 py-1 rounded-md font-mono font-black text-sm tracking-widest inline-block">
+                      #{selectedParcelOrder.order_number}
+                    </div>
+                    <div className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider mt-1">
+                      ● PREPAID / PAYMENT CONFIRMED
+                    </div>
+                    <div className="text-[10px] text-stone-500 font-mono">
+                      Date: {new Date(selectedParcelOrder.order_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1458,68 +1778,103 @@ export default function ManufacturerPortalPage() {
               {/* Delivery Destination (SHIP TO) & Producer Origin (SHIP FROM) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b-2 border-stone-900 pb-4">
                 {/* DELIVER TO: CUSTOMER RECIPIENT */}
-                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-300">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <MapPin size={13} className="text-forest-800" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-forest-900 bg-forest-100 px-2 py-0.5 rounded">
-                      DELIVER TO (CUSTOMER):
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-sm text-stone-950 leading-tight">
-                    {selectedParcelOrder.customer_name}
-                  </h4>
-                  <div className="text-xs text-stone-800 mt-2 space-y-1 leading-snug">
-                    <p className="font-medium text-stone-900">{selectedParcelOrder.shipping_address_line1}</p>
-                    {selectedParcelOrder.shipping_address_line2 && (
-                      <p className="text-stone-700">{selectedParcelOrder.shipping_address_line2}</p>
-                    )}
-                    <p className="font-bold text-stone-950 text-xs">
-                      {selectedParcelOrder.shipping_city}, {selectedParcelOrder.shipping_state} - {selectedParcelOrder.shipping_postal_code}
-                    </p>
-                    <div className="pt-1.5 flex items-center gap-2">
-                      <span className="font-bold text-xs text-stone-900">📞 Phone:</span>
-                      <span className="font-mono font-bold text-xs bg-white px-2 py-0.5 rounded border border-stone-300 text-stone-950">
-                        {selectedParcelOrder.customer_phone || 'N/A'}
+                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-300 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <MapPin size={13} className="text-forest-800" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-forest-900 bg-forest-100 px-2 py-0.5 rounded">
+                        DELIVER TO (CUSTOMER):
                       </span>
                     </div>
-                    {selectedParcelOrder.customer_email && (
-                      <p className="text-[10px] text-stone-500 truncate pt-0.5">
-                        ✉ {selectedParcelOrder.customer_email}
+                    <h4 className="font-bold text-sm text-stone-950 leading-tight">
+                      {selectedParcelOrder.customer_name}
+                    </h4>
+                    <div className="text-xs text-stone-800 mt-2 space-y-1 leading-snug">
+                      <p className="font-medium text-stone-900">{selectedParcelOrder.shipping_address_line1}</p>
+                      {selectedParcelOrder.shipping_address_line2 && (
+                        <p className="text-stone-700">{selectedParcelOrder.shipping_address_line2}</p>
+                      )}
+                      <p className="font-bold text-stone-950 text-xs">
+                        {selectedParcelOrder.shipping_city}, {selectedParcelOrder.shipping_state} - {selectedParcelOrder.shipping_postal_code}
                       </p>
-                    )}
+                      <div className="pt-1.5 flex items-center gap-2">
+                        <span className="font-bold text-xs text-stone-900">📞 Phone:</span>
+                        <span className="font-mono font-bold text-xs bg-white px-2 py-0.5 rounded border border-stone-300 text-stone-950">
+                          {selectedParcelOrder.customer_phone || 'N/A'}
+                        </span>
+                      </div>
+                      {selectedParcelOrder.customer_email && (
+                        <p className="text-[10px] text-stone-500 truncate pt-0.5">
+                          ✉ {selectedParcelOrder.customer_email}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Destination QR for Courier Delivery Agent */}
+                  <div className="mt-2.5 pt-2 border-t border-stone-200 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[9px] font-mono text-stone-500 uppercase block">Delivery Hub Pincode</span>
+                      <span className="text-xs font-mono font-black text-stone-900 block">{selectedParcelOrder.shipping_postal_code}</span>
+                    </div>
+                    <div className="text-center bg-white p-1 rounded border border-stone-300 shrink-0">
+                      <QRCodeSVG
+                        value={`DELIVERY:${selectedParcelOrder.order_number}|DEST:${selectedParcelOrder.shipping_postal_code}|PHONE:${selectedParcelOrder.customer_phone}`}
+                        size={36}
+                        margin={1}
+                        className="mx-auto"
+                      />
+                      <span className="text-[7px] font-mono font-bold text-stone-600 block mt-0.5">DELIVERY QR</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* DISPATCHED FROM: ARTISAN SELLER */}
-                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-300">
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Store size={13} className="text-stone-700" />
-                    <span className="text-[10px] font-black uppercase tracking-wider text-stone-800 bg-stone-200 px-2 py-0.5 rounded">
-                      FROM (ARTISAN PRODUCER):
-                    </span>
+                {/* DISPATCHED FROM: ARTISAN SELLER (WITH FSSAI QR) */}
+                <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-300 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Store size={13} className="text-stone-700" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-stone-800 bg-stone-200 px-2 py-0.5 rounded">
+                        FROM (ARTISAN PRODUCER):
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-sm text-stone-950 leading-tight">
+                      {selectedParcelOrder.seller_business_name || profile?.business_name || 'Artisan Brand'}
+                    </h4>
+                    <div className="text-xs text-stone-800 mt-2 space-y-1 leading-snug">
+                      <p className="text-stone-700">
+                        {selectedParcelOrder.seller_address || profile?.business_address || 'Artisan Workshop'}
+                      </p>
+                      <p className="text-stone-800">
+                        {(selectedParcelOrder.seller_district || profile?.location_district || '')}
+                        {(selectedParcelOrder.seller_pincode || profile?.pincode) ? ` - ${selectedParcelOrder.seller_pincode || profile?.pincode}` : ''}
+                      </p>
+                      <p className="text-stone-800 pt-1">
+                        📞 {selectedParcelOrder.seller_contact_phone || profile?.contact_phone || 'N/A'}
+                      </p>
+                    </div>
                   </div>
-                  <h4 className="font-bold text-sm text-stone-950 leading-tight">
-                    {selectedParcelOrder.seller_business_name || profile?.business_name || 'Artisan Brand'}
-                  </h4>
-                  <div className="text-xs text-stone-800 mt-2 space-y-1 leading-snug">
-                    <p className="text-stone-700">
-                      {selectedParcelOrder.seller_address || profile?.business_address || 'Artisan Workshop'}
-                    </p>
-                    <p className="text-stone-800">
-                      {(selectedParcelOrder.seller_district || profile?.location_district || '')}
-                      {(selectedParcelOrder.seller_pincode || profile?.pincode) ? ` - ${selectedParcelOrder.seller_pincode || profile?.pincode}` : ''}
-                    </p>
-                    <p className="text-stone-800 pt-1">
-                      📞 {selectedParcelOrder.seller_contact_phone || profile?.contact_phone || 'N/A'}
-                    </p>
-                    {(selectedParcelOrder.seller_fssai || profile?.fssai_license_number) && (
-                      <div className="pt-1">
+
+                  {/* FSSAI License & Food Safety Verification QR */}
+                  {(selectedParcelOrder.seller_fssai || profile?.fssai_license_number) && (
+                    <div className="mt-2.5 pt-2 border-t border-stone-200 flex items-center justify-between gap-2">
+                      <div>
                         <span className="text-[10px] font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 inline-block font-mono">
                           FSSAI: {selectedParcelOrder.seller_fssai || profile?.fssai_license_number}
                         </span>
+                        <span className="block text-[8.5px] text-stone-500 mt-0.5 font-medium">Verified Food Safety License</span>
                       </div>
-                    )}
-                  </div>
+                      <div className="text-center bg-white p-1 rounded border border-stone-300 shrink-0">
+                        <QRCodeSVG
+                          value={`https://foscos.fssai.gov.in/verify-license?fssai=${selectedParcelOrder.seller_fssai || profile?.fssai_license_number}`}
+                          size={36}
+                          margin={1}
+                          className="mx-auto"
+                        />
+                        <span className="text-[7px] font-mono font-bold text-stone-600 block mt-0.5">FSSAI QR</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1562,6 +1917,38 @@ export default function ManufacturerPortalPage() {
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Logistics AWB Barcode & Customer Jar Unboxing QR Strip */}
+              <div className="p-3 bg-stone-100 rounded-xl border border-stone-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
+                <div className="space-y-1 w-full sm:w-auto">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-black uppercase text-stone-700 bg-stone-200 px-1.5 py-0.5 rounded">
+                      AIRWAY BILL (AWB):
+                    </span>
+                    <span className="font-mono font-black text-stone-950 text-xs tracking-wider">
+                      {selectedParcelOrder.tracking_number || `WNG-AWB-${selectedParcelOrder.order_number.slice(-6)}-1IN`}
+                    </span>
+                  </div>
+                  <div className="font-mono text-[10px] text-stone-600 tracking-widest bg-white p-1 rounded border border-stone-200">
+                    ||| | |||| | ||||| || |||||| | |||| ||| |||||||
+                  </div>
+                  <span className="text-[9px] text-stone-500 block">
+                    Logistics Routing: Dimapur Air Cargo (797112) → {selectedParcelOrder.shipping_city} ({selectedParcelOrder.shipping_postal_code})
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2.5 bg-white p-2 rounded-xl border border-stone-300 shrink-0 w-full sm:w-auto justify-center sm:justify-start">
+                  <QRCodeSVG
+                    value={`https://wangs.in/account?unboxing=${selectedParcelOrder.order_number}`}
+                    size={44}
+                    margin={1}
+                  />
+                  <div className="text-[10px] text-stone-600 leading-tight max-w-[145px]">
+                    <span className="font-bold text-stone-900 block">Customer Unboxing:</span>
+                    <span>Scan to verify jar seal authenticity & leave artisan feedback.</span>
+                  </div>
+                </div>
               </div>
 
               {/* Fragile & Natural Ferment Advisory */}
@@ -1773,7 +2160,6 @@ export default function ManufacturerPortalPage() {
                 <div className="flex flex-wrap items-center gap-4 pt-1 font-semibold text-xs">
                   <span>✉ Email: <strong>wangssupport@gmail.com</strong></span>
                   <span>🌐 Portal: <strong>https://wangs.in/manufacturer</strong></span>
-                  <span>🛡 Admin Space: <strong>/wangadminspace</strong></span>
                 </div>
               </div>
             </div>

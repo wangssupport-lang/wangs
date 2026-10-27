@@ -372,6 +372,39 @@ class ProductSerializer(serializers.ModelSerializer):
     average_rating = serializers.SerializerMethodField()
     is_in_stock = serializers.BooleanField(read_only=True)
     pricing_breakdown = serializers.SerializerMethodField()
+    primary_image_url = serializers.CharField(required=False, allow_blank=True)
+
+    def to_internal_value(self, data):
+        ret = super().to_internal_value(data)
+        raw_primary = ret.get('primary_image_url') or data.get('primary_image_url')
+        if raw_primary and isinstance(raw_primary, str) and raw_primary.startswith('data:image/'):
+            ret['primary_image_url'] = self._save_base64_image(raw_primary)
+        return ret
+
+    @staticmethod
+    def _save_base64_image(data_uri, folder='products'):
+        if not isinstance(data_uri, str) or not data_uri.startswith('data:image/'):
+            return data_uri
+        try:
+            import base64
+            import uuid
+            import os
+            from django.conf import settings
+            header, encoded = data_uri.split(';base64,', 1)
+            mime_type = header.replace('data:', '')
+            ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg'}
+            ext = ext_map.get(mime_type, 'jpg')
+            filename = f"{uuid.uuid4().hex[:16]}.{ext}"
+            target_dir = os.path.join(settings.MEDIA_ROOT, folder)
+            os.makedirs(target_dir, exist_ok=True)
+            target_path = os.path.join(target_dir, filename)
+            with open(target_path, 'wb') as f:
+                f.write(base64.b64decode(encoded))
+            return f"/media/{folder}/{filename}"
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Failed to decode base64 image: %s", exc)
+            return data_uri
 
     class Meta:
         model = Product

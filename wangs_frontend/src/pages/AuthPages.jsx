@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock, Store } from 'lucide-react';
+import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock, Store, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
@@ -19,6 +19,11 @@ export default function AuthPage() {
   const [resetOtpCode, setResetOtpCode] = useState('');
   const [resetPasswordVal, setResetPasswordVal] = useState('');
   const [resetConfirmPasswordVal, setResetConfirmPasswordVal] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
+  const [showResetConfirmPassword, setShowResetConfirmPassword] = useState(false);
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
+  const [showRegisterConfirmPassword, setShowRegisterConfirmPassword] = useState(false);
   const [resetOtpSent, setResetOtpSent] = useState(false);
   const [resetOtpLoading, setResetOtpLoading] = useState(false);
   const [resetTimer, setResetTimer] = useState(0);
@@ -520,13 +525,22 @@ export default function AuthPage() {
               <div className="relative">
                 <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
                 <input
-                  type="password"
+                  type={showResetPassword ? 'text' : 'password'}
                   required
                   value={resetPasswordVal}
                   onChange={(e) => setResetPasswordVal(e.target.value)}
                   placeholder="Enter new password (min 6 characters)"
-                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(!showResetPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                  title={showResetPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showResetPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -538,13 +552,22 @@ export default function AuthPage() {
               <div className="relative">
                 <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
                 <input
-                  type="password"
+                  type={showResetConfirmPassword ? 'text' : 'password'}
                   required
                   value={resetConfirmPasswordVal}
                   onChange={(e) => setResetConfirmPasswordVal(e.target.value)}
                   placeholder="Re-enter new password to confirm"
-                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirmPassword(!showResetConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                  title={showResetConfirmPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showResetConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -619,15 +642,24 @@ export default function AuthPage() {
               <div className="relative">
                 <KeyRound size={16} className="absolute left-3.5 top-3 text-stone-400" />
                 <input
-                  type="password"
+                  type={showLoginPassword ? 'text' : 'password'}
                   required
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 font-medium"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                  title={showLoginPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showLoginPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 
@@ -783,32 +815,54 @@ export default function AuthPage() {
                 <label className="block text-stone-700 font-semibold mb-1">
                   Create Password *
                 </label>
-                <input
-                  type="password"
-                  required
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  autoComplete="new-password"
-                  placeholder="Min. 6 characters"
-                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterPassword ? 'text' : 'password'}
+                    required
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    autoComplete="new-password"
+                    placeholder="Min. 6 characters"
+                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                    title={showRegisterPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showRegisterPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-stone-700 font-semibold mb-1">
                   Confirm Password *
                 </label>
-                <input
-                  type="password"
-                  required
-                  name="confirm_password"
-                  value={formData.confirm_password}
-                  onChange={handleChange}
-                  autoComplete="new-password"
-                  placeholder="Re-enter password"
-                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
-                />
+                <div className="relative">
+                  <input
+                    type={showRegisterConfirmPassword ? 'text' : 'password'}
+                    required
+                    name="confirm_password"
+                    value={formData.confirm_password}
+                    onChange={handleChange}
+                    autoComplete="new-password"
+                    placeholder="Re-enter password"
+                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegisterConfirmPassword(!showRegisterConfirmPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                    title={showRegisterConfirmPassword ? 'Hide password' : 'Show password'}
+                    tabIndex={-1}
+                  >
+                    {showRegisterConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
             </div>
 

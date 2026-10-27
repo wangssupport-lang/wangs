@@ -27,6 +27,25 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const updateSellerRegistrationState = (userData, mfgData) => {
+    try {
+      const isSeller = Boolean(
+        mfgData ||
+        userData?.role === 'MANUFACTURER' ||
+        userData?.can_sell
+      );
+      if (isSeller) {
+        localStorage.setItem('wangs_is_registered_seller', 'true');
+        window.dispatchEvent(new Event('wangs_seller_status_changed'));
+      } else if (userData && userData.role === 'CUSTOMER' && !userData.can_sell && !mfgData) {
+        localStorage.removeItem('wangs_is_registered_seller');
+        window.dispatchEvent(new Event('wangs_seller_status_changed'));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
   const loadCurrentUser = async () => {
     const token = localStorage.getItem('wangs_token');
     if (!token) {
@@ -37,6 +56,7 @@ export function AuthProvider({ children }) {
       const data = await api.getMe();
       setUser(data.user);
       setMfgProfile(data.manufacturer_profile);
+      updateSellerRegistrationState(data.user, data.manufacturer_profile);
     } catch (err) {
       console.error('Failed to load user session', err);
       localStorage.removeItem('wangs_token');
@@ -57,6 +77,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem('wangs_token', res.token);
     setUser(res.user);
     setMfgProfile(res.manufacturer_profile);
+    updateSellerRegistrationState(res.user, res.manufacturer_profile);
     return res.user;
   };
 
@@ -64,6 +85,7 @@ export function AuthProvider({ children }) {
     const res = await api.register(userData);
     localStorage.setItem('wangs_token', res.token);
     setUser(res.user);
+    updateSellerRegistrationState(res.user, null);
     return res.user;
   };
 
@@ -73,6 +95,7 @@ export function AuthProvider({ children }) {
       localStorage.setItem('wangs_token', res.token);
       setUser(res.user);
       setMfgProfile(res.manufacturer_profile);
+      updateSellerRegistrationState(res.user, res.manufacturer_profile);
     }
     return res;
   };
@@ -93,7 +116,7 @@ export function AuthProvider({ children }) {
     setMfgProfile(null);
   };
 
-  const isAdmin = user && (user.role === 'ADMIN' || user.is_staff === true);
+  const isAdmin = Boolean(user && (user.role === 'ADMIN' || user.is_staff === true || user.is_superuser === true));
   const isManufacturer = user && user.role === 'MANUFACTURER';
   const isAuthorizedToSell = Boolean(
     user && (user.is_authorized_to_sell || user.can_sell || user.role === 'MANUFACTURER' || user.role === 'ADMIN' || user.is_staff)

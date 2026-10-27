@@ -430,7 +430,6 @@ def generate_seller_rules_pdf():
     support_items = [
         ("Seller Care Email:", "wangssupport@gmail.com (Dedicated Priority Seller Desk)"),
         ("Seller Operations Portal:", "https://wangs.in/manufacturer (Catalog, Bundles & Payouts)"),
-        ("Marketplace Admin Space:", "/wangadminspace (Platform Governance & Authorizations)"),
         ("Dispatch Hours:", "Monday through Saturday · 09:00 AM to 06:00 PM IST")
     ]
 

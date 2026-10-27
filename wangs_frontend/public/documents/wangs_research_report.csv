@@ -1,5 +1,5 @@
 === WANGS MARKETPLACE PLATFORM RESEARCH & ANALYTICS RECORD ===
-Generated Timestamp (UTC),2026-10-26 08:24:18 UTC
+Generated Timestamp (UTC),2026-10-27 05:21:22 UTC
 Total Users Registered,4
 Total Shoppers / Customers,2
 Approved Artisan Sellers,1
@@ -9,15 +9,15 @@ Average Spend Per Customer (INR),0.0
 
 --- SECTION 1: CUSTOMER RESEARCH DIRECTORY ---
 Customer ID,Username,Full Name,Email,Phone,Role,Status,Date Joined,Orders Placed,Total Spend (INR),AOV (INR),Primary District
-4,shopper_subject,shopper_subject,subject@wangs.in,Not provided,CUSTOMER,Active,2026-10-26 08:24,0,0.0,0.0,Not Recorded
-3,admin_researcher,admin_researcher,research_boss@wangs.in,Not provided,ADMIN,Active,2026-10-26 08:24,0,0.0,0.0,Not Recorded
-2,cust,cust,cust@wangs.in,Not provided,CUSTOMER,Active,2026-10-26 08:24,0,0.0,0.0,Not Recorded
-1,arenla_craft,arenla_craft,arenla@wangs.in,Not provided,MANUFACTURER,Active,2026-10-26 08:24,0,0.0,0.0,Not Recorded
+4,shopper_subject,shopper_subject,subject@wangs.in,Not provided,CUSTOMER,Active,2026-10-27 05:21,0,0.0,0.0,Not Recorded
+3,admin_researcher,admin_researcher,research_boss@wangs.in,Not provided,ADMIN,Active,2026-10-27 05:21,0,0.0,0.0,Not Recorded
+2,cust,cust,cust@wangs.in,Not provided,CUSTOMER,Active,2026-10-27 05:21,0,0.0,0.0,Not Recorded
+1,arenla_craft,arenla_craft,arenla@wangs.in,Not provided,MANUFACTURER,Active,2026-10-27 05:21,0,0.0,0.0,Not Recorded
 
 --- SECTION 2: ARTISAN SELLER & PRODUCER ECOSYSTEM ---
 Seller ID,Brand Name,Contact Email,Contact Phone,District,FSSAI License,Status,Verified Producer,Total Products,Active Products,Units Sold,Gross Revenue (INR),Commission Rate,Registered Date
-1,Arenla's Heritage Craft,arenla@wangs.in,9436012345,Kohima,10023064000124,APPROVED,No,1,1,0,0.0,10.0% (Default),2026-10-26
+1,Arenla's Heritage Craft,arenla@wangs.in,9436012345,Kohima,10023064000124,APPROVED,No,1,1,0,0.0,10.0% (Default),2026-10-27
 
 --- SECTION 3: PRODUCT CATALOG PERFORMANCE & INVENTORY ---
 Product ID,Product Title,Brand,Category,Dietary Type,Spice Level,Net Weight (g),Price (INR),Base Earnings (INR),Stock Quantity,Status,Is Active,Units Sold,Total Revenue (INR),Reviews Count,Average Rating,Created Date
-1,Smoked Pork Pickle,Arenla's Heritage Craft,Pork Pickle,NON_VEG,HOT,250,100.0,85.0,20,APPROVED,Yes,0,0.0,0,0.0,2026-10-26
+1,Smoked Pork Pickle,Arenla's Heritage Craft,Pork Pickle,NON_VEG,HOT,250,100.0,85.0,20,APPROVED,Yes,0,0.0,0,0.0,2026-10-27

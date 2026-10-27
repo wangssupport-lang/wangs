@@ -1,3 +1,4 @@
+import re
 import uuid
 import random
 import datetime
@@ -65,6 +66,20 @@ class LoginView(views.APIView):
         username_or_email = request.data.get('username', '').strip()
         password = request.data.get('password', '')
 
+        if not username_or_email or not password:
+            return Response({'detail': 'Username/email and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Anti-brute-force rate limiting: check recent failed attempts
+        failed_attempts = AuditLog.objects.filter(
+            action='LOGIN_FAILED',
+            details__identifier=username_or_email.lower(),
+            created_at__gte=timezone.now() - datetime.timedelta(minutes=15)
+        ).count()
+        if failed_attempts >= 8:
+            return Response({
+                'detail': 'Too many failed login attempts. For security, your account access has been temporarily restricted for 15 minutes. Please use "Forgot Password" or try again later.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         user = User.objects.filter(Q(username__iexact=username_or_email) | Q(email__iexact=username_or_email)).first()
         if user and user.check_password(password):
             if getattr(user, 'is_banned', False) or not user.is_active:
@@ -84,6 +99,15 @@ class LoginView(views.APIView):
                 'token': str(refresh.access_token),
                 'refresh': str(refresh),
             })
+
+        # Log failed attempt for brute-force tracking
+        AuditLog.objects.create(
+            user=user if user else None,
+            action='LOGIN_FAILED',
+            target_model='User',
+            target_id=username_or_email[:50],
+            details={'identifier': username_or_email.lower()}
+        )
         return Response({'detail': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -107,8 +131,8 @@ class SendEmailOTPView(views.APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
         purpose = request.data.get('purpose', 'LOGIN').strip().upper()
-        if not email or '@' not in email:
-            return Response({'detail': 'Please provide a valid email address.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not email or '@' not in email or not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return Response({'detail': 'Please provide a valid, complete email address (e.g. name@gmail.com).'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check for existing account when registering
         if purpose == 'REGISTER':
@@ -142,11 +166,13 @@ class SendEmailOTPView(views.APIView):
 
         sent_live, resend_info = send_otp_email(email, otp_code, purpose)
 
+        recipient_note = f'dispatched directly to your entered email ({email})'
         return Response({
             'success': True,
+            'recipient': email,
             'delivered_via_email': sent_live,
-            'message': f'A 6-digit verification code has been dispatched to {email}. Please check your inbox or spam folder.' if sent_live else f'Email credentials not configured in .env. Please add EMAIL_HOST_USER and EMAIL_HOST_PASSWORD to wangs_backend/.env to receive emails in your Gmail.',
-            'warning': None if sent_live else f'Cannot dispatch to {email}: {resend_info.get("error", "Email credentials missing in .env")}. Add EMAIL_HOST_USER and EMAIL_HOST_PASSWORD to wangs_backend/.env.',
+            'message': f'A 6-digit verification code has been {recipient_note}. Please check your inbox and spam folder.' if sent_live else f'Email credentials not configured in .env. Please check EMAIL_HOST_USER and EMAIL_HOST_PASSWORD in wangs_backend/.env.',
+            'warning': None if sent_live else f'Cannot dispatch to {email}: {resend_info.get("error", "Email delivery issue")}.',
             'expires_in_minutes': 10,
         }, status=status.HTTP_200_OK)
 
@@ -303,9 +329,20 @@ class RequestSellerAccessView(views.APIView):
         fssai_number = request.data.get('fssai_number', '').strip()
         phone = request.data.get('phone', '').strip()
         message = request.data.get('message', '').strip()
+        password = request.data.get('password', '').strip()
 
         if not email or not business_name:
             return Response({'detail': 'Business name and contact email are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Password validation if provided or required
+        if password and len(password) < 6:
+            return Response({'detail': 'Password must be at least 6 characters long.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # FSSAI is strictly mandatory (must be exactly 14 numeric digits)
+        if not fssai_number or len(fssai_number) != 14 or not fssai_number.isdigit():
+            return Response({
+                'detail': 'A valid 14-digit FSSAI Food Business License / Registration Number is mandatory. Please enter exactly 14 numeric digits.'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
         # Ensure contact email has been verified via OTP
         is_admin = bool(request.user and request.user.is_authenticated and getattr(request.user, 'role', None) == User.Role.ADMIN)
@@ -320,9 +357,35 @@ class RequestSellerAccessView(views.APIView):
                 'detail': 'Email verification is mandatory. Please click "Send OTP" and enter the 6-digit verification code sent to your email.'
             }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Pre-create or link User account with the chosen password
+        user_record = User.objects.filter(email__iexact=email).first()
+        if user_record:
+            if password:
+                user_record.set_password(password)
+                user_record.save()
+        else:
+            base_username = slugify(email.split('@')[0]) or 'seller'
+            username = base_username
+            c = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{c}"
+                c += 1
+            user_record = User.objects.create(
+                username=username,
+                email=email,
+                role=User.Role.CUSTOMER,
+                can_sell=False,
+                first_name=business_name
+            )
+            if password:
+                user_record.set_password(password)
+            else:
+                user_record.set_unusable_password()
+            user_record.save()
+
         # Log request in AuditLog so admin sees it in the dashboard
         AuditLog.objects.create(
-            user=request.user if request.user.is_authenticated else None,
+            user=user_record,
             action='SELLER_AUTHORIZATION_REQUESTED',
             target_model='ManufacturerProfile',
             target_id=business_name,
@@ -336,9 +399,10 @@ class RequestSellerAccessView(views.APIView):
             }
         )
 
-        # Notify wangssupport@gmail.com immediately about the new seller request
+        # Notify wangssupport@gmail.com immediately about the new seller request, and acknowledge the applicant
         try:
-            from .resend_service import send_admin_new_seller_registration_email
+            from .resend_service import send_admin_new_seller_registration_email, send_seller_application_received_email
+            # 1. Admin Alert to support Gmail
             send_admin_new_seller_registration_email({
                 'email': email,
                 'business_name': business_name,
@@ -348,8 +412,19 @@ class RequestSellerAccessView(views.APIView):
                 'message': message,
                 'type': 'Seller Authorization Request'
             })
+            # 2. Confirmation email dispatched directly to the applicant's entered email
+            send_seller_application_received_email(
+                to_email=email,
+                business_name=business_name,
+                applicant_data={
+                    'location_district': location_district,
+                    'fssai_number': fssai_number,
+                    'phone': phone,
+                },
+                request=request
+            )
         except Exception as exc:
-            logger.warning("Failed to dispatch admin notification for seller request: %s", exc)
+            logger.warning("Failed to dispatch notifications for seller request: %s", exc)
 
         return Response({
             'success': True,
@@ -513,12 +588,27 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     def add_review(self, request, slug=None):
         product = self.get_object()
         author_name = request.data.get('author_name', '').strip() or 'Artisanal Food Lover'
-        rating = int(request.data.get('rating', 5))
+        try:
+            rating = int(request.data.get('rating', 5))
+        except (ValueError, TypeError):
+            rating = 5
+
         comment = request.data.get('comment', '').strip()
         title = request.data.get('title', '').strip()
         image_url = request.data.get('image_url', '').strip()
         if not comment:
             return Response({'detail': 'Review comment is required.'}, status=400)
+
+        # Verified buyer check
+        is_verified_buyer = False
+        if request.user and request.user.is_authenticated:
+            is_verified_buyer = OrderItem.objects.filter(
+                order__user=request.user,
+                order__payment_status=Order.PaymentStatus.PAID,
+                product=product
+            ).exists()
+        else:
+            is_verified_buyer = True
 
         review = ProductReview.objects.create(
             product=product,
@@ -528,7 +618,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             title=title or 'Exceptional Flavor',
             comment=comment,
             image_url=image_url,
-            is_verified_buyer=True
+            is_verified_buyer=is_verified_buyer
         )
 
         # Notify seller about new review via email
@@ -608,7 +698,10 @@ class CartView(views.APIView):
     def post(self, request):
         cart = get_or_create_cart(request)
         product_id = request.data.get('product_id')
-        quantity = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (ValueError, TypeError):
+            return Response({'detail': 'Invalid quantity provided.'}, status=400)
 
         if quantity <= 0:
             return Response({'detail': 'Quantity must be positive'}, status=400)
@@ -635,7 +728,10 @@ class CartView(views.APIView):
     def put(self, request):
         cart = get_or_create_cart(request)
         product_id = request.data.get('product_id')
-        quantity = int(request.data.get('quantity', 1))
+        try:
+            quantity = int(request.data.get('quantity', 1))
+        except (ValueError, TypeError):
+            return Response({'detail': 'Invalid quantity provided.'}, status=400)
 
         product = get_object_or_404(Product, id=product_id)
         item = get_object_or_404(CartItem, cart=cart, product=product)
@@ -782,16 +878,25 @@ class OrderLookupView(views.APIView):
         email_or_phone = request.query_params.get('verify', '').strip()
         order = get_object_or_404(Order, order_number=order_number)
 
+        # 1. Authenticated customer who owns the order, or platform administrator
         if request.user.is_authenticated and (order.user == request.user or request.user.is_platform_admin()):
             return Response(OrderSerializer(order).data)
 
+        # 2. Email or phone verification provided and matching
         if email_or_phone and (
             order.customer_email.lower() == email_or_phone.lower() or
             order.customer_phone == email_or_phone
         ):
             return Response(OrderSerializer(order).data)
 
-        return Response(OrderSerializer(order).data)
+        # 3. Recent checkout window (guest shopper viewing order confirmation within 30 minutes of purchase)
+        if order.created_at >= timezone.now() - datetime.timedelta(minutes=30):
+            return Response(OrderSerializer(order).data)
+
+        # 4. Prevent unauthorized information disclosure
+        return Response({
+            'detail': 'Order verification required. Please provide the customer email or phone number associated with this order to view details.'
+        }, status=status.HTTP_403_FORBIDDEN)
 
 
 class CustomerOrdersView(views.APIView):
@@ -837,11 +942,12 @@ class ManufacturerRegisterView(views.APIView):
                 profile.is_verified_producer = True
                 profile.save(update_fields=['status', 'is_verified_producer'])
 
-            # Notify wangssupport@gmail.com about the new seller registration
+            # Notify wangssupport@gmail.com about the new seller registration, and acknowledge the applicant
             try:
-                from .resend_service import send_admin_new_seller_registration_email
+                from .resend_service import send_admin_new_seller_registration_email, send_seller_application_received_email
+                applicant_email = profile.contact_email or (profile.user.email if profile.user else '')
                 send_admin_new_seller_registration_email({
-                    'email': profile.contact_email or (profile.user.email if profile.user else ''),
+                    'email': applicant_email,
                     'business_name': profile.business_name,
                     'location_district': profile.location_district,
                     'fssai_number': profile.fssai_license_number,
@@ -849,8 +955,19 @@ class ManufacturerRegisterView(views.APIView):
                     'message': profile.brand_story,
                     'type': 'Full Seller Application'
                 })
+                if applicant_email:
+                    send_seller_application_received_email(
+                        to_email=applicant_email,
+                        business_name=profile.business_name,
+                        applicant_data={
+                            'location_district': profile.location_district,
+                            'fssai_number': profile.fssai_license_number,
+                            'phone': profile.contact_phone,
+                        },
+                        request=request
+                    )
             except Exception as exc:
-                logger.warning("Failed to dispatch admin notification for seller registration: %s", exc)
+                logger.warning("Failed to dispatch notifications for seller registration: %s", exc)
 
             refresh = RefreshToken.for_user(profile.user)
             return Response({
@@ -882,6 +999,7 @@ class ManufacturerProfileView(views.APIView):
 class ManufacturerProductViewSet(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [IsManufacturerUser]
+    pagination_class = None
 
     def get_queryset(self):
         profile = get_object_or_404(ManufacturerProfile, user=self.request.user)
@@ -892,10 +1010,16 @@ class ManufacturerProductViewSet(viewsets.ModelViewSet):
             return
         image_urls = []
         for item in raw_images:
+            val = None
             if isinstance(item, str) and item.strip():
-                image_urls.append(item.strip())
+                val = item.strip()
             elif isinstance(item, dict) and item.get('image_url'):
-                image_urls.append(item['image_url'].strip())
+                val = item['image_url'].strip()
+
+            if val:
+                if val.startswith('data:image/'):
+                    val = ProductSerializer._save_base64_image(val)
+                image_urls.append(val)
         # Cap to 3 images as specified in requirements (1-3 images)
         image_urls = image_urls[:3]
         if image_urls:
@@ -920,23 +1044,68 @@ class ManufacturerProductViewSet(viewsets.ModelViewSet):
             slug = f"{original_slug}-{count}"
             count += 1
 
-        initial_status = Product.Status.APPROVED if profile.status == ManufacturerProfile.Status.APPROVED else Product.Status.PENDING
+        # No admin approval required for authorized sellers: product is approved and live immediately
         product = serializer.save(
             manufacturer=profile,
             slug=slug,
-            status=initial_status,
+            status=Product.Status.APPROVED,
             is_active=True
         )
         raw_images = self.request.data.get('images') or self.request.data.get('image_urls')
         if raw_images:
             self._sync_product_images(product, raw_images)
 
+        # Notify in Admin Page via AuditLog & support email
+        try:
+            AuditLog.objects.create(
+                user=self.request.user,
+                action='SELLER_PRODUCT_PUBLISHED',
+                target_model='Product',
+                target_id=str(product.id),
+                details={
+                    'product_title': product.title,
+                    'business_name': profile.business_name,
+                    'seller_email': self.request.user.email,
+                    'price': str(product.price),
+                    'base_price': str(product.base_price),
+                    'stock_quantity': product.stock_quantity,
+                    'category': product.category.name if product.category else '',
+                    'dietary_type': product.dietary_type,
+                    'slug': product.slug,
+                    'status': 'APPROVED',
+                    'message': f"New recipe '{product.title}' uploaded and published live by '{profile.business_name}'."
+                }
+            )
+        except Exception as exc:
+            logger.warning("Failed to log product publish event: %s", exc)
+
     def perform_update(self, serializer):
         product_obj = self.get_object()
-        product = serializer.save(status=Product.Status.PENDING if not self.request.user.is_platform_admin() else product_obj.status)
+        # Updating product details remains APPROVED, no admin re-approval required
+        product = serializer.save(status=product_obj.status or Product.Status.APPROVED)
         raw_images = self.request.data.get('images') or self.request.data.get('image_urls')
         if raw_images is not None:
             self._sync_product_images(product, raw_images)
+
+    def perform_destroy(self, instance):
+        title = instance.title
+        mfg_name = instance.manufacturer.business_name if instance.manufacturer else ''
+        prod_id = str(instance.id)
+        instance.delete()
+        try:
+            AuditLog.objects.create(
+                user=self.request.user,
+                action='SELLER_PRODUCT_DELETED',
+                target_model='Product',
+                target_id=prod_id,
+                details={
+                    'product_title': title,
+                    'business_name': mfg_name,
+                    'message': f"Product '{title}' was deleted from catalog by seller '{mfg_name}'."
+                }
+            )
+        except Exception as exc:
+            logger.warning("Failed to log product deletion: %s", exc)
 
 
 class ManufacturerOrdersView(views.APIView):
@@ -971,6 +1140,7 @@ class ManufacturerOrdersView(views.APIView):
                 'commission_amount': str(item.commission_amount),
                 'manufacturer_payout': str(item.manufacturer_payout),
                 'fulfillment_status': item.fulfillment_status,
+                'order_status': item.order.status,
                 'order_payment_status': item.order.payment_status,
                 # Seller Dispatch Snapshot for Printing Parcel Shipping Label
                 'seller_business_name': profile.business_name,
@@ -988,12 +1158,48 @@ class ManufacturerOrdersView(views.APIView):
         profile = get_object_or_404(ManufacturerProfile, user=request.user)
         item_id = request.data.get('order_item_id')
         new_status = request.data.get('fulfillment_status')
+        courier_partner = request.data.get('courier_partner', '').strip()
+        tracking_number = request.data.get('tracking_number', '').strip()
+        dispatch_notes = request.data.get('dispatch_notes', '').strip()
 
         item = get_object_or_404(OrderItem, id=item_id, manufacturer=profile)
         if new_status in OrderItem.FulfillmentStatus.values:
             item.fulfillment_status = new_status
             item.save(update_fields=['fulfillment_status'])
-            return Response({'detail': f'Status updated to {new_status}'})
+
+            # Automatically synchronize parent order status and tracking details
+            order = item.order
+            all_statuses = set(order.items.values_list('fulfillment_status', flat=True))
+
+            if courier_partner:
+                order.courier_partner = courier_partner
+            if tracking_number:
+                order.tracking_number = tracking_number
+            if dispatch_notes:
+                order.dispatch_notes = dispatch_notes
+
+            if all_statuses == {OrderItem.FulfillmentStatus.DELIVERED}:
+                order.status = Order.Status.DELIVERED
+            elif any(s in [OrderItem.FulfillmentStatus.DISPATCHED, OrderItem.FulfillmentStatus.DELIVERED] for s in all_statuses):
+                order.status = Order.Status.DISPATCHED
+                if not order.courier_partner:
+                    order.courier_partner = 'Air Cargo Express (India Post Speed Post)'
+                if not order.tracking_number:
+                    order.tracking_number = f"WNG-AWB-{order.order_number[-6:]}-{item.id}IN"
+            elif any(s == OrderItem.FulfillmentStatus.PACKED for s in all_statuses):
+                if order.status in (Order.Status.PENDING, Order.Status.CONFIRMED):
+                    order.status = Order.Status.PROCESSING
+            elif all_statuses == {OrderItem.FulfillmentStatus.CANCELLED}:
+                order.status = Order.Status.CANCELLED
+
+            order.save()
+            return Response({
+                'detail': f'Status updated to {new_status}',
+                'order_status': order.status,
+                'courier_partner': order.courier_partner,
+                'tracking_number': order.tracking_number,
+                'dispatch_notes': order.dispatch_notes
+            })
         return Response({'detail': 'Invalid fulfillment status'}, status=400)
 
 
@@ -1243,6 +1449,26 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
         )
         return Response(ManufacturerProfileSerializer(mfg).data)
 
+    def destroy(self, request, *args, **kwargs):
+        mfg = self.get_object()
+        contact_email = mfg.contact_email
+        user = mfg.user
+        user_email = user.email if user else None
+
+        # Safely nullify OrderItem snapshots so historical orders persist
+        OrderItem.objects.filter(manufacturer=mfg).update(manufacturer=None)
+        OrderItem.objects.filter(product__manufacturer=mfg).update(product=None)
+
+        # Clean up any audit logs for seller applications from this manufacturer
+        for em in filter(None, [contact_email, user_email]):
+            AuditLog.objects.filter(
+                action__in=['SELLER_AUTHORIZATION_REQUESTED', 'SELLER_AUTHORIZATION_APPROVED', 'SELLER_AUTHORIZATION_TOGGLED'],
+                details__email__iexact=em
+            ).delete()
+
+        mfg.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class AdminProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all().order_by('-created_at')
@@ -1383,9 +1609,23 @@ class AdminUserViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
         try:
             # Safely nullify OrderItem snapshots so historical orders persist without blocking user deletion
             mfg = getattr(target_user, 'manufacturer_profile', None)
+            mfg_contact_email = mfg.contact_email if mfg else None
             if mfg:
                 OrderItem.objects.filter(manufacturer=mfg).update(manufacturer=None)
                 OrderItem.objects.filter(product__manufacturer=mfg).update(product=None)
+
+            # Purge any inbound seller authorization requests or approval records for this user's email
+            emails_to_clean = set(filter(None, [email, mfg_contact_email]))
+            for em in emails_to_clean:
+                AuditLog.objects.filter(
+                    action__in=['SELLER_AUTHORIZATION_REQUESTED', 'SELLER_AUTHORIZATION_APPROVED', 'SELLER_AUTHORIZATION_TOGGLED'],
+                    details__email__iexact=em
+                ).delete()
+
+            AuditLog.objects.filter(
+                user_id=user_id,
+                action__in=['SELLER_AUTHORIZATION_REQUESTED', 'SELLER_AUTHORIZATION_APPROVED', 'SELLER_AUTHORIZATION_TOGGLED']
+            ).delete()
 
             target_user.delete()
 
@@ -1579,8 +1819,29 @@ class AdminSellerRequestView(views.APIView):
         requests_list = []
         for l in logs:
             details = l.details or {}
-            email = details.get('email', '')
+            email = (details.get('email') or '').strip().lower()
+            status_val = details.get('status')
+
             user_match = User.objects.filter(email__iexact=email).first() if email else None
+
+            # Check if an approval log exists for this applicant email
+            has_approval_log = AuditLog.objects.filter(
+                action='SELLER_AUTHORIZATION_APPROVED',
+                details__email__iexact=email
+            ).exists() if email else False
+
+            is_approved = bool(
+                status_val == 'APPROVED' or
+                details.get('is_authorized') is True or
+                has_approval_log or
+                (user_match and user_match.can_sell)
+            )
+
+            # If user was approved and then deleted by admin, or request was dismissed/deleted:
+            # It must NEVER resurrect in "Yet to be Approved"
+            if (is_approved and not user_match) or status_val in ['DELETED', 'DISMISSED']:
+                continue
+
             requests_list.append({
                 'id': l.id,
                 'created_at': l.created_at,
@@ -1591,7 +1852,7 @@ class AdminSellerRequestView(views.APIView):
                 'fssai_number': details.get('fssai_number', ''),
                 'message': details.get('message', ''),
                 'user_id': user_match.id if user_match else None,
-                'is_authorized': user_match.can_sell if user_match else False,
+                'is_authorized': is_approved,
             })
         return Response(requests_list)
 
@@ -1659,6 +1920,15 @@ class AdminSellerRequestView(views.APIView):
         # Automatically approve any products for this seller so they can sell immediately
         Product.objects.filter(manufacturer=mfg).update(status=Product.Status.APPROVED, is_active=True)
 
+        # Mark all pending requests for this email as APPROVED in AuditLog
+        for log in AuditLog.objects.filter(action='SELLER_AUTHORIZATION_REQUESTED', details__email__iexact=email):
+            log_details = log.details or {}
+            log_details['status'] = 'APPROVED'
+            log_details['is_authorized'] = True
+            log_details['approved_at'] = timezone.now().isoformat()
+            log.details = log_details
+            log.save(update_fields=['details'])
+
         AuditLog.objects.create(
             user=request.user,
             action='SELLER_AUTHORIZATION_APPROVED',
@@ -1684,10 +1954,22 @@ class AdminSellerRequestView(views.APIView):
 
     def delete(self, request):
         req_id = request.data.get('id')
-        if not req_id:
-            return Response({'detail': 'Request ID is required'}, status=400)
-        AuditLog.objects.filter(id=req_id, action='SELLER_AUTHORIZATION_REQUESTED').delete()
-        return Response({'success': True, 'message': 'Seller request removed from queue.'})
+        email = (request.data.get('email') or '').strip().lower()
+
+        if req_id:
+            target_log = AuditLog.objects.filter(id=req_id).first()
+            if target_log and isinstance(target_log.details, dict) and target_log.details.get('email'):
+                email = email or target_log.details.get('email').strip().lower()
+            AuditLog.objects.filter(id=req_id).delete()
+
+        if email:
+            # Clean up all duplicate requests and approvals for this email so it never resurrects
+            AuditLog.objects.filter(
+                action__in=['SELLER_AUTHORIZATION_REQUESTED', 'SELLER_AUTHORIZATION_APPROVED', 'SELLER_AUTHORIZATION_TOGGLED'],
+                details__email__iexact=email
+            ).delete()
+
+        return Response({'success': True, 'message': 'Seller request permanently removed from queue.'})
 
 
 class AdminCommissionView(views.APIView):

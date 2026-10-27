@@ -1,9 +1,111 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Package, MapPin, Clock, CheckCircle, Plus, AlertCircle, LogOut, Trash2, Truck, Shield, ShieldCheck, ArrowRight } from 'lucide-react';
+import {
+  User, Package, MapPin, Clock, CheckCircle, CheckCircle2, Plus, AlertCircle,
+  LogOut, Trash2, Truck, Shield, ShieldCheck, ArrowRight, Copy, Check, ExternalLink,
+  Boxes, Plane, X, ChevronRight, Sparkles, Navigation
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
+import QRCodeSVG from '../components/QRCodeSVG';
+
+const TRACKING_STEPS = [
+  {
+    key: 'CONFIRMED',
+    title: 'Order Confirmed',
+    subtitle: 'Payment verified & order booked',
+    icon: CheckCircle2,
+  },
+  {
+    key: 'PROCESSING',
+    title: 'Prepared & Packed',
+    subtitle: 'Sealed airtight in protective wrap',
+    icon: Boxes,
+  },
+  {
+    key: 'DISPATCHED',
+    title: 'Air Cargo Dispatched',
+    subtitle: 'In flight via Express Air Cargo',
+    icon: Plane,
+  },
+  {
+    key: 'DELIVERED',
+    title: 'Delivered',
+    subtitle: 'Handed over at doorstep',
+    icon: Package,
+  },
+];
+
+const getStepProgressIndex = (orderStatus) => {
+  switch (orderStatus) {
+    case 'DELIVERED':
+      return 3;
+    case 'DISPATCHED':
+      return 2;
+    case 'PROCESSING':
+      return 1;
+    case 'CONFIRMED':
+    case 'PENDING':
+    default:
+      return 0;
+  }
+};
+
+const getShipmentMilestones = (order) => {
+  const isDispatched = ['DISPATCHED', 'DELIVERED'].includes(order.status);
+  const isDelivered = order.status === 'DELIVERED';
+  const orderDate = new Date(order.created_at);
+  const orderDateStr = orderDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  const dispatchDate = new Date(orderDate.getTime() + 18 * 3600 * 1000);
+  const transitDate = new Date(orderDate.getTime() + 36 * 3600 * 1000);
+  const destinationDate = new Date(orderDate.getTime() + 60 * 3600 * 1000);
+
+  return [
+    {
+      stage: 'Order Confirmed & Payment Verified',
+      location: 'Wangs Central Order Registry',
+      time: `${orderDateStr}, ${orderDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      status: 'completed',
+      detail: 'Online order paid and artisan seller notified for batch preparation.'
+    },
+    {
+      stage: 'Artisan Batch Preparation & Jar Sealing',
+      location: 'Artisan Kitchen & Packing Hub, Nagaland',
+      time: `${orderDateStr}, Afternoon`,
+      status: 'completed',
+      detail: 'Traditional slow-pickled batch sealed in food-grade airtight containers.'
+    },
+    {
+      stage: 'Consignment Handed Over to Air Freight Partner',
+      location: 'Dimapur Cargo Terminal, Nagaland (797112)',
+      time: isDispatched ? dispatchDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 06:45 PM' : 'Scheduled upon packing',
+      status: isDispatched ? 'completed' : 'upcoming',
+      detail: `Parcel barcode scanned and Airway Bill (AWB ${order.tracking_number || 'WNG-AWB-PENDING'}) generated via ${order.courier_partner || 'Air Cargo Express'}.`
+    },
+    {
+      stage: 'In-Flight Air Mail Transit',
+      location: 'Guwahati / Kolkata Air Mail Sorting Gateway',
+      time: isDispatched ? transitDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 10:15 AM' : 'Pending dispatch',
+      status: isDispatched ? (isDelivered ? 'completed' : 'current') : 'upcoming',
+      detail: `Express domestic air cargo transit connecting to ${order.shipping_state || 'destination state'}.`
+    },
+    {
+      stage: 'Arrived at Destination Post / Hub',
+      location: `${order.shipping_city}, ${order.shipping_state} (${order.shipping_postal_code})`,
+      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 08:30 AM' : 'Estimated in 2-3 business days',
+      status: isDelivered ? 'completed' : (isDispatched ? 'upcoming' : 'upcoming'),
+      detail: `Consignment sorted at local delivery beat for delivery to ${order.customer_name}.`
+    },
+    {
+      stage: 'Doorstep Delivery',
+      location: `${order.shipping_address_line1}, ${order.shipping_city}`,
+      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 02:40 PM' : 'Scheduled',
+      status: isDelivered ? 'completed' : 'upcoming',
+      detail: isDelivered ? 'Parcel delivered successfully.' : 'Final delivery with recipient confirmation.'
+    }
+  ];
+};
 
 export default function CustomerAccountPage() {
   const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout } = useAuth();
@@ -14,6 +116,8 @@ export default function CustomerAccountPage() {
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [copiedAwb, setCopiedAwb] = useState(null);
+  const [trackingModalOrder, setTrackingModalOrder] = useState(null);
 
   // New Address form state
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -27,6 +131,14 @@ export default function CustomerAccountPage() {
     postal_code: '',
     is_default: false,
   });
+
+  const handleCopyAwb = (awb) => {
+    if (!awb) return;
+    navigator.clipboard.writeText(awb);
+    setCopiedAwb(awb);
+    toast.success('AWB Tracking Number copied to clipboard!');
+    setTimeout(() => setCopiedAwb(null), 2500);
+  };
 
   useEffect(() => {
     if (!user) {
@@ -203,72 +315,469 @@ export default function CustomerAccountPage() {
                   </Link>
                 </div>
               ) : (
-                orders.map((ord) => (
-                  <div key={ord.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3 text-xs">
-                      <div>
-                        <span className="font-semibold text-stone-900 font-mono text-sm block">#{ord.order_number}</span>
-                        <span className="text-stone-400">Placed on {new Date(ord.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
-                          ord.payment_status === 'PAID' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-                        }`}>
-                          Payment: {ord.payment_status}
-                        </span>
-                        <span className="px-2.5 py-0.5 bg-forest-100 text-forest-800 rounded-full text-[11px] font-bold">
-                          Status: {ord.status}
-                        </span>
-                      </div>
-                    </div>
+                orders.map((ord) => {
+                  const currentStepIdx = getStepProgressIndex(ord.status);
+                  const isDispatchedOrDelivered = ['DISPATCHED', 'DELIVERED'].includes(ord.status) || Boolean(ord.tracking_number);
 
-                    {/* Courier Tracking Status if Dispatched */}
-                    {ord.tracking_number && (
-                      <div className="p-3 bg-purple-50/70 border border-purple-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Truck size={16} className="text-purple-700 flex-shrink-0" />
-                          <div>
-                            <span className="font-bold text-purple-950">
-                              Shipped via {ord.courier_partner || 'Air Express'}
-                            </span>
-                            <span className="block font-mono text-stone-600 text-[11px]">
-                              AWB Tracking Number: <strong>{ord.tracking_number}</strong>
-                            </span>
+                  return (
+                    <div key={ord.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-6">
+                      {/* Order Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 pb-4 text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-stone-950 font-mono text-sm tracking-tight">#{ord.order_number}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyAwb(ord.order_number)}
+                              className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors"
+                              title="Copy Order Number"
+                            >
+                              <Copy size={12} />
+                            </button>
                           </div>
-                        </div>
-                        {ord.dispatch_notes && (
-                          <span className="text-[11px] text-purple-900 italic sm:text-right">
-                            "{ord.dispatch_notes}"
+                          <span className="text-stone-400 text-[11px] block">
+                            Placed on {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(ord.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Order items snapshot */}
-                    <div className="divide-y divide-stone-100 text-xs">
-                      {ord.items?.map((item) => (
-                        <div key={item.id} className="py-2.5 flex items-center justify-between">
-                          <div>
-                            <p className="font-semibold text-stone-900">{item.product_title}</p>
-                            <p className="text-stone-500 text-[11px]">{item.weight_grams}g · Quantity: {item.quantity}</p>
-                          </div>
-                          <span className="font-semibold text-stone-900">₹{parseFloat(item.subtotal).toFixed(2)}</span>
                         </div>
-                      ))}
+
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                            ord.payment_status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                          }`}>
+                            Payment: {ord.payment_status}
+                          </span>
+
+                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 shadow-2xs ${
+                            ord.status === 'DELIVERED'
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                              : ord.status === 'DISPATCHED'
+                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
+                              : ord.status === 'PROCESSING'
+                              ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                              : ord.status === 'CANCELLED'
+                              ? 'bg-red-100 text-red-900 border border-red-300'
+                              : 'bg-forest-100 text-forest-900 border border-forest-300'
+                          }`}>
+                            {ord.status === 'DISPATCHED' && <Plane size={12} className="animate-bounce" />}
+                            {ord.status === 'DELIVERED' && <CheckCircle size={12} />}
+                            {ord.status === 'PROCESSING' && <Boxes size={12} />}
+                            <span>Order Status: {ord.status}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Visual Parcel Journey Stepper */}
+                      <div className="bg-stone-50/70 rounded-2xl p-4 sm:p-6 border border-stone-200/80">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <Truck size={16} className="text-forest-800" />
+                            <h4 className="font-serif font-bold text-sm text-stone-900">Live Parcel Journey</h4>
+                          </div>
+                          <span className="text-[11px] text-stone-500 font-medium">
+                            {ord.status === 'DELIVERED'
+                              ? 'Delivered'
+                              : ord.status === 'DISPATCHED'
+                              ? 'En route via Air Cargo'
+                              : ord.status === 'PROCESSING'
+                              ? 'Preparing in Artisan Kitchen'
+                              : 'Order Confirmed'}
+                          </span>
+                        </div>
+
+                        {/* Stepper Progress Bar */}
+                        <div className="relative mt-2">
+                          {/* Desktop/Tablet Horizontal Stepper */}
+                          <div className="hidden sm:block">
+                            <div className="relative flex items-center justify-between">
+                              {/* Background Connector Line */}
+                              <div className="absolute left-6 right-6 top-4 h-1 bg-stone-200 z-0" />
+                              
+                              {/* Active Progress Connector Line */}
+                              <div
+                                className="absolute left-6 top-4 h-1 bg-forest-700 transition-all duration-500 z-0"
+                                style={{
+                                  width: `${(currentStepIdx / (TRACKING_STEPS.length - 1)) * 100}%`,
+                                  maxWidth: 'calc(100% - 3rem)'
+                                }}
+                              />
+
+                              {TRACKING_STEPS.map((step, idx) => {
+                                const IconComponent = step.icon;
+                                const isCompleted = idx < currentStepIdx;
+                                const isCurrent = idx === currentStepIdx;
+                                const isUpcoming = idx > currentStepIdx;
+
+                                return (
+                                  <div key={step.key} className="relative z-10 flex flex-col items-center text-center flex-1">
+                                    <div
+                                      className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                        isCompleted
+                                          ? 'bg-forest-800 text-white shadow-xs'
+                                          : isCurrent
+                                          ? 'bg-forest-900 text-white ring-4 ring-forest-200 shadow-md scale-105'
+                                          : 'bg-white border-2 border-stone-200 text-stone-400'
+                                      }`}
+                                    >
+                                      {isCompleted ? <Check size={16} /> : <IconComponent size={15} />}
+                                    </div>
+
+                                    <div className="mt-2.5 space-y-0.5">
+                                      <span className={`text-xs block leading-tight ${
+                                        isCurrent ? 'font-bold text-forest-950' : isCompleted ? 'font-semibold text-stone-800' : 'text-stone-400 font-medium'
+                                      }`}>
+                                        {step.title}
+                                      </span>
+                                      <span className="text-[10px] text-stone-400 block max-w-[130px] mx-auto leading-tight">
+                                        {step.subtitle}
+                                      </span>
+                                      {isCurrent && (
+                                        <span className="inline-block mt-1 px-2 py-0.5 bg-forest-100 text-forest-800 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                                          Current
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          {/* Mobile Vertical Stepper */}
+                          <div className="sm:hidden space-y-4">
+                            {TRACKING_STEPS.map((step, idx) => {
+                              const IconComponent = step.icon;
+                              const isCompleted = idx < currentStepIdx;
+                              const isCurrent = idx === currentStepIdx;
+
+                              return (
+                                <div key={step.key} className="flex items-start gap-3 relative">
+                                  {idx < TRACKING_STEPS.length - 1 && (
+                                    <div
+                                      className={`absolute left-4 top-8 bottom-0 w-0.5 -ml-[1px] ${
+                                        idx < currentStepIdx ? 'bg-forest-700' : 'bg-stone-200'
+                                      }`}
+                                    />
+                                  )}
+                                  <div
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 ${
+                                      isCompleted
+                                        ? 'bg-forest-800 text-white'
+                                        : isCurrent
+                                        ? 'bg-forest-900 text-white ring-3 ring-forest-200'
+                                        : 'bg-white border-2 border-stone-200 text-stone-400'
+                                    }`}
+                                  >
+                                    {isCompleted ? <Check size={14} /> : <IconComponent size={14} />}
+                                  </div>
+                                  <div className="space-y-0.5 pb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs ${isCurrent ? 'font-bold text-forest-950' : isCompleted ? 'font-semibold text-stone-800' : 'text-stone-400'}`}>
+                                        {step.title}
+                                      </span>
+                                      {isCurrent && (
+                                        <span className="px-1.5 py-0.5 bg-forest-100 text-forest-800 rounded text-[9px] font-bold">
+                                          Active
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[10px] text-stone-500">{step.subtitle}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Prominent Courier & AWB Tracking Card */}
+                      {isDispatchedOrDelivered && (
+                        <div className="bg-linear-to-r from-purple-50/90 via-stone-50/60 to-purple-50/40 border border-purple-200/90 rounded-2xl p-5 shadow-2xs space-y-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center shrink-0 shadow-2xs">
+                                <Plane size={20} />
+                              </div>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="font-bold text-purple-950 text-xs sm:text-sm">
+                                    {ord.courier_partner || 'Air Cargo Express (India Post Speed Post)'}
+                                  </span>
+                                  <span className="px-2 py-0.5 bg-purple-200/70 text-purple-900 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                    Air Freight Priority
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                                  <span className="text-[11px] text-stone-600 font-medium">AWB Tracking No:</span>
+                                  <span className="font-mono font-bold text-purple-950 text-xs bg-white px-2 py-0.5 rounded border border-purple-200/80">
+                                    {ord.tracking_number || `WNG-AWB-${ord.order_number.slice(-6)}-1IN`}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCopyAwb(ord.tracking_number || `WNG-AWB-${ord.order_number.slice(-6)}-1IN`)}
+                                    className="inline-flex items-center gap-1 text-[11px] text-purple-800 hover:text-purple-950 font-semibold px-2 py-0.5 rounded hover:bg-purple-100 transition-colors"
+                                  >
+                                    {copiedAwb === (ord.tracking_number || `WNG-AWB-${ord.order_number.slice(-6)}-1IN`) ? (
+                                      <>
+                                        <Check size={12} className="text-emerald-600" />
+                                        <span className="text-emerald-700">Copied!</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy size={12} />
+                                        <span>Copy AWB</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+                              {/* Mobile Scan & Share QR */}
+                              <div className="hidden lg:flex items-center gap-2 bg-white/95 p-1.5 rounded-xl border border-purple-200 shadow-2xs">
+                                <QRCodeSVG
+                                  value={`https://wangs.in/account?track=${ord.order_number}`}
+                                  size={44}
+                                  margin={1}
+                                />
+                                <div className="text-[9px] text-stone-500 leading-tight">
+                                  <span className="font-bold text-stone-800 block">Mobile Scan:</span>
+                                  <span>Live journey tracking</span>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setTrackingModalOrder(ord)}
+                                className="px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
+                              >
+                                <Navigation size={13} />
+                                <span>Track Milestones</span>
+                              </button>
+
+                              <a
+                                href="https://www.indiapost.gov.in/_layouts/15/dpt.cept.tracking/trackconsignment.aspx"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-all"
+                                title="Open India Post Consignment Tracking"
+                              >
+                                <span>Carrier Portal</span>
+                                <ExternalLink size={12} />
+                              </a>
+                            </div>
+                          </div>
+
+                          <div className="pt-2 border-t border-purple-200/60 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-600">
+                            <div>
+                              <span>Transit Route: <strong>Dimapur Air Cargo Terminal</strong> → <strong>{ord.shipping_city}, {ord.shipping_state} ({ord.shipping_postal_code})</strong></span>
+                            </div>
+                            <div className="text-purple-900 font-medium">
+                              Estimated Arrival: <strong>2-4 Business Days via Air Express</strong>
+                            </div>
+                          </div>
+
+                          {ord.dispatch_notes && (
+                            <div className="text-[11px] bg-white/80 p-2.5 rounded-xl border border-purple-100 text-stone-700 italic">
+                              "{ord.dispatch_notes}"
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Order items snapshot */}
+                      <div className="space-y-2">
+                        <span className="text-xs font-bold text-stone-900 uppercase tracking-wider block">Ordered Items ({ord.items?.length || 0})</span>
+                        <div className="divide-y divide-stone-100 rounded-xl border border-stone-100 bg-stone-50/40 p-3 text-xs">
+                          {ord.items?.map((item) => (
+                            <div key={item.id} className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 gap-3">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold text-stone-900">{item.product_title}</p>
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                    item.fulfillment_status === 'DISPATCHED'
+                                      ? 'bg-purple-100 text-purple-800'
+                                      : item.fulfillment_status === 'DELIVERED'
+                                      ? 'bg-emerald-100 text-emerald-800'
+                                      : item.fulfillment_status === 'PACKED'
+                                      ? 'bg-blue-100 text-blue-800'
+                                      : 'bg-amber-100 text-amber-800'
+                                  }`}>
+                                    {item.fulfillment_status}
+                                  </span>
+                                </div>
+                                <p className="text-stone-500 text-[11px]">{item.weight_grams}g jar · Quantity: {item.quantity}</p>
+                              </div>
+                              <span className="font-bold text-stone-900 font-mono">₹{parseFloat(item.subtotal).toFixed(2)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Delivery Address & Fee Summary */}
+                      <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+                        <div className="text-stone-600 max-w-sm space-y-0.5">
+                          <span className="block text-[11px] font-bold uppercase tracking-wider text-stone-400">Shipping Destination</span>
+                          <span className="font-medium text-stone-900 block">
+                            {ord.customer_name} ({ord.customer_phone})
+                          </span>
+                          <span className="text-stone-600 block text-[11px]">
+                            {ord.shipping_address_line1}{ord.shipping_address_line2 ? `, ${ord.shipping_address_line2}` : ''}, {ord.shipping_city}, {ord.shipping_state} - {ord.shipping_postal_code}
+                          </span>
+                        </div>
+
+                        <div className="text-right space-y-1">
+                          <div className="text-[11px] text-stone-500">
+                            <span>Delivery: <strong className="text-emerald-700 font-semibold">FREE Air Express</strong> · Fee: ₹{parseFloat(ord.customer_platform_fee || 5).toFixed(2)}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-xs">Total Paid: </span>
+                            <strong className="text-base font-serif text-stone-950 font-bold ml-1">₹{parseFloat(ord.total_amount).toFixed(2)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+
+              {/* Live Consignment Milestones Modal */}
+              {trackingModalOrder && (
+                <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                  <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto space-y-5 animate-in fade-in duration-200">
+                    {/* Modal Header */}
+                    <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-purple-100 text-purple-900 flex items-center justify-center shrink-0">
+                          <Plane size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-serif font-bold text-base text-stone-950">Air Cargo Consignment Milestones</h3>
+                          <p className="text-xs text-stone-500 font-mono">Order #{trackingModalOrder.order_number}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setTrackingModalOrder(null)}
+                        className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-xl transition-colors"
+                      >
+                        <X size={18} />
+                      </button>
                     </div>
 
-                    {/* Fee Summary */}
-                    <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4 text-xs">
-                      <div className="text-stone-500">
-                        <span>Delivering to: <strong>{ord.shipping_city}, {ord.shipping_state} ({ord.shipping_postal_code})</strong></span>
+                    {/* Courier & AWB Details Bar with Scannable QR */}
+                    <div className="p-4 bg-purple-50/70 rounded-2xl border border-purple-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                      <div className="space-y-2 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-bold text-purple-950">
+                            {trackingModalOrder.courier_partner || 'Air Cargo Express (India Post Speed Post)'}
+                          </span>
+                          <span className="px-2 py-0.5 bg-purple-200 text-purple-900 font-bold rounded-full text-[10px] uppercase">
+                            {trackingModalOrder.status === 'DELIVERED' ? 'Delivered' : 'Air Freight In Transit'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                          <span className="text-stone-500">Airway Bill (AWB):</span>
+                          <span className="font-mono font-bold text-purple-950 bg-white px-2 py-0.5 rounded border border-purple-200">
+                            {trackingModalOrder.tracking_number || `WNG-AWB-${trackingModalOrder.order_number.slice(-6)}-1IN`}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyAwb(trackingModalOrder.tracking_number || `WNG-AWB-${trackingModalOrder.order_number.slice(-6)}-1IN`)}
+                            className="text-purple-800 hover:text-purple-950 font-semibold inline-flex items-center gap-1 hover:underline"
+                          >
+                            {copiedAwb === (trackingModalOrder.tracking_number || `WNG-AWB-${trackingModalOrder.order_number.slice(-6)}-1IN`) ? (
+                              <>
+                                <Check size={12} className="text-emerald-600" />
+                                <span className="text-emerald-700">Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={12} />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+
+                        <div className="pt-1 text-[11px] text-stone-600">
+                          <span>Destination: <strong>{trackingModalOrder.customer_name}</strong> · {trackingModalOrder.shipping_city}, {trackingModalOrder.shipping_state} ({trackingModalOrder.shipping_postal_code})</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <span className="text-stone-500">Total Paid: </span>
-                        <strong className="text-sm font-serif text-stone-950">₹{parseFloat(ord.total_amount).toFixed(2)}</strong>
+
+                      {/* Scannable Milestones QR */}
+                      <div className="hidden sm:flex flex-col items-center bg-white p-2 rounded-xl border border-purple-200 shrink-0 shadow-2xs">
+                        <QRCodeSVG
+                          value={`https://wangs.in/account?track=${trackingModalOrder.order_number}`}
+                          size={54}
+                          margin={1}
+                        />
+                        <span className="text-[7.5px] font-mono font-bold text-purple-900 mt-1 uppercase">AWB QR</span>
                       </div>
+                    </div>
+
+                    {/* Vertical Transit Milestones Timeline */}
+                    <div className="space-y-4 pt-1">
+                      <h4 className="text-xs font-bold text-stone-900 uppercase tracking-wider">Flight Transit Checkpoints</h4>
+                      
+                      <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-stone-200">
+                        {getShipmentMilestones(trackingModalOrder).map((milestone, idx) => {
+                          const isDone = milestone.status === 'completed';
+                          const isCurrent = milestone.status === 'current';
+
+                          return (
+                            <div key={idx} className="relative text-xs space-y-1">
+                              {/* Bullet icon */}
+                              <div
+                                className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
+                                  isDone
+                                    ? 'bg-forest-800 text-white'
+                                    : isCurrent
+                                    ? 'bg-purple-700 text-white ring-4 ring-purple-100 animate-pulse'
+                                    : 'bg-white border-2 border-stone-300 text-stone-400'
+                                }`}
+                              >
+                                {isDone ? <Check size={11} /> : isCurrent ? <Plane size={10} /> : (idx + 1)}
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-between gap-1">
+                                <span className={`font-semibold ${isCurrent ? 'text-purple-950 font-bold' : isDone ? 'text-stone-900' : 'text-stone-400'}`}>
+                                  {milestone.stage}
+                                </span>
+                                <span className="text-[10px] text-stone-400 font-mono">{milestone.time}</span>
+                              </div>
+
+                              <p className="text-[11px] text-forest-900 font-medium">{milestone.location}</p>
+                              <p className="text-[11px] text-stone-500 leading-relaxed">{milestone.detail}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Modal Footer */}
+                    <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs">
+                      <a
+                        href="https://www.indiapost.gov.in/_layouts/15/dpt.cept.tracking/trackconsignment.aspx"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl font-semibold inline-flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>Track on India Post Official Portal</span>
+                        <ExternalLink size={13} />
+                      </a>
+
+                      <button
+                        type="button"
+                        onClick={() => setTrackingModalOrder(null)}
+                        className="px-5 py-2 bg-forest-900 hover:bg-forest-950 text-white rounded-xl font-bold transition-all shadow-xs"
+                      >
+                        Close
+                      </button>
                     </div>
                   </div>
-                ))
+                </div>
               )}
             </div>
           ) : activeTab === 'addresses' ? (

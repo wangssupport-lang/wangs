@@ -10,7 +10,7 @@ from rest_framework import status
 from .models import (
     User, CustomerProfile, ManufacturerProfile, Category, Product,
     CommissionSetting, Cart, CartItem, Order, OrderItem, PaymentTransaction, Coupon,
-    EmailOTP, MaintenanceSubscriber
+    EmailOTP, MaintenanceSubscriber, AuditLog
 )
 from .services import FinancialCalculator, OrderService, PaymentService
 
@@ -691,7 +691,14 @@ class WangsFinancialAndOrderTests(TestCase):
             expires_at=timezone.now() + datetime.timedelta(minutes=10)
         )
 
-        # 3. Verified submission succeeds
+        # 3. Submission with missing or invalid FSSAI is rejected
+        invalid_fssai_data = req_data.copy()
+        invalid_fssai_data['fssai_number'] = '123'  # Not 14 digits
+        inv_resp = self.client.post(url, invalid_fssai_data, format='json')
+        self.assertEqual(inv_resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('FSSAI Food Business License / Registration Number is mandatory', inv_resp.data['detail'])
+
+        # 4. Verified submission with valid 14-digit FSSAI succeeds
         ok_resp = self.client.post(url, req_data, format='json')
         self.assertEqual(ok_resp.status_code, status.HTTP_200_OK)
         self.assertTrue(ok_resp.data['success'])
@@ -964,12 +971,29 @@ class WangsFinancialAndOrderTests(TestCase):
             commission_amount=Decimal('25.00'), manufacturer_payout=Decimal('225.00')
         )
 
+        # Create inbound authorization request to verify it does not resurrect after user deletion
+        AuditLog.objects.create(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            target_model='ManufacturerProfile',
+            target_id='Delete Test Pickles',
+            details={'email': 'seller_del@wangs.in', 'business_name': 'Delete Test Pickles'}
+        )
+
         seller_url = reverse('admin-user-detail', kwargs={'pk': seller_user.id})
         seller_del_resp = self.client.delete(seller_url)
         self.assertEqual(seller_del_resp.status_code, status.HTTP_200_OK)
         self.assertFalse(User.objects.filter(id=seller_user.id).exists())
         self.assertFalse(ManufacturerProfile.objects.filter(id=seller_profile.id).exists())
         self.assertFalse(Product.objects.filter(id=prod.id).exists())
+        # Inbound authorization request purged so it never resurrects in Yet to be Approved
+        self.assertFalse(
+            AuditLog.objects.filter(details__email='seller_del@wangs.in', action='SELLER_AUTHORIZATION_REQUESTED').exists()
+        )
+        req_url = reverse('admin-seller-requests')
+        req_resp = self.client.get(req_url)
+        self.assertEqual(req_resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(any(r.get('email') == 'seller_del@wangs.in' for r in req_resp.data))
+
         # Historical order and order item persist with snapshot preserved
         order_item.refresh_from_db()
         self.assertIsNone(order_item.manufacturer)
@@ -1023,3 +1047,201 @@ class WangsFinancialAndOrderTests(TestCase):
         self.assertEqual(pdf_resp['Content-Type'], 'application/pdf')
         self.assertTrue(pdf_resp.content.startswith(b'%PDF-1.4'))
         self.assertTrue(pdf_resp.content.endswith(b'%%EOF\n'))
+
+    def test_seller_request_approve_and_delete_never_resurrects(self):
+        """When an admin approves and deletes a seller, it never resurrects in Yet to be Approved."""
+        admin = User.objects.create_user(
+            username='admin_auth_tester', email='admin_tester@wangs.in',
+            password='password123', role=User.Role.ADMIN, is_staff=True
+        )
+        self.client.force_authenticate(user=admin)
+
+        # 1. Simulate inbound seller application
+        req_log = AuditLog.objects.create(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            target_model='ManufacturerProfile',
+            target_id='Zunheboto Spice Co',
+            details={'email': 'zunheboto@wangs.in', 'business_name': 'Zunheboto Spice Co', 'location_district': 'Zunheboto'}
+        )
+
+        req_url = reverse('admin-seller-requests')
+
+        # 2. Approve applicant
+        with patch('marketplace.resend_service.dispatch_email') as mock_email:
+            mock_email.return_value = (True, {'id': 'mock_approve_1'})
+            app_resp = self.client.post(req_url, {'email': 'zunheboto@wangs.in'}, format='json')
+            self.assertEqual(app_resp.status_code, status.HTTP_200_OK)
+
+        approved_user = User.objects.get(email='zunheboto@wangs.in')
+        self.assertTrue(approved_user.can_sell)
+
+        # 3. Admin deletes the user from Admin Users
+        del_user_url = reverse('admin-user-detail', kwargs={'pk': approved_user.id})
+        del_resp = self.client.delete(del_user_url)
+        self.assertEqual(del_resp.status_code, status.HTTP_200_OK)
+
+        # 4. Verify request does NOT reappear in Yet to be Approved queue
+        list_resp = self.client.get(req_url)
+        self.assertEqual(list_resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(any(r.get('email') == 'zunheboto@wangs.in' for r in list_resp.data))
+
+        # 5. Verify dismissing a request cleans up duplicate requests for that email
+        AuditLog.objects.create(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            target_model='ManufacturerProfile',
+            target_id='Dup Co 1',
+            details={'email': 'dup@wangs.in', 'business_name': 'Dup Co'}
+        )
+        dup2 = AuditLog.objects.create(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            target_model='ManufacturerProfile',
+            target_id='Dup Co 2',
+            details={'email': 'dup@wangs.in', 'business_name': 'Dup Co'}
+        )
+        del_req_resp = self.client.delete(req_url, {'id': dup2.id, 'email': 'dup@wangs.in'}, format='json')
+        self.assertEqual(del_req_resp.status_code, status.HTTP_200_OK)
+        self.assertFalse(AuditLog.objects.filter(details__email='dup@wangs.in').exists())
+
+    def test_otp_email_recipient_strictly_matches_user_input_not_admin(self):
+        """
+        Verify that OTP email is dispatched strictly to the entered applicant/user email,
+        never redirected to the platform support/admin email.
+        """
+        from unittest.mock import patch
+        entered_applicant_email = 'applicant_seller@brand.in'
+
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'provider': 'SMTP', 'to': entered_applicant_email})
+            resp = self.client.post(reverse('auth-send-otp'), {
+                'email': entered_applicant_email,
+                'purpose': 'SELLER_REQUEST'
+            }, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertTrue(resp.data['success'])
+            self.assertEqual(resp.data['recipient'], entered_applicant_email)
+            self.assertIn(entered_applicant_email, resp.data['message'])
+
+            # Verify mock_dispatch was called with the entered applicant email as recipient
+            self.assertTrue(mock_dispatch.called)
+            recipient_arg = mock_dispatch.call_args[0][0]
+            self.assertEqual(recipient_arg, entered_applicant_email)
+            self.assertNotEqual(recipient_arg, 'wangssupport@gmail.com')
+
+    def test_seller_request_notifies_support_admin_and_seller_applicant(self):
+        """
+        When a seller submits authorization request:
+        1. Wangs Support (wangssupport@gmail.com) receives the administrative alert.
+        2. The applicant receives an official confirmation email at their entered address.
+        """
+        from unittest.mock import patch
+        applicant_email = 'new_artisan@hills.in'
+
+        # Seed verified OTP
+        EmailOTP.objects.create(
+            email=applicant_email,
+            otp_code='123456',
+            purpose='SELLER_REQUEST',
+            is_used=True,
+            expires_at=timezone.now() + datetime.timedelta(minutes=10)
+        )
+
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'id': 'mock_id'})
+            req_url = reverse('request-seller-access')
+            resp = self.client.post(req_url, {
+                'business_name': 'Hills Slow Cure',
+                'email': applicant_email,
+                'phone': '+91 94360 88888',
+                'location_district': 'Mokokchung',
+                'fssai_number': '12345678901234',
+                'message': 'Traditional smoked pork and fermented bamboo shoot pickles',
+            }, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertTrue(resp.data['success'])
+
+            # Verify dispatch_email was called for both:
+            # 1) wangssupport@gmail.com (admin notification)
+            # 2) new_artisan@hills.in (applicant confirmation)
+            dispatched_recipients = [call[0][0] for call in mock_dispatch.call_args_list]
+            self.assertIn('wangssupport@gmail.com', dispatched_recipients)
+            self.assertIn(applicant_email, dispatched_recipients)
+
+    def test_order_lookup_security_and_authorization(self):
+        """
+        Verify OrderLookupView security:
+        1. Anonymous guest cannot lookup an older order without email/phone verification (403).
+        2. With matching customer email/phone in query, lookup succeeds (200).
+        3. Authenticated owner can access their order directly.
+        """
+        buyer = User.objects.create_user(
+            username='sec_buyer_user',
+            email='buyer_sec@wangs.in',
+            password='buyerpass123',
+            role=User.Role.CUSTOMER
+        )
+        past_order = Order.objects.create(
+            order_number='WNG-TEST-SEC-1',
+            user=buyer,
+            customer_name='Sec Test Buyer',
+            customer_email='buyer_sec@wangs.in',
+            customer_phone='+91 94360 11111',
+            shipping_address_line1='Main Road',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('500.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('50.00'),
+            total_amount=Decimal('555.00'),
+            platform_commission_total=Decimal('50.00'),
+            manufacturer_payout_total=Decimal('450.00'),
+            payment_status=Order.PaymentStatus.PAID
+        )
+        # Fast-forward created_at to simulate an order from hours ago
+        Order.objects.filter(id=past_order.id).update(
+            created_at=timezone.now() - datetime.timedelta(hours=2)
+        )
+
+        lookup_url = reverse('order-lookup', kwargs={'order_number': 'WNG-TEST-SEC-1'})
+
+        # 1. Unauthenticated request without verification returns 403 Forbidden
+        self.client.logout()
+        unauth_resp = self.client.get(lookup_url)
+        self.assertEqual(unauth_resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn('verification required', unauth_resp.data['detail'].lower())
+
+        # 2. Unauthenticated request with wrong email returns 403 Forbidden
+        wrong_verify_resp = self.client.get(f"{lookup_url}?verify=wrong@wangs.in")
+        self.assertEqual(wrong_verify_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # 3. Unauthenticated request with matching email returns 200 OK
+        correct_verify_resp = self.client.get(f"{lookup_url}?verify=buyer_sec@wangs.in")
+        self.assertEqual(correct_verify_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(correct_verify_resp.data['order_number'], 'WNG-TEST-SEC-1')
+
+        # 4. Authenticated owner directly returns 200 OK without verification parameter
+        self.client.force_authenticate(user=buyer)
+        owner_resp = self.client.get(lookup_url)
+        self.assertEqual(owner_resp.status_code, status.HTTP_200_OK)
+
+    def test_login_brute_force_lockout_protection(self):
+        """
+        Verify that 8 consecutive failed login attempts trigger a 429 rate limit lock.
+        """
+        self.client.logout()
+        login_url = reverse('auth-login')
+
+        for _ in range(8):
+            AuditLog.objects.create(
+                action='LOGIN_FAILED',
+                target_model='User',
+                target_id='target_user',
+                details={'identifier': 'target_user@wangs.in'}
+            )
+
+        resp = self.client.post(login_url, {
+            'username': 'target_user@wangs.in',
+            'password': 'wrongpassword123'
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_429_TOO_MANY_REQUESTS)
+        self.assertIn('temporarily restricted', resp.data['detail'])
