@@ -214,38 +214,7 @@ export default function HomePage() {
           </span>
         </div>
 
-        {/* 5. Mobile Items / Bestsellers Section */}
-        <div className="pt-2">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif font-bold text-base text-stone-900">
-              {sectionTitle}
-            </h2>
-            <Link
-              to="/products"
-              className="text-xs font-semibold text-stone-500 hover:text-stone-900"
-            >
-              View all
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            {loading ? (
-              [1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-64 rounded-2xl bg-stone-100 animate-pulse" />
-              ))
-            ) : displayedItems.length > 0 ? (
-              displayedItems.slice(0, 6).map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))
-            ) : (
-              <div className="col-span-2 py-8 text-center text-xs text-stone-500">
-                No items found in this category.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 6. Mobile Brand Stores Section */}
+        {/* 5. Mobile Brand Stores Section */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-serif font-bold text-base text-stone-900">
@@ -273,6 +242,37 @@ export default function HomePage() {
                 />
               ))
             ) : null}
+          </div>
+        </div>
+
+        {/* 6. Mobile Items / Bestsellers Section */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-serif font-bold text-base text-stone-900">
+              {sectionTitle}
+            </h2>
+            <Link
+              to="/products"
+              className="text-xs font-semibold text-stone-500 hover:text-stone-900"
+            >
+              View all
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 rounded-2xl bg-stone-100 animate-pulse" />
+              ))
+            ) : displayedItems.length > 0 ? (
+              displayedItems.slice(0, 6).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              <div className="col-span-2 py-8 text-center text-xs text-stone-500">
+                No items found in this category.
+              </div>
+            )}
           </div>
         </div>
       </div>
