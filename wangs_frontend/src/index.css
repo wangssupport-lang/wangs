@@ -12,12 +12,24 @@
     scroll-behavior: smooth;
   }
 
+  html {
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden; /* stops sideways wobble from overflowing elements */
+  }
+
   body {
     min-width: 0;
     margin: 0;
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
     background: #faf9f6;
     color: #24241f;
     font-family: 'DM Sans', -apple-system, sans-serif;
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
   }
 
   h1, h2, h3, h4, .font-serif {
@@ -32,6 +44,11 @@
 
   button, a {
     -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Faster taps, no double-tap zoom delay */
+  button, a, input, select, textarea, [role="button"] {
+    touch-action: manipulation;
   }
 
   a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
@@ -76,6 +93,58 @@
   background: #648675;
 }
 
+/* ==========================================================================
+   MOBILE HELPERS
+   ========================================================================== */
+
+/* Safe-area helpers for notched phones / home indicator */
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.pt-safe { padding-top: env(safe-area-inset-top, 0px); }
+.mobile-nav-offset { padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)); }
+
+/* Prevent iOS Safari from zooming in when an input is focused */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Comfortable tap targets on touch devices */
+@media (pointer: coarse) {
+  button, a.btn, [role="button"] {
+    min-height: 44px;
+  }
+}
+
+/* Hover effects shouldn't stick on touch screens */
+@media (hover: none) {
+  .hover\:scale-105:hover,
+  .hover\:-translate-y-1:hover {
+    transform: none !important;
+  }
+}
+
+/* Performance: calm decorative animations and blur on phones */
+@media (max-width: 767px) {
+  .animate-ambient-aura,
+  .animate-shimmer-sweep,
+  .animate-drift-slow,
+  .animate-drift-alt,
+  .animate-ember-1,
+  .animate-ember-2,
+  .animate-ember-3,
+  .animate-auto-sheen,
+  .animate-pulse-ring {
+    animation: none !important;
+  }
+
+  .glass-nav {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #faf9f6;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     scroll-behavior: auto !important;
@@ -87,212 +156,89 @@
 
 /* Pro-Grade Hero Product Animations */
 @keyframes heroFloat {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  30% {
-    transform: translateY(-9px) rotate(0.4deg);
-  }
-  65% {
-    transform: translateY(-16px) rotate(-0.35deg);
-  }
-  85% {
-    transform: translateY(-6px) rotate(0.2deg);
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  30% { transform: translateY(-9px) rotate(0.4deg); }
+  65% { transform: translateY(-16px) rotate(-0.35deg); }
+  85% { transform: translateY(-6px) rotate(0.2deg); }
 }
 
 @keyframes heroShadow {
-  0%, 100% {
-    transform: scaleX(1) scaleY(0.5);
-    opacity: 0.85;
-  }
-  30% {
-    transform: scaleX(0.95) scaleY(0.45);
-    opacity: 0.72;
-  }
-  65% {
-    transform: scaleX(0.89) scaleY(0.39);
-    opacity: 0.52;
-  }
-  85% {
-    transform: scaleX(0.96) scaleY(0.47);
-    opacity: 0.76;
-  }
+  0%, 100% { transform: scaleX(1) scaleY(0.5); opacity: 0.85; }
+  30% { transform: scaleX(0.95) scaleY(0.45); opacity: 0.72; }
+  65% { transform: scaleX(0.89) scaleY(0.39); opacity: 0.52; }
+  85% { transform: scaleX(0.96) scaleY(0.47); opacity: 0.76; }
 }
 
 @keyframes ambientAura {
-  0%, 100% {
-    transform: scale(0.96) translate(0, 0);
-    opacity: 0.25;
-  }
-  50% {
-    transform: scale(1.14) translate(8px, -10px);
-    opacity: 0.44;
-  }
+  0%, 100% { transform: scale(0.96) translate(0, 0); opacity: 0.25; }
+  50% { transform: scale(1.14) translate(8px, -10px); opacity: 0.44; }
 }
 
 @keyframes shimmerGleam {
-  0% {
-    transform: translateX(-160%) skewX(-25deg);
-    opacity: 0;
-  }
-  30% {
-    opacity: 0.55;
-  }
-  100% {
-    transform: translateX(200%) skewX(-25deg);
-    opacity: 0;
-  }
+  0% { transform: translateX(-160%) skewX(-25deg); opacity: 0; }
+  30% { opacity: 0.55; }
+  100% { transform: translateX(200%) skewX(-25deg); opacity: 0; }
 }
 
 @keyframes floatDrift {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.3;
-  }
-  50% {
-    transform: translate(12px, -18px) scale(1.15);
-    opacity: 0.75;
-  }
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.3; }
+  50% { transform: translate(12px, -18px) scale(1.15); opacity: 0.75; }
 }
 
 @keyframes floatDriftAlt {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-    opacity: 0.2;
-  }
-  50% {
-    transform: translate(-14px, -22px) scale(1.2);
-    opacity: 0.65;
-  }
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.2; }
+  50% { transform: translate(-14px, -22px) scale(1.2); opacity: 0.65; }
 }
 
-.animate-hero-float {
-  animation: heroFloat 5.6s ease-in-out infinite;
-}
-
-.animate-hero-shadow {
-  animation: heroShadow 5.6s ease-in-out infinite;
-}
-
-.animate-ambient-aura {
-  animation: ambientAura 6.5s ease-in-out infinite;
-}
-
-.animate-shimmer-sweep {
-  animation: shimmerGleam 6.5s ease-in-out infinite;
-}
-
-.animate-drift-slow {
-  animation: floatDrift 7.2s ease-in-out infinite;
-}
-
-.animate-drift-alt {
-  animation: floatDriftAlt 8.5s ease-in-out infinite;
-}
+.animate-hero-float { animation: heroFloat 5.6s ease-in-out infinite; }
+.animate-hero-shadow { animation: heroShadow 5.6s ease-in-out infinite; }
+.animate-ambient-aura { animation: ambientAura 6.5s ease-in-out infinite; }
+.animate-shimmer-sweep { animation: shimmerGleam 6.5s ease-in-out infinite; }
+.animate-drift-slow { animation: floatDrift 7.2s ease-in-out infinite; }
+.animate-drift-alt { animation: floatDriftAlt 8.5s ease-in-out infinite; }
 
 @keyframes pulseRing {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.15);
-    opacity: 0.25;
-  }
-  100% {
-    transform: scale(1.35);
-    opacity: 0;
-  }
+  0% { transform: scale(0.85); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 0.25; }
+  100% { transform: scale(1.35); opacity: 0; }
 }
 
 @keyframes emberRise {
-  0% {
-    transform: translateY(0) translateX(0) scale(0.8);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.85;
-  }
-  60% {
-    transform: translateY(-45px) translateX(12px) scale(1.1);
-    opacity: 0.9;
-  }
-  100% {
-    transform: translateY(-90px) translateX(-8px) scale(0.6);
-    opacity: 0;
-  }
+  0% { transform: translateY(0) translateX(0) scale(0.8); opacity: 0; }
+  20% { opacity: 0.85; }
+  60% { transform: translateY(-45px) translateX(12px) scale(1.1); opacity: 0.9; }
+  100% { transform: translateY(-90px) translateX(-8px) scale(0.6); opacity: 0; }
 }
 
 @keyframes badgeFloat {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-8px) rotate(-1deg);
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-1deg); }
 }
 
 @keyframes badgeFloatAlt {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-10px) rotate(1.5deg);
-  }
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(1.5deg); }
 }
 
 @keyframes autoSheenSweep {
-  0% {
-    transform: translateX(-180%) skewX(-25deg);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.6;
-  }
-  40% {
-    transform: translateX(220%) skewX(-25deg);
-    opacity: 0;
-  }
-  100% {
-    transform: translateX(220%) skewX(-25deg);
-    opacity: 0;
-  }
+  0% { transform: translateX(-180%) skewX(-25deg); opacity: 0; }
+  15% { opacity: 0.6; }
+  40% { transform: translateX(220%) skewX(-25deg); opacity: 0; }
+  100% { transform: translateX(220%) skewX(-25deg); opacity: 0; }
 }
 
-.animate-pulse-ring {
-  animation: pulseRing 4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-}
-
-.animate-ember-1 {
-  animation: emberRise 5.2s ease-out infinite;
-}
-
-.animate-ember-2 {
-  animation: emberRise 6.8s ease-out infinite 1.8s;
-}
-
-.animate-ember-3 {
-  animation: emberRise 4.6s ease-out infinite 3.1s;
-}
-
-.animate-badge-float {
-  animation: badgeFloat 4.8s ease-in-out infinite;
-}
-
-.animate-badge-float-alt {
-  animation: badgeFloatAlt 5.5s ease-in-out infinite 0.7s;
-}
-
-.animate-auto-sheen {
-  animation: autoSheenSweep 5s ease-in-out infinite;
-}
+.animate-pulse-ring { animation: pulseRing 4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite; }
+.animate-ember-1 { animation: emberRise 5.2s ease-out infinite; }
+.animate-ember-2 { animation: emberRise 6.8s ease-out infinite 1.8s; }
+.animate-ember-3 { animation: emberRise 4.6s ease-out infinite 3.1s; }
+.animate-badge-float { animation: badgeFloat 4.8s ease-in-out infinite; }
+.animate-badge-float-alt { animation: badgeFloatAlt 5.5s ease-in-out infinite 0.7s; }
+.animate-auto-sheen { animation: autoSheenSweep 5s ease-in-out infinite; }
 
 /* ==========================================================================
    PRINT MEDIA STYLES FOR PARCEL SHIPPING LABEL & PACKING SLIP
    ========================================================================== */
 @media print {
-  /* Hide whole app background, navigation, modals backdrop, actions */
   body {
     background: #ffffff !important;
     color: #000000 !important;
@@ -304,7 +250,6 @@
     visibility: hidden;
   }
 
-  /* Isolate only the parcel shipping label document */
   #printable-parcel-slip,
   #printable-parcel-slip * {
     visibility: visible !important;
