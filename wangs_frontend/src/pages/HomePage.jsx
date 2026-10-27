@@ -81,22 +81,28 @@ export default function HomePage() {
     }
   };
 
-  // 1. Filter bestsellers matching selected dietary type
-  let displayedBestsellers = bestsellers.filter((product) => {
+  // 1. Check if there are genuine bestsellers matching the selected filter
+  const matchingBestsellers = bestsellers.filter((product) => {
+    if (!product.is_bestseller) return false;
     if (selectedDietary === 'ALL') return true;
     return product.dietary_type === selectedDietary;
   });
 
-  // 2. If no bestsellers in this category, look into all catalog items for this dietary type
-  if (displayedBestsellers.length === 0 && selectedDietary !== 'ALL') {
-    displayedBestsellers = allProducts.filter((product) => product.dietary_type === selectedDietary);
-  }
+  // 2. If genuine bestsellers exist, use "Bestsellers"
+  // Otherwise, don't show unsure/fake data: show items with the name "Items"
+  let sectionTitle = 'Bestsellers';
+  let displayedItems = [];
 
-  // 3. When no bestsellers or items can be predicted for this specific filter (or in a new store),
-  // instead of an empty screen ("No pickles found in this category"), show available artisan favorites!
-  const isFallbackCategory = displayedBestsellers.length === 0;
-  if (isFallbackCategory) {
-    displayedBestsellers = bestsellers.length > 0 ? bestsellers : allProducts;
+  if (matchingBestsellers.length > 0) {
+    sectionTitle = 'Bestsellers';
+    displayedItems = matchingBestsellers;
+  } else {
+    sectionTitle = 'Items';
+    const matchingCatalog = allProducts.filter((product) => {
+      if (selectedDietary === 'ALL') return true;
+      return product.dietary_type === selectedDietary;
+    });
+    displayedItems = matchingCatalog.length > 0 ? matchingCatalog : allProducts;
   }
 
   return (
@@ -208,19 +214,12 @@ export default function HomePage() {
           </span>
         </div>
 
-        {/* 5. Mobile Bestsellers Section */}
+        {/* 5. Mobile Items / Bestsellers Section */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="font-serif font-bold text-base text-stone-900">
-                Bestsellers
-              </h2>
-              {isFallbackCategory && selectedDietary !== 'ALL' && (
-                <p className="text-[10px] text-amber-800 font-medium">
-                  Artisan favorites curated for you
-                </p>
-              )}
-            </div>
+            <h2 className="font-serif font-bold text-base text-stone-900">
+              {sectionTitle}
+            </h2>
             <Link
               to="/products"
               className="text-xs font-semibold text-stone-500 hover:text-stone-900"
@@ -234,13 +233,13 @@ export default function HomePage() {
               [1, 2, 3, 4].map((i) => (
                 <div key={i} className="h-64 rounded-2xl bg-stone-100 animate-pulse" />
               ))
-            ) : displayedBestsellers.length > 0 ? (
-              displayedBestsellers.slice(0, 6).map((product) => (
+            ) : displayedItems.length > 0 ? (
+              displayedItems.slice(0, 6).map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))
             ) : (
               <div className="col-span-2 py-8 text-center text-xs text-stone-500">
-                No pickles found in this category.
+                No items found in this category.
               </div>
             )}
           </div>
@@ -488,9 +487,11 @@ export default function HomePage() {
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-5 sm:mb-8">
             <div>
-              <span className="text-xs font-bold tracking-widest uppercase text-forest-800">Slow-Cured Pantry</span>
+              <span className="text-xs font-bold tracking-widest uppercase text-forest-800">
+                {bestsellers.some((p) => p.is_bestseller) ? 'Slow-Cured Pantry' : 'Store Catalog'}
+              </span>
               <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mt-1">
-                Artisan Favorites
+                {bestsellers.some((p) => p.is_bestseller) ? 'Bestsellers' : 'Items'}
               </h2>
             </div>
             <Link
@@ -507,7 +508,7 @@ export default function HomePage() {
               ? [1, 2, 3, 4].map((i) => (
                   <div key={i} className="h-96 rounded-2xl bg-stone-100 animate-pulse" />
                 ))
-              : (bestsellers.length > 0 ? bestsellers : allProducts).slice(0, 8).map((product) => (
+              : (bestsellers.some((p) => p.is_bestseller) ? bestsellers.filter((p) => p.is_bestseller) : allProducts).slice(0, 8).map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))
             }
