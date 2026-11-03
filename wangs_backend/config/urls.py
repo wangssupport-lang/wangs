@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('django-admin/', admin.site.urls),
+    path('wangsadminspace/', admin.site.urls),
     path('api/', include('marketplace.urls')),
 ]
 
