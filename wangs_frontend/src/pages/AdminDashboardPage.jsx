@@ -613,29 +613,36 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
-              <div>
-                <span className="font-bold block">Developer / Admin Access:</span>
-                <span className="font-mono text-stone-600">admin / admin12345</span>
+            {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? (
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
+                <div>
+                  <span className="font-bold block">Local Development Access:</span>
+                  <span className="font-mono text-stone-600">admin / admin12345</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
+                    className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+                  >
+                    Auto-Fill
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loggingIn}
+                    onClick={handleQuickAdminLogin}
+                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black rounded-lg shadow-xs transition-colors cursor-pointer"
+                  >
+                    1-Click Sign In
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
-                  className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
-                >
-                  Auto-Fill
-                </button>
-                <button
-                  type="button"
-                  disabled={loggingIn}
-                  onClick={handleQuickAdminLogin}
-                  className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black rounded-lg shadow-xs transition-colors cursor-pointer"
-                >
-                  1-Click Sign In
-                </button>
+            ) : (
+              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-[11px] text-stone-600">
+                <span className="font-bold text-stone-900 block">Production Superadmin Access:</span>
+                <span>Enter the <code className="font-mono text-forest-900 font-bold">DJANGO_ADMIN_USERNAME</code> and password configured in your Render environment.</span>
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
