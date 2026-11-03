@@ -1,5 +1,14 @@
-const API_BASE = '/api';
-const BACKEND_URL = 'http://127.0.0.1:8000/api';
+const isProduction = typeof window !== 'undefined' && 
+  window.location.hostname !== 'localhost' && 
+  window.location.hostname !== '127.0.0.1';
+
+const PROD_BACKEND_URL = 'https://wangs.onrender.com/api';
+const DEV_BACKEND_URL = 'http://127.0.0.1:8000/api';
+
+// Prioritize environment variable if set at build time (e.g. VITE_API_URL or VITE_API_BASE_URL)
+// Defaults to relative '/api' which is proxied by Vercel rewrite to https://wangs.onrender.com/api
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
+const DIRECT_BACKEND = isProduction ? PROD_BACKEND_URL : DEV_BACKEND_URL;
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('wangs_token');
@@ -12,31 +21,49 @@ export async function apiRequest(endpoint, options = {}) {
     ...options.headers,
   };
 
-  let response;
+  const primaryUrl = `${API_BASE}${endpoint}`;
+  let response = null;
+  let networkError = null;
+
   try {
-    response = await fetch(`${API_BASE}${endpoint}`, {
+    response = await fetch(primaryUrl, {
       ...options,
       headers,
     });
   } catch (err) {
-    try {
-      response = await fetch(`${BACKEND_URL}${endpoint}`, {
-        ...options,
-        headers,
-      });
-    } catch (fallbackErr) {
-      throw new Error('Could not connect to backend server. Please verify the backend is running at http://127.0.0.1:8000.');
+    networkError = err;
+  }
+
+  // If primaryUrl failed or returned 502/503/504 (e.g. proxy rewrite failure),
+  // immediately fallback to direct backend connection
+  if (!response || (response.status >= 502 && response.status <= 504)) {
+    const fallbackUrl = `${DIRECT_BACKEND}${endpoint}`;
+    if (primaryUrl !== fallbackUrl) {
+      try {
+        response = await fetch(fallbackUrl, {
+          ...options,
+          headers,
+        });
+      } catch (fallbackErr) {
+        throw new Error(
+          isProduction
+            ? 'Could not connect to Wangs backend at https://wangs.onrender.com. Please try again.'
+            : 'Could not connect to backend server. Please verify the backend is running at http://127.0.0.1:8000.'
+        );
+      }
+    } else if (networkError) {
+      throw networkError;
     }
   }
 
-  const contentType = response.headers.get('content-type');
+  const contentType = response?.headers?.get('content-type');
   let data = null;
   if (contentType && contentType.includes('application/json')) {
     data = await response.json();
   }
 
-  if (!response.ok) {
-    const errorMsg = data?.detail || data?.message || (data ? JSON.stringify(data) : response.statusText);
+  if (!response || !response.ok) {
+    const errorMsg = data?.detail || data?.message || (data ? JSON.stringify(data) : response?.statusText || 'Request failed');
     throw new Error(errorMsg);
   }
 

@@ -14,7 +14,10 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'wangs-naga-pickle-dev-secret-key-super-saf
 
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '*').split(',') if h.strip()]
+for default_host in ['testserver', 'localhost', '127.0.0.1']:
+    if default_host not in ALLOWED_HOSTS and '*' not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(default_host)
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -137,6 +140,32 @@ SIMPLE_JWT = {
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOWED_ORIGINS = [
+    'https://wangs.in',
+    'https://www.wangs.in',
+    'https://wangs.onrender.com',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:8000',
+]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+    r"^https://.*\.wangs\.in$",
+    r"^https://.*\.onrender\.com$",
+]
+
+# CSRF Trusted Origins for Vercel + Render
+CSRF_TRUSTED_ORIGINS = [
+    'https://wangs.in',
+    'https://www.wangs.in',
+    'https://wangs.onrender.com',
+    'https://*.vercel.app',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:8000',
+]
 
 # Razorpay Test / Production configuration
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_placeholder_key')

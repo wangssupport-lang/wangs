@@ -1315,3 +1315,57 @@ class WangsFinancialAndOrderTests(TestCase):
         queue_resp = self.client.get('/api/delivery/active/')
         self.assertEqual(queue_resp.status_code, status.HTTP_200_OK)
         self.assertTrue(any(o['order_number'] == 'WNG-TEST-DEL-1' for o in queue_resp.data))
+
+    def test_ensure_admin_management_command_and_login(self):
+        """
+        Verify that ensure_admin management command creates or updates
+        the administrator using environment variables and enables valid login.
+        """
+        from django.core.management import call_command
+        import os
+
+        old_user = os.environ.get('DJANGO_ADMIN_USERNAME')
+        old_pass = os.environ.get('DJANGO_ADMIN_PASSWORD')
+
+        try:
+            os.environ['DJANGO_ADMIN_USERNAME'] = 'render_prod_admin'
+            os.environ['DJANGO_ADMIN_PASSWORD'] = 'RenderSuperSecretPass2026!'
+
+            call_command('ensure_admin')
+
+            admin = User.objects.filter(username='render_prod_admin').first()
+            self.assertIsNotNone(admin)
+            self.assertEqual(admin.role, User.Role.ADMIN)
+            self.assertTrue(admin.is_staff)
+            self.assertTrue(admin.is_superuser)
+            self.assertTrue(admin.is_active)
+            self.assertFalse(admin.is_banned)
+            self.assertTrue(admin.check_password('RenderSuperSecretPass2026!'))
+
+            # Verify login endpoint accepts these credentials
+            login_resp = self.client.post('/api/auth/login/', {
+                'username': 'render_prod_admin',
+                'password': 'RenderSuperSecretPass2026!'
+            }, format='json')
+            self.assertEqual(login_resp.status_code, status.HTTP_200_OK)
+            self.assertIn('token', login_resp.data)
+            self.assertEqual(login_resp.data['user']['role'], 'ADMIN')
+            self.assertTrue(login_resp.data['user']['is_staff'])
+
+            # Verify incorrect password is rejected with 401
+            bad_login_resp = self.client.post('/api/auth/login/', {
+                'username': 'render_prod_admin',
+                'password': 'WrongPassword123'
+            }, format='json')
+            self.assertEqual(bad_login_resp.status_code, status.HTTP_401_UNAUTHORIZED)
+            self.assertEqual(bad_login_resp.data['detail'], 'Invalid credentials')
+
+        finally:
+            if old_user is not None:
+                os.environ['DJANGO_ADMIN_USERNAME'] = old_user
+            else:
+                os.environ.pop('DJANGO_ADMIN_USERNAME', None)
+            if old_pass is not None:
+                os.environ['DJANGO_ADMIN_PASSWORD'] = old_pass
+            else:
+                os.environ.pop('DJANGO_ADMIN_PASSWORD', None)

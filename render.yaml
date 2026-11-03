@@ -4,7 +4,8 @@ services:
     env: python
     region: singapore
     plan: standard
-    buildCommand: "pip install -r requirements.txt && python manage.py migrate && python manage.py seed_wangs_data"
+    rootDir: wangs_backend
+    buildCommand: "pip install -r requirements.txt && python manage.py migrate && python manage.py seed_wangs_data && python manage.py ensure_admin && python manage.py collectstatic --noinput"
     startCommand: "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT"
     envVars:
       - key: PYTHON_VERSION
@@ -18,7 +19,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
-        value: ".onrender.com,wangs.in,api.wangs.in"
+        value: ".onrender.com,wangs.in,www.wangs.in,api.wangs.in"
       - key: DJANGO_ADMIN_USERNAME
         sync: false
       - key: DJANGO_ADMIN_PASSWORD
