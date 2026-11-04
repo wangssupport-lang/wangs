@@ -244,6 +244,7 @@ class Product(models.Model):
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     is_bestseller = models.BooleanField(default=False)
+    is_deal_of_the_day = models.BooleanField(default=False, help_text="Highlight as Deal of the Day (high value for quantity and price)")
     primary_image_url = models.TextField(blank=True, default='')
     
     created_at = models.DateTimeField(auto_now_add=True)

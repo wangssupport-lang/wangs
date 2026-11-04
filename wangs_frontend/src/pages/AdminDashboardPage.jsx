@@ -360,6 +360,16 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleToggleDealOfTheDay = async (id) => {
+    try {
+      const res = await api.toggleProductDealOfTheDay(id);
+      toast.success(res?.is_deal_of_the_day ? 'Product marked as Deal of the Day!' : 'Removed from Deal of the Day');
+      loadAdminData();
+    } catch (err) {
+      toast.error(err.message || 'Action failed');
+    }
+  };
+
   const handleUpdateOrderStatus = async (id, newStatus) => {
     try {
       await api.updateOrderStatus(id, newStatus, 'Status updated via admin console');
@@ -3150,6 +3160,7 @@ export default function AdminDashboardPage() {
                   <th className="p-3">Stock</th>
                   <th className="p-3">Review Status</th>
                   <th className="p-3">Featured</th>
+                  <th className="p-3">Deal of Day</th>
                   <th className="p-3">Actions</th>
                 </tr>
               </thead>
@@ -3174,6 +3185,19 @@ export default function AdminDashboardPage() {
                         className={`p-1 rounded ${p.is_featured ? 'text-amber-500' : 'text-stone-300'}`}
                       >
                         <Star size={16} fill={p.is_featured ? 'currentColor' : 'none'} />
+                      </button>
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => handleToggleDealOfTheDay(p.id)}
+                        title={p.is_deal_of_the_day ? "Active Deal of the Day (Click to toggle)" : "Promote as Deal of the Day"}
+                        className={`p-1.5 rounded transition-all ${
+                          p.is_deal_of_the_day
+                            ? 'text-orange-600 bg-orange-100 shadow-xs'
+                            : 'text-stone-300 hover:text-stone-500 hover:bg-stone-100'
+                        }`}
+                      >
+                        <Flame size={16} fill={p.is_deal_of_the_day ? 'currentColor' : 'none'} />
                       </button>
                     </td>
                     <td className="p-3">

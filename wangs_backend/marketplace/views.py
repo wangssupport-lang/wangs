@@ -636,6 +636,39 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         bestsellers = qs.filter(is_bestseller=True)[:8]
         return Response(ProductSerializer(bestsellers, many=True).data)
 
+    @action(detail=False, methods=['get'])
+    def deals(self, request):
+        """
+        Returns Deal of the Day products where price and quantity justify both:
+        generous net weight (quantity) and attractive price (best value for money, grams-per-rupee).
+        Prioritizes admin-marked is_deal_of_the_day, followed by best quantity-to-price ratio.
+        """
+        qs = self.get_queryset().filter(stock_quantity__gt=0)
+        products = list(qs)
+
+        def compute_value_score(p):
+            w = float(p.weight_grams or 200)
+            pr = float(p.price) if p.price else 1.0
+            mrp = float(p.mrp) if p.mrp else pr
+            disc = max(0.0, ((mrp - pr) / mrp) * 100) if mrp > pr else 0.0
+            grams_per_rs = w / pr
+            # Prioritize admin deal flag, then grams per rupee + discount
+            admin_boost = 1000.0 if getattr(p, 'is_deal_of_the_day', False) else 0.0
+            return admin_boost + (grams_per_rs * 120.0) + (disc * 1.5)
+
+        products.sort(key=compute_value_score, reverse=True)
+        seen_titles = set()
+        curated_deals = []
+        for p in products:
+            clean_title = p.title.strip().lower()
+            if clean_title not in seen_titles:
+                seen_titles.add(clean_title)
+                curated_deals.append(p)
+            if len(curated_deals) >= 8:
+                break
+
+        return Response(ProductSerializer(curated_deals, many=True).data)
+
     @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def add_review(self, request, slug=None):
         product = self.get_object()
@@ -1723,6 +1756,13 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         product.is_bestseller = not product.is_bestseller
         product.save(update_fields=['is_bestseller', 'updated_at'])
         return Response({'is_bestseller': product.is_bestseller})
+
+    @action(detail=True, methods=['post'])
+    def toggle_deal_of_the_day(self, request, pk=None):
+        product = self.get_object()
+        product.is_deal_of_the_day = not product.is_deal_of_the_day
+        product.save(update_fields=['is_deal_of_the_day', 'updated_at'])
+        return Response({'is_deal_of_the_day': product.is_deal_of_the_day})
 
     @action(detail=True, methods=['post'])
     def update_stock_and_price(self, request, pk=None):

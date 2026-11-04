@@ -414,7 +414,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'weight_grams', 'spice_level', 'dietary_type',
             'contains_non_veg_substance',
             'ingredients', 'allergens', 'storage_instructions', 'shelf_life',
-            'stock_quantity', 'status', 'is_active', 'is_featured', 'is_bestseller',
+            'stock_quantity', 'status', 'is_active', 'is_featured', 'is_bestseller', 'is_deal_of_the_day',
             'primary_image_url', 'category', 'category_id', 'manufacturer',
             'images', 'reviews', 'reviews_count', 'average_rating', 'is_in_stock',
             'created_at', 'updated_at'

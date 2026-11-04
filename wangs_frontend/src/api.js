@@ -107,6 +107,7 @@ export const api = {
   addProductReview: (slug, payload) => apiRequest(`/products/${slug}/add_review/`, { method: 'POST', body: JSON.stringify(payload) }),
   getFeaturedProducts: () => apiRequest('/products/featured/'),
   getBestsellerProducts: () => apiRequest('/products/bestsellers/'),
+  getDealProducts: () => apiRequest('/products/deals/'),
   checkPincode: (pincode) => apiRequest(`/pincode/check/?pincode=${pincode}`),
 
   // Cart & Checkout
@@ -191,6 +192,7 @@ export const api = {
   updateProductStatus: (id, status) => apiRequest(`/admin/products/${id}/update_status/`, { method: 'POST', body: JSON.stringify({ status }) }),
   toggleFeaturedProduct: (id) => apiRequest(`/admin/products/${id}/toggle_featured/`, { method: 'POST' }),
   toggleProductBestseller: (id) => apiRequest(`/admin/products/${id}/toggle_bestseller/`, { method: 'POST' }),
+  toggleProductDealOfTheDay: (id) => apiRequest(`/admin/products/${id}/toggle_deal_of_the_day/`, { method: 'POST' }),
   updateProductStockPrice: (id, payload) => apiRequest(`/admin/products/${id}/update_stock_and_price/`, { method: 'POST', body: JSON.stringify(payload) }),
   getAdminOrders: () => apiRequest('/admin/orders/'),
   updateOrderStatus: (id, status, notes = '') => apiRequest(`/admin/orders/${id}/update_order_status/`, { method: 'POST', body: JSON.stringify({ status, dispatch_notes: notes }) }),

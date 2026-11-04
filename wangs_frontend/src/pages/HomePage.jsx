@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -13,6 +13,7 @@ export default function HomePage() {
   const toast = useToast();
   const [bestsellers, setBestsellers] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
+  const [dealProducts, setDealProducts] = useState([]);
   const [activeFilter, setActiveFilter] = useState('ALL');
   const [heroBanners, setHeroBanners] = useState([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -85,23 +86,71 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [bestData, prodData, bannerData] = await Promise.all([
-          api.getBestsellerProducts(),
-          api.getProducts({ page_size: 24 }),
+        const [bestData, prodData, bannerData, dealData] = await Promise.all([
+          api.getBestsellerProducts().catch(() => []),
+          api.getProducts({ page_size: 24 }).catch(() => []),
           api.getHeroBanners().catch(() => []),
+          api.getDealProducts().catch(() => []),
         ]);
         const best = bestData?.results || bestData || [];
         const prods = prodData?.results || prodData || [];
         const banners = bannerData?.results || bannerData || [];
+        const deals = dealData?.results || dealData || [];
         setBestsellers(best.length > 0 ? best : prods);
         setAllProducts(prods);
         setHeroBanners(Array.isArray(banners) ? banners : []);
+        setDealProducts(Array.isArray(deals) ? deals : []);
       } catch (err) {
         console.error('Failed to load products for homepage', err);
       }
     }
     loadData();
   }, []);
+
+  const evaluatedDeals = useMemo(() => {
+    // If backend returns curated deals, use them; otherwise evaluate from allProducts
+    let sourceList = (dealProducts && dealProducts.length > 0) ? dealProducts : allProducts;
+    if (!sourceList || sourceList.length === 0) return [];
+
+    const valid = sourceList.filter(
+      (p) => p.is_active !== false && (p.is_in_stock !== false || (Number(p.stock_quantity) || 0) > 0)
+    );
+
+    // Compute value metric: price & quantity must justify both
+    const scored = valid.map((p) => {
+      const weight = Number(p.weight_grams) || 200;
+      const price = Number(p.price) || 1;
+      const mrp = Number(p.mrp) || price;
+      const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+      const gramsPerRs = weight / price;
+      const costPer100g = Math.round((price / weight) * 100);
+      const score = (p.is_deal_of_the_day ? 1000 : 0) + (gramsPerRs * 120) + (discount * 1.5);
+      return {
+        ...p,
+        weight_grams: weight,
+        price,
+        mrp,
+        discount,
+        gramsPerRs,
+        costPer100g,
+        valueScore: score,
+      };
+    });
+
+    scored.sort((a, b) => b.valueScore - a.valueScore);
+
+    const seen = new Set();
+    const curated = [];
+    for (const item of scored) {
+      const clean = (item.title || '').trim().toLowerCase();
+      if (!seen.has(clean)) {
+        seen.add(clean);
+        curated.push(item);
+      }
+      if (curated.length >= 8) break;
+    }
+    return curated;
+  }, [dealProducts, allProducts]);
 
   const handleQuickAdd = async (e, title, id = null) => {
     e.preventDefault();
@@ -966,131 +1015,98 @@ export default function HomePage() {
 
           {/* Horizontal Deal Cards Slider */}
           <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-1 px-1 py-1">
-            {/* Deal Item 1: Spicy Avakaya Mango */}
-            <div className="w-[190px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_23_65b6bffc80.jpg"
-                    alt="Spicy Avakaya Mango"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
-                    25% OFF
-                  </span>
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
-                    <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="font-label-sm text-[10px] font-bold text-on-surface">4.9</span>
-                  </div>
-                </div>
+            {evaluatedDeals && evaluatedDeals.length > 0 ? (
+              evaluatedDeals.map((deal) => {
+                const weight = Number(deal.weight_grams) || 200;
+                const price = Math.round(Number(deal.price) || 0);
+                const mrp = Math.round(Number(deal.mrp) || price);
+                const discount = deal.discount !== undefined
+                  ? deal.discount
+                  : (mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0);
+                const costPer100g = deal.costPer100g || Math.round((price / weight) * 100);
+                const imgUrl = deal.primary_image_url || deal.images?.[0]?.image_url || '/images/hero/dried_beef_pickle_signature.jpg';
+                const rating = deal.average_rating ? Number(deal.average_rating).toFixed(1) : '4.9';
+                const mfgName = deal.manufacturer?.business_name || 'Artisan Direct';
 
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
-                    Laxmi Homemade <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                  </span>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug">
-                    Spicy Avakaya Mango
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">350g Ceramic Jar</span>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹289</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹385</span>
+                return (
+                  <div
+                    key={deal.id || deal.slug}
+                    className="w-[195px] sm:w-[205px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between hover:border-primary/40 transition-all group"
+                  >
+                    <Link to={`/product/${deal.slug}`} className="block">
+                      <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                        <img
+                          src={imgUrl}
+                          alt={deal.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/images/hero/dried_beef_pickle_signature.jpg';
+                          }}
+                        />
+                        {discount > 0 ? (
+                          <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold shadow-xs">
+                            {discount}% OFF
+                          </span>
+                        ) : (
+                          <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-primary text-on-primary font-label-sm text-[9px] font-bold shadow-xs">
+                            BEST VALUE
+                          </span>
+                        )}
+                        <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/95 backdrop-blur-xs flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
+                          <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                          <span className="font-label-sm text-[10px] font-bold text-on-surface">{rating}</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex flex-col gap-0.5">
+                        <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
+                          {mfgName} <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                        </span>
+                        <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug group-hover:text-primary transition-colors">
+                          {deal.title}
+                        </h4>
+
+                        {/* Quantity and Price Justification Metric */}
+                        <div className="flex items-center justify-between text-[10px] mt-1 pt-0.5">
+                          <span className="font-bold text-tertiary bg-surface-container px-1.5 py-0.5 rounded">
+                            {weight}g Jar
+                          </span>
+                          <span className="text-outline font-semibold">
+                            ₹{costPer100g}/100g
+                          </span>
+                        </div>
+
+                        {/* Price & Savings */}
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                          <span className="font-title-lg text-sm font-bold text-primary">₹{price}</span>
+                          {mrp > price && (
+                            <span className="font-body-sm text-[10px] text-outline line-through">₹{mrp}</span>
+                          )}
+                          {mrp > price && (
+                            <span className="text-[9.5px] font-bold text-emerald-700 ml-auto">
+                              Save ₹{mrp - price}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={(e) => handleQuickAdd(e, deal.title, deal.id)}
+                      className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 hover:bg-primary/90 transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[15px]">add</span> Add
+                    </button>
                   </div>
-                </div>
+                );
+              })
+            ) : (
+              <div className="p-4 text-xs text-outline text-center w-full">
+                Loading today's best value deals...
               </div>
-
-              <button
-                type="button"
-                onClick={(e) => handleQuickAdd(e, 'Spicy Avakaya Mango', 1)}
-                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">add</span> Add
-              </button>
-            </div>
-
-            {/* Deal Item 2: Banarasi Lal Mirch */}
-            <div className="w-[190px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_16_a066fa5198.jpg"
-                    alt="Banarasi Lal Mirch"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
-                    18% OFF
-                  </span>
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
-                    <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="font-label-sm text-[10px] font-bold text-on-surface">4.8</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
-                    Bikaner Spices <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                  </span>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug">
-                    Banarasi Lal Mirch
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">400g Hand-Cured</span>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹349</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹425</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={(e) => handleQuickAdd(e, 'Banarasi Lal Mirch', 2)}
-                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">add</span> Add
-              </button>
-            </div>
-
-            {/* Deal Item 3: Desi Garlic Pickle */}
-            <div className="w-[190px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_11_699d18f354.jpg"
-                    alt="Desi Garlic Pickle"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
-                    30% OFF
-                  </span>
-                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
-                    <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                    <span className="font-label-sm text-[10px] font-bold text-on-surface">5.0</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
-                    Dadi Rasoi <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                  </span>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug">
-                    Desi Garlic Pickle
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">300g Jar</span>
-                  <div className="flex items-baseline gap-1.5 mt-0.5">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹249</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹359</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={(e) => handleQuickAdd(e, 'Desi Garlic Pickle', 3)}
-                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-              >
-                <span className="material-symbols-outlined text-[15px]">add</span> Add
-              </button>
-            </div>
+            )}
           </div>
         </section>
 
