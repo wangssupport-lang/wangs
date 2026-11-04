@@ -105,8 +105,8 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 bg-surface shadow-xs">
-      {/* 1. Top Announcement Ribbon - Stitch Terracotta (#9b4100) */}
-      <div className="bg-primary text-on-primary border-b border-primary-container text-[11px] font-medium py-1.5 px-4 select-none">
+      {/* 1. Top Announcement Ribbon - Desktop Only */}
+      <div className="hidden md:block bg-primary text-on-primary border-b border-primary-container text-[11px] font-medium py-1.5 px-4 select-none">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md text-label-md">
           <div className="flex items-center gap-2">
             <Truck size={14} className="text-primary-fixed" />
@@ -127,63 +127,126 @@ export default function Navbar() {
       {/* 2. Main Navigation Bar - Stitch Heritage Solid Warm Surface (#fff8f4) */}
       <div className="bg-surface border-b border-outline-variant/30 text-on-surface">
         <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8">
-          {/* Mobile Top Row */}
-          <div className="flex md:hidden items-center justify-between h-14 gap-2">
-            <Link to="/" className="flex items-center gap-2 shrink-0">
-              <img
-                src="/logo.png"
-                alt="Wangs"
-                className="h-8 w-8 object-contain"
-              />
-              <span className="font-headline-md font-bold text-xl tracking-tight text-primary">
-                Wangs
-              </span>
-            </Link>
-
-            {/* Mobile Delivery Pin */}
-            <div className="flex items-center gap-1 text-[11px] font-semibold text-on-surface-variant truncate">
-              <span className="material-symbols-outlined text-[15px] text-primary">pin_drop</span>
-              <span className="truncate">Deliver to Bengaluru 560...</span>
-              <ChevronDown size={12} className="text-outline shrink-0" />
-            </div>
-
-            {/* Mobile Actions: Cart & Profile */}
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                className="relative p-2 rounded-full text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
-                aria-label="Cart"
-              >
-                <ShoppingBag size={20} className="text-on-surface" />
-                {itemsCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 bg-primary text-on-primary font-bold text-[8.5px] leading-tight rounded-full flex items-center justify-center shadow-xs">
-                    {itemsCount > 99 ? '99+' : itemsCount}
+          {/* Mobile Top Header (Exact Match to Stitch Screen 0d46c0ef01b74bf9a068fe978dfcc07f / Image 1) */}
+          <div className="md:hidden flex flex-col gap-2.5 pt-2.5 pb-2">
+            {/* Mobile Row 1: Logo & Title + Location + Bell + Avatar */}
+            <div className="flex items-center justify-between gap-1.5">
+              {/* Brand Logo & Wordmark */}
+              <Link to="/" className="flex items-center gap-2 shrink-0">
+                <img
+                  src="/logo.png"
+                  alt="Wangs Pickle Marketplace Logo"
+                  className="h-8 w-8 object-contain"
+                />
+                <div className="flex flex-col">
+                  <span className="font-title-lg text-lg font-bold text-primary leading-none tracking-tight">
+                    Wangs
                   </span>
-                )}
-              </button>
-
-              <Link
-                to={user ? '/account' : '/login'}
-                className="w-7 h-7 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-bold text-xs ml-1 shadow-xs border border-outline-variant/40"
-              >
-                {user ? (user.first_name || user.username || 'U')[0].toUpperCase() : <User size={14} />}
+                  <span className="font-label-sm text-[9px] text-on-surface-variant uppercase tracking-wider font-semibold">
+                    Pickle Bazaar
+                  </span>
+                </div>
               </Link>
-            </div>
-          </div>
 
-          {/* Mobile Search Row */}
-          <div className="pb-2.5 md:hidden">
-            <form onSubmit={handleSearch} className="relative w-full flex items-center bg-surface-container-low rounded-full px-3.5 py-1.5 border border-outline-variant/30 focus-within:bg-surface-container-lowest focus-within:shadow-[0_0_0_1.5px_#9b4100]">
+              {/* Right Controls: Delivery Location Pill + Notifications + Profile Avatar */}
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Delivery Location Pill */}
+                <button
+                  type="button"
+                  aria-label="Delivery Location"
+                  className="h-9 px-2.5 rounded-full bg-surface-container-low hover:bg-surface-container flex items-center gap-1 text-on-surface-variant transition-colors border border-outline-variant/30 text-left"
+                >
+                  <span className="material-symbols-outlined text-primary text-[16px]">location_on</span>
+                  <div className="flex flex-col text-left leading-tight">
+                    <span className="font-label-sm text-[8px] text-outline leading-tight font-medium">Deliver to</span>
+                    <span className="font-label-md text-[11px] font-bold text-on-surface truncate max-w-[85px] leading-tight">
+                      Bangalore 560...
+                    </span>
+                  </div>
+                  <ChevronDown size={12} className="text-outline shrink-0 ml-0.5" />
+                </button>
+
+                {/* Notifications Bell with unread dot */}
+                <Link
+                  to="/account"
+                  aria-label="Notifications"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary relative hover:bg-surface-container-low transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[20px]">notifications</span>
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-primary" />
+                </Link>
+
+                {/* Profile Avatar / Cart Link */}
+                <Link
+                  to={user ? '/account' : '/login'}
+                  className="w-8 h-8 rounded-full ring-2 ring-primary-fixed shadow-xs overflow-hidden flex items-center justify-center bg-secondary-fixed text-on-secondary-fixed font-bold text-xs"
+                >
+                  {user ? (
+                    (user.first_name || user.username || 'U')[0].toUpperCase()
+                  ) : (
+                    <img
+                      src="/images/stitch/stitch_27_20e177a3d5.jpg"
+                      alt="Profile"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  )}
+                </Link>
+              </div>
+            </div>
+
+            {/* Mobile Row 2: Search Input */}
+            <form onSubmit={handleSearch} className="relative w-full flex items-center bg-surface-container-lowest rounded-full px-3.5 py-1.5 shadow-[0_2px_10px_rgba(30,27,24,0.04)] border border-outline-variant/30 focus-within:shadow-[0_0_0_1.5px_#9b4100]">
               <Search size={16} className="text-outline mr-2 shrink-0" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 500+ handmade mango, regional makers..."
-                className="w-full bg-transparent text-xs text-on-surface placeholder:text-outline focus:outline-none"
+                placeholder="Search artisan achars, regional makers..."
+                className="w-full bg-transparent text-xs text-on-surface placeholder:text-outline focus:outline-none py-0.5"
               />
-              <span className="material-symbols-outlined text-[18px] text-outline ml-1">mic</span>
+              <button
+                type="button"
+                aria-label="Voice Search"
+                className="w-7 h-7 flex items-center justify-center text-outline hover:text-primary transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined text-[18px]">mic</span>
+              </button>
             </form>
+
+            {/* Mobile Row 3: Category Pills Strip */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
+              <Link
+                to="/products"
+                className="h-7 px-3 rounded-full bg-primary text-on-primary font-label-sm text-[11px] font-bold whitespace-nowrap shadow-[0_2px_6px_rgba(155,65,0,0.25)] flex items-center shrink-0"
+              >
+                All Pickles
+              </Link>
+              <Link
+                to="/products?category=andhra-gongura"
+                className="h-7 px-3 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-sm text-[11px] font-semibold whitespace-nowrap border border-outline-variant/20 flex items-center shrink-0"
+              >
+                Andhra Avakaya
+              </Link>
+              <Link
+                to="/products?category=north-mustard"
+                className="h-7 px-3 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-sm text-[11px] font-semibold whitespace-nowrap border border-outline-variant/20 flex items-center shrink-0"
+              >
+                North Mustard
+              </Link>
+              <Link
+                to="/products?category=sweet-chutneys"
+                className="h-7 px-3 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-sm text-[11px] font-semibold whitespace-nowrap border border-outline-variant/20 flex items-center shrink-0"
+              >
+                Sweet Chutneys
+              </Link>
+              <Link
+                to="/products?category=zero-oil"
+                className="h-7 px-3 rounded-full bg-surface-container text-on-surface-variant hover:bg-surface-container-high font-label-sm text-[11px] font-semibold whitespace-nowrap border border-outline-variant/20 flex items-center shrink-0"
+              >
+                Zero Oil
+              </Link>
+            </div>
           </div>
 
           {/* Desktop Navigation Row */}

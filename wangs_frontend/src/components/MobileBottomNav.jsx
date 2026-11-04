@@ -37,7 +37,7 @@ export default function MobileBottomNav({ onOpenCart }) {
         )}
       </NavLink>
 
-      {/* 2. Explore Belts */}
+      {/* 2. Explore */}
       <NavLink
         to="/products"
         className={({ isActive }) =>
@@ -54,12 +54,12 @@ export default function MobileBottomNav({ onOpenCart }) {
             >
               explore
             </span>
-            <span className="text-[10px] tracking-tight">Belts</span>
+            <span className="text-[10px] tracking-tight">Explore</span>
           </>
         )}
       </NavLink>
 
-      {/* 3. Sell on Wangs */}
+      {/* 3. Sell */}
       <NavLink
         to="/manufacturer/register"
         className={({ isActive }) =>
@@ -74,14 +74,14 @@ export default function MobileBottomNav({ onOpenCart }) {
               className="material-symbols-outlined text-[22px]"
               style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
             >
-              soup_kitchen
+              storefront
             </span>
             <span className="text-[10px] tracking-tight">Sell</span>
           </>
         )}
       </NavLink>
 
-      {/* 4. Heritage Makers / Brands */}
+      {/* 4. Wishlist */}
       <NavLink
         to="/brands"
         className={({ isActive }) =>
@@ -96,9 +96,9 @@ export default function MobileBottomNav({ onOpenCart }) {
               className="material-symbols-outlined text-[22px]"
               style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
             >
-              verified
+              favorite
             </span>
-            <span className="text-[10px] tracking-tight">Makers</span>
+            <span className="text-[10px] tracking-tight">Wishlist</span>
           </>
         )}
       </NavLink>

@@ -682,214 +682,294 @@ export default function HomePage() {
       </div>
 
       {/* ========================================================
-          MOBILE VIEW (EXACTLY MATCHING IMAGE 2)
+          MOBILE VIEW (EXACTLY MATCHING STITCH IMAGES 1, 2 & 3)
           ======================================================== */}
       <div className="md:hidden flex flex-col gap-4 px-3.5 pt-3 pb-8">
-        {/* 1. Category Pills Carousel */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3.5 px-3.5 py-1">
-          <Link
-            to="/products"
-            className="px-3.5 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-xs font-bold whitespace-nowrap shadow-xs shrink-0"
-          >
-            All Pickles
-          </Link>
-          <Link
-            to="/products?category=andhra-gongura"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            Andhra Pradesh
-          </Link>
-          <Link
-            to="/products?category=kerala"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            Kerala Mustards
-          </Link>
-          <Link
-            to="/products?category=chilli-pickle"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            Sun-Cured Mirch
-          </Link>
-          <Link
-            to="/products?category=bamboo-shoot-pickle"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            Bamboo Shoot
-          </Link>
-        </div>
+        {/* 1. Hero Promo Banner Card (The Great Achar Season) */}
+        <section className="flex flex-col gap-2">
+          <div className="relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary-container to-secondary shadow-md text-on-primary min-h-[160px] p-4 flex flex-col justify-between">
+            <div className="flex flex-col gap-1 z-10">
+              <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
+                <span>FRESH BATCH LIVE</span>
+              </span>
+              <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5">
+                The Great Achar Season
+              </h2>
+              <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2">
+                Authentic Andhra Avakaya &amp; Gongura small-batches straight from Guntur clay jars.
+              </p>
+            </div>
 
-        {/* 2. Hero Edition Banner Card (Sun-Cured Rajasthan Mirch) */}
-        <div className="relative overflow-hidden rounded-2xl bg-[#703600] text-white p-4.5 shadow-sm flex flex-col justify-between min-h-[175px]">
-          <div className="flex flex-col gap-1.5 z-10">
-            <span className="font-label-sm text-[10px] font-bold uppercase tracking-wider text-secondary-fixed bg-white/15 px-2.5 py-0.5 rounded-full w-fit">
-              EDITION NO. 24
-            </span>
-            <h2 className="font-display-lg-mobile text-[22px] font-serif font-bold text-white leading-tight mt-1">
-              Sun-Cured Rajasthan Mirch
-            </h2>
-            <p className="font-body-sm text-[11px] text-white/85 max-w-[230px] leading-snug">
-              Handcrafted with cold-pressed mustard oil and wild fenugreek.
-            </p>
+            <div className="flex items-center justify-between z-10 pt-2">
+              <div className="flex items-center gap-1.5 bg-white/15 px-2.5 py-1 rounded-lg">
+                <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
+                <span className="font-label-md text-xs font-bold text-white tracking-wider">ACHAR15</span>
+              </div>
+              <Link
+                to="/products?category=andhra-gongura"
+                className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+              >
+                <span>Shop Now</span>
+                <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+              </Link>
+            </div>
+
+            {/* Slide Indicator Dots */}
+            <div className="absolute bottom-2.5 right-28 flex items-center gap-1 z-20">
+              <span className="w-1.5 h-1.5 rounded-full bg-white" />
+              <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+            </div>
           </div>
 
-          <div className="flex items-end justify-between pt-3 z-10">
-            <span className="font-label-sm text-[11px] font-semibold text-secondary-fixed">
-              Flat 20% off on first two ceramic jars
-            </span>
-            <Link
-              to="/products?search=rajasthan"
-              className="px-4 py-1.5 rounded-full bg-white text-[#703600] font-label-md text-xs font-bold shadow-sm active:scale-95 transition-all flex items-center gap-1 shrink-0"
+          {/* Fast Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3.5 px-3.5 py-1">
+            <button
+              type="button"
+              onClick={() => setActiveFilter('ALL')}
+              className={`px-3.5 py-1.5 rounded-full font-label-md text-xs font-bold whitespace-nowrap shadow-xs shrink-0 transition-colors ${
+                activeFilter === 'ALL'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container border border-outline-variant/30'
+              }`}
             >
-              <span>Explore</span>
-              <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-            </Link>
+              All Pickles
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('HOT')}
+              className={`px-3.5 py-1.5 rounded-full font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0 flex items-center gap-1 transition-colors ${
+                activeFilter === 'HOT'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              <span>🌶️</span> Fiery Hot
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('MANGO')}
+              className={`px-3.5 py-1.5 rounded-full font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0 transition-colors ${
+                activeFilter === 'MANGO'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              Mango Specials
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('ZERO_OIL')}
+              className={`px-3.5 py-1.5 rounded-full font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0 transition-colors ${
+                activeFilter === 'ZERO_OIL'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              Oil-Free
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('GARLIC')}
+              className={`px-3.5 py-1.5 rounded-full font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0 transition-colors ${
+                activeFilter === 'GARLIC'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              Garlic &amp; Chutney
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveFilter('NON_VEG')}
+              className={`px-3.5 py-1.5 rounded-full font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0 transition-colors ${
+                activeFilter === 'NON_VEG'
+                  ? 'bg-primary text-on-primary'
+                  : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
+              }`}
+            >
+              Non-Veg Pickles
+            </button>
           </div>
-        </div>
+        </section>
 
-        {/* 3. Secondary Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3.5 px-3.5 py-1">
-          <button
-            type="button"
-            className="px-3.5 py-1.5 rounded-full bg-primary text-on-primary font-label-md text-xs font-bold whitespace-nowrap shadow-xs shrink-0"
-          >
-            All Pickles
-          </button>
-          <button
-            type="button"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            🌶️ Fiery Hot
-          </button>
-          <button
-            type="button"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            Mango Specials
-          </button>
-          <button
-            type="button"
-            className="px-3.5 py-1.5 rounded-full bg-surface-container text-on-surface font-label-md text-xs font-medium whitespace-nowrap border border-outline-variant/30 shrink-0"
-          >
-            Oil-Free
-          </button>
-        </div>
-
-        {/* 4. Deal of the Day with Countdown Timer */}
-        <section className="flex flex-col gap-3">
+        {/* 2. Flash Deals / Deal of the Day Section */}
+        <section className="flex flex-col gap-2.5 bg-surface-container-low p-3.5 rounded-xl border border-outline-variant/30">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
-                <span className="material-symbols-outlined text-[15px]">timer</span>
+              <div className="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[16px]">bolt</span>
               </div>
-              <h3 className="font-headline-sm text-sm font-bold text-on-surface">Deal of the Day</h3>
-              <span className="text-[11px] text-outline">• Ends in {pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m : {pad(timeLeft.seconds)}s</span>
+              <div>
+                <span className="font-title-md text-sm font-bold text-on-surface flex items-center gap-1 leading-tight">
+                  Deal of the Day
+                </span>
+                <div className="flex items-center gap-1 text-on-surface-variant font-label-sm text-[10px]">
+                  <span className="material-symbols-outlined text-[12px] text-primary">timer</span>
+                  <span>Batch ends in:</span>
+                  <span className="font-bold text-primary font-mono">{pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m : {pad(timeLeft.seconds)}s</span>
+                </div>
+              </div>
             </div>
-            <Link to="/products" className="font-label-sm text-[11px] text-primary font-bold">
-              See All &gt;
+            <Link to="/products" className="text-primary font-label-md text-xs font-bold flex items-center gap-0.5">
+              <span>See All</span>
+              <span className="material-symbols-outlined text-[15px]">chevron_right</span>
             </Link>
           </div>
 
           {/* Horizontal Deal Cards Slider */}
-          <div className="flex gap-3 overflow-x-auto no-scrollbar -mx-3.5 px-3.5 pb-1">
+          <div className="flex gap-2.5 overflow-x-auto no-scrollbar -mx-1 px-1 py-1">
             {/* Deal Item 1: Spicy Avakaya Mango */}
-            <div className="w-[185px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-              <div className="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container">
-                <img
-                  src="/images/stitch/stitch_23_65b6bffc80.jpg"
-                  alt="Spicy Avakaya Mango"
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
-                  25% OFF
-                </span>
-                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
-                  <span className="material-symbols-outlined text-[10px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="font-label-sm text-[10px] font-bold text-on-surface">4.9</span>
+            <div className="w-[190px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+              <div>
+                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                  <img
+                    src="/images/stitch/stitch_23_65b6bffc80.jpg"
+                    alt="Spicy Avakaya Mango"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
+                    25% OFF
+                  </span>
+                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
+                    <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    <span className="font-label-sm text-[10px] font-bold text-on-surface">4.9</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-2 flex flex-col gap-0.5">
-                <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
-                  Laxmi Homemade <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                </span>
-                <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1">
-                  Spicy Avakaya Mango
-                </h4>
-                <span className="font-body-sm text-[10px] text-tertiary">350g Ceramic Jar</span>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="font-title-lg text-sm font-bold text-primary">₹289</span>
-                  <span className="font-body-sm text-[10px] text-outline line-through">₹385</span>
+                <div className="mt-2 flex flex-col gap-0.5">
+                  <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
+                    Laxmi Homemade <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                  </span>
+                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug">
+                    Spicy Avakaya Mango
+                  </h4>
+                  <span className="font-body-sm text-[10px] text-tertiary">350g Ceramic Jar</span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹289</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹385</span>
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={(e) => handleQuickAdd(e, 'Spicy Avakaya Mango')}
-                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold flex items-center justify-center gap-1 active:scale-95 shadow-xs"
+                onClick={(e) => handleQuickAdd(e, 'Spicy Avakaya Mango', 1)}
+                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
               >
-                <span className="material-symbols-outlined text-[14px]">add</span> Add
+                <span className="material-symbols-outlined text-[15px]">add</span> Add
               </button>
             </div>
 
             {/* Deal Item 2: Banarasi Lal Mirch */}
-            <div className="w-[185px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
-              <div className="relative w-full h-28 rounded-lg overflow-hidden bg-surface-container">
-                <img
-                  src="/images/stitch/stitch_16_a066fa5198.jpg"
-                  alt="Banarasi Lal Mirch"
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
-                  18% OFF
-                </span>
-                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
-                  <span className="material-symbols-outlined text-[10px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
-                  <span className="font-label-sm text-[10px] font-bold text-on-surface">4.8</span>
+            <div className="w-[190px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+              <div>
+                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                  <img
+                    src="/images/stitch/stitch_16_a066fa5198.jpg"
+                    alt="Banarasi Lal Mirch"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
+                    18% OFF
+                  </span>
+                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
+                    <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    <span className="font-label-sm text-[10px] font-bold text-on-surface">4.8</span>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-2 flex flex-col gap-0.5">
-                <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
-                  Bikaner Spices <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                </span>
-                <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1">
-                  Banarasi Lal Mirch
-                </h4>
-                <span className="font-body-sm text-[10px] text-tertiary">400g Hand-Cured</span>
-                <div className="flex items-baseline gap-1.5 mt-0.5">
-                  <span className="font-title-lg text-sm font-bold text-primary">₹349</span>
-                  <span className="font-body-sm text-[10px] text-outline line-through">₹425</span>
+                <div className="mt-2 flex flex-col gap-0.5">
+                  <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
+                    Bikaner Spices <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                  </span>
+                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug">
+                    Banarasi Lal Mirch
+                  </h4>
+                  <span className="font-body-sm text-[10px] text-tertiary">400g Hand-Cured</span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹349</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹425</span>
+                  </div>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={(e) => handleQuickAdd(e, 'Banarasi Lal Mirch')}
-                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold flex items-center justify-center gap-1 active:scale-95 shadow-xs"
+                onClick={(e) => handleQuickAdd(e, 'Banarasi Lal Mirch', 2)}
+                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
               >
-                <span className="material-symbols-outlined text-[14px]">add</span> Add
+                <span className="material-symbols-outlined text-[15px]">add</span> Add
+              </button>
+            </div>
+
+            {/* Deal Item 3: Desi Garlic Pickle */}
+            <div className="w-[190px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between">
+              <div>
+                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                  <img
+                    src="/images/stitch/stitch_11_699d18f354.jpg"
+                    alt="Desi Garlic Pickle"
+                    className="w-full h-full object-cover"
+                  />
+                  <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
+                    30% OFF
+                  </span>
+                  <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
+                    <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                    <span className="font-label-sm text-[10px] font-bold text-on-surface">5.0</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-col gap-0.5">
+                  <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
+                    Dadi Rasoi <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                  </span>
+                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug">
+                    Desi Garlic Pickle
+                  </h4>
+                  <span className="font-body-sm text-[10px] text-tertiary">300g Jar</span>
+                  <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹249</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹359</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={(e) => handleQuickAdd(e, 'Desi Garlic Pickle', 3)}
+                className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
+              >
+                <span className="material-symbols-outlined text-[15px]">add</span> Add
               </button>
             </div>
           </div>
         </section>
 
-        {/* 5. Heritage Pickle Belts (6 Circular Avatars in 2 Rows) */}
-        <section className="flex flex-col gap-2.5 pt-2">
+        {/* 3. Shop by Heritage Pickle Belts (Exact match to Image 2) */}
+        <section className="flex flex-col gap-2 pt-1">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-headline-sm text-sm font-serif font-bold text-on-surface">Heritage Pickle Belts</h3>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">Trace unique terroir, native chilis &amp; traditional sun-curing</p>
+              <h2 className="font-headline-sm text-base font-serif font-bold text-on-surface">
+                Heritage Pickle Belts
+              </h2>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">
+                Trace unique terroir, native chilies &amp; traditional sun-curing
+              </p>
             </div>
-            <Link to="/products" className="font-label-sm text-[11px] text-tertiary font-bold shrink-0">
-              7 Belts &gt;
-            </Link>
+            <span className="text-tertiary font-label-sm text-[10px] uppercase tracking-wider font-bold shrink-0">
+              6 Terroirs
+            </span>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5 pt-1">
             {/* Belt 1: Andhra */}
-            <Link to="/products?search=andhra" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-surface-container-low text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-xs p-0.5 bg-secondary-container">
+            <Link
+              to="/products?search=andhra"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-secondary-container">
                 <img
                   src="/images/stitch/stitch_12_c5839b9db5.jpg"
                   alt="Andhra"
@@ -901,8 +981,11 @@ export default function HomePage() {
             </Link>
 
             {/* Belt 2: Rajasthan */}
-            <Link to="/products?search=rajasthan" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-surface-container-low text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-xs p-0.5 bg-primary-fixed">
+            <Link
+              to="/products?search=rajasthan"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-primary-fixed">
                 <img
                   src="/images/stitch/stitch_21_bf7f51feb7.jpg"
                   alt="Rajasthan"
@@ -914,8 +997,11 @@ export default function HomePage() {
             </Link>
 
             {/* Belt 3: Kerala */}
-            <Link to="/products?search=kerala" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-surface-container-low text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-xs p-0.5 bg-tertiary-fixed">
+            <Link
+              to="/products?search=kerala"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-tertiary-fixed">
                 <img
                   src="/images/stitch/stitch_24_e2003018f3.jpg"
                   alt="Kerala"
@@ -927,8 +1013,11 @@ export default function HomePage() {
             </Link>
 
             {/* Belt 4: Punjab */}
-            <Link to="/products?search=punjab" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-surface-container-low text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-xs p-0.5 bg-secondary-fixed">
+            <Link
+              to="/products?search=punjab"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-secondary-fixed">
                 <img
                   src="/images/stitch/stitch_18_db2cc363df.jpg"
                   alt="Punjab"
@@ -940,8 +1029,11 @@ export default function HomePage() {
             </Link>
 
             {/* Belt 5: Varanasi */}
-            <Link to="/products?search=banarasi" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-surface-container-low text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-xs p-0.5 bg-primary-fixed-dim">
+            <Link
+              to="/products?search=banarasi"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-primary-container">
                 <img
                   src="/images/stitch/stitch_6_cad333af7f.jpg"
                   alt="Varanasi"
@@ -953,8 +1045,11 @@ export default function HomePage() {
             </Link>
 
             {/* Belt 6: Bengal */}
-            <Link to="/products?search=mustard" className="flex flex-col items-center gap-1 p-2 rounded-xl bg-surface-container-low text-center">
-              <div className="w-14 h-14 rounded-full overflow-hidden shadow-xs p-0.5 bg-surface-variant">
+            <Link
+              to="/products?search=mustard"
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+            >
+              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-surface-variant">
                 <img
                   src="/images/stitch/stitch_17_e5f18411f9.jpg"
                   alt="Bengal"
@@ -967,214 +1062,342 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 6. Curated Bestsellers (2-Column Mobile Grid) */}
-        <section className="flex flex-col gap-2.5 pt-2">
+        {/* 4. Curated Bestsellers 2-Column Grid (Exact match to Images 2 & 3) */}
+        <section className="flex flex-col gap-2.5 pt-1">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-headline-sm text-base font-serif font-bold text-on-surface">Curated Bestsellers</h3>
-              <p className="font-body-sm text-[11px] text-on-surface-variant">Sun-fermented small batch 100% preservative-free</p>
+              <h2 className="font-headline-sm text-base font-serif font-bold text-on-surface">
+                Curated Bestsellers
+              </h2>
+              <p className="font-body-sm text-[11px] text-on-surface-variant">
+                Sun-ripened, small batch, 100% preservative-free
+              </p>
             </div>
-            <button
-              type="button"
-              className="px-2.5 py-1 rounded-full bg-surface-container text-xs font-semibold text-on-surface border border-outline-variant/30 flex items-center gap-1"
+            <Link
+              to="/products"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-[11px] font-semibold border border-outline-variant/30"
             >
-              <span className="material-symbols-outlined text-[14px]">tune</span>
+              <span className="material-symbols-outlined text-[13px] text-tertiary">tune</span>
               <span>Filter</span>
-            </button>
+            </Link>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-1">
-            {/* Mobile Product 1 */}
-            <div className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
+          <div className="grid grid-cols-2 gap-2.5">
+            {/* Item 1: Traditional Cut Raw Mango Avakaya */}
+            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
               <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
                   <img
                     src="/images/stitch/stitch_20_91c854d291.jpg"
                     alt="Traditional Cut Raw Mango Avakaya"
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary text-on-primary font-label-sm text-[9px] font-bold">
-                    HERITAGE
-                  </span>
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-[9px] font-bold text-primary">
-                    🌶️🌶️🌶️
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
+                    <span className="px-1.5 py-0.5 rounded bg-primary text-on-primary font-label-sm text-[9px] font-bold shadow-xs">
+                      BESTSELLER
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Wishlist"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  </button>
+                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
+                    <span>🌶️🌶️🌶️🌶️</span>
                   </div>
                 </div>
 
                 <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-outline truncate">Amma Rasoi</span>
-                    <span className="font-bold text-secondary">4.9 ★</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
+                      Annapurna <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                    </span>
+                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
+                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
+                    </div>
                   </div>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-2 leading-snug">
+                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
                     Traditional Cut Raw Mango Avakaya
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">350g Glass Pot</span>
+                  </h3>
+                  <span className="font-body-sm text-[10px] text-tertiary truncate">500g Glass Pot</span>
                 </div>
               </div>
 
               <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-title-lg text-sm font-bold text-primary">₹320</span>
-                  <span className="font-body-sm text-[10px] text-outline line-through">₹400</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹320</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹400</span>
+                  </div>
                   <span className="font-label-sm text-[9px] text-error font-bold">20% off</span>
                 </div>
                 <button
                   type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Traditional Cut Raw Mango Avakaya')}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                  onClick={(e) => handleQuickAdd(e, 'Traditional Cut Raw Mango Avakaya', 1)}
+                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
                 >
-                  <span className="material-symbols-outlined text-[15px]">add</span> Add
+                  <span className="material-symbols-outlined text-[14px]">add</span> Add
                 </button>
               </div>
-            </div>
+            </article>
 
-            {/* Mobile Product 2 */}
-            <div className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
+            {/* Item 2: Sun-Dried Bharwa Lal Mirch */}
+            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
               <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
                   <img
                     src="/images/stitch/stitch_25_1986794434.jpg"
-                    alt="Guru Kripa Banarasi Lal Mirch"
+                    alt="Sun-Dried Bharwa Lal Mirch"
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-secondary text-on-secondary font-label-sm text-[9px] font-bold">
-                    OIL-PACKED
-                  </span>
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-[9px] font-bold text-primary">
-                    🌶️🌶️
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
+                    <span className="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[9px] font-bold shadow-xs">
+                      45-DAY CURE
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Wishlist"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  </button>
+                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
+                    <span>🌶️🌶️🌶️</span>
                   </div>
                 </div>
 
                 <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-outline truncate">Ganga Heritage</span>
-                    <span className="font-bold text-secondary">5.0 ★</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
+                      Ganga Heritage <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                    </span>
+                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
+                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
+                    </div>
                   </div>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-2 leading-snug">
-                    Guru Kripa Banarasi Lal Mirch
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">450g Ceramic Pot</span>
+                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
+                    Sun-Dried Bharwa Lal Mirch
+                  </h3>
+                  <span className="font-body-sm text-[10px] text-tertiary truncate">450g Ceramic Pot</span>
                 </div>
               </div>
 
               <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-title-lg text-sm font-bold text-primary">₹385</span>
-                  <span className="font-body-sm text-[10px] text-outline line-through">₹450</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹385</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹450</span>
+                  </div>
                   <span className="font-label-sm text-[9px] text-error font-bold">14% off</span>
                 </div>
                 <button
                   type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Guru Kripa Banarasi Lal Mirch')}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                  onClick={(e) => handleQuickAdd(e, 'Sun-Dried Bharwa Lal Mirch', 2)}
+                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
                 >
-                  <span className="material-symbols-outlined text-[15px]">add</span> Add
+                  <span className="material-symbols-outlined text-[14px]">add</span> Add
                 </button>
               </div>
-            </div>
+            </article>
 
-            {/* Mobile Product 3 */}
-            <div className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
+            {/* Item 3: Kachi Haldi Turmeric Root Pickle */}
+            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
               <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
                   <img
                     src="/images/stitch/stitch_9_df068d00ff.jpg"
                     alt="Kachi Haldi Turmeric Root Pickle"
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary font-label-sm text-[9px] font-bold">
-                    ORGANIC
-                  </span>
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-[9px] font-bold text-primary">
-                    🌶️
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
+                    <span className="px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary font-label-sm text-[9px] font-bold shadow-xs">
+                      IMMUNITY
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Wishlist"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  </button>
+                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
+                    <span>🌶️🌶️</span>
                   </div>
                 </div>
 
                 <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-outline truncate">Marwar Org</span>
-                    <span className="font-bold text-secondary">4.7 ★</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
+                      Marwar Org <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                    </span>
+                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
+                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.7
+                    </div>
                   </div>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-2 leading-snug">
+                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
                     Kachi Haldi Turmeric Root Pickle
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">350g Glass Jar</span>
+                  </h3>
+                  <span className="font-body-sm text-[10px] text-tertiary truncate">350g Glass Jar</span>
                 </div>
               </div>
 
               <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-title-lg text-sm font-bold text-primary">₹295</span>
-                  <span className="font-body-sm text-[10px] text-outline line-through">₹360</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹295</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹360</span>
+                  </div>
                   <span className="font-label-sm text-[9px] text-error font-bold">18% off</span>
                 </div>
                 <button
                   type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Kachi Haldi Turmeric Root Pickle')}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                  onClick={(e) => handleQuickAdd(e, 'Kachi Haldi Turmeric Root Pickle', 3)}
+                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
                 >
-                  <span className="material-symbols-outlined text-[15px]">add</span> Add
+                  <span className="material-symbols-outlined text-[14px]">add</span> Add
                 </button>
               </div>
-            </div>
+            </article>
 
-            {/* Mobile Product 4 */}
-            <div className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
+            {/* Item 4: Kerala King Fish (Meen) Achar */}
+            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
               <div>
-                <div className="relative w-full h-32 rounded-lg overflow-hidden bg-surface-container">
+                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
                   <img
                     src="/images/stitch/stitch_29_49dca0be64.jpg"
-                    alt="Kerala King Fish Meen Achar"
+                    alt="Kerala King Fish (Meen) Achar"
                     className="w-full h-full object-cover"
                   />
-                  <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container font-label-sm text-[9px] font-bold">
-                    COASTAL
-                  </span>
-                  <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-surface-container-lowest/90 font-label-sm text-[9px] font-bold text-primary">
-                    🌶️🌶️🌶️🌶️
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
+                    <span className="px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container font-label-sm text-[9px] font-bold shadow-xs">
+                      COASTAL
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Wishlist"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  </button>
+                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
+                    <span>🌶️🌶️🌶️🌶️</span>
                   </div>
                 </div>
 
                 <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between text-[10px]">
-                    <span className="text-outline truncate">Malabar Kitc</span>
-                    <span className="font-bold text-secondary">4.9 ★</span>
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
+                      Malabar Kitc <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                    </span>
+                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
+                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
+                    </div>
                   </div>
-                  <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-2 leading-snug">
+                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
                     Kerala King Fish (Meen) Achar
-                  </h4>
-                  <span className="font-body-sm text-[10px] text-tertiary">300g Vacuum Glass</span>
+                  </h3>
+                  <span className="font-body-sm text-[10px] text-tertiary truncate">300g Vacuum Glass</span>
                 </div>
               </div>
 
               <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
                 <div className="flex items-baseline justify-between">
-                  <span className="font-title-lg text-sm font-bold text-primary">₹449</span>
-                  <span className="font-body-sm text-[10px] text-outline line-through">₹520</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹449</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹520</span>
+                  </div>
                   <span className="font-label-sm text-[9px] text-error font-bold">13% off</span>
                 </div>
                 <button
                   type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Kerala King Fish (Meen) Achar')}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-all flex items-center justify-center gap-1 shadow-xs"
+                  onClick={(e) => handleQuickAdd(e, 'Kerala King Fish (Meen) Achar', 4)}
+                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
                 >
-                  <span className="material-symbols-outlined text-[15px]">add</span> Add
+                  <span className="material-symbols-outlined text-[14px]">add</span> Add
                 </button>
               </div>
-            </div>
+            </article>
+
+            {/* Item 5: Sweet Lime & Lemon Chunda */}
+            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
+              <div>
+                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
+                  <img
+                    src="/images/stitch/stitch_13_ce5bb9d20e.jpg"
+                    alt="Sweet Lime & Lemon Chunda"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
+                    <span className="px-1.5 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed font-label-sm text-[9px] font-bold shadow-xs">
+                      ZERO OIL
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Wishlist"
+                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                  >
+                    <span className="material-symbols-outlined text-[15px]">favorite</span>
+                  </button>
+                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
+                    <span>🌶️</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
+                      Kathiyawad <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                    </span>
+                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
+                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
+                    </div>
+                  </div>
+                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
+                    Sweet Lime &amp; Lemon Chunda
+                  </h3>
+                  <span className="font-body-sm text-[10px] text-tertiary truncate">400g Glass Jar</span>
+                </div>
+              </div>
+
+              <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
+                <div className="flex items-baseline justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="font-title-lg text-sm font-bold text-primary">₹260</span>
+                    <span className="font-body-sm text-[10px] text-outline line-through">₹310</span>
+                  </div>
+                  <span className="font-label-sm text-[9px] text-error font-bold">16% off</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => handleQuickAdd(e, 'Sweet Lime & Lemon Chunda', 5)}
+                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
+                >
+                  <span className="material-symbols-outlined text-[14px]">add</span> Add
+                </button>
+              </div>
+            </article>
           </div>
         </section>
 
-        {/* 7. Turn Your Family Recipe Into a Business Banner Card */}
-        <section className="relative overflow-hidden rounded-2xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
+        {/* 5. Sell Your Pickles on Wangs Banner Card (Exact match to Image 3) */}
+        <section className="relative overflow-hidden rounded-xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
-              <span className="material-symbols-outlined text-[24px]">soup_kitchen</span>
+            <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+              <span className="material-symbols-outlined text-[28px]">soup_kitchen</span>
             </div>
             <div className="flex flex-col">
-              <span className="font-label-sm text-[10px] text-primary font-bold uppercase tracking-wider">Artisan Maker Guild</span>
-              <h3 className="font-headline-sm text-sm font-serif font-bold text-on-surface leading-tight">Turn Your Family Recipe Into a Business</h3>
+              <span className="font-label-sm text-[10px] text-primary font-bold uppercase tracking-wider">
+                Artisan Maker Guild
+              </span>
+              <h3 className="font-headline-sm text-sm font-serif font-bold text-on-surface leading-tight">
+                Turn Your Family Recipe Into a Business
+              </h3>
             </div>
           </div>
           <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
@@ -1198,18 +1421,18 @@ export default function HomePage() {
           </div>
           <Link
             to="/manufacturer/register"
-            className="w-full h-10 rounded-full bg-primary text-on-primary font-label-lg text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1.5 shadow-xs"
+            className="w-full h-11 rounded-full bg-primary text-on-primary font-label-lg text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-xs"
           >
-            <span className="material-symbols-outlined text-[17px]">storefront</span>
+            <span className="material-symbols-outlined text-[19px]">storefront</span>
             <span>Register as Seller</span>
           </Link>
         </section>
 
-        {/* 8. Trust Badges Strip (2x2 Grid) */}
+        {/* 6. Trust Badges Strip (2x2 Grid) */}
         <section className="grid grid-cols-2 gap-2.5 pt-1">
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
-              <span className="material-symbols-outlined text-[17px]">oil_barrel</span>
+            <div className="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
+              <span className="material-symbols-outlined text-[19px]">oil_barrel</span>
             </div>
             <div className="flex flex-col">
               <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Pure Cold-Pressed</span>
@@ -1218,8 +1441,8 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-8 h-8 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed shrink-0">
-              <span className="material-symbols-outlined text-[17px]">science</span>
+            <div className="w-9 h-9 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed shrink-0">
+              <span className="material-symbols-outlined text-[19px]">science</span>
             </div>
             <div className="flex flex-col">
               <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Lab-Tested</span>
@@ -1228,8 +1451,8 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-8 h-8 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shrink-0">
-              <span className="material-symbols-outlined text-[17px]">handshake</span>
+            <div className="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shrink-0">
+              <span className="material-symbols-outlined text-[19px]">handshake</span>
             </div>
             <div className="flex flex-col">
               <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Direct from Artisan</span>
@@ -1238,8 +1461,8 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
-              <span className="material-symbols-outlined text-[17px]">security</span>
+            <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
+              <span className="material-symbols-outlined text-[19px]">security</span>
             </div>
             <div className="flex flex-col">
               <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Zero-Leak Guard</span>
