@@ -2,30 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight, ChevronRight, Sparkles, Store, ShieldCheck, Flame,
-  Package, Utensils, Award, Plane, Leaf, CheckCircle2, Search, Truck, Zap
+  Package, Utensils, Award, Plane, Leaf, CheckCircle2, Search, Truck, RotateCw
 } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
 import BrandCard from '../components/BrandCard';
 import { getBrandsFromProducts } from '../utils/brands';
-import { useCart } from '../context/CartContext';
-import { useToast } from '../context/ToastContext';
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { addToCart } = useCart();
-  const toast = useToast();
-
   const [bestsellers, setBestsellers] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [addingId, setAddingId] = useState(null);
   const [tilt, setTilt] = useState({ x: 0, y: 0, glareX: 50, glareY: 50, active: false });
 
-  // Filter states
-  const [selectedCategory, setSelectedCategory] = useState('all'); // 'all', 'non-veg', 'veg', 'veg-nonveg', 'bestsellers'
+  // Mobile view states
+  const [mobileSearch, setMobileSearch] = useState('');
+  const [selectedDietary, setSelectedDietary] = useState('ALL');
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -33,8 +28,10 @@ export default function HomePage() {
     const clientY = e.clientY - rect.top;
     const x = clientX - rect.width / 2;
     const y = clientY - rect.height / 2;
+    // Smooth physical 3D tilt angles (max ±7.5 deg)
     const rotateY = (x / (rect.width / 2)) * 7.5;
     const rotateX = -(y / (rect.height / 2)) * 7.5;
+    // Real-time spotlight glare coordinates
     const glareX = Math.max(0, Math.min(100, Math.round((clientX / rect.width) * 100)));
     const glareY = Math.max(0, Math.min(100, Math.round((clientY / rect.height) * 100)));
     setTilt({ x: rotateX, y: rotateY, glareX, glareY, active: true });
@@ -77,329 +74,399 @@ export default function HomePage() {
     loadData();
   }, []);
 
-  const handleQuickAdd = async (product, e) => {
+  const handleMobileSearch = (e) => {
     e.preventDefault();
-    e.stopPropagation();
-    if (addingId) return;
-    setAddingId(product.id);
-    try {
-      await addToCart(product.id, 1);
-      toast.success(`Packed ${product.title} into your pantry cart`);
-    } catch (err) {
-      toast.error(err.message || 'Could not add to cart');
-    } finally {
-      setTimeout(() => setAddingId(null), 800);
+    if (mobileSearch.trim()) {
+      navigate(`/products?search=${encodeURIComponent(mobileSearch.trim())}`);
     }
   };
 
-  // Filtered curated pantry items according to the category ribbon
-  const filteredProducts = allProducts.filter((product) => {
-    if (selectedCategory === 'all') return true;
-    if (selectedCategory === 'non-veg') return product.dietary_type === 'NON_VEG';
-    if (selectedCategory === 'veg') return product.dietary_type === 'VEG';
-    if (selectedCategory === 'veg-nonveg') return product.dietary_type === 'VEG_MIXED';
-    if (selectedCategory === 'bestsellers') return product.is_bestseller;
-    return true;
+  // 1. Check if there are genuine bestsellers matching the selected filter
+  const matchingBestsellers = bestsellers.filter((product) => {
+    if (!product.is_bestseller) return false;
+    if (selectedDietary === 'ALL') return true;
+    return product.dietary_type === selectedDietary;
   });
 
+  // 2. If genuine bestsellers exist, use "Bestsellers"
+  // Otherwise, don't show unsure/fake data: show items with the name "Items"
+  let sectionTitle = 'Bestsellers';
+  let displayedItems = [];
+
+  if (matchingBestsellers.length > 0) {
+    sectionTitle = 'Bestsellers';
+    displayedItems = matchingBestsellers;
+  } else {
+    sectionTitle = 'Items';
+    const matchingCatalog = allProducts.filter((product) => {
+      if (selectedDietary === 'ALL') return true;
+      return product.dietary_type === selectedDietary;
+    });
+    displayedItems = matchingCatalog.length > 0 ? matchingCatalog : allProducts;
+  }
+
   return (
-    <div className="bg-[#FAF9F6] text-[#1C1917] min-h-screen">
-      {/* 1. VISUAL HERO BANNER (Artisanal Cellar Framing) */}
-      <section className="relative w-full bg-[#0B2417] text-white overflow-hidden shadow-md">
-        {/* Subtle Ambient Glows */}
-        <div className="absolute -top-12 -right-12 w-80 h-80 bg-[#F59E0B]/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div>
+      {/* MOBILE SHOWCASE (Designed based on mobile reference screenshot) */}
+      <div className="sm:hidden px-4 pt-3 pb-8 space-y-4 bg-[#fbfaf8]">
+        {/* 1. Mobile Search Bar */}
+        <form onSubmit={handleMobileSearch} className="relative w-full">
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+          <input
+            type="text"
+            value={mobileSearch}
+            onChange={(e) => setMobileSearch(e.target.value)}
+            placeholder="Search pickles or brands"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#f0ede6] border border-stone-200/70 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-forest-800 focus:bg-white transition-all font-medium"
+          />
+        </form>
 
-        <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-10 sm:py-16 lg:py-20">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-            {/* Left Narrative Column */}
-            <div className="lg:col-span-7 flex flex-col items-start gap-4">
-              {/* Eyebrow Tag */}
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-[#F59E0B] font-sans text-[11px] font-bold uppercase tracking-widest">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
-                Artisanal Regional Cures
-              </div>
+        {/* 2. Dietary Category Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5 -mx-4 px-4">
+          {[
+            { id: 'ALL', label: 'All' },
+            { id: 'NON_VEG', label: 'Non-veg' },
+            { id: 'VEG', label: 'Veg' },
+            { id: 'VEG_MIXED', label: 'Veg mixed' },
+          ].map((pill) => (
+            <button
+              key={pill.id}
+              type="button"
+              onClick={() => setSelectedDietary(pill.id)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+                selectedDietary === pill.id
+                  ? 'bg-[#123826] text-white shadow-xs'
+                  : 'bg-[#f0ede6] text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+              }`}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
 
-              {/* Newsreader Headline */}
-              <h1 className="font-serif text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight">
-                Discover Authentic Pickles, <br className="hidden sm:inline" />
-                <span className="text-[#F59E0B]">Delivered Fresh to You.</span>
-              </h1>
+        {/* 3. Deep Green Artisan Hero Card */}
+        <div className="relative overflow-hidden rounded-[26px] bg-[#123826] text-white p-5 shadow-xs text-center">
+          {/* Ambient golden aura */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_50%_at_50%_30%,rgba(241,184,68,0.14),transparent)] pointer-events-none" />
 
-              {/* Micro Storytelling Copy */}
-              <p className="font-sans text-sm sm:text-base text-white/80 max-w-xl leading-relaxed">
-                Rare, heritage cures fermented in stone jars and smoked over wild hill-wood across Northeast India. Handcrafted by master regional artisans without synthetic vinegar or preservatives.
-              </p>
-
-              {/* Primary Action CTA */}
-              <div className="flex flex-wrap items-center gap-3 pt-2 w-full sm:w-auto">
-                <Link
-                  to="/products"
-                  className="inline-flex items-center justify-between gap-3 px-6 py-3.5 rounded-full bg-[#F59E0B] hover:bg-[#d97706] text-[#1C1917] font-sans text-sm font-bold shadow-lg active:scale-95 transition-all"
-                >
-                  <span>Shop Authentic Pickles</span>
-                  <ArrowRight size={17} className="text-[#1C1917]" />
-                </Link>
-                <Link
-                  to="/brands"
-                  className="inline-flex items-center gap-2 px-5 py-3.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-sans text-sm font-semibold border border-white/20 active:scale-95 transition-all"
-                >
-                  <Store size={15} className="text-[#F59E0B]" />
-                  <span>Artisan Brands</span>
-                </Link>
-              </div>
-
-              {/* Trust Ribbon Badges */}
-              <div className="flex flex-wrap items-center gap-2 pt-3">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-white text-xs font-medium">
-                  <Plane size={14} className="text-[#F59E0B]" />
-                  <span>All-India Air Express</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-white text-xs font-medium">
-                  <ShieldCheck size={14} className="text-[#059669]" />
-                  <span>100% FSSAI Certified</span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-xs text-white text-xs font-medium">
-                  <Leaf size={14} className="text-[#059669]" />
-                  <span>Cold-Pressed Mustard Oil</span>
-                </div>
-              </div>
+          <div className="relative z-10 flex flex-col items-center space-y-3">
+            {/* Top Micro Badge */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full border border-amber-400/35 bg-amber-400/10 text-amber-300 text-[10px] font-bold">
+              <span>Artisan cured · Verified brands</span>
             </div>
 
-            {/* Right Visual Column (Pouch Composition with 3D Parallax Tilt) */}
-            <div
-              className="lg:col-span-5 relative flex flex-col items-center justify-center select-none pt-4 lg:pt-0"
-              onMouseMove={handleMouseMove}
-              onMouseLeave={handleMouseLeave}
+            {/* Headline */}
+            <h1 className="font-serif text-[1.48rem] font-bold leading-tight">
+              <span className="text-white block">Authentic regional</span>
+              <span className="text-[#f1b844] block">pickles, delivered fresh</span>
+            </h1>
+
+            {/* 3 Stylized Pickle Jars */}
+            <div className="relative w-full max-w-[220px] py-0.5 flex flex-col items-center justify-center">
+              <img
+                src="/featured-pouches.png"
+                alt="Authentic Artisanal Regional Pickles"
+                className="w-full h-auto max-h-[112px] object-contain drop-shadow-[0_10px_20px_rgba(0,0,0,0.65)]"
+              />
+              <div className="w-[78%] h-2 bg-black/60 rounded-full blur-xs -mt-1 pointer-events-none" />
+            </div>
+
+            {/* Freshly Crafted Indicator */}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1b4832] text-emerald-300 text-[10.5px] font-semibold border border-emerald-500/20 shadow-2xs">
+              <Sparkles size={11} className="text-emerald-400" />
+              <span>Freshly crafted</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2.5 w-full pt-1">
+              <Link
+                to="/products"
+                className="flex-1 py-2.5 px-4 bg-[#f1b844] hover:bg-[#e2a835] text-stone-950 font-black text-xs rounded-full flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all text-center whitespace-nowrap"
+              >
+                <span>Shop pickles</span>
+                <ArrowRight size={13} className="text-stone-950" />
+              </Link>
+              <Link
+                to="/brands"
+                className="flex-1 py-2.5 px-4 bg-transparent border border-white/40 hover:border-white text-white font-bold text-xs rounded-full flex items-center justify-center active:scale-95 transition-all text-center whitespace-nowrap"
+              >
+                <span>Brands</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+
+        {/* 4. Trust Indicators Strip */}
+        <div className="flex items-center justify-center gap-2.5 py-1 text-xs text-stone-600 font-medium">
+          <span className="flex items-center gap-1">
+            <ShieldCheck size={14} className="text-forest-900" />
+            <span>Verified</span>
+          </span>
+          <span className="text-stone-300">•</span>
+          <span className="flex items-center gap-1">
+            <Truck size={14} className="text-forest-900" />
+            <span>Fresh dispatch</span>
+          </span>
+          <span className="text-stone-300">•</span>
+          <span className="flex items-center gap-1">
+            <Award size={14} className="text-forest-900" />
+            <span>FSSAI</span>
+          </span>
+        </div>
+
+        {/* 5. Mobile Brand Stores Section */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-serif font-bold text-base text-stone-900">
+              Brand stores
+            </h2>
+            <Link
+              to="/brands"
+              className="text-xs font-semibold text-stone-500 hover:text-stone-900"
             >
+              View all
+            </Link>
+          </div>
+
+          <div className="flex gap-3 overflow-x-auto no-scrollbar snap-x -mx-4 px-4 pb-2">
+            {loading ? (
+              [1, 2].map((i) => (
+                <div key={i} className="w-[200px] shrink-0 h-16 rounded-2xl bg-stone-100 animate-pulse" />
+              ))
+            ) : brands.length > 0 ? (
+              brands.slice(0, 6).map((brand) => (
+                <BrandCard
+                  key={brand.id || brand.slug || brand.business_name}
+                  brand={brand}
+                  compact={true}
+                />
+              ))
+            ) : null}
+          </div>
+        </div>
+
+        {/* 6. Mobile Items / Bestsellers Section */}
+        <div className="pt-2">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-serif font-bold text-base text-stone-900">
+              {sectionTitle}
+            </h2>
+            <Link
+              to="/products"
+              className="text-xs font-semibold text-stone-500 hover:text-stone-900"
+            >
+              View all
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {loading ? (
+              [1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 rounded-2xl bg-stone-100 animate-pulse" />
+              ))
+            ) : displayedItems.length > 0 ? (
+              displayedItems.slice(0, 6).map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))
+            ) : (
+              <div className="col-span-2 py-8 text-center text-xs text-stone-500">
+                No items found in this category.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* DESKTOP & TABLET VIEW */}
+      <div className="hidden sm:block">
+        {/* 1. Vibrant Artisanal Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-b from-[#06180f] via-[#0b2417] to-[#081b11] text-white sm:pt-16 sm:pb-20 lg:pt-20 lg:pb-24 border-b border-amber-500/20">
+          <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:16px_16px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_45%_at_50%_40%,rgba(245,158,11,0.14),transparent)] pointer-events-none" />
+
+          {/* DESKTOP & TABLET HERO (Spacious layout with 3D physics & full copy) */}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 sm:grid-cols-12 gap-6 sm:gap-8 lg:gap-12 items-center grid">
+          {/* Hero Left Content */}
+          <div className="sm:col-span-7 lg:col-span-6 space-y-4 sm:space-y-6 flex flex-col items-center lg:items-start text-center lg:text-left">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-forest-950/80 border border-amber-400/40 text-amber-300 text-[11px] sm:text-xs font-bold mx-auto lg:mx-0 shadow-sm backdrop-blur-md">
+              <Sparkles size={13} className="text-amber-400 flex-shrink-0 animate-pulse" />
+              <span className="truncate">Artisanal Regional Cures · Direct From Verified Brands</span>
+            </div>
+
+            <h1 className="font-serif text-3xl xs:text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.08] tracking-tight">
+              Discover Authentic Pickles, <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-200">
+                Delivered Fresh to You.
+              </span>
+            </h1>
+
+            <p className="text-xs sm:text-sm lg:text-base text-stone-200/90 max-w-xl leading-relaxed mx-auto lg:mx-0">
+              Slow-cured authentic King Chilli, shredded chicken, fiery ghost pepper, and traditional bamboo shoot recipes. Sourced directly from verified artisan producers and shipped fresh nationwide.
+            </p>
+
+            {/* CTAs: Side-by-side with gold gradient & frosted glass */}
+            <div className="flex flex-row items-center justify-center lg:justify-start gap-2.5 sm:gap-3.5 pt-1 w-full sm:w-auto">
+              <Link
+                to="/products"
+                className="flex-1 sm:flex-initial justify-center px-5 py-3 sm:px-7 sm:py-3.5 bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 hover:from-amber-300 hover:to-amber-200 text-forest-950 font-black text-xs sm:text-sm rounded-xl shadow-lg shadow-amber-500/25 transition-all flex items-center gap-2 active:scale-98 text-center whitespace-nowrap hover:scale-[1.02]"
+              >
+                <span>Shop Authentic Pickles</span>
+                <ArrowRight size={15} className="flex-shrink-0" />
+              </Link>
+              <Link
+                to="/brands"
+                className="flex-1 sm:flex-initial justify-center px-4 py-3 sm:px-6 sm:py-3.5 bg-white/10 hover:bg-white/15 text-cream-50 font-bold text-xs sm:text-sm rounded-xl border border-white/20 hover:border-amber-400/50 backdrop-blur-md shadow-sm transition-all flex items-center gap-2 active:scale-98 text-center whitespace-nowrap hover:scale-[1.02]"
+              >
+                <Store size={15} className="text-amber-400 flex-shrink-0" />
+                <span>Artisan Brands</span>
+              </Link>
+            </div>
+
+            {/* Trust Micro-Badges */}
+            <div className="pt-2 sm:pt-3 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-5 text-[11px] text-stone-300">
+              <span className="flex items-center gap-1.5">
+                <Award size={14} className="text-amber-300 flex-shrink-0" />
+                <span>Verified Artisan Brands</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Hero Right Visual: Pro 3D Physics, Floating & Ambient Lighting */}
+          <div
+            className="sm:col-span-5 lg:col-span-6 relative flex flex-col items-center justify-center pt-2 sm:pt-6 lg:pt-8 select-none"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Ambient luxury lighting with breathing aura & mouse parallax */}
+            <div
+              className="absolute w-96 h-96 sm:w-[38rem] sm:h-[38rem] rounded-full bg-gradient-to-tr from-amber-500/30 via-red-900/30 to-forest-800/40 blur-3xl pointer-events-none -top-4 animate-ambient-aura transition-transform duration-500 ease-out"
+              style={{
+                transform: tilt.active
+                  ? `translate3d(${-tilt.y * 1.8}px, ${tilt.x * 1.8}px, 0)`
+                  : undefined,
+              }}
+            />
+
+            {/* Pulsing golden energy rings behind pouches */}
+            <div className="absolute w-72 h-72 sm:w-[26rem] sm:h-[26rem] rounded-full border border-amber-400/25 pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-pulse-ring" />
+            <div className="absolute w-80 h-80 sm:w-[30rem] sm:h-[30rem] rounded-full bg-gradient-to-tr from-amber-500/20 via-orange-500/20 to-transparent blur-2xl pointer-events-none top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-ambient-aura" />
+
+            {/* Drifting golden embers for hearth & firewood warmth */}
+            <div className="absolute top-1/4 right-8 w-2 h-2 rounded-full bg-amber-400/80 blur-[0.6px] animate-ember-1 pointer-events-none" />
+            <div className="absolute top-1/3 left-10 w-2.5 h-2.5 rounded-full bg-orange-400/70 blur-[0.7px] animate-ember-2 pointer-events-none" />
+            <div className="absolute top-1/2 right-1/4 w-1.5 h-1.5 rounded-full bg-amber-300/80 blur-[0.5px] animate-ember-3 pointer-events-none" />
+            <div className="absolute -top-3 right-12 w-2 h-2 rounded-full bg-amber-400/70 blur-[0.8px] animate-drift-slow pointer-events-none" />
+            <div className="absolute top-20 left-6 w-2.5 h-2.5 rounded-full bg-amber-300/50 blur-[0.8px] animate-drift-alt pointer-events-none" />
+            <div className="absolute -bottom-2 right-1/4 w-1.5 h-1.5 rounded-full bg-amber-200/60 blur-[0.6px] animate-drift-slow pointer-events-none [animation-delay:3s]" />
+
+            <Link
+              to="/products?brand=lia-chuka"
+              className="relative group w-full flex flex-col items-center cursor-pointer"
+              style={{ perspective: '1200px' }}
+            >
+              {/* Outer 3D Interactive Tilt Cradle with elevation lift on hover */}
               <div
-                className="relative w-full max-w-[340px] sm:max-w-md flex flex-col items-center transition-transform duration-300 ease-out"
+                className="relative w-full flex flex-col items-center transition-transform duration-300 ease-out"
                 style={{
                   transform: tilt.active
-                    ? `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(1.03, 1.03, 1.03)`
-                    : 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+                    ? `perspective(1200px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) translateY(-14px) scale3d(1.04, 1.04, 1.04)`
+                    : 'perspective(1200px) rotateX(0deg) rotateY(0deg) translateY(0px) scale3d(1, 1, 1)',
                   transformStyle: 'preserve-3d',
                 }}
               >
-                <div className="relative overflow-hidden rounded-3xl p-1">
-                  <img
-                    src="/featured-pouches.png"
-                    alt="Authentic Artisanal Regional Pickles"
-                    className="w-full h-auto object-contain drop-shadow-[0_20px_35px_rgba(0,0,0,0.7)]"
-                  />
-                  {/* Subtle glare overlay on mouse move */}
+                {/* Continuous organic multi-phase levitation (persists smoothly even while tilting) */}
+                <div className="relative w-full flex flex-col items-center animate-hero-float">
+                  {/* Image wrapper with interactive cursor spotlight & continuous sheen sweep */}
+                  <div className="relative overflow-hidden rounded-3xl p-1">
+                    {/* Pulsing red-gold backglow right under the pouches */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-red-600/25 via-amber-500/20 to-transparent blur-2xl pointer-events-none" />
+
+                    <img
+                      src="/featured-pouches.png"
+                      alt="Lia Chuka Traditional Bambooshoot, Pork and Chicken Pickles"
+                      className="w-full max-w-[280px] xs:max-w-xs sm:max-w-md lg:max-w-[42rem] xl:max-w-[45rem] h-auto object-contain select-none transition-all duration-500 drop-shadow-[0_16px_36px_rgba(0,0,0,0.65)] group-hover:drop-shadow-[0_32px_56px_rgba(217,119,6,0.38)]"
+                    />
+
+                    {/* Automatic Periodic Metallic Sheen Sweep (Every 5 seconds) */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full animate-auto-sheen pointer-events-none" />
+
+                    {/* Interactive Cursor Spotlight Glare Sheen */}
+                    <div
+                      className="absolute inset-0 pointer-events-none transition-opacity duration-300 mix-blend-overlay"
+                      style={{
+                        opacity: tilt.active ? 0.8 : 0.25,
+                        background: `radial-gradient(circle 380px at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.5) 0%, rgba(251, 191, 36, 0.2) 35%, transparent 65%)`,
+                      }}
+                    />
+
+                    {/* Extra Specular Sheen sweep on user hover */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-200/30 to-transparent -translate-x-full group-hover:animate-shimmer-sweep pointer-events-none" />
+                  </div>
+
+                  {/* Curated Spotlight Pedestal Glow underneath base of pouches */}
+                  <div className="w-[88%] h-6 sm:h-8 bg-gradient-to-r from-transparent via-amber-400/20 to-transparent blur-md rounded-full -mt-2 mx-auto pointer-events-none" />
+
+                  {/* Red/Crimson Packaging Floor Underglow */}
                   <div
-                    className="absolute inset-0 pointer-events-none transition-opacity duration-300 mix-blend-overlay"
+                    className="w-[86%] h-5 sm:h-8 bg-red-600/30 rounded-[100%] blur-xl -mt-4 sm:-mt-6 mx-auto pointer-events-none transition-all duration-300"
                     style={{
-                      opacity: tilt.active ? 0.7 : 0.2,
-                      background: `radial-gradient(circle 320px at ${tilt.glareX}% ${tilt.glareY}%, rgba(255, 255, 255, 0.45) 0%, rgba(245, 158, 11, 0.2) 40%, transparent 70%)`,
+                      transform: tilt.active
+                        ? `translateX(${-tilt.y * 2.5}px) scaleX(0.95)`
+                        : undefined,
+                      opacity: tilt.active ? 0.5 : 0.75,
+                    }}
+                  />
+
+                  {/* Grounding Multi-layered Contact Shadow underneath base of pouches */}
+                  <div
+                    className={`w-[94%] h-8 sm:h-12 bg-black/85 rounded-[100%] blur-2xl -mt-5 sm:-mt-6 mx-auto pointer-events-none transition-all duration-300 ${
+                      tilt.active ? '' : 'animate-hero-shadow'
+                    }`}
+                    style={{
+                      transform: tilt.active
+                        ? `translateX(${-tilt.y * 3.5}px) translateY(12px) scaleX(0.92) scaleY(0.42)`
+                        : undefined,
+                      opacity: tilt.active ? 0.6 : 0.85,
+                    }}
+                  />
+                  <div
+                    className="w-[78%] h-4 sm:h-6 bg-black/95 rounded-[100%] blur-md -mt-3.5 sm:-mt-5 mx-auto pointer-events-none transition-all duration-300"
+                    style={{
+                      transform: tilt.active
+                        ? `translateX(${-tilt.y * 2}px) scaleX(0.9)`
+                        : undefined,
+                      opacity: tilt.active ? 0.75 : 0.95,
                     }}
                   />
                 </div>
-                {/* Pedestal floor shadow */}
-                <div className="w-[82%] h-4 bg-black/80 rounded-full blur-md -mt-2 pointer-events-none" />
               </div>
-            </div>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* 2. INTERACTIVE CATEGORY FILTER RIBBON */}
-      <section className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-          <button
-            onClick={() => setSelectedCategory('all')}
-            className={`px-4 py-2 rounded-full font-sans text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 transition-all ${
-              selectedCategory === 'all'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-[#efeeeb] text-[#1C1917] hover:bg-[#e3e2e0]'
-            }`}
-          >
-            All Pickles
-          </button>
-          <button
-            onClick={() => setSelectedCategory('non-veg')}
-            className={`px-4 py-2 rounded-full font-sans text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 transition-all flex items-center gap-1.5 ${
-              selectedCategory === 'non-veg'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-[#efeeeb] text-[#1C1917] hover:bg-[#e3e2e0]'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-red-600" />
-            <span>Non-Veg</span>
-          </button>
-          <button
-            onClick={() => setSelectedCategory('veg')}
-            className={`px-4 py-2 rounded-full font-sans text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 transition-all flex items-center gap-1.5 ${
-              selectedCategory === 'veg'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-[#efeeeb] text-[#1C1917] hover:bg-[#e3e2e0]'
-            }`}
-          >
-            <span className="w-2 h-2 rounded-full bg-[#059669]" />
-            <span>Veg</span>
-          </button>
-          <button
-            onClick={() => setSelectedCategory('veg-nonveg')}
-            className={`px-4 py-2 rounded-full font-sans text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 transition-all ${
-              selectedCategory === 'veg-nonveg'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-[#efeeeb] text-[#1C1917] hover:bg-[#e3e2e0]'
-            }`}
-          >
-            Veg + Non-Veg
-          </button>
-          <button
-            onClick={() => setSelectedCategory('bestsellers')}
-            className={`px-4 py-2 rounded-full font-sans text-xs sm:text-sm font-semibold whitespace-nowrap active:scale-95 transition-all ${
-              selectedCategory === 'bestsellers'
-                ? 'bg-[#1C1917] text-white shadow-xs'
-                : 'bg-[#efeeeb] text-[#1C1917] hover:bg-[#e3e2e0]'
-            }`}
-          >
-            ⭐ Bestsellers
-          </button>
-        </div>
-      </section>
 
-      {/* 3. ARTISAN BESTSELLERS SHOWCASE (Horizontal Carousel) */}
-      <section className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-2 sm:py-4 flex flex-col gap-3">
-        <div className="flex items-baseline justify-between">
-          <div>
-            <span className="font-sans text-[11px] font-bold text-[#F59E0B] uppercase tracking-wider block">
-              Seasonal Cellar
-            </span>
-            <h2 className="font-serif text-xl sm:text-2xl lg:text-3xl font-bold text-[#1C1917]">
-              Artisan Bestsellers
+      {/* 2. Official Brand Stores */}
+      <section className="bg-stone-50/70 border-b border-stone-200/80 py-4 sm:py-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-stone-900">
+              Official Brand Stores
             </h2>
-          </div>
-          <Link
-            to="/products"
-            className="font-sans text-xs sm:text-sm text-[#0B2417] hover:text-[#F59E0B] font-bold flex items-center gap-1 transition-colors"
-          >
-            <span>View All</span>
-            <ChevronRight size={15} />
-          </Link>
-        </div>
-
-        {/* Horizontal Product Scroller */}
-        <div className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth py-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-          {loading ? (
-            [1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex-shrink-0 w-64 h-80 bg-[#f4f3f1] rounded-2xl animate-pulse" />
-            ))
-          ) : bestsellers.length > 0 ? (
-            bestsellers.slice(0, 8).map((product) => {
-              const price = Math.round(Number(product.price) || 0);
-              const brand = product.manufacturer?.business_name || 'Artisan Workshop';
-              const provenance = product.origin_district || product.manufacturer?.location_district || 'Northeast';
-              const imageUrl = product.primary_image_url || '/featured-pouches.png';
-              const weight = product.weight_grams ? `${product.weight_grams}g Jar` : '250g Glass Jar';
-
-              return (
-                <article
-                  key={product.id}
-                  className="flex-shrink-0 w-64 bg-[#f4f3f1] rounded-2xl p-3 flex flex-col justify-between shadow-xs border border-stone-200/70 hover:shadow-md hover:border-[#0B2417]/30 transition-all duration-300 relative group"
-                >
-                  <Link to={`/product/${product.slug}`} className="block">
-                    <div className="relative w-full h-44 rounded-xl overflow-hidden bg-[#efeeeb] mb-3">
-                      <img
-                        src={imageUrl}
-                        alt={product.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                      {/* Dietary Tag */}
-                      <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-full text-[9.5px] font-bold uppercase shadow-xs">
-                        <span className={`w-1.5 h-1.5 rounded-full ${product.dietary_type === 'VEG' ? 'bg-[#059669]' : 'bg-red-600'}`} />
-                        <span className={product.dietary_type === 'VEG' ? 'text-[#059669]' : 'text-red-600'}>
-                          {product.dietary_type === 'VEG' ? 'VEG' : 'NON-VEG'}
-                        </span>
-                      </div>
-                      {/* Provenance */}
-                      <div className="absolute top-2 right-2 bg-[#1C1917]/80 text-white backdrop-blur-xs px-2 py-0.5 rounded-full text-[9px] font-mono">
-                        {provenance}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1">
-                      <span className="font-sans text-[10px] font-semibold text-stone-500 uppercase tracking-wider truncate">
-                        {brand}
-                      </span>
-                      <h3 className="font-serif font-bold text-[#1C1917] text-base line-clamp-1 group-hover:text-[#0B2417] transition-colors">
-                        {product.title}
-                      </h3>
-                      <p className="font-sans text-xs text-stone-600 line-clamp-2 leading-relaxed">
-                        {product.description || 'Slow-cured authentic regional recipe with pure cold-pressed mustard oil.'}
-                      </p>
-
-                      {/* Heat Flame Indicator */}
-                      <div className="flex items-center gap-1 text-[#F59E0B] mt-1 text-xs font-bold">
-                        <span>🔥</span>
-                        {product.spice_level === 'EXTRA_HOT' ? (
-                          <>
-                            <span>🔥</span>
-                            <span>🔥</span>
-                            <span className="text-[10px] text-stone-500 ml-1 font-sans">Extra Hot</span>
-                          </>
-                        ) : product.spice_level === 'HOT' ? (
-                          <>
-                            <span>🔥</span>
-                            <span className="text-[10px] text-stone-500 ml-1 font-sans">High Heat</span>
-                          </>
-                        ) : (
-                          <span className="text-[10px] text-stone-500 ml-1 font-sans">Mild Zest</span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-
-                  <div className="flex items-center justify-between mt-3 pt-2 bg-white/70 rounded-xl px-2.5 py-1.5 border border-stone-200/50">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-stone-500">{weight}</span>
-                      <span className="font-serif font-bold text-base text-[#1C1917]">₹{price}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => handleQuickAdd(product, e)}
-                      disabled={addingId === product.id}
-                      className="px-3.5 py-1.5 rounded-full bg-[#0B2417] hover:bg-black text-white font-sans text-xs font-bold flex items-center gap-1 active:scale-95 transition-all shadow-xs"
-                    >
-                      {addingId === product.id ? '...' : '+ Add'}
-                    </button>
-                  </div>
-                </article>
-              );
-            })
-          ) : null}
-        </div>
-      </section>
-
-      {/* 4. OFFICIAL BRAND STORES (Artisan Verification Carousel) */}
-      <section className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-        <div className="bg-[#f4f3f1]/80 rounded-2xl p-4 sm:p-6 border border-stone-200/70">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={22} className="text-[#0B2417]" />
-              <div>
-                <h2 className="font-serif text-lg sm:text-xl font-bold text-[#1C1917]">
-                  Official Brand Stores
-                </h2>
-                <span className="font-sans text-[10px] font-bold text-stone-500 uppercase tracking-wider block">
-                  Direct Workshop Dispatch
-                </span>
-              </div>
-            </div>
-            <span className="px-3 py-1 rounded-full bg-[#ECFDF5] text-[#059669] font-sans text-[11px] font-bold">
-              100% Verified
-            </span>
+            <Link
+              to="/brands"
+              className="text-xs font-semibold text-stone-600 hover:text-stone-900 flex items-center gap-0.5 group"
+            >
+              <span>View All Brands</span>
+              <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+            </Link>
           </div>
 
-          {/* Store Badges Slider */}
-          <div className="flex gap-3 overflow-x-auto no-scrollbar scroll-smooth py-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+          {/* Minimal Brand Cards: Horizontal swipe on mobile, clean grid on desktop */}
+          <div className="flex sm:grid gap-2.5 sm:gap-3 overflow-x-auto no-scrollbar scroll-smooth snap-x -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 pb-1 sm:pb-0">
             {loading ? (
-              [1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex-shrink-0 w-52 h-20 rounded-2xl bg-white animate-pulse" />
+              [1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="w-[185px] sm:w-auto shrink-0 snap-start h-14 rounded-2xl bg-stone-200/60 animate-pulse" />
               ))
             ) : brands.length > 0 ? (
               brands.slice(0, 8).map((brand) => (
@@ -414,148 +481,149 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 5. CURATED SMALL-BATCH PANTRY ITEMS (2-Column Mobile, 4-Column Desktop Grid) */}
-      <section className="w-full max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 flex flex-col gap-4">
-        <div className="flex items-baseline justify-between">
-          <div>
-            <span className="font-sans text-[11px] font-bold text-[#0B2417] uppercase tracking-wider block">
-              Rare Batches
-            </span>
-            <h2 className="font-serif text-xl sm:text-2xl lg:text-3xl font-bold text-[#1C1917]">
-              Curated Pantry Items
-            </h2>
-          </div>
-          <span className="font-sans text-xs text-stone-500 hidden sm:inline">
-            250g Stone Pouch & Heritage Jars
-          </span>
-        </div>
-
-        {/* Product Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
-          {loading ? (
-            [1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-              <div key={i} className="h-80 rounded-2xl bg-[#f4f3f1] animate-pulse" />
-            ))
-          ) : filteredProducts.length > 0 ? (
-            filteredProducts.slice(0, 12).map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-sm text-stone-500">
-              No artisanal items found in this category.
+      {/* Main Content Sections */}
+      <div className="space-y-10 sm:space-y-16 mt-6 sm:mt-12 pb-12 sm:pb-16">
+        {/* 4. Slow-Cured Artisanal Bestsellers */}
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-end justify-between mb-5 sm:mb-8">
+            <div>
+              <span className="text-xs font-bold tracking-widest uppercase text-forest-800">
+                {bestsellers.some((p) => p.is_bestseller) ? 'Slow-Cured Pantry' : 'Store Catalog'}
+              </span>
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mt-1">
+                {bestsellers.some((p) => p.is_bestseller) ? 'Bestsellers' : 'Items'}
+              </h2>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* 6. THE WANGS PURITY ASSURANCE & CRAFT STANDARDS */}
-      <section className="w-full border-t border-[#E7E5E4] mt-8 sm:mt-12 py-10 sm:py-14 bg-white">
-        <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-xl mx-auto mb-8 sm:mb-12">
-            <span className="font-sans text-[11px] font-bold text-[#F59E0B] uppercase tracking-widest block">
-              Purity &amp; Provenance
-            </span>
-            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#1C1917] mt-1">
-              The Wangs Assurance Standard
-            </h3>
-            <p className="font-sans text-xs sm:text-sm text-stone-500 mt-2">
-              Uncompromising dedication to traditional culinary curing methods, zero chemical preservatives, and direct dispatch.
-            </p>
+            <Link
+              to="/products"
+              className="text-xs font-bold text-forest-800 hover:text-forest-950 flex items-center gap-1 group"
+            >
+              <span>View Full Catalog</span>
+              <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </Link>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-            {/* Card 1 */}
-            <div className="bg-[#FAF9F6] rounded-2xl p-6 border border-[#E7E5E4] shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-full bg-[#ECFDF5] text-[#059669] flex items-center justify-center">
-                    <ShieldCheck size={20} />
-                  </div>
-                  <span className="font-sans text-[10px] font-bold tracking-widest text-[#059669] bg-[#ECFDF5] px-2.5 py-0.5 rounded-full uppercase">
-                    01 · VERIFIED QUALITY
-                  </span>
-                </div>
-                <h4 className="font-serif font-bold text-lg text-[#1C1917]">
-                  Direct From Verified Brands
-                </h4>
-                <p className="font-sans text-xs text-stone-600 mt-2 leading-relaxed">
-                  Every batch is cured in registered artisanal workshops under strict FSSAI food hygiene and safety standards.
-                </p>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-200 flex flex-col gap-1.5 text-xs text-stone-700">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-[#059669] shrink-0" />
-                  <span>FSSAI Certified Small Batches</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-[#059669] shrink-0" />
-                  <span>Authentic Regional Lineage</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2 */}
-            <div className="bg-[#FAF9F6] rounded-2xl p-6 border border-[#E7E5E4] shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-full bg-amber-50 text-amber-800 flex items-center justify-center">
-                    <Plane size={20} />
-                  </div>
-                  <span className="font-sans text-[10px] font-bold tracking-widest text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-full uppercase">
-                    02 · EXPRESS LOGISTICS
-                  </span>
-                </div>
-                <h4 className="font-serif font-bold text-lg text-[#1C1917]">
-                  All-India Air Express Dispatch
-                </h4>
-                <p className="font-sans text-xs text-stone-600 mt-2 leading-relaxed">
-                  Packed in shock-absorbing air cushions to ensure complete leak-proof protection across all Indian PIN codes.
-                </p>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-200 flex flex-col gap-1.5 text-xs text-stone-700">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-amber-600 shrink-0" />
-                  <span>Direct Air Express Shipping</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-amber-600 shrink-0" />
-                  <span>Shock-Proof Zero Leakage Seal</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 3 */}
-            <div className="bg-[#FAF9F6] rounded-2xl p-6 border border-[#E7E5E4] shadow-xs flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center">
-                    <Leaf size={20} />
-                  </div>
-                  <span className="font-sans text-[10px] font-bold tracking-widest text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full uppercase">
-                    03 · HERITAGE PURITY
-                  </span>
-                </div>
-                <h4 className="font-serif font-bold text-lg text-[#1C1917]">
-                  Zero Synthetic Preservatives
-                </h4>
-                <p className="font-sans text-xs text-stone-600 mt-2 leading-relaxed">
-                  Cured purely with raw wood-churned cold-pressed mustard oil, indigenous King Chilli, and wood-smoke fermentation.
-                </p>
-              </div>
-              <div className="mt-5 pt-4 border-t border-stone-200 flex flex-col gap-1.5 text-xs text-stone-700">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-[#059669] shrink-0" />
-                  <span>100% Cold-Pressed Mustard Oil</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 size={13} className="text-[#059669] shrink-0" />
-                  <span>No Added Chemical Stabilizers</span>
-                </div>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {loading
+              ? [1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-96 rounded-2xl bg-stone-100 animate-pulse" />
+                ))
+              : (bestsellers.some((p) => p.is_bestseller) ? bestsellers.filter((p) => p.is_bestseller) : allProducts).slice(0, 8).map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))
+            }
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* 5. The Wangs Assurance & Purity Standard */}
+        <section className="mt-12 sm:mt-16 border-t border-stone-200/90 pt-8 sm:pt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* 3 Value Proposition Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Card 1 */}
+              <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-forest-700/40 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200/80 flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:bg-emerald-100 transition-all">
+                      <ShieldCheck size={22} className="text-emerald-700" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest text-emerald-800 bg-emerald-50/80 border border-emerald-200/60 px-2.5 py-0.5 rounded-full uppercase">
+                      01 · Verified Quality
+                    </span>
+                  </div>
+
+                  <h4 className="font-serif font-bold text-base sm:text-lg text-stone-900 group-hover:text-forest-900 transition-colors">
+                    Direct From Verified Brands
+                  </h4>
+
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Every batch is handcrafted in registered small-batch workshops under strict FSSAI food safety hygiene.
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-stone-100 flex flex-col gap-1.5 text-[11px] text-stone-700 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                    <span>FSSAI Registered Workshops</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-emerald-600 shrink-0" />
+                    <span>Authentic Regional Recipes</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2 */}
+              <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-amber-700/40 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-900 border border-amber-200/80 flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:bg-amber-100 transition-all">
+                      <Plane size={22} className="text-amber-800" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest text-amber-900 bg-amber-50/80 border border-amber-200/60 px-2.5 py-0.5 rounded-full uppercase">
+                      02 · Express Logistics
+                    </span>
+                  </div>
+
+                  <h4 className="font-serif font-bold text-base sm:text-lg text-stone-900 group-hover:text-forest-900 transition-colors">
+                    Air Express Dispatch
+                  </h4>
+
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Packed with shock-absorbing air-cushion protection to preserve fresh seal across 26,000+ Indian PIN codes.
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-stone-100 flex flex-col gap-1.5 text-[11px] text-stone-700 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-amber-600 shrink-0" />
+                    <span>Free Air Shipping on All Orders</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-amber-600 shrink-0" />
+                    <span>Shock-Proof Zero Leakage Seal</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3 */}
+              <div className="bg-white rounded-3xl p-5 sm:p-7 border border-stone-200/90 shadow-2xs hover:shadow-md hover:border-forest-700/40 transition-all duration-300 flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 rounded-2xl bg-stone-100 text-forest-900 border border-stone-200/80 flex items-center justify-center shadow-2xs group-hover:scale-105 group-hover:bg-stone-200 transition-all">
+                      <Leaf size={22} className="text-forest-800" />
+                    </div>
+                    <span className="text-[10px] font-mono font-bold tracking-widest text-stone-700 bg-stone-100 border border-stone-200 px-2.5 py-0.5 rounded-full uppercase">
+                      03 · Heritage Ingredients
+                    </span>
+                  </div>
+
+                  <h4 className="font-serif font-bold text-base sm:text-lg text-stone-900 group-hover:text-forest-900 transition-colors">
+                    Zero Synthetic Preservatives
+                  </h4>
+
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Cured naturally with cold-pressed mustard oil, native Raja Mircha, and traditional wood-smoke aging.
+                  </p>
+                </div>
+
+                <div className="mt-5 pt-4 border-t border-stone-100 flex flex-col gap-1.5 text-[11px] text-stone-700 font-medium">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-forest-600 shrink-0" />
+                    <span>100% Cold-Pressed Mustard Oil</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-forest-600 shrink-0" />
+                    <span>Traditional Wood-Smoke Curing</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+      </div>
     </div>
-  );
+  </div>
+);
 }

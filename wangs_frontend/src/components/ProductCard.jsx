@@ -75,12 +75,12 @@ export default function ProductCard({ product }) {
   const weightText = product.weight_grams ? `${product.weight_grams}g` : '';
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-[#E7E5E4] bg-white shadow-xs hover:shadow-md hover:border-[#0B2417]/30 transition-all duration-300">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/85 bg-white shadow-2xs hover:shadow-lg hover:border-forest-700/40 transition-all duration-300">
       <div>
         {/* Product Image Container */}
         <Link
           to={`/product/${product.slug}`}
-          className="block relative aspect-square overflow-hidden bg-[#efeeeb]"
+          className="block relative aspect-square overflow-hidden bg-stone-100/80"
         >
           <img
             src={imageUrl}
@@ -90,61 +90,31 @@ export default function ProductCard({ product }) {
             loading="lazy"
           />
 
-          {/* Floating Dietary Badge Top-Left */}
+          {/* Badges on Top */}
           <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1 items-center">
-            {product.dietary_type === 'NON_VEG' ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/95 backdrop-blur-xs px-2 py-0.5 text-[9.5px] font-bold text-red-600 shadow-xs uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
-                NON-VEG
-              </span>
-            ) : product.dietary_type === 'VEG' ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#ECFDF5]/95 backdrop-blur-xs px-2 py-0.5 text-[9.5px] font-bold text-[#059669] shadow-xs uppercase tracking-wider">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#059669]" />
-                VEG
-              </span>
-            ) : product.dietary_type === 'VEG_MIXED' ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50/95 backdrop-blur-xs px-2 py-0.5 text-[9.5px] font-bold text-amber-700 shadow-xs uppercase tracking-wider">
-                VEG MIX
-              </span>
-            ) : null}
-
             {discountPercent > 0 && (
-              <span className="rounded-full bg-[#F59E0B] text-[#1C1917] font-bold text-[9px] px-2 py-0.5 shadow-xs">
+              <span className="rounded-md bg-rose-600 text-white font-extrabold text-[9.5px] sm:text-[10px] px-1.5 py-0.5 shadow-xs tracking-tight">
                 {discountPercent}% OFF
               </span>
             )}
-          </div>
-
-          {/* Provenance or Batch Code Bottom-Left */}
-          <span className="absolute bottom-2 left-2 bg-[#1C1917]/75 backdrop-blur-xs text-white text-[9px] font-mono px-1.5 py-0.5 rounded">
-            {provenance || `#${(product.sku || product.id || 'W').toString().slice(-4).toUpperCase()}`}
-          </span>
-
-          {/* Heat Meter Bottom-Right */}
-          <div className="absolute bottom-2 right-2 flex items-center gap-0.5 bg-white/90 backdrop-blur-xs px-1.5 py-0.5 rounded-full shadow-2xs">
-            <span className="text-[11px] text-[#F59E0B]">🔥</span>
-            {product.spice_level === 'EXTRA_HOT' ? (
-              <>
-                <span className="text-[11px] text-[#F59E0B]">🔥</span>
-                <span className="text-[11px] text-[#F59E0B]">🔥</span>
-              </>
-            ) : product.spice_level === 'HOT' ? (
-              <>
-                <span className="text-[11px] text-[#F59E0B]">🔥</span>
-                <span className="text-[11px] text-stone-300">🔥</span>
-              </>
-            ) : (
-              <>
-                <span className="text-[11px] text-stone-300">🔥</span>
-                <span className="text-[11px] text-stone-300">🔥</span>
-              </>
+            {product.is_bestseller && (
+              <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 text-amber-950 font-bold text-[9.5px] sm:text-[10px] px-1.5 py-0.5 shadow-xs">
+                <Sparkles size={9} className="fill-amber-950" /> Bestseller
+              </span>
             )}
           </div>
 
+          {/* Weight Badge on Bottom-Right */}
+          {weightText && (
+            <div className="absolute right-2 bottom-2 z-10 bg-white/90 backdrop-blur-md border border-white/60 text-stone-800 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
+              {weightText}
+            </div>
+          )}
+
           {/* Out of Stock Overlay */}
           {!inStock && (
-            <div className="absolute inset-0 bg-[#1C1917]/60 backdrop-blur-[2px] flex items-center justify-center p-3 z-20 text-center">
-              <span className="px-3 py-1 rounded-full bg-black/90 text-white text-xs font-bold border border-white/20 shadow-md">
+            <div className="absolute inset-0 bg-stone-950/50 backdrop-blur-[2px] flex items-center justify-center p-3 z-20 text-center">
+              <span className="px-3 py-1 rounded-full bg-stone-900/90 text-white text-xs font-bold border border-white/20 shadow-md">
                 Sold Out
               </span>
             </div>
@@ -152,37 +122,32 @@ export default function ProductCard({ product }) {
         </Link>
 
         {/* Card Body */}
-        <div className="p-3 sm:p-3.5 space-y-1">
-          {/* Brand Eyebrow */}
-          <p className="text-[10px] sm:text-[11px] uppercase tracking-wider text-stone-500 font-semibold truncate">
-            {brandName}
-          </p>
-
+        <div className="p-3 sm:p-4 space-y-1">
           {/* Product Title */}
           <Link to={`/product/${product.slug}`} className="block">
-            <h3 className="font-serif font-bold text-[#1C1917] text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[2rem] sm:min-h-[2.3rem] group-hover:text-[#0B2417] transition-colors">
+            <h3 className="font-bold text-stone-900 text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[1.9rem] sm:min-h-[2.4rem] group-hover:text-forest-900 transition-colors">
               {product.title}
             </h3>
           </Link>
 
-          {/* Packaging Spec */}
-          <p className="text-[11px] text-stone-500">
-            {weightText || '250g Jar'}
+          {/* Subtitle: Brand · Weight */}
+          <p className="text-[11px] text-stone-500 truncate">
+            {brandName} {weightText ? `· ${weightText}` : ''}
           </p>
         </div>
       </div>
 
       {/* Pricing & Cart Action Bar */}
-      <div className="p-3 sm:p-3.5 pt-0 sm:pt-0 mt-auto">
+      <div className="p-3 sm:p-4 pt-0 sm:pt-0 mt-auto">
         <div className="pt-2 flex items-center justify-between gap-2 border-t border-stone-100">
           {/* Price block */}
           <div className="min-w-0">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-serif font-bold text-sm sm:text-base text-[#1C1917]">
+            <div className="flex items-baseline gap-1">
+              <span className="font-bold text-sm sm:text-base text-stone-950">
                 ₹{priceNum}
               </span>
               {hasDiscount && (
-                <span className="text-[11px] text-stone-400 line-through">
+                <span className="text-[10px] sm:text-[11px] text-stone-400 line-through">
                   ₹{mrpNum}
                 </span>
               )}
@@ -192,25 +157,25 @@ export default function ProductCard({ product }) {
               <p className="text-[9.5px] font-bold text-amber-700 flex items-center gap-0.5 truncate">
                 <Zap size={9} /> Only {product.stock_quantity} left
               </p>
-            ) : inStock ? (
-              <span className="text-[10px] text-[#059669] font-semibold">
-                In Stock
-              </span>
+            ) : !inStock ? (
+              <p className="text-[9.5px] font-bold text-stone-400">
+                Out of Stock
+              </p>
             ) : null}
           </div>
 
           {/* Action: Add Button (+) or Stepper */}
           {cartItem ? (
-            <div className="flex items-center rounded-full bg-[#efeeeb] border border-stone-300 overflow-hidden shadow-2xs h-8 shrink-0">
+            <div className="flex items-center rounded-xl bg-forest-50 border border-forest-900/70 overflow-hidden shadow-2xs h-8 sm:h-9 shrink-0">
               <button
                 type="button"
                 onClick={handleDecrement}
                 aria-label={`Decrease quantity of ${product.title}`}
-                className="w-7 h-full flex items-center justify-center text-[#1C1917] hover:bg-stone-200 active:scale-90 transition-all font-bold"
+                className="w-7 h-full flex items-center justify-center text-forest-900 hover:bg-forest-100 active:scale-90 transition-all font-bold"
               >
                 <Minus size={12} />
               </button>
-              <span className="px-2 text-xs font-bold text-[#1C1917] select-none">
+              <span className="px-2 text-xs font-black text-forest-950 font-mono select-none">
                 {cartItem.quantity}
               </span>
               <button
@@ -218,7 +183,7 @@ export default function ProductCard({ product }) {
                 onClick={handleIncrement}
                 disabled={cartItem.quantity >= (product.stock_quantity || 99) || !inStock}
                 aria-label={`Increase quantity of ${product.title}`}
-                className="w-7 h-full flex items-center justify-center text-[#1C1917] hover:bg-stone-200 active:scale-90 transition-all font-bold disabled:opacity-30"
+                className="w-7 h-full flex items-center justify-center text-forest-900 hover:bg-forest-100 active:scale-90 transition-all font-bold disabled:opacity-30"
               >
                 <Plus size={12} />
               </button>
@@ -229,28 +194,22 @@ export default function ProductCard({ product }) {
               onClick={handleAddToCart}
               disabled={!inStock || adding}
               aria-label={`Add ${product.title} to cart`}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-xs transition-all active:scale-90 shrink-0 ${
+              className={`w-8 h-8 sm:h-9 sm:w-9 rounded-xl text-xs font-bold flex items-center justify-center shadow-xs transition-all active:scale-90 shrink-0 ${
                 added
-                  ? 'bg-[#059669] text-white'
+                  ? 'bg-emerald-600 text-white'
                   : inStock
-                  ? 'bg-[#1C1917] hover:bg-[#0B2417] text-white'
+                  ? 'bg-forest-900 hover:bg-forest-950 text-white hover:shadow-xs'
                   : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
               }`}
             >
               {added ? (
-                <>
-                  <CheckCircle size={13} className="text-white" />
-                  <span>Added</span>
-                </>
+                <CheckCircle size={15} className="text-white" />
               ) : adding ? (
-                <span className="animate-pulse">...</span>
+                <span className="animate-pulse text-xs">...</span>
               ) : !inStock ? (
-                <span>Sold</span>
+                <span className="text-[9px]">Sold</span>
               ) : (
-                <>
-                  <Plus size={13} strokeWidth={2.5} />
-                  <span>Add</span>
-                </>
+                <Plus size={16} strokeWidth={2.5} />
               )}
             </button>
           )}
