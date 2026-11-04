@@ -140,8 +140,6 @@ export default function Footer() {
         <div className="border-t border-outline-variant/30 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 font-body-sm text-xs text-on-surface-variant">
           <p>© {new Date().getFullYear()} Wangs Pickle Marketplace Pvt Ltd. Dedicated to preserving Indian heirloom pickles.</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
-            <span className="font-semibold text-secondary">FSSAI Lic: 10023999000122</span>
-            <span className="opacity-40">•</span>
             <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <span className="opacity-40">•</span>
             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
