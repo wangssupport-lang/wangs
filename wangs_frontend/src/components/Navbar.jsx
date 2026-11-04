@@ -106,8 +106,8 @@ export default function Navbar() {
   return (
     <header className="sticky top-0 z-40 shadow-md">
       {/* 1. Top Announcement Ribbon - Wine Red (#540f13) */}
-      <div className="bg-[#540f13] text-[#f7eedb] border-b border-[#6a1318]/60 text-[11px] font-medium py-1.5 px-3 sm:px-6 select-none overflow-x-auto no-scrollbar">
-        <div className="max-w-7xl mx-auto flex items-center justify-between sm:justify-center gap-3 sm:gap-6 whitespace-nowrap">
+      <div className="bg-[#540f13] text-[#f7eedb] border-b border-[#6a1318]/60 text-[11px] font-medium py-1.5 px-4 select-none">
+        <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 sm:gap-6 whitespace-nowrap text-center">
           <span className="flex items-center gap-1.5 font-semibold text-xs tracking-wide">
             <Leaf size={12} className="text-[#f5a7a7]" />
             <span>Authentic Naga Pickles &amp; Local Delicacies</span>
@@ -117,13 +117,13 @@ export default function Navbar() {
             <Truck size={12} className="text-[#f5a7a7]" />
             <span>Pan India Delivery</span>
           </span>
-          <span className="text-white/20 hidden sm:inline">|</span>
-          <span className="hidden sm:flex items-center gap-1.5 text-stone-200">
+          <span className="text-white/20 hidden md:inline">|</span>
+          <span className="hidden md:flex items-center gap-1.5 text-stone-200">
             <ShieldCheck size={12} className="text-[#f5a7a7]" />
             <span>Quality Assured</span>
           </span>
-          <span className="text-white/20 hidden sm:inline">|</span>
-          <span className="hidden sm:flex items-center gap-1.5 text-stone-200">
+          <span className="text-white/20 hidden lg:inline">|</span>
+          <span className="hidden lg:flex items-center gap-1.5 text-stone-200">
             <Heart size={12} className="text-[#f5a7a7]" />
             <span>Support Local Producers</span>
           </span>
