@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import {
   ShoppingBag, Search, User, Menu, X, ChevronDown, Home,
   Shield, ShieldCheck, Store,
-  Sparkles, Star, LogOut, Package, ArrowRight, Heart
+  Sparkles, Star, LogOut, Package, ArrowRight, Heart, Leaf, Truck, Utensils
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -18,15 +18,16 @@ export default function Navbar() {
   const [searchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
-  const [searchFocused, setSearchFocused] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [mobileProfileOpen, setMobileProfileOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [brands, setBrands] = useState([]);
 
   // Auto-close open menus on page change
   useEffect(() => {
-    setMobileProfileOpen(false);
+    setMobileMenuOpen(false);
     setUserDropdownOpen(false);
+    setSearchOpen(false);
   }, [location.pathname]);
 
   // Detect whether this client/device has a registered seller account
@@ -92,279 +93,191 @@ export default function Navbar() {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchFocused(false);
+      setSearchOpen(false);
     }
   };
 
   const handleQuickSearch = (term) => {
     setSearchQuery(term);
-    setSearchFocused(false);
+    setSearchOpen(false);
     navigate(`/products?search=${encodeURIComponent(term)}`);
   };
 
-  const cartTotal = cart?.financial_summary?.total_amount
-    ? Math.round(parseFloat(cart.financial_summary.total_amount))
-    : 0;
-
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-red-100/80 shadow-xs">
-      {/* Main Header Row */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 sm:h-[4.75rem] items-center justify-between gap-4">
-          {/* Brand Logo & Wordmark */}
-          <Link to="/" className="group flex flex-shrink-0 items-center gap-2 sm:gap-3 select-none">
-            <img
-              src="/logo.png"
-              alt="Wangs"
-              className="h-8 w-auto sm:h-9 sm:w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-            />
-            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.12em] leading-none text-red-600 uppercase group-hover:text-red-700 transition-colors">
-              Wangs
-            </span>
-          </Link>
+    <header className="sticky top-0 z-40 shadow-md">
+      {/* 1. Top Announcement Ribbon - Wine Red (#540f13) */}
+      <div className="bg-[#540f13] text-[#f7eedb] border-b border-[#6a1318]/60 text-[11px] font-medium py-1.5 px-3 sm:px-6 select-none overflow-x-auto no-scrollbar">
+        <div className="max-w-7xl mx-auto flex items-center justify-between sm:justify-center gap-3 sm:gap-6 whitespace-nowrap">
+          <span className="flex items-center gap-1.5 font-semibold text-xs tracking-wide">
+            <Leaf size={12} className="text-[#f5a7a7]" />
+            <span>Authentic Naga Pickles &amp; Local Delicacies</span>
+          </span>
+          <span className="text-white/20 hidden sm:inline">|</span>
+          <span className="hidden sm:flex items-center gap-1.5 text-stone-200">
+            <Truck size={12} className="text-[#f5a7a7]" />
+            <span>Pan India Delivery</span>
+          </span>
+          <span className="text-white/20 hidden sm:inline">|</span>
+          <span className="hidden sm:flex items-center gap-1.5 text-stone-200">
+            <ShieldCheck size={12} className="text-[#f5a7a7]" />
+            <span>Quality Assured</span>
+          </span>
+          <span className="text-white/20 hidden sm:inline">|</span>
+          <span className="hidden sm:flex items-center gap-1.5 text-stone-200">
+            <Heart size={12} className="text-[#f5a7a7]" />
+            <span>Support Local Producers</span>
+          </span>
+        </div>
+      </div>
 
-          {/* Desktop Search Bar with Auto-Suggestions Popover */}
-          <div className="hidden md:flex flex-1 max-w-xl relative mx-4">
-            <form onSubmit={handleSearch} className="w-full relative">
-              <input
-                type="text"
-                value={searchQuery}
-                onFocus={() => setSearchFocused(true)}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search king chilli, shredded chicken, bamboo shoot, pickles..."
-                className="w-full pl-11 pr-24 py-2.5 bg-stone-50 border border-stone-200 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 focus:bg-white transition-all font-medium shadow-2xs"
-              />
-              <Search size={16} className="absolute left-4 top-3 text-stone-400" />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-20 top-3 text-stone-400 hover:text-stone-600"
-                >
-                  <X size={15} />
-                </button>
-              )}
+      {/* 2. Main Navigation Bar - Dark Obsidian (#151312) */}
+      <div className="bg-[#151312]/95 backdrop-blur-md border-b border-white/10 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-16 sm:h-[4.75rem] items-center justify-between gap-4">
+            
+            {/* Mobile Left: Hamburger Menu Button */}
+            <div className="flex md:hidden items-center">
               <button
-                type="submit"
-                className="absolute right-1.5 top-1 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full shadow-xs transition-colors"
+                type="button"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="p-2 -ml-2 rounded-xl text-stone-300 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Toggle navigation menu"
               >
-                Search
+                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
               </button>
-            </form>
+            </div>
 
-            {/* Quick Autocomplete Suggestions Dropdown */}
-            {searchFocused && (
-              <div
-                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-stone-200 p-4 z-50 space-y-3"
-                onMouseDown={(e) => e.preventDefault()}
+            {/* Brand Logo & Mountain Wordmark */}
+            <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3 select-none">
+              <img
+                src="/logo-white.png"
+                alt="Wangs"
+                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              />
+              <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.12em] leading-none text-white uppercase group-hover:text-stone-200 transition-colors">
+                Wangs
+              </span>
+            </Link>
+
+            {/* Desktop Center Navigation Links */}
+            <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-xs font-semibold tracking-wide">
+              <Link
+                to="/"
+                className={`pb-1 transition-colors ${
+                  location.pathname === '/'
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-stone-300 hover:text-white'
+                }`}
               >
-                <div className="flex justify-between items-center text-stone-400 text-[10px] font-bold uppercase tracking-wider">
-                  <span>Popular Artisanal Cures</span>
-                  <button onClick={() => setSearchFocused(false)} className="text-stone-400 hover:text-stone-600">
-                    <X size={14} />
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    'King Chilli (Bhut Jolokia)',
-                    'Shredded Chicken Pickle',
-                    'Prawn Fusion Pickle',
-                    'Bastenga Bamboo Shoot',
-                    'Fermented Axone Soya',
-                    'Wild Mountain Apple',
-                  ].map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => handleQuickSearch(tag)}
-                      className="px-3 py-1 bg-stone-100 hover:bg-red-600 hover:text-white rounded-full text-stone-700 transition-colors text-[11px] font-medium"
-                    >
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+                Home
+              </Link>
+              <Link
+                to="/products"
+                className={`pb-1 transition-colors ${
+                  location.pathname === '/products'
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-stone-300 hover:text-white'
+                }`}
+              >
+                Shop
+              </Link>
+              <Link
+                to="/brands"
+                className={`pb-1 transition-colors ${
+                  location.pathname === '/brands'
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-stone-300 hover:text-white'
+                }`}
+              >
+                Our Producers
+              </Link>
+              <Link
+                to="/about"
+                className={`pb-1 transition-colors ${
+                  location.pathname === '/about'
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-stone-300 hover:text-white'
+                }`}
+              >
+                About
+              </Link>
+              <Link
+                to="/contact"
+                className={`pb-1 transition-colors ${
+                  location.pathname === '/contact'
+                    ? 'text-white border-b-2 border-white font-bold'
+                    : 'text-stone-300 hover:text-white'
+                }`}
+              >
+                Contact
+              </Link>
+            </nav>
 
-          {/* Right Action Icons */}
-          <div className="flex items-center gap-2 sm:gap-2.5">
-            {/* Mobile Actions: Circular Profile Logo & Circular Cart */}
-            <div className="flex md:hidden items-center gap-2">
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setMobileProfileOpen(!mobileProfileOpen)}
-                  className="w-9 h-9 rounded-full bg-white border border-stone-200 shadow-2xs flex items-center justify-center text-stone-700 hover:text-stone-900 active:scale-95 transition-all"
-                  aria-label="User Profile"
-                  title={user ? `${user.first_name || user.username}` : 'Profile & Account'}
-                >
-                  <User size={18} className="text-stone-700" />
-                </button>
+            {/* Right Action Cluster: Search Icon, Cart, Sign In Pill */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Search Toggle Button */}
+              <button
+                type="button"
+                onClick={() => setSearchOpen(!searchOpen)}
+                className="p-2 rounded-full text-stone-300 hover:text-white hover:bg-white/10 transition-colors"
+                aria-label="Search catalog"
+                title="Search"
+              >
+                <Search size={18} />
+              </button>
 
-                {/* Mobile Profile Dropdown (User Info, Track Item, Logout) */}
-                {mobileProfileOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40 bg-black/15"
-                      onClick={() => setMobileProfileOpen(false)}
-                    />
-                    <div className="absolute right-0 top-11 w-64 bg-white rounded-2xl shadow-2xl border border-stone-200 z-50 overflow-hidden text-xs animate-in fade-in zoom-in-95">
-                      {/* User Info */}
-                      {user ? (
-                        <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
-                            {(user.first_name || user.username || 'U')[0].toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-bold text-stone-900 truncate">
-                              {user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : user.username}
-                            </p>
-                            <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 space-y-2">
-                          <p className="font-bold text-stone-900">Welcome to Wangs</p>
-                          <p className="text-[11px] text-stone-500">Sign in to track orders and save your address</p>
-                          <Link
-                            to="/login"
-                            onClick={() => setMobileProfileOpen(false)}
-                            className="block text-center w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-2xs"
-                          >
-                            Sign In / Register
-                          </Link>
-                        </div>
-                      )}
-
-                      {/* Track Item & Orders */}
-                      <Link
-                        to="/account"
-                        onClick={() => setMobileProfileOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-stone-800 hover:bg-stone-50 transition-colors font-medium border-b border-stone-100"
-                      >
-                        <Package size={16} className="text-red-600 shrink-0" />
-                        <div className="min-w-0">
-                          <p className="font-semibold text-stone-900">Track Item & Orders</p>
-                          <p className="text-[10px] text-stone-500">Live order shipment status</p>
-                        </div>
-                      </Link>
-
-                      {/* Seller space if registered */}
-                      {isManufacturer ? (
-                        <Link
-                          to="/manufacturer"
-                          onClick={() => setMobileProfileOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-red-600 font-bold hover:bg-stone-50 transition-colors border-b border-stone-100"
-                        >
-                          <Store size={15} className="text-red-600 shrink-0" />
-                          <span>Seller Dashboard</span>
-                        </Link>
-                      ) : null}
-
-                      {/* Logout */}
-                      {user && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMobileProfileOpen(false);
-                            logout();
-                            navigate('/');
-                          }}
-                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors font-semibold"
-                        >
-                          <LogOut size={15} className="shrink-0" />
-                          <span>Sign Out</span>
-                        </button>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-
+              {/* Shopping Cart Pill Button */}
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="relative w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform hover:bg-red-700"
+                className="relative p-2 rounded-full text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 aria-label={`Shopping Basket with ${itemsCount} items`}
+                title="Cart"
               >
-                <ShoppingBag size={17} className="text-white" />
+                <ShoppingBag size={20} className="text-white" />
                 {itemsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-amber-400 text-stone-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-white shadow-xs">
+                  <span className="absolute top-0 right-0 min-w-[17px] h-[17px] px-1 bg-[#85191e] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center border border-[#151312] shadow-xs">
                     {itemsCount > 99 ? '99+' : itemsCount}
                   </span>
                 )}
               </button>
-            </div>
 
-            {/* Desktop Actions */}
-            <div className="hidden md:flex items-center gap-2 sm:gap-2.5">
-              {/* Homepage Link Button */}
-              <Link
-                to="/"
-                className="flex items-center justify-center p-2 sm:px-3 sm:py-2 rounded-xl text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs active:scale-95"
-                aria-label="Home"
-                title="Home"
-              >
-                <Home size={16} className="text-red-600" />
-                <span className="hidden sm:inline text-xs font-bold ml-1.5">Home</span>
-              </Link>
-
-              {/* User Account / Sign In */}
-              <div className="flex items-center gap-2">
-                {/* Direct Seller Space button for logged-in registered sellers */}
-                {isRegisteredSellerUser && (
-                  <Link
-                    to="/manufacturer"
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
-                    title="Artisan Seller Space"
-                  >
-                    <Store size={14} className="text-amber-600" />
-                    <span>Seller Space</span>
-                  </Link>
-                )}
-
+              {/* Sign In / User Profile Dropdown */}
+              <div className="relative">
                 {user ? (
-                  <div className="relative">
+                  <>
                     <button
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-colors border border-stone-200"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-[#f5e6d3] text-stone-900 hover:bg-white transition-all shadow-sm"
                     >
-                      <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-[10px]">
+                      <div className="w-5 h-5 rounded-full bg-[#85191e] text-white flex items-center justify-center font-bold text-[10px]">
                         {(user.first_name || user.username || 'U')[0].toUpperCase()}
                       </div>
                       <span className="hidden sm:inline">{user.first_name || user.username}</span>
-                      <ChevronDown size={13} className="text-stone-400" />
+                      <ChevronDown size={13} className="text-stone-600" />
                     </button>
 
                     {userDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-stone-200 py-2 z-50 text-xs">
-                        <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50">
-                          <p className="font-bold text-stone-900">{user.first_name} {user.last_name}</p>
-                          <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
+                      <div className="absolute right-0 mt-2 w-56 bg-stone-900 rounded-2xl shadow-2xl border border-white/15 py-2 z-50 text-xs text-white">
+                        <div className="px-4 py-2.5 border-b border-white/10 bg-stone-950/60">
+                          <p className="font-bold text-white">{user.first_name} {user.last_name}</p>
+                          <p className="text-stone-400 truncate text-[11px]">{user.email}</p>
                         </div>
 
                         <Link
                           to="/account"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-stone-700 hover:bg-stone-100 transition-colors font-medium"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-stone-300 hover:bg-white/10 hover:text-white transition-colors font-medium"
                         >
-                          <Package size={15} className="text-red-600" /> My Orders & Addresses
+                          <Package size={15} className="text-[#dc4437]" /> My Orders &amp; Addresses
                         </Link>
 
                         {isManufacturer ? (
                           <Link
                             to="/manufacturer"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-red-600 font-bold hover:bg-stone-100 transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-amber-300 font-bold hover:bg-white/10 transition-colors"
                           >
-                            <Store size={15} className="text-red-600" /> Seller Dashboard
-                          </Link>
-                        ) : isAuthorizedToSell ? (
-                          <Link
-                            to="/manufacturer/register"
-                            onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-red-600 font-bold hover:bg-stone-100 transition-colors"
-                          >
-                            <Store size={15} className="text-red-600" /> Sell with Us
+                            <Store size={15} className="text-amber-400" /> Seller Dashboard
                           </Link>
                         ) : null}
 
@@ -374,161 +287,217 @@ export default function Navbar() {
                             logout();
                             navigate('/');
                           }}
-                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-stone-600 hover:bg-red-50 hover:text-red-700 border-t border-stone-100 mt-1 transition-colors"
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-red-400 hover:bg-red-950/40 border-t border-white/10 mt-1 transition-colors"
                         >
                           <LogOut size={15} /> Sign Out
                         </button>
                       </div>
                     )}
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center gap-1.5 sm:gap-2">
-                    {/* Keep this button to sellers only who have registered else don't */}
-                    {isRegisteredSellerDevice && (
-                      <Link
-                        to="/manufacturer/login"
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-all border border-stone-200/90 shadow-2xs"
-                        title="Artisan Seller Portal & Login"
-                      >
-                        <Store size={14} className="text-amber-600" />
-                        <span>Seller Login</span>
-                      </Link>
-                    )}
-                    <Link
-                      to="/login"
-                      className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
-                    >
-                      <User size={15} className="text-red-600" />
-                      <span className="hidden sm:inline">Sign In</span>
-                    </Link>
-                  </div>
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 bg-[#f5e6d3] hover:bg-white text-stone-950 font-bold text-xs rounded-full shadow-md transition-all active:scale-95"
+                  >
+                    <User size={14} className="text-stone-900" />
+                    <span>Sign In</span>
+                  </Link>
                 )}
               </div>
-
-              {/* Desktop Shopping Basket Button - Food Delivery Style Red Button */}
-              <button
-                onClick={() => setIsDrawerOpen(true)}
-                className="group relative px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 flex items-center gap-2 transition-all active:scale-95"
-                aria-label={`Shopping Basket with ${itemsCount} items`}
-              >
-                <div className="relative">
-                  <ShoppingBag size={17} className="text-white group-hover:scale-110 transition-transform" />
-                  {itemsCount > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-stone-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-white shadow-xs animate-scale-up">
-                      {itemsCount > 99 ? '99+' : itemsCount}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs font-bold tracking-tight">
-                  Cart
-                </span>
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Search Bar (Only shown on non-homepage, as mobile homepage features the hero search input matching screenshot) */}
-        {location.pathname !== '/' && (
-          <div className="md:hidden pb-2.5 pt-0.5">
-            <form onSubmit={handleSearch} className="relative w-full">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search king chilli, shredded chicken, pickles..."
-                className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-red-600 focus:bg-white shadow-2xs font-medium"
-              />
-              <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
-              {searchQuery && (
+        {/* Search Popover Drawer (when search icon is toggled) */}
+        {searchOpen && (
+          <div className="border-t border-white/10 bg-[#191716] px-4 py-3 sm:py-4 transition-all animate-in fade-in slide-in-from-top-2">
+            <div className="max-w-2xl mx-auto space-y-2">
+              <form onSubmit={handleSearch} className="relative w-full">
+                <input
+                  type="text"
+                  autoFocus
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search bamboo shoot, king chilli, shredded beef, pork pickles..."
+                  className="w-full pl-11 pr-24 py-2.5 bg-black/40 border border-white/20 rounded-full text-xs text-white placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#85191e] focus:border-transparent font-medium"
+                />
+                <Search size={16} className="absolute left-4 top-3 text-stone-400" />
                 <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-12 top-2.5 text-stone-400 hover:text-stone-600 p-0.5"
-                  aria-label="Clear search query"
+                  type="submit"
+                  className="absolute right-1.5 top-1 px-4 py-1.5 bg-[#85191e] hover:bg-[#9c1e24] text-white text-xs font-bold rounded-full transition-colors"
                 >
-                  <X size={13} />
+                  Search
                 </button>
-              )}
-              <button
-                type="submit"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-full shadow-2xs active:scale-95 transition-transform"
-              >
-                Go
-              </button>
-            </form>
+              </form>
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-stone-400 pt-1">
+                <span>Quick:</span>
+                {[
+                  'Bamboo Shoot',
+                  'King Chilli',
+                  'Shredded Beef',
+                  'Smoked Pork',
+                  'Fermented Soya (Axone)',
+                ].map((term) => (
+                  <button
+                    key={term}
+                    type="button"
+                    onClick={() => handleQuickSearch(term)}
+                    className="px-2.5 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-stone-300 border border-white/10 transition-colors"
+                  >
+                    {term}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
-        {/* 3. Refined Artisanal Navigation Ribbon */}
-        <nav className={`relative z-10 items-center justify-between border-t border-stone-200/70 py-2 sm:py-2.5 text-xs font-medium text-stone-600 gap-3 ${location.pathname === '/' ? 'hidden md:flex' : 'flex'}`}>
-          {/* Left: Dietary Filters (Responsive & fluid on mobile) */}
-          <div className="w-full lg:w-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
-            <Link
-              to="/products"
-              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
-                !searchParams.get('dietary_type') && !searchParams.get('category') && !searchParams.get('search')
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
-              }`}
-            >
-              <span className="sm:hidden">All</span>
-              <span className="hidden sm:inline">All Pickles</span>
-            </Link>
+        {/* Mobile Slide-Out Menu Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/10 bg-[#161413] px-5 py-5 space-y-4 animate-in fade-in slide-in-from-top-2">
+            <nav className="flex flex-col space-y-3 text-sm font-semibold">
+              <Link
+                to="/"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`py-1.5 transition-colors ${
+                  location.pathname === '/' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                }`}
+              >
+                Home
+              </Link>
+              <Link
+                to="/products"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`py-1.5 transition-colors ${
+                  location.pathname === '/products' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                }`}
+              >
+                Shop All Pickles
+              </Link>
+              <Link
+                to="/brands"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`py-1.5 transition-colors ${
+                  location.pathname === '/brands' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                }`}
+              >
+                Our Producers &amp; Brands
+              </Link>
+              <Link
+                to="/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`py-1.5 transition-colors ${
+                  location.pathname === '/about' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                }`}
+              >
+                About Wangs
+              </Link>
+              <Link
+                to="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`py-1.5 transition-colors ${
+                  location.pathname === '/contact' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                }`}
+              >
+                Contact &amp; Support
+              </Link>
+              <Link
+                to="/account"
+                onClick={() => setMobileMenuOpen(false)}
+                className="py-1.5 text-stone-200 flex items-center justify-between"
+              >
+                <span>Track My Orders</span>
+                <Package size={15} className="text-stone-400" />
+              </Link>
+            </nav>
 
-            <Link
-              to="/products?dietary_type=NON_VEG"
-              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
-                searchParams.get('dietary_type') === 'NON_VEG'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
-              }`}
-            >
-              Non-Veg
-            </Link>
-
-            <Link
-              to="/products?dietary_type=VEG"
-              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
-                searchParams.get('dietary_type') === 'VEG'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
-              }`}
-            >
-              Veg
-            </Link>
-
-            <Link
-              to="/products?dietary_type=VEG_MIXED"
-              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
-                searchParams.get('dietary_type') === 'VEG_MIXED'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
-              }`}
-            >
-              <span className="sm:hidden">Veg Mixed</span>
-              <span className="hidden sm:inline">Veg mixed with Non-Veg</span>
-            </Link>
+            <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+              {user ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#85191e] text-white flex items-center justify-center font-bold text-xs">
+                    {(user.first_name || user.username || 'U')[0].toUpperCase()}
+                  </div>
+                  <span className="text-xs font-bold text-white">{user.first_name || user.username}</span>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full text-center py-2.5 bg-[#f5e6d3] text-stone-950 font-bold rounded-full text-xs shadow-md"
+                >
+                  Sign In / Register
+                </Link>
+              )}
+            </div>
           </div>
+        )}
 
-          {/* Right: Quick Curated Storefront Shortcuts (Desktop) */}
-          <div className="hidden lg:flex items-center gap-5 text-xs text-stone-600 flex-shrink-0">
-            <Link
-              to="/brands"
-              className="flex items-center gap-1.5 text-stone-700 hover:text-red-600 transition-colors font-semibold"
-            >
-              <Store size={13} className="text-red-600" />
-              <span>Artisan Brands</span>
-            </Link>
+        {/* 3. Secondary Dietary Ribbon (Shown on catalog / product pages) */}
+        {location.pathname !== '/' && (
+          <nav className="border-t border-white/10 py-2 sm:py-2.5 text-xs font-medium text-stone-300 bg-[#12100f]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
+                <Link
+                  to="/products"
+                  className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
+                    !searchParams.get('dietary_type') && !searchParams.get('category') && !searchParams.get('search')
+                      ? 'bg-[#85191e] text-white'
+                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                  }`}
+                >
+                  All Pickles
+                </Link>
+                <Link
+                  to="/products?dietary_type=NON_VEG"
+                  className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
+                    searchParams.get('dietary_type') === 'NON_VEG'
+                      ? 'bg-[#85191e] text-white'
+                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                  }`}
+                >
+                  Non-Veg
+                </Link>
+                <Link
+                  to="/products?dietary_type=VEG"
+                  className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
+                    searchParams.get('dietary_type') === 'VEG'
+                      ? 'bg-[#85191e] text-white'
+                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                  }`}
+                >
+                  Veg
+                </Link>
+                <Link
+                  to="/products?dietary_type=VEG_MIXED"
+                  className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
+                    searchParams.get('dietary_type') === 'VEG_MIXED'
+                      ? 'bg-[#85191e] text-white'
+                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                  }`}
+                >
+                  Veg Mixed
+                </Link>
+              </div>
 
-            <Link
-              to="/products?bestsellers=true"
-              className="flex items-center gap-1.5 text-stone-700 hover:text-red-600 transition-colors font-semibold"
-            >
-              <Sparkles size={13} className="text-amber-500" />
-              <span>Bestsellers</span>
-            </Link>
-          </div>
-        </nav>
+              <div className="hidden lg:flex items-center gap-5 text-xs text-stone-400">
+                <Link
+                  to="/brands"
+                  className="flex items-center gap-1.5 hover:text-white transition-colors"
+                >
+                  <Store size={13} className="text-[#dc4437]" />
+                  <span>Artisan Producers</span>
+                </Link>
+                <Link
+                  to="/products?bestsellers=true"
+                  className="flex items-center gap-1.5 hover:text-white transition-colors"
+                >
+                  <Sparkles size={13} className="text-amber-400" />
+                  <span>Bestsellers</span>
+                </Link>
+              </div>
+            </div>
+          </nav>
+        )}
       </div>
     </header>
   );
