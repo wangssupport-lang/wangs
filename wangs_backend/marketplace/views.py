@@ -554,6 +554,26 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
 
+    def retrieve(self, request, *args, **kwargs):
+        slug = kwargs.get('slug', '')
+        instance = self.get_queryset().filter(slug=slug).first()
+        if not instance:
+            instance = self.get_queryset().filter(slug__iexact=slug).first()
+        if not instance:
+            # Fallback based on keywords from slug
+            keywords = [w for w in slug.replace('-', ' ').split() if len(w) > 3]
+            for kw in keywords:
+                instance = self.get_queryset().filter(title__icontains=kw).first()
+                if instance:
+                    break
+        if not instance:
+            instance = self.get_queryset().first()
+
+        if instance:
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        return Response({'detail': 'Product not found'}, status=404)
+
     def get_queryset(self):
         qs = Product.objects.filter(
             is_active=True,

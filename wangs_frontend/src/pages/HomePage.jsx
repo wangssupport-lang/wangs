@@ -152,6 +152,89 @@ export default function HomePage() {
     return curated;
   }, [dealProducts, allProducts]);
 
+  const displayCuratedBestsellers = useMemo(() => {
+    if (bestsellers && bestsellers.length > 0) {
+      return bestsellers.slice(0, 6);
+    }
+    if (allProducts && allProducts.length > 0) {
+      return allProducts.slice(0, 6);
+    }
+    return [
+      {
+        id: 6,
+        title: "Arenla's Signature Smoked Pork & King Chilli Pickle",
+        slug: "arenla-signature-smoked-pork-king-chilli-pickle",
+        price: 380,
+        mrp: 420,
+        weight_grams: 250,
+        primary_image_url: "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=80",
+        manufacturer: { business_name: "Arenla's Kitchen" },
+        badge: "BESTSELLER",
+        average_rating: 4.9,
+      },
+      {
+        id: 7,
+        title: "Smoked Pork & Axone (Fermented Soybean) Pickle",
+        slug: "smoked-pork-axone-fermented-soybean-pickle",
+        price: 390,
+        mrp: 430,
+        weight_grams: 250,
+        primary_image_url: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&w=800&q=80",
+        manufacturer: { business_name: "Nagaland Heritage" },
+        badge: "45-DAY CURE",
+        average_rating: 4.8,
+      },
+      {
+        id: 8,
+        title: "Pure Raja Mircha (King Chilli) Pickle",
+        slug: "pure-raja-mircha-king-chilli-pickle",
+        price: 250,
+        mrp: 280,
+        weight_grams: 200,
+        primary_image_url: "https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=800&q=80",
+        manufacturer: { business_name: "Dzüko Valley" },
+        badge: "FIERY HOT",
+        average_rating: 4.9,
+      },
+      {
+        id: 14,
+        title: "Prawn Fusion & King Chilli Homemade Pickle",
+        slug: "prawn-fusion-king-chilli-homemade-pickle",
+        price: 420,
+        mrp: 480,
+        weight_grams: 250,
+        primary_image_url: "https://images.unsplash.com/photo-1559742811-822873691df8?auto=format&fit=crop&w=800&q=80",
+        manufacturer: { business_name: "Kohima Coastal" },
+        badge: "COASTAL",
+        average_rating: 4.9,
+      },
+      {
+        id: 9,
+        title: "Wild Fermented Bamboo Shoot (Bastenga) Pickle",
+        slug: "wild-fermented-bamboo-shoot-pickle",
+        price: 220,
+        mrp: 250,
+        weight_grams: 250,
+        primary_image_url: "/images/hero/bamboo_shoot_pickle_signature.jpg",
+        manufacturer: { business_name: "Hills Pantry" },
+        badge: "ZERO OIL",
+        average_rating: 4.8,
+      },
+      {
+        id: 11,
+        title: "Wild Hill Apple & King Chilli Sweet-Spicy Pickle",
+        slug: "wild-hill-apple-king-chilli-pickle",
+        price: 230,
+        mrp: 260,
+        weight_grams: 250,
+        primary_image_url: "https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=800&q=80",
+        manufacturer: { business_name: "Nagaland Heritage" },
+        badge: "IMMUNITY",
+        average_rating: 4.8,
+      },
+    ];
+  }, [bestsellers, allProducts]);
+
   const handleQuickAdd = async (e, title, id = null) => {
     e.preventDefault();
     e.stopPropagation();
@@ -649,7 +732,7 @@ export default function HomePage() {
 
             {/* 3x2 Grid */}
             <div className="grid grid-cols-3 gap-6">
-              {desktopCurated.map((product) => (
+              {(bestsellers && bestsellers.length > 0 ? bestsellers.slice(0, 6) : desktopCurated).map((product) => (
                 <ProductCard key={product.id} product={product} />
               ))}
             </div>
@@ -1246,305 +1329,95 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
-            {/* Item 1: Traditional Cut Raw Mango Avakaya */}
-            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_20_91c854d291.jpg"
-                    alt="Traditional Cut Raw Mango Avakaya"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
-                    <span className="px-1.5 py-0.5 rounded bg-primary text-on-primary font-label-sm text-[9px] font-bold shadow-xs">
-                      BESTSELLER
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">favorite</span>
-                  </button>
-                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
-                    <span>🌶️🌶️🌶️🌶️</span>
-                  </div>
-                </div>
+            {displayCuratedBestsellers.map((item) => {
+              const weight = item.weight_grams ? `${item.weight_grams}g Pot` : '350g Pot';
+              const price = Math.round(Number(item.price) || 0);
+              const mrp = item.mrp ? Math.round(Number(item.mrp)) : null;
+              const hasDiscount = mrp && mrp > price;
+              const discountPercent = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : 0;
+              const imgUrl = item.primary_image_url || item.images?.[0]?.image_url || '/images/hero/dried_beef_pickle_signature.jpg';
+              const rating = item.average_rating ? Number(item.average_rating).toFixed(1) : (item.rating || '4.9');
+              const brandName = item.manufacturer?.business_name || 'Artisan Direct';
+              const productSlug = item.slug;
+              const badgeText = item.badge || (item.is_bestseller ? 'BESTSELLER' : (hasDiscount ? `${discountPercent}% OFF` : 'ARTISAN'));
 
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
-                      Annapurna <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                    </span>
-                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
-                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
-                    </div>
-                  </div>
-                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
-                    Traditional Cut Raw Mango Avakaya
-                  </h3>
-                  <span className="font-body-sm text-[10px] text-tertiary truncate">500g Glass Pot</span>
-                </div>
-              </div>
-
-              <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹320</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹400</span>
-                  </div>
-                  <span className="font-label-sm text-[9px] text-error font-bold">20% off</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Traditional Cut Raw Mango Avakaya', 1)}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
+              return (
+                <article
+                  key={item.id || item.slug}
+                  className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between hover:border-primary/40 transition-all group"
                 >
-                  <span className="material-symbols-outlined text-[14px]">add</span> Add
-                </button>
-              </div>
-            </article>
-
-            {/* Item 2: Sun-Dried Bharwa Lal Mirch */}
-            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_25_1986794434.jpg"
-                    alt="Sun-Dried Bharwa Lal Mirch"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
-                    <span className="px-1.5 py-0.5 rounded bg-secondary-container text-on-secondary-container font-label-sm text-[9px] font-bold shadow-xs">
-                      45-DAY CURE
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">favorite</span>
-                  </button>
-                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
-                    <span>🌶️🌶️🌶️</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
-                      Ganga Heritage <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                    </span>
-                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
-                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
+                  <Link to={`/product/${productSlug}`} className="block">
+                    <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
+                      <img
+                        src={imgUrl}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = '/images/hero/dried_beef_pickle_signature.jpg';
+                        }}
+                      />
+                      <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
+                        <span className="px-1.5 py-0.5 rounded bg-primary text-on-primary font-label-sm text-[9px] font-bold shadow-xs">
+                          {badgeText}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Wishlist"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          toast.success('Saved to your spice cellar');
+                        }}
+                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                      >
+                        <span className="material-symbols-outlined text-[15px]">favorite</span>
+                      </button>
+                      <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
+                        <span>🌶️🌶️🌶️</span>
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
-                    Sun-Dried Bharwa Lal Mirch
-                  </h3>
-                  <span className="font-body-sm text-[10px] text-tertiary truncate">450g Ceramic Pot</span>
-                </div>
-              </div>
 
-              <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹385</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹450</span>
-                  </div>
-                  <span className="font-label-sm text-[9px] text-error font-bold">14% off</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Sun-Dried Bharwa Lal Mirch', 2)}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-                >
-                  <span className="material-symbols-outlined text-[14px]">add</span> Add
-                </button>
-              </div>
-            </article>
-
-            {/* Item 3: Kachi Haldi Turmeric Root Pickle */}
-            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_9_df068d00ff.jpg"
-                    alt="Kachi Haldi Turmeric Root Pickle"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
-                    <span className="px-1.5 py-0.5 rounded bg-tertiary text-on-tertiary font-label-sm text-[9px] font-bold shadow-xs">
-                      IMMUNITY
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">favorite</span>
-                  </button>
-                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
-                    <span>🌶️🌶️</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
-                      Marwar Org <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                    </span>
-                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
-                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.7
+                    <div className="mt-2 flex flex-col gap-0.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
+                          {brandName} <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                        </span>
+                        <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
+                          <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {rating}
+                        </div>
+                      </div>
+                      <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface group-hover:text-primary transition-colors">
+                        {item.title}
+                      </h3>
+                      <span className="font-body-sm text-[10px] text-tertiary truncate">{weight}</span>
                     </div>
-                  </div>
-                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
-                    Kachi Haldi Turmeric Root Pickle
-                  </h3>
-                  <span className="font-body-sm text-[10px] text-tertiary truncate">350g Glass Jar</span>
-                </div>
-              </div>
+                  </Link>
 
-              <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹295</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹360</span>
-                  </div>
-                  <span className="font-label-sm text-[9px] text-error font-bold">18% off</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Kachi Haldi Turmeric Root Pickle', 3)}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-                >
-                  <span className="material-symbols-outlined text-[14px]">add</span> Add
-                </button>
-              </div>
-            </article>
-
-            {/* Item 4: Kerala King Fish (Meen) Achar */}
-            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_29_49dca0be64.jpg"
-                    alt="Kerala King Fish (Meen) Achar"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
-                    <span className="px-1.5 py-0.5 rounded bg-primary-container text-on-primary-container font-label-sm text-[9px] font-bold shadow-xs">
-                      COASTAL
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">favorite</span>
-                  </button>
-                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
-                    <span>🌶️🌶️🌶️🌶️</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
-                      Malabar Kitc <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                    </span>
-                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
-                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.9
+                  <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
+                    <div className="flex items-baseline justify-between">
+                      <div className="flex items-baseline gap-1">
+                        <span className="font-title-lg text-sm font-bold text-primary">₹{price}</span>
+                        {mrp && mrp > price && (
+                          <span className="font-body-sm text-[10px] text-outline line-through">₹{mrp}</span>
+                        )}
+                      </div>
+                      {hasDiscount && (
+                        <span className="font-label-sm text-[9px] text-error font-bold">{discountPercent}% off</span>
+                      )}
                     </div>
+                    <button
+                      type="button"
+                      onClick={(e) => handleQuickAdd(e, item.title, item.id)}
+                      className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">add</span> Add
+                    </button>
                   </div>
-                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
-                    Kerala King Fish (Meen) Achar
-                  </h3>
-                  <span className="font-body-sm text-[10px] text-tertiary truncate">300g Vacuum Glass</span>
-                </div>
-              </div>
-
-              <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹449</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹520</span>
-                  </div>
-                  <span className="font-label-sm text-[9px] text-error font-bold">13% off</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Kerala King Fish (Meen) Achar', 4)}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-                >
-                  <span className="material-symbols-outlined text-[14px]">add</span> Add
-                </button>
-              </div>
-            </article>
-
-            {/* Item 5: Sweet Lime & Lemon Chunda */}
-            <article className="bg-surface-container-lowest rounded-xl p-2 shadow-xs border border-outline-variant/30 flex flex-col justify-between">
-              <div>
-                <div className="relative w-full h-36 rounded-lg overflow-hidden bg-surface-container">
-                  <img
-                    src="/images/stitch/stitch_13_ce5bb9d20e.jpg"
-                    alt="Sweet Lime & Lemon Chunda"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-1.5 left-1.5 flex flex-col gap-0.5 items-start">
-                    <span className="px-1.5 py-0.5 rounded bg-secondary-fixed text-on-secondary-fixed font-label-sm text-[9px] font-bold shadow-xs">
-                      ZERO OIL
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    aria-label="Wishlist"
-                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
-                  >
-                    <span className="material-symbols-outlined text-[15px]">favorite</span>
-                  </button>
-                  <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
-                    <span>🌶️</span>
-                  </div>
-                </div>
-
-                <div className="mt-2 flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
-                      Kathiyawad <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
-                    </span>
-                    <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
-                      <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> 4.8
-                    </div>
-                  </div>
-                  <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface">
-                    Sweet Lime &amp; Lemon Chunda
-                  </h3>
-                  <span className="font-body-sm text-[10px] text-tertiary truncate">400g Glass Jar</span>
-                </div>
-              </div>
-
-              <div className="mt-2 pt-1 border-t border-outline-variant/30 flex flex-col gap-1.5">
-                <div className="flex items-baseline justify-between">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-title-lg text-sm font-bold text-primary">₹260</span>
-                    <span className="font-body-sm text-[10px] text-outline line-through">₹310</span>
-                  </div>
-                  <span className="font-label-sm text-[9px] text-error font-bold">16% off</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={(e) => handleQuickAdd(e, 'Sweet Lime & Lemon Chunda', 5)}
-                  className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs"
-                >
-                  <span className="material-symbols-outlined text-[14px]">add</span> Add
-                </button>
-              </div>
-            </article>
+                </article>
+              );
+            })}
           </div>
         </section>
 
