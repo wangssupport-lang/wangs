@@ -7,6 +7,20 @@ export default {
   theme: {
     extend: {
       colors: {
+        'forest-rich': '#0B2417',
+        'amber-vibrant': '#F59E0B',
+        'charcoal-ink': '#1C1917',
+        'surface': '#FAF9F6',
+        'surface-cream': '#FAF9F6',
+        'surface-crisp': '#FFFFFF',
+        'surface-container': '#efeeeb',
+        'surface-container-low': '#f4f3f1',
+        'surface-container-high': '#e9e8e5',
+        'surface-container-highest': '#e3e2e0',
+        'surface-dim': '#dbdad7',
+        'border-subtle': '#E7E5E4',
+        'badge-green-bg': '#ECFDF5',
+        'badge-green-text': '#059669',
         forest: {
           50: '#f1f7f4',
           100: '#dfede6',
@@ -51,8 +65,9 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['Fraunces', '"Playfair Display"', 'Georgia', 'serif'],
-        display: ['"Playfair Display"', 'Fraunces', 'serif'],
+        newsreader: ['Newsreader', 'Georgia', 'serif'],
+        serif: ['Newsreader', 'Fraunces', '"Playfair Display"', 'Georgia', 'serif'],
+        display: ['Newsreader', '"Playfair Display"', 'Fraunces', 'serif'],
         brand: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
         cinzel: ['Cinzel', 'serif'],
         syne: ['Syne', 'sans-serif'],
