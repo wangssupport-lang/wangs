@@ -23,13 +23,13 @@ export default function Footer() {
   return (
     <footer className="w-full bg-surface-container-high text-on-surface mt-16 border-t border-outline-variant/30">
       {/* Heritage Producer Program Banner */}
-      <div className="bg-primary-container text-on-primary-container py-10 px-4 sm:px-6">
+      <div className="bg-[#9b4100] text-white py-10 px-4 sm:px-6 shadow-sm">
         <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="max-w-xl text-center md:text-left">
-            <span className="font-label-md text-xs bg-surface/20 text-white px-3 py-1 rounded-full inline-block mb-2 font-bold tracking-wide">
+            <span className="font-label-md text-xs bg-white/20 text-white px-3 py-1 rounded-full inline-block mb-2 font-bold tracking-wide">
               Heritage Producer Guild
             </span>
-            <h3 className="font-headline-md text-2xl sm:text-3xl font-serif text-white mb-2">
+            <h3 className="font-headline-md text-2xl sm:text-3xl font-serif text-white font-bold mb-2">
               Are you a regional pickle maker?
             </h3>
             <p className="font-body-md text-sm sm:text-base text-white/90 leading-relaxed">
@@ -40,13 +40,13 @@ export default function Footer() {
           <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto">
             <Link
               to="/manufacturer/register"
-              className="bg-surface text-primary font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-surface-bright font-bold shadow-md active:scale-95 transition-all"
+              className="bg-white text-[#9b4100] font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-stone-50 font-bold shadow-md active:scale-95 transition-all"
             >
               Register as Artisan Seller
             </Link>
             <Link
               to="/about"
-              className="bg-transparent border border-white/40 text-white font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-white/10 active:scale-95 transition-all font-semibold"
+              className="bg-transparent border border-white/60 text-white font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-white/10 active:scale-95 transition-all font-semibold"
             >
               Learn More
             </Link>
@@ -56,13 +56,15 @@ export default function Footer() {
 
       {/* Main Footer Content */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand & Newsletter Column */}
           <div className="lg:col-span-2 flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <span className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-serif font-black text-lg">
-                W
-              </span>
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo.png"
+                alt="Wangs"
+                className="h-8 w-8 object-contain"
+              />
               <span className="font-headline-md text-2xl font-serif font-bold text-primary tracking-tight">
                 Wangs
               </span>
@@ -96,40 +98,6 @@ export default function Footer() {
                 Weekly stories of grandmothers, spices & private batch tastings.
               </span>
             </div>
-          </div>
-
-          {/* Column 1: Regional Terroirs */}
-          <div>
-            <h4 className="font-title-md text-base text-on-surface font-bold mb-4">
-              Regional Terroirs
-            </h4>
-            <ul className="flex flex-col gap-2.5 font-body-md text-sm text-on-surface-variant">
-              <li>
-                <Link to="/products?search=andhra" className="hover:text-primary transition-colors">
-                  Andhra Pradesh (Guntur Chillies)
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?search=banarasi" className="hover:text-primary transition-colors">
-                  Varanasi & Awadh Achar
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?search=rajasthan" className="hover:text-primary transition-colors">
-                  Marwari Ker Sangri & Gunda
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?search=kerala" className="hover:text-primary transition-colors">
-                  Coastal Malabar Fish & Prawns
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?search=bamboo" className="hover:text-primary transition-colors">
-                  Northeast Bhut Jolokia & Bamboo
-                </Link>
-              </li>
-            </ul>
           </div>
 
           {/* Column 2: Artisanal Marketplace */}
