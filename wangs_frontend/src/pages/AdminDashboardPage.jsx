@@ -5,7 +5,8 @@ import {
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
-  Home, LogOut, Download, Copy, Check
+  Home, LogOut, Download, Copy, Check,
+  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -88,6 +89,25 @@ export default function AdminDashboardPage() {
     reason: '',
   });
 
+  // Hero Promo Banners Management State
+  const [heroBanners, setHeroBanners] = useState([]);
+  const [bannerUploading, setBannerUploading] = useState(false);
+  const [editingBannerId, setEditingBannerId] = useState(null);
+  const [bannerForm, setBannerForm] = useState({
+    title: 'The Great Achar Season',
+    subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.',
+    badge_text: 'FRESH BATCH LIVE',
+    coupon_code: 'ACHAR15',
+    cta_text: 'Shop Now',
+    cta_link: '/products?category=andhra-gongura',
+    bg_color: '#9b4100',
+    image_url: '',
+    is_active: true,
+    display_order: 0,
+  });
+  const [bannerImageFile, setBannerImageFile] = useState(null);
+  const [bannerImagePreview, setBannerImagePreview] = useState('');
+
   const checkIsAuthError = (err) => {
     const msg = (err?.message || '').toLowerCase();
     return msg.includes('permission') || msg.includes('403') || msg.includes('401') || msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not authenticated');
@@ -97,7 +117,7 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setSessionError(null);
     try {
-      const [met, mfgs, prods, ords, comm, stl, logs, usrs, reqs, subs] = await Promise.all([
+      const [met, mfgs, prods, ords, comm, stl, logs, usrs, reqs, subs, banners] = await Promise.all([
         api.getAdminMetrics().catch((err) => {
           if (checkIsAuthError(err)) throw err;
           console.warn('Metrics failed', err);
@@ -136,6 +156,7 @@ export default function AdminDashboardPage() {
         api.getAdminUsers().catch(() => []),
         api.getAdminSellerRequests().catch(() => []),
         api.getMaintenanceSubscribers().catch(() => []),
+        api.getAdminHeroBanners().catch(() => []),
       ]);
       setMetrics(met || null);
       setManufacturers(extractList(mfgs));
@@ -147,6 +168,7 @@ export default function AdminDashboardPage() {
       setUsersList(extractList(usrs));
       setSellerRequests(extractList(reqs));
       setSubscribers(extractList(subs));
+      setHeroBanners(extractList(banners));
 
       if (comm?.current) {
         setCommForm({
@@ -522,6 +544,135 @@ export default function AdminDashboardPage() {
       toast.error(err.message || 'Failed to download research file');
     } finally {
       setDownloadingResearch(null);
+    }
+  };
+
+  const handleBannerFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file (PNG, JPG, WebP)');
+      return;
+    }
+    setBannerImageFile(file);
+    setBannerImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleResetBannerForm = () => {
+    setEditingBannerId(null);
+    setBannerImageFile(null);
+    setBannerImagePreview('');
+    setBannerForm({
+      title: 'The Great Achar Season',
+      subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.',
+      badge_text: 'FRESH BATCH LIVE',
+      coupon_code: 'ACHAR15',
+      cta_text: 'Shop Now',
+      cta_link: '/products?category=andhra-gongura',
+      bg_color: '#9b4100',
+      image_url: '',
+      is_active: true,
+      display_order: 0,
+    });
+  };
+
+  const handleEditBanner = (b) => {
+    setEditingBannerId(b.id);
+    setBannerForm({
+      title: b.title || '',
+      subtitle: b.subtitle || '',
+      badge_text: b.badge_text || '',
+      coupon_code: b.coupon_code || '',
+      cta_text: b.cta_text || 'Shop Now',
+      cta_link: b.cta_link || '/products',
+      bg_color: b.bg_color || '#9b4100',
+      image_url: b.image_url || '',
+      is_active: b.is_active ?? true,
+      display_order: b.display_order ?? 0,
+    });
+    setBannerImageFile(null);
+    setBannerImagePreview(b.effective_image_url || b.image_url || b.image || '');
+  };
+
+  const handleSaveBanner = async (e) => {
+    e.preventDefault();
+    if (!bannerForm.title.trim()) {
+      toast.error('Campaign Title / Headline is required');
+      return;
+    }
+
+    setBannerUploading(true);
+    try {
+      let payload;
+      if (bannerImageFile) {
+        payload = new FormData();
+        payload.append('title', bannerForm.title);
+        payload.append('subtitle', bannerForm.subtitle);
+        payload.append('badge_text', bannerForm.badge_text);
+        payload.append('coupon_code', bannerForm.coupon_code);
+        payload.append('cta_text', bannerForm.cta_text);
+        payload.append('cta_link', bannerForm.cta_link);
+        payload.append('bg_color', bannerForm.bg_color);
+        payload.append('is_active', String(bannerForm.is_active));
+        payload.append('display_order', String(bannerForm.display_order));
+        payload.append('image', bannerImageFile);
+      } else {
+        payload = {
+          title: bannerForm.title,
+          subtitle: bannerForm.subtitle,
+          badge_text: bannerForm.badge_text,
+          coupon_code: bannerForm.coupon_code,
+          cta_text: bannerForm.cta_text,
+          cta_link: bannerForm.cta_link,
+          bg_color: bannerForm.bg_color,
+          image_url: bannerForm.image_url,
+          is_active: bannerForm.is_active,
+          display_order: bannerForm.display_order,
+        };
+      }
+
+      if (editingBannerId) {
+        await api.updateAdminHeroBanner(editingBannerId, payload);
+        toast.success(`Banner #${editingBannerId} updated successfully`);
+      } else {
+        await api.createAdminHeroBanner(payload);
+        toast.success('Hero promo banner published successfully');
+      }
+
+      const updatedBanners = await api.getAdminHeroBanners();
+      setHeroBanners(extractList(updatedBanners));
+      handleResetBannerForm();
+    } catch (err) {
+      console.error('Failed to save banner', err);
+      toast.error(err.message || 'Failed to save hero banner');
+    } finally {
+      setBannerUploading(false);
+    }
+  };
+
+  const handleToggleBannerActive = async (bannerId) => {
+    try {
+      const res = await api.toggleAdminHeroBanner(bannerId);
+      setHeroBanners((prev) =>
+        prev.map((b) => (b.id === bannerId ? { ...b, is_active: res.is_active ?? !b.is_active } : b))
+      );
+      toast.success(`Banner #${bannerId} status updated`);
+    } catch (err) {
+      toast.error('Failed to toggle banner status');
+    }
+  };
+
+  const handleDeleteBanner = async (bannerId) => {
+    if (!window.confirm(`Are you sure you want to delete banner #${bannerId}?`)) return;
+    try {
+      await api.deleteAdminHeroBanner(bannerId);
+      setHeroBanners((prev) => prev.filter((b) => b.id !== bannerId));
+      if (editingBannerId === bannerId) {
+        handleResetBannerForm();
+      }
+      toast.success(`Banner #${bannerId} deleted`);
+    } catch (err) {
+      toast.error('Failed to delete banner');
     }
   };
 
@@ -917,6 +1068,7 @@ export default function AdminDashboardPage() {
       <div className="border-b border-stone-200 mb-8 flex flex-wrap gap-3 sm:gap-4 text-xs font-bold text-stone-600">
         {[
           { id: 'metrics', label: 'Marketplace Metrics' },
+          { id: 'banners', label: `Hero Promo Banners (${heroBanners.length})` },
           {
             id: 'yet_to_approve',
             label: `Yet to be Approved (${totalYetToApprove})`,
@@ -1308,6 +1460,571 @@ export default function AdminDashboardPage() {
                 <span>Open Research Space</span>
                 <ArrowRight size={13} />
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Hero Promo Banners (Dynamic Mobile & Storefront Campaign Management) */}
+      {activeTab === 'banners' && (
+        <div className="space-y-6 text-xs">
+          {/* Header Card */}
+          <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 sm:p-7 rounded-3xl border border-forest-800 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <span className="p-3 bg-amber-400 text-forest-950 rounded-2xl shadow-sm shrink-0">
+                  <Flame size={24} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-serif font-bold text-cream-50">
+                      Hero Promo Banners &amp; Storefront Showcase
+                    </h2>
+                    <span className="px-2 py-0.5 bg-amber-400/20 text-amber-300 font-bold text-[10px] rounded-full uppercase tracking-wider">
+                      {heroBanners.length} Active / Configured
+                    </span>
+                  </div>
+                  <p className="text-xs text-cream-200/80 mt-1 max-w-2xl">
+                    Upload photos, customize headline text, coupon codes, and CTA links. Control what shoppers see on the storefront hero card in real time.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <a
+                  href="/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-4 py-2.5 rounded-xl bg-forest-800/80 hover:bg-forest-800 text-cream-100 border border-forest-700 font-bold text-xs flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                >
+                  <span>Preview Storefront</span>
+                  <ExternalLink size={13} />
+                </a>
+                <button
+                  type="button"
+                  onClick={handleResetBannerForm}
+                  className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-forest-950 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>New Banner Card</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Form & Live Mobile Preview Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Upload & Customization Suite (7 Cols) */}
+            <form
+              onSubmit={handleSaveBanner}
+              className="lg:col-span-7 bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-5"
+            >
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 bg-stone-100 rounded-lg text-forest-900">
+                    <UploadCloud size={16} />
+                  </span>
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-stone-900">
+                      {editingBannerId ? `Editing Banner #${editingBannerId}` : 'Upload & Create Hero Banner'}
+                    </h3>
+                    <p className="text-[11px] text-stone-500">
+                      Configure visual assets, discount code, and destination link
+                    </p>
+                  </div>
+                </div>
+
+                {editingBannerId && (
+                  <button
+                    type="button"
+                    onClick={handleResetBannerForm}
+                    className="text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                  >
+                    Cancel Editing
+                  </button>
+                )}
+              </div>
+
+              {/* Photo Upload Area */}
+              <div className="space-y-2">
+                <label className="block font-bold text-stone-700">
+                  Banner Background Photo (Optional Image Upload)
+                </label>
+                <div className="border-2 border-dashed border-stone-300 hover:border-forest-600 rounded-xl p-4 bg-stone-50/60 transition-colors">
+                  {bannerImagePreview ? (
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative w-36 h-20 rounded-lg overflow-hidden border border-stone-200 shrink-0 shadow-xs">
+                        <img
+                          src={bannerImagePreview}
+                          alt="Banner preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="space-y-1.5 text-center sm:text-left">
+                        <p className="font-bold text-stone-800 text-xs">Image Attached</p>
+                        <p className="text-[11px] text-stone-500">
+                          {bannerImageFile ? bannerImageFile.name : 'Image URL or Current Image'}
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <label className="px-3 py-1 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-md font-bold text-[11px] cursor-pointer shadow-2xs">
+                            Replace Photo
+                            <input
+                              type="file"
+                              accept="image/png,image/jpeg,image/webp,image/jpg"
+                              onChange={handleBannerFileSelect}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBannerImageFile(null);
+                              setBannerImagePreview('');
+                              setBannerForm((prev) => ({ ...prev, image_url: '' }));
+                            }}
+                            className="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-md font-bold text-[11px] cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-2 cursor-pointer py-3">
+                      <div className="w-10 h-10 rounded-full bg-forest-50 text-forest-800 flex items-center justify-center">
+                        <UploadCloud size={20} />
+                      </div>
+                      <div className="text-center">
+                        <span className="font-bold text-forest-900 underline">Click to select photo</span>
+                        <span className="text-stone-500"> or drag and drop</span>
+                        <p className="text-[10px] text-stone-400 mt-0.5">PNG, JPG, or WebP up to 10MB</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/jpg"
+                        onChange={handleBannerFileSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* Or Direct Image URL input */}
+              <div className="space-y-1">
+                <label className="block text-stone-600 font-semibold text-[11px]">
+                  Or External Image URL (e.g. Unsplash / Cloudinary / S3)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={bannerForm.image_url}
+                  onChange={(e) => {
+                    setBannerForm({ ...bannerForm, image_url: e.target.value });
+                    if (!bannerImageFile && e.target.value) {
+                      setBannerImagePreview(e.target.value);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+
+              {/* Title & Badge */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">
+                    Badge Pill Text <span className="text-stone-400 font-normal">(Top Tag)</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. FRESH BATCH LIVE"
+                    value={bannerForm.badge_text}
+                    onChange={(e) => setBannerForm({ ...bannerForm, badge_text: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-medium"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">
+                    Promo Coupon Code <span className="text-stone-400 font-normal">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. ACHAR15"
+                    value={bannerForm.coupon_code}
+                    onChange={(e) => setBannerForm({ ...bannerForm, coupon_code: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono font-bold tracking-wider uppercase"
+                  />
+                </div>
+              </div>
+
+              {/* Headline */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Campaign Headline / Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. The Great Achar Season"
+                  value={bannerForm.title}
+                  onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-1 focus:ring-forest-800 font-serif font-bold"
+                />
+              </div>
+
+              {/* Subtitle */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Tagline / Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars."
+                  value={bannerForm.subtitle}
+                  onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+
+              {/* CTA Button and Link */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">CTA Button Text</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Shop Now"
+                    value={bannerForm.cta_text}
+                    onChange={(e) => setBannerForm({ ...bannerForm, cta_text: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-bold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">CTA Destination Link</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. /products?category=andhra-gongura"
+                    value={bannerForm.cta_link}
+                    onChange={(e) => setBannerForm({ ...bannerForm, cta_link: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono"
+                  />
+                </div>
+              </div>
+
+              {/* Background Theme / Color Picker */}
+              <div className="space-y-2">
+                <label className="block font-bold text-stone-700">
+                  Background Theme Color (Used behind image or as fallback gradient)
+                </label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {[
+                    { name: 'Terracotta', color: '#9b4100' },
+                    { name: 'Deep Spice', color: '#78350f' },
+                    { name: 'Olive Kitchen', color: '#2c402e' },
+                    { name: 'Royal Crimson', color: '#85191e' },
+                    { name: 'Golden Mustard', color: '#b45309' },
+                    { name: 'Classic Charcoal', color: '#262626' },
+                  ].map((preset) => (
+                    <button
+                      key={preset.color}
+                      type="button"
+                      onClick={() => setBannerForm({ ...bannerForm, bg_color: preset.color })}
+                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                        bannerForm.bg_color === preset.color
+                          ? 'border-forest-900 ring-2 ring-forest-800/30 font-bold'
+                          : 'border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
+                        style={{ backgroundColor: preset.color }}
+                      />
+                      <span>{preset.name}</span>
+                    </button>
+                  ))}
+
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    <input
+                      type="color"
+                      value={bannerForm.bg_color || '#9b4100'}
+                      onChange={(e) => setBannerForm({ ...bannerForm, bg_color: e.target.value })}
+                      className="w-8 h-8 rounded-lg cursor-pointer border border-stone-300 p-0.5"
+                      title="Custom color picker"
+                    />
+                    <input
+                      type="text"
+                      value={bannerForm.bg_color}
+                      onChange={(e) => setBannerForm({ ...bannerForm, bg_color: e.target.value })}
+                      className="w-20 px-2 py-1 border border-stone-300 rounded-md text-xs font-mono uppercase"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Display Order & Active Checkbox */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">Display Order</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={bannerForm.display_order}
+                    onChange={(e) => setBannerForm({ ...bannerForm, display_order: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono"
+                  />
+                  <span className="text-[10px] text-stone-400">Lower numbers appear first (0, 1, 2...)</span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="is_active_banner"
+                    checked={bannerForm.is_active}
+                    onChange={(e) => setBannerForm({ ...bannerForm, is_active: e.target.checked })}
+                    className="w-4 h-4 text-forest-800 rounded focus:ring-forest-800 border-stone-300 cursor-pointer"
+                  />
+                  <label htmlFor="is_active_banner" className="font-bold text-stone-800 cursor-pointer select-none">
+                    Active &amp; Visible to Shoppers
+                  </label>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center gap-3 pt-3 border-t border-stone-100">
+                <button
+                  type="submit"
+                  disabled={bannerUploading}
+                  className="px-6 py-2.5 rounded-xl bg-forest-900 hover:bg-forest-800 text-cream-50 font-bold text-xs flex items-center gap-2 shadow-md disabled:opacity-50 transition-all cursor-pointer active:scale-95"
+                >
+                  {bannerUploading && <RefreshCw size={14} className="animate-spin" />}
+                  <span>{bannerUploading ? 'Publishing...' : editingBannerId ? 'Save Changes' : 'Publish to Storefront'}</span>
+                </button>
+
+                {editingBannerId && (
+                  <button
+                    type="button"
+                    onClick={handleResetBannerForm}
+                    className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-50 font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Right: Storefront Live Mobile Preview (5 Cols) */}
+            <div className="lg:col-span-5 space-y-4 lg:sticky lg:top-6">
+              <div className="bg-stone-900 text-stone-100 p-4 rounded-3xl shadow-xl border border-stone-800 space-y-3">
+                <div className="flex items-center justify-between border-b border-stone-800 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="font-bold text-xs text-stone-300">Live Mobile Card Preview</span>
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-mono">1:1 Storefront Match</span>
+                </div>
+
+                {/* Mobile Preview Frame */}
+                <div className="bg-[#121212] p-3 rounded-2xl border border-stone-800">
+                  <div
+                    className="relative w-full overflow-hidden rounded-xl shadow-lg min-h-[160px] p-4 flex flex-col justify-between text-white transition-all duration-300"
+                    style={{
+                      backgroundColor: bannerForm.bg_color || '#9b4100',
+                      backgroundImage: bannerImagePreview
+                        ? `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.25) 100%), url(${bannerImagePreview})`
+                        : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
+                    <div className="flex flex-col gap-1 z-10">
+                      {bannerForm.badge_text && (
+                        <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                          <Flame size={12} className="text-amber-300" />
+                          <span>{bannerForm.badge_text}</span>
+                        </span>
+                      )}
+                      <h2 className="font-headline-sm text-[21px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                        {bannerForm.title || 'Your Campaign Headline'}
+                      </h2>
+                      {bannerForm.subtitle && (
+                        <p className="font-body-sm text-[11px] text-white/90 max-w-[250px] leading-snug line-clamp-2 drop-shadow-xs">
+                          {bannerForm.subtitle}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between z-10 pt-3">
+                      {bannerForm.coupon_code ? (
+                        <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                          <span className="font-label-sm text-[10px] text-amber-200">CODE:</span>
+                          <span className="font-label-md text-xs font-bold text-white tracking-wider">
+                            {bannerForm.coupon_code}
+                          </span>
+                        </div>
+                      ) : <div />}
+
+                      <div className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm flex items-center gap-1 pointer-events-none">
+                        <span>{bannerForm.cta_text || 'Shop Now'}</span>
+                        <ArrowRight size={13} />
+                      </div>
+                    </div>
+
+                    {/* Indicator Dots */}
+                    <div className="absolute bottom-2.5 right-24 flex items-center gap-1 z-20">
+                      <span className="w-3.5 h-1.5 rounded-full bg-white" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-stone-400 space-y-1">
+                  <p className="flex items-center gap-1 text-emerald-400 font-bold">
+                    <Sparkles size={13} />
+                    <span>Instant Real-Time Preview</span>
+                  </p>
+                  <p className="text-[10px] text-stone-500 leading-tight">
+                    Any change to the headline, coupon, or image will render on the mobile storefront immediately upon saving.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner Library Table */}
+          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
+            <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h3 className="font-serif font-bold text-base text-stone-900">
+                  Storefront Banner Campaigns ({heroBanners.length})
+                </h3>
+                <p className="text-[11px] text-stone-500">
+                  Manage active slides, adjust order, or toggle visibility
+                </p>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-stone-50 text-stone-600 font-bold border-b border-stone-200 uppercase tracking-wider text-[10px]">
+                  <tr>
+                    <th className="py-3 px-4">Banner / Visual</th>
+                    <th className="py-3 px-4">Campaign Headline &amp; Subtitle</th>
+                    <th className="py-3 px-4">Badge &amp; Coupon</th>
+                    <th className="py-3 px-4">Target CTA</th>
+                    <th className="py-3 px-4 text-center">Order</th>
+                    <th className="py-3 px-4 text-center">Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100 font-medium">
+                  {heroBanners.map((b) => {
+                    const imgUrl = b.effective_image_url || b.image_url || b.image;
+                    return (
+                      <tr key={b.id} className="hover:bg-stone-50/70 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="w-20 h-12 rounded-lg overflow-hidden border border-stone-200 shadow-2xs relative shrink-0">
+                            {imgUrl ? (
+                              <img
+                                src={imgUrl}
+                                alt={b.title}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div
+                                className="w-full h-full flex items-center justify-center text-white font-bold text-[10px]"
+                                style={{ backgroundColor: b.bg_color || '#9b4100' }}
+                              >
+                                {b.bg_color || 'Theme'}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="max-w-xs">
+                            <p className="font-bold text-stone-900 font-serif text-sm">{b.title}</p>
+                            <p className="text-stone-500 text-[11px] truncate">{b.subtitle || '—'}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div className="space-y-1">
+                            {b.badge_text && (
+                              <span className="inline-block px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-bold text-[10px]">
+                                {b.badge_text}
+                              </span>
+                            )}
+                            {b.coupon_code && (
+                              <span className="inline-block ml-1 px-2 py-0.5 rounded bg-stone-100 font-mono font-bold text-stone-800 text-[10px]">
+                                {b.coupon_code}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          <div>
+                            <span className="font-bold text-stone-800">{b.cta_text || 'Shop Now'}</span>
+                            <p className="text-[10px] text-stone-400 font-mono truncate max-w-[140px]">{b.cta_link}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono font-bold text-stone-700">
+                          {b.display_order ?? 0}
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleBannerActive(b.id)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
+                              b.is_active
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
+                            }`}
+                          >
+                            {b.is_active ? '● Active' : '○ Hidden'}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleBannerActive(b.id)}
+                              className="p-1.5 hover:bg-stone-100 text-stone-600 hover:text-stone-900 rounded-md transition-colors cursor-pointer"
+                              title={b.is_active ? 'Hide from storefront' : 'Show on storefront'}
+                            >
+                              {b.is_active ? <Eye size={15} /> : <EyeOff size={15} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleEditBanner(b)}
+                              className="p-1.5 hover:bg-stone-100 text-forest-800 hover:text-forest-950 rounded-md transition-colors cursor-pointer"
+                              title="Edit banner"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBanner(b.id)}
+                              className="p-1.5 hover:bg-red-50 text-red-600 hover:text-red-800 rounded-md transition-colors cursor-pointer"
+                              title="Delete banner"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {heroBanners.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-stone-400">
+                        No hero banners found. Create your first banner using the form above.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

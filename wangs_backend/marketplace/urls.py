@@ -14,18 +14,20 @@ from .views import (
     AdminOrderViewSet, AdminCommissionView, AdminSettlementsView, AdminAuditLogsView,
     AdminUserViewSet, AdminSellerRequestView, PlatformSettingsView, AdminToggleSellerRegistrationView,
     AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
-    AdminResearchReportView
+    AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet
 )
 
 router = DefaultRouter()
 router.register(r'addresses', AddressViewSet, basename='address')
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'products', ProductViewSet, basename='product')
+router.register(r'hero-banners', HeroBannerViewSet, basename='hero-banner')
 router.register(r'manufacturer/products', ManufacturerProductViewSet, basename='manufacturer-product')
 router.register(r'admin/users', AdminUserViewSet, basename='admin-user')
 router.register(r'admin/manufacturers', AdminManufacturerViewSet, basename='admin-manufacturer')
 router.register(r'admin/products', AdminProductViewSet, basename='admin-product')
 router.register(r'admin/orders', AdminOrderViewSet, basename='admin-order')
+router.register(r'admin/hero-banners', AdminHeroBannerViewSet, basename='admin-hero-banner')
 
 urlpatterns = [
     # Auth & Resend Email OTP

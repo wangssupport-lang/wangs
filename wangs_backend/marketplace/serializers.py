@@ -9,7 +9,7 @@ from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog
+    ManufacturerSettlement, Coupon, AuditLog, HeroBanner
 )
 
 
@@ -607,3 +607,24 @@ class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog
         fields = '__all__'
+
+
+class HeroBannerSerializer(serializers.ModelSerializer):
+    effective_image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HeroBanner
+        fields = [
+            'id', 'title', 'subtitle', 'badge_text', 'coupon_code',
+            'cta_text', 'cta_link', 'image', 'image_url', 'effective_image_url',
+            'bg_color', 'is_active', 'display_order', 'created_at', 'updated_at'
+        ]
+
+    def get_effective_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return obj.image_url or ''
+

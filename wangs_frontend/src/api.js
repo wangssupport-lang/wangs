@@ -13,9 +13,10 @@ const DIRECT_BACKEND = isProduction ? PROD_BACKEND_URL : DEV_BACKEND_URL;
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('wangs_token');
   const sessionKey = localStorage.getItem('wangs_session_key') || '';
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...(sessionKey ? { 'X-Session-Key': sessionKey } : {}),
     ...options.headers,
@@ -196,4 +197,18 @@ export const api = {
   getSettlements: () => apiRequest('/admin/settlements/'),
   generateSettlement: (mfgId, notes = '') => apiRequest('/admin/settlements/', { method: 'POST', body: JSON.stringify({ manufacturer_id: mfgId, notes }) }),
   getAuditLogs: () => apiRequest('/admin/audit-logs/'),
+
+  // Hero Banners Management
+  getHeroBanners: () => apiRequest('/hero-banners/'),
+  getAdminHeroBanners: () => apiRequest('/admin/hero-banners/'),
+  createAdminHeroBanner: (body) => apiRequest('/admin/hero-banners/', {
+    method: 'POST',
+    body: typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body),
+  }),
+  updateAdminHeroBanner: (id, body) => apiRequest(`/admin/hero-banners/${id}/`, {
+    method: 'PUT',
+    body: typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body),
+  }),
+  deleteAdminHeroBanner: (id) => apiRequest(`/admin/hero-banners/${id}/`, { method: 'DELETE' }),
+  toggleAdminHeroBanner: (id) => apiRequest(`/admin/hero-banners/${id}/toggle_active/`, { method: 'POST' }),
 };

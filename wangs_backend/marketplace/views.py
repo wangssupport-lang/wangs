@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from rest_framework import status, views, viewsets, permissions, generics, mixins
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -24,7 +25,7 @@ from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber
+    ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner
 )
 from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, AddressSerializer, CustomerProfileSerializer,
@@ -33,7 +34,7 @@ from .serializers import (
     OrderSerializer, OrderCreateSerializer, PaymentVerifySerializer,
     CommissionSettingSerializer, CommissionUpdateSerializer,
     ManufacturerSettlementSerializer, RefundSerializer, AuditLogSerializer,
-    BrandSerializer
+    BrandSerializer, HeroBannerSerializer
 )
 from .permissions import IsAdminUserRole, IsManufacturerUser, IsApprovedManufacturer
 from .services import FinancialCalculator, OrderService, PaymentService, SettlementService
@@ -2405,3 +2406,47 @@ class AdminResearchReportView(views.APIView):
                     'products_csv': f"{base_url}?format=csv&type=products",
                 }
             })
+
+
+class HeroBannerViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = HeroBannerSerializer
+
+    def get_queryset(self):
+        qs = HeroBanner.objects.filter(is_active=True).order_by('display_order', '-created_at')
+        if not qs.exists():
+            default_banner = HeroBanner.objects.create(
+                title="The Great Achar Season",
+                subtitle="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+                badge_text="FRESH BATCH LIVE",
+                coupon_code="ACHAR15",
+                cta_text="Shop Now",
+                cta_link="/products?category=andhra-gongura",
+                bg_color="#9b4100",
+                is_active=True,
+                display_order=0
+            )
+            return HeroBanner.objects.filter(id=default_banner.id)
+        return qs
+
+
+class AdminHeroBannerViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUserRole]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    serializer_class = HeroBannerSerializer
+    queryset = HeroBanner.objects.all().order_by('display_order', '-created_at')
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        banner = self.get_object()
+        banner.is_active = not banner.is_active
+        banner.save(update_fields=['is_active', 'updated_at'])
+        AuditLog.objects.create(
+            user=request.user,
+            action='HERO_BANNER_TOGGLED',
+            target_model='HeroBanner',
+            target_id=str(banner.id),
+            details={'title': banner.title, 'is_active': banner.is_active}
+        )
+        return Response({'status': 'success', 'is_active': banner.is_active})
+

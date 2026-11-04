@@ -14,9 +14,19 @@ export default function HomePage() {
   const [bestsellers, setBestsellers] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [heroBanners, setHeroBanners] = useState([]);
+  const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   // Flash deal countdown timer simulation: 04h : 18m : 14s
   const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 18, seconds: 14 });
+
+  useEffect(() => {
+    if (heroBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveBannerIndex((prev) => (prev + 1) % heroBanners.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [heroBanners.length]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -33,14 +43,17 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [bestData, prodData] = await Promise.all([
+        const [bestData, prodData, bannerData] = await Promise.all([
           api.getBestsellerProducts(),
           api.getProducts({ page_size: 24 }),
+          api.getHeroBanners().catch(() => []),
         ]);
         const best = bestData?.results || bestData || [];
         const prods = prodData?.results || prodData || [];
+        const banners = bannerData?.results || bannerData || [];
         setBestsellers(best.length > 0 ? best : prods);
         setAllProducts(prods);
+        setHeroBanners(Array.isArray(banners) ? banners : []);
       } catch (err) {
         console.error('Failed to load products for homepage', err);
       }
@@ -62,6 +75,19 @@ export default function HomePage() {
   };
 
   const pad = (n) => String(n).padStart(2, '0');
+
+  const currentBanner = (heroBanners && heroBanners.length > 0)
+    ? (heroBanners[activeBannerIndex] || heroBanners[0])
+    : {
+        title: "The Great Achar Season",
+        subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+        badge_text: "FRESH BATCH LIVE",
+        coupon_code: "ACHAR15",
+        cta_text: "Shop Now",
+        cta_link: "/products?category=andhra-gongura",
+        bg_color: "#9b4100",
+      };
+  const bannerBgImg = currentBanner.effective_image_url || currentBanner.image_url || currentBanner.image;
 
   // Desktop 6 Featured Products matching Image 1 exactly
   const desktopCurated = [
@@ -689,42 +715,85 @@ export default function HomePage() {
           MOBILE VIEW (EXACTLY MATCHING STITCH IMAGES 1, 2 & 3)
           ======================================================== */}
       <div className="md:hidden flex flex-col gap-4 px-3.5 pt-3 pb-8">
-        {/* 1. Hero Promo Banner Card (The Great Achar Season) */}
+        {/* 1. Hero Promo Banner Card (Dynamic & Admin Uploadable) */}
         <section className="flex flex-col gap-2">
-          <div className="relative w-full overflow-hidden rounded-xl bg-gradient-to-br from-primary via-primary-container to-secondary shadow-md text-on-primary min-h-[160px] p-4 flex flex-col justify-between">
-            <div className="flex flex-col gap-1 z-10">
-              <span className="px-2 py-0.5 rounded-full bg-white/20 text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-                <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
-                <span>FRESH BATCH LIVE</span>
-              </span>
-              <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5">
-                The Great Achar Season
-              </h2>
-              <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2">
-                Authentic Andhra Avakaya &amp; Gongura small-batches straight from Guntur clay jars.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-between z-10 pt-2">
-              <div className="flex items-center gap-1.5 bg-white/15 px-2.5 py-1 rounded-lg">
-                <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
-                <span className="font-label-md text-xs font-bold text-white tracking-wider">ACHAR15</span>
-              </div>
-              <Link
-                to="/products?category=andhra-gongura"
-                className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+          <div
+            className="relative w-full overflow-hidden rounded-xl shadow-md text-on-primary min-h-[160px] p-4 flex flex-col justify-between transition-all duration-300"
+            style={{
+              backgroundColor: currentBanner.bg_color || '#9b4100',
+              backgroundImage: bannerBgImg
+                ? `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.25) 100%), url(${bannerBgImg})`
+                    : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }}
               >
-                <span>Shop Now</span>
-                <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-              </Link>
-            </div>
+                <div className="flex flex-col gap-1 z-10">
+                  {currentBanner.badge_text && (
+                    <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                      <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
+                      <span>{currentBanner.badge_text}</span>
+                    </span>
+                  )}
+                  <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                    {currentBanner.title}
+                  </h2>
+                  {currentBanner.subtitle && (
+                    <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2 drop-shadow-xs">
+                      {currentBanner.subtitle}
+                    </p>
+                  )}
+                </div>
 
-            {/* Slide Indicator Dots */}
-            <div className="absolute bottom-2.5 right-28 flex items-center gap-1 z-20">
-              <span className="w-1.5 h-1.5 rounded-full bg-white" />
-              <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-            </div>
-          </div>
+                <div className="flex items-center justify-between z-10 pt-2">
+                  {currentBanner.coupon_code ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(currentBanner.coupon_code);
+                        toast.success(`Coupon code ${currentBanner.coupon_code} copied!`);
+                      }}
+                      className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
+                      title="Tap to copy code"
+                    >
+                      <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
+                      <span className="font-label-md text-xs font-bold text-white tracking-wider">
+                        {currentBanner.coupon_code}
+                      </span>
+                    </button>
+                  ) : <div />}
+
+                  <Link
+                    to={currentBanner.cta_link || '/products'}
+                    className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+                  >
+                    <span>{currentBanner.cta_text || 'Shop Now'}</span>
+                    <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                  </Link>
+                </div>
+
+                {/* Slide Indicator Dots */}
+                {heroBanners && heroBanners.length > 1 ? (
+                  <div className="absolute bottom-2.5 right-28 flex items-center gap-1.5 z-20">
+                    {heroBanners.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setActiveBannerIndex(idx)}
+                        className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                          activeBannerIndex === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
+                        }`}
+                        aria-label={`Slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="absolute bottom-2.5 right-28 flex items-center gap-1 z-20">
+                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                  </div>
+                )}
+              </div>
 
           {/* Fast Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3.5 px-3.5 py-1">
