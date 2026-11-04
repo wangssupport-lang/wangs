@@ -45,15 +45,20 @@ function AppLayout() {
 
   // When website is in maintenance mode, NO items or storefront pages are ever displayed.
   // The storefront strictly displays the MaintenancePage to everyone.
-  // Administrative management routes (/wangadminspace) and login (/login) remain accessible for administrators.
-  const isExcludedRoute = location.pathname.startsWith('/wangadminspace') || location.pathname === '/login';
+  // Administrative management routes (/wangsadminspace or /wangadminspace) and login (/login) remain accessible for administrators.
+  const isExcludedRoute =
+    location.pathname.startsWith('/wangsadminspace') ||
+    location.pathname.startsWith('/wangadminspace') ||
+    location.pathname === '/login';
   const showMaintenance = isMaintenanceMode && !isExcludedRoute;
 
   if (showMaintenance) {
     return <MaintenancePage message={maintenanceMessage} />;
   }
 
-  const isAdminRoute = location.pathname.startsWith('/wangadminspace');
+  const isAdminRoute =
+    location.pathname.startsWith('/wangsadminspace') ||
+    location.pathname.startsWith('/wangadminspace');
   const isDeliveryRoute = location.pathname.startsWith('/delivery');
 
   return (
@@ -84,10 +89,11 @@ function AppLayout() {
             <Route path="/manufacturer/login" element={<ManufacturerPortalPage />} />
             <Route path="/manufacturer/register" element={<ManufacturerRegisterPage />} />
 
-            {/* Admin Space - Accessible EXCLUSIVELY via /wangadminspace */}
+            {/* Admin Space - Accessible via /wangsadminspace and /wangadminspace */}
+            <Route path="/wangsadminspace" element={<AdminDashboardPage />} />
             <Route path="/wangadminspace" element={<AdminDashboardPage />} />
-            <Route path="/adminspace" element={<Navigate to="/" replace />} />
-            <Route path="/admin" element={<Navigate to="/" replace />} />
+            <Route path="/adminspace" element={<Navigate to="/wangsadminspace" replace />} />
+            <Route path="/admin" element={<Navigate to="/wangsadminspace" replace />} />
 
             {/* Static & Legal */}
             <Route path="/about" element={<AboutPage />} />
@@ -96,6 +102,9 @@ function AppLayout() {
             <Route path="/shipping" element={<ShippingPage />} />
             <Route path="/refunds" element={<RefundsPage />} />
             <Route path="/contact" element={<ContactPage />} />
+
+            {/* Wildcard Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </ErrorBoundary>
       </main>

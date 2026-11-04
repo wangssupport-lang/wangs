@@ -529,7 +529,7 @@ export default function AdminDashboardPage() {
     return (
       <div className="max-w-7xl mx-auto py-24 px-4 text-center">
         <div className="w-10 h-10 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying /wangadminspace session...</p>
+        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying admin session...</p>
       </div>
     );
   }
@@ -546,7 +546,7 @@ export default function AdminDashboardPage() {
               Wangs Administration Space
             </h1>
             <p className="text-xs font-mono text-emerald-800 bg-emerald-50 py-1 px-3 rounded-full inline-block border border-emerald-200">
-              /wangadminspace · Secure Gateway
+              /wangsadminspace · Secure Gateway
             </p>
             <p className="text-xs text-stone-500 mt-1">
               Elevated access required for platform moderation, courier dispatch, and commission governance.
@@ -572,7 +572,7 @@ export default function AdminDashboardPage() {
                 </span>
               </div>
               <p className="text-[11px] text-stone-600 leading-normal">
-                This account lacks Superadmin privileges. Please authenticate below with administrator credentials (or click <strong>1-Click Sign In</strong>) to enter /wangadminspace.
+                This account lacks Superadmin privileges. Please authenticate below with administrator credentials (or click <strong>1-Click Sign In</strong>) to enter /wangsadminspace.
               </p>
             </div>
           )}
@@ -650,7 +650,7 @@ export default function AdminDashboardPage() {
               className="w-full py-3.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs active:scale-98 cursor-pointer"
             >
               <Shield size={15} />
-              <span>{loggingIn ? 'Authenticating...' : 'Authenticate & Enter /wangadminspace'}</span>
+              <span>{loggingIn ? 'Authenticating...' : 'Authenticate & Enter /wangsadminspace'}</span>
             </button>
           </form>
 
@@ -730,7 +730,7 @@ export default function AdminDashboardPage() {
               <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
                 <span>Wangs Administration Space</span>
                 <span className="text-[10px] font-mono font-bold bg-amber-400 text-stone-950 px-2 py-0.5 rounded-full">
-                  /wangadminspace
+                  /wangsadminspace
                 </span>
               </h1>
             </div>
