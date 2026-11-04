@@ -335,9 +335,9 @@ export default function AuthPage() {
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2.5 mb-2 group select-none">
             <img
-              src="/logo-red.png"
+              src="/logo.png"
               alt="Wangs"
-              className="h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+              className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-200 group-hover:scale-105"
             />
             <span className="font-headline-md font-bold text-2xl sm:text-[1.85rem] tracking-tight leading-none text-primary group-hover:text-primary-container transition-colors">
               Wangs

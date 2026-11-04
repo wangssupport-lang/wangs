@@ -104,7 +104,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 shadow-xs">
+    <header className="sticky top-0 z-40 bg-surface shadow-xs">
       {/* 1. Top Announcement Ribbon - Stitch Terracotta (#9b4100) */}
       <div className="bg-primary text-on-primary border-b border-primary-container text-[11px] font-medium py-1.5 px-4 select-none">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md text-label-md">
@@ -131,9 +131,9 @@ export default function Navbar() {
           <div className="flex md:hidden items-center justify-between h-14 gap-2">
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <img
-                src="/logo-red.png"
+                src="/logo.png"
                 alt="Wangs"
-                className="h-7 w-auto object-contain"
+                className="h-8 w-8 object-contain"
               />
               <span className="font-headline-md font-bold text-xl tracking-tight text-primary">
                 Wangs
@@ -192,9 +192,9 @@ export default function Navbar() {
             <div className="flex items-center gap-3 shrink-0">
               <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3 select-none">
                 <img
-                  src="/logo-red.png"
+                  src="/logo.png"
                   alt="Wangs Pickle Marketplace Logo"
-                  className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+                  className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-200 group-hover:scale-105"
                 />
                 <span className="font-headline-md font-bold text-2xl sm:text-[1.85rem] tracking-tight leading-none text-primary group-hover:text-primary-container transition-colors">
                   Wangs
@@ -347,7 +347,7 @@ export default function Navbar() {
 
         {/* Search Popover Drawer (when search icon is toggled) */}
         {searchOpen && (
-          <div className="border-t border-white/10 bg-[#191716] px-4 py-3 sm:py-4 transition-all animate-in fade-in slide-in-from-top-2">
+          <div className="border-t border-outline-variant/30 bg-surface-container px-4 py-3 sm:py-4 transition-all animate-in fade-in slide-in-from-top-2">
             <div className="max-w-2xl mx-auto space-y-2">
               <form onSubmit={handleSearch} className="relative w-full">
                 <input
@@ -356,17 +356,17 @@ export default function Navbar() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search bamboo shoot, king chilli, shredded beef, pork pickles..."
-                  className="w-full pl-11 pr-24 py-2.5 bg-black/40 border border-white/20 rounded-full text-xs text-white placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-[#85191e] focus:border-transparent font-medium"
+                  className="w-full pl-11 pr-24 py-2.5 bg-surface-container-lowest border border-outline-variant/40 rounded-full text-xs text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent font-medium"
                 />
-                <Search size={16} className="absolute left-4 top-3 text-stone-400" />
+                <Search size={16} className="absolute left-4 top-3 text-outline" />
                 <button
                   type="submit"
-                  className="absolute right-1.5 top-1 px-4 py-1.5 bg-[#85191e] hover:bg-[#9c1e24] text-white text-xs font-bold rounded-full transition-colors"
+                  className="absolute right-1.5 top-1 px-4 py-1.5 bg-primary hover:bg-primary-container text-on-primary text-xs font-bold rounded-full transition-colors"
                 >
                   Search
                 </button>
               </form>
-              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-stone-400 pt-1">
+              <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-on-surface-variant pt-1 font-medium">
                 <span>Quick:</span>
                 {[
                   'Bamboo Shoot',
@@ -379,7 +379,7 @@ export default function Navbar() {
                     key={term}
                     type="button"
                     onClick={() => handleQuickSearch(term)}
-                    className="px-2.5 py-0.5 rounded-full bg-white/5 hover:bg-white/15 text-stone-300 border border-white/10 transition-colors"
+                    className="px-2.5 py-0.5 rounded-full bg-surface-container-low hover:bg-surface-container-high text-on-surface border border-outline-variant/30 transition-colors"
                   >
                     {term}
                   </button>
@@ -391,13 +391,13 @@ export default function Navbar() {
 
         {/* Mobile Slide-Out Menu Drawer */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-white/10 bg-[#161413] px-5 py-5 space-y-4 animate-in fade-in slide-in-from-top-2">
+          <div className="md:hidden border-t border-outline-variant/30 bg-surface-container px-5 py-5 space-y-4 animate-in fade-in slide-in-from-top-2">
             <nav className="flex flex-col space-y-3 text-sm font-semibold">
               <Link
                 to="/"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`py-1.5 transition-colors ${
-                  location.pathname === '/' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                  location.pathname === '/' ? 'text-primary font-bold' : 'text-on-surface'
                 }`}
               >
                 Home
@@ -406,7 +406,7 @@ export default function Navbar() {
                 to="/products"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`py-1.5 transition-colors ${
-                  location.pathname === '/products' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                  location.pathname === '/products' ? 'text-primary font-bold' : 'text-on-surface'
                 }`}
               >
                 Shop All Pickles
@@ -415,7 +415,7 @@ export default function Navbar() {
                 to="/brands"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`py-1.5 transition-colors ${
-                  location.pathname === '/brands' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                  location.pathname === '/brands' ? 'text-primary font-bold' : 'text-on-surface'
                 }`}
               >
                 Our Producers &amp; Brands
@@ -424,7 +424,7 @@ export default function Navbar() {
                 to="/about"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`py-1.5 transition-colors ${
-                  location.pathname === '/about' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                  location.pathname === '/about' ? 'text-primary font-bold' : 'text-on-surface'
                 }`}
               >
                 About Wangs
@@ -433,7 +433,7 @@ export default function Navbar() {
                 to="/contact"
                 onClick={() => setMobileMenuOpen(false)}
                 className={`py-1.5 transition-colors ${
-                  location.pathname === '/contact' ? 'text-[#dc4437] font-bold' : 'text-stone-200'
+                  location.pathname === '/contact' ? 'text-primary font-bold' : 'text-on-surface'
                 }`}
               >
                 Contact &amp; Support
@@ -441,26 +441,26 @@ export default function Navbar() {
               <Link
                 to="/account"
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-1.5 text-stone-200 flex items-center justify-between"
+                className="py-1.5 text-on-surface flex items-center justify-between"
               >
                 <span>Track My Orders</span>
-                <Package size={15} className="text-stone-400" />
+                <Package size={15} className="text-on-surface-variant" />
               </Link>
             </nav>
 
-            <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-3 border-t border-outline-variant/30 flex items-center justify-between">
               {user ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-full bg-[#85191e] text-white flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-xs">
                     {(user.first_name || user.username || 'U')[0].toUpperCase()}
                   </div>
-                  <span className="text-xs font-bold text-white">{user.first_name || user.username}</span>
+                  <span className="text-xs font-bold text-on-surface">{user.first_name || user.username}</span>
                 </div>
               ) : (
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="w-full text-center py-2.5 bg-[#f5e6d3] text-stone-950 font-bold rounded-full text-xs shadow-md"
+                  className="w-full text-center py-2.5 bg-primary text-on-primary font-bold rounded-full text-xs shadow-md"
                 >
                   Sign In / Register
                 </Link>
@@ -471,15 +471,15 @@ export default function Navbar() {
 
         {/* 3. Secondary Dietary Ribbon (Shown on catalog / product pages) */}
         {location.pathname !== '/' && (
-          <nav className="border-t border-white/10 py-2 sm:py-2.5 text-xs font-medium text-stone-300 bg-[#12100f]">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
+          <nav className="border-t border-outline-variant/20 py-2 sm:py-2.5 text-xs font-medium text-on-surface-variant bg-surface-container">
+            <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
                 <Link
                   to="/products"
                   className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
                     !searchParams.get('dietary_type') && !searchParams.get('category') && !searchParams.get('search')
-                      ? 'bg-[#85191e] text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-low hover:bg-surface-container-high text-on-surface border border-outline-variant/30'
                   }`}
                 >
                   All Pickles
@@ -488,8 +488,8 @@ export default function Navbar() {
                   to="/products?dietary_type=NON_VEG"
                   className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
                     searchParams.get('dietary_type') === 'NON_VEG'
-                      ? 'bg-[#85191e] text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-low hover:bg-surface-container-high text-on-surface border border-outline-variant/30'
                   }`}
                 >
                   Non-Veg
@@ -498,8 +498,8 @@ export default function Navbar() {
                   to="/products?dietary_type=VEG"
                   className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
                     searchParams.get('dietary_type') === 'VEG'
-                      ? 'bg-[#85191e] text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-low hover:bg-surface-container-high text-on-surface border border-outline-variant/30'
                   }`}
                 >
                   Veg
@@ -508,27 +508,27 @@ export default function Navbar() {
                   to="/products?dietary_type=VEG_MIXED"
                   className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold whitespace-nowrap transition-colors ${
                     searchParams.get('dietary_type') === 'VEG_MIXED'
-                      ? 'bg-[#85191e] text-white'
-                      : 'bg-white/10 hover:bg-white/20 text-stone-200'
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-surface-container-low hover:bg-surface-container-high text-on-surface border border-outline-variant/30'
                   }`}
                 >
                   Veg Mixed
                 </Link>
               </div>
 
-              <div className="hidden lg:flex items-center gap-5 text-xs text-stone-400">
+              <div className="hidden lg:flex items-center gap-5 text-xs text-on-surface-variant font-semibold">
                 <Link
                   to="/brands"
-                  className="flex items-center gap-1.5 hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 hover:text-primary transition-colors"
                 >
-                  <Store size={13} className="text-[#dc4437]" />
+                  <Store size={13} className="text-secondary" />
                   <span>Artisan Producers</span>
                 </Link>
                 <Link
                   to="/products?bestsellers=true"
-                  className="flex items-center gap-1.5 hover:text-white transition-colors"
+                  className="flex items-center gap-1.5 hover:text-primary transition-colors"
                 >
-                  <Sparkles size={13} className="text-amber-400" />
+                  <Sparkles size={13} className="text-secondary" />
                   <span>Bestsellers</span>
                 </Link>
               </div>
