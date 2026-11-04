@@ -147,21 +147,18 @@ export default function Navbar() {
                   <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#9b4100]" />
                 </Link>
 
-                {/* Profile Avatar / User Icon */}
+                {/* Profile / Account Icon */}
                 <Link
                   to={user ? '/account' : '/login'}
                   aria-label="Account"
-                  className="w-8 h-8 rounded-full ring-2 ring-[#dec0b3] shadow-xs overflow-hidden flex items-center justify-center bg-[#ffdcc3] text-[#2f1500] font-bold text-xs active:scale-95"
+                  className="w-8 h-8 rounded-full border border-[#dec0b3]/50 shadow-xs flex items-center justify-center bg-[#faf2ed] text-[#574238] hover:text-[#9b4100] active:scale-95 transition-colors"
                 >
                   {user ? (
-                    (user.first_name || user.username || 'U')[0].toUpperCase()
+                    <span className="font-bold text-xs text-[#9b4100]">
+                      {(user.first_name || user.username || 'U')[0].toUpperCase()}
+                    </span>
                   ) : (
-                    <img
-                      src="/images/stitch/stitch_27_20e177a3d5.jpg"
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                    <User size={18} />
                   )}
                 </Link>
               </div>
@@ -393,16 +390,11 @@ export default function Navbar() {
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-[#faf2ed] transition-all"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-[#faf2ed] border border-[#dec0b3]/50 transition-all text-[#574238] hover:text-[#9b4100]"
                   title="Sign In / Register"
                 >
-                  <div className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-[#dec0b3]">
-                    <img
-                      src="/images/stitch/stitch_27_20e177a3d5.jpg"
-                      alt="Account"
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
+                  <div className="w-7 h-7 rounded-full bg-[#faf2ed] flex items-center justify-center text-[#574238]">
+                    <User size={18} />
                   </div>
                   <ChevronDown size={13} className="text-[#8a7267]" />
                 </Link>
