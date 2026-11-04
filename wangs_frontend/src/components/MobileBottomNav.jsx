@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 export default function MobileBottomNav({ onOpenCart }) {
   const { itemsCount, isDrawerOpen } = useCart();
-  const { user } = useAuth();
+  const { user, isAuthorizedToSell, allowSellerRegistration } = useAuth();
 
   // Hide bottom nav when cart drawer is active
   if (isDrawerOpen) return null;
@@ -59,27 +59,29 @@ export default function MobileBottomNav({ onOpenCart }) {
         )}
       </NavLink>
 
-      {/* 3. Sell */}
-      <NavLink
-        to="/manufacturer/register"
-        className={({ isActive }) =>
-          `flex flex-col items-center gap-0.5 transition-colors ${
-            isActive ? 'text-primary font-bold' : 'hover:text-primary'
-          }`
-        }
-      >
-        {({ isActive }) => (
-          <>
-            <span
-              className="material-symbols-outlined text-[22px]"
-              style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              storefront
-            </span>
-            <span className="text-[10px] tracking-tight">Sell</span>
-          </>
-        )}
-      </NavLink>
+      {/* 3. Sell (Controlled by Admin "Sell with Us" visibility toggle) */}
+      {(allowSellerRegistration || isAuthorizedToSell) && (
+        <NavLink
+          to="/manufacturer/register"
+          className={({ isActive }) =>
+            `flex flex-col items-center gap-0.5 transition-colors ${
+              isActive ? 'text-primary font-bold' : 'hover:text-primary'
+            }`
+          }
+        >
+          {({ isActive }) => (
+            <>
+              <span
+                className="material-symbols-outlined text-[22px]"
+                style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+              >
+                storefront
+              </span>
+              <span className="text-[10px] tracking-tight">Sell</span>
+            </>
+          )}
+        </NavLink>
+      )}
 
       {/* 4. Wishlist */}
       <NavLink

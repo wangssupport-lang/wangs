@@ -1,40 +1,45 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export default function Footer() {
+  const { allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
+
   return (
     <footer className="w-full bg-surface-container-high text-on-surface mt-16 border-t border-outline-variant/30">
-      {/* Heritage Producer Program Banner */}
-      <div className="bg-[#9b4100] text-white py-10 px-4 sm:px-6 shadow-sm">
-        <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="max-w-xl text-center md:text-left">
-            <span className="font-label-md text-xs bg-white/20 text-white px-3 py-1 rounded-full inline-block mb-2 font-bold tracking-wide">
-              Heritage Producer Guild
-            </span>
-            <h3 className="font-headline-md text-2xl sm:text-3xl font-serif text-white font-bold mb-2">
-              Are you a regional pickle maker?
-            </h3>
-            <p className="font-body-md text-sm sm:text-base text-white/90 leading-relaxed">
-              Start selling your handcrafted pickles across India with 0% commission for your first 30 days. We manage temperature-safe regional jar logistics.
-            </p>
-          </div>
+      {/* Heritage Producer Program Banner - Controlled by Admin allowSellerRegistration Toggle */}
+      {(allowSellerRegistration || isAuthorizedToSell) && (
+        <div className="bg-[#9b4100] text-white py-10 px-4 sm:px-6 shadow-sm">
+          <div className="max-w-[1440px] mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="max-w-xl text-center md:text-left">
+              <span className="font-label-md text-xs bg-white/20 text-white px-3 py-1 rounded-full inline-block mb-2 font-bold tracking-wide">
+                Heritage Producer Guild
+              </span>
+              <h3 className="font-headline-md text-2xl sm:text-3xl font-serif text-white font-bold mb-2">
+                Are you a regional pickle maker?
+              </h3>
+              <p className="font-body-md text-sm sm:text-base text-white/90 leading-relaxed">
+                Start selling your handcrafted pickles across India with 0% commission for your first 30 days. We manage temperature-safe regional jar logistics.
+              </p>
+            </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto">
-            <Link
-              to="/manufacturer/register"
-              className="bg-white text-[#9b4100] font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-stone-50 font-bold shadow-md active:scale-95 transition-all"
-            >
-              Register as Artisan Seller
-            </Link>
-            <Link
-              to="/about"
-              className="bg-transparent border border-white/60 text-white font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-white/10 active:scale-95 transition-all font-semibold"
-            >
-              Learn More
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0 w-full sm:w-auto">
+              <Link
+                to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
+                className="bg-white text-[#9b4100] font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-stone-50 font-bold shadow-md active:scale-95 transition-all"
+              >
+                {isManufacturer ? "Seller Dashboard" : "Register as Artisan Seller"}
+              </Link>
+              <Link
+                to="/about"
+                className="bg-transparent border border-white/60 text-white font-title-md text-sm sm:text-base px-6 py-3 rounded-full text-center hover:bg-white/10 active:scale-95 transition-all font-semibold"
+              >
+                Learn More
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main Footer Content */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
@@ -63,11 +68,16 @@ export default function Footer() {
               Artisanal Marketplace
             </h4>
             <ul className="flex flex-col gap-2.5 font-body-md text-sm text-on-surface-variant">
-              <li>
-                <Link to="/manufacturer/register" className="text-secondary font-semibold hover:text-primary transition-colors">
-                  Sell on Wangs (Artisan Portal)
-                </Link>
-              </li>
+              {(allowSellerRegistration || isAuthorizedToSell) && (
+                <li>
+                  <Link
+                    to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
+                    className="text-secondary font-semibold hover:text-primary transition-colors"
+                  >
+                    {isManufacturer ? "Seller Dashboard" : "Sell on Wangs (Artisan Portal)"}
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link to="/products" className="hover:text-primary transition-colors">
                   Top Rated Grandmother Recipes

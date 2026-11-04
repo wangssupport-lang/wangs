@@ -9,7 +9,7 @@ import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 
 export default function Navbar() {
-  const { user, isManufacturer, logout } = useAuth();
+  const { user, isManufacturer, isAuthorizedToSell, allowSellerRegistration, logout } = useAuth();
   const { itemsCount, setIsDrawerOpen } = useCart();
   const toast = useToast();
   const navigate = useNavigate();
@@ -303,14 +303,16 @@ export default function Navbar() {
 
             {/* Right: Actions Cluster */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Sell on Wangs CTA Button - Dark Olive Green Pill matching Stitch spec */}
-              <Link
-                to="/manufacturer/register"
-                className="inline-flex items-center gap-1.5 bg-[#526048] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#3f4a36] transition-all shadow-xs active:scale-95"
-              >
-                <Store size={15} />
-                <span>Sell on Wangs</span>
-              </Link>
+              {/* Sell on Wangs CTA Button - Only visible when registration is enabled by admin or user is authorized */}
+              {(allowSellerRegistration || isAuthorizedToSell) && (
+                <Link
+                  to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
+                  className="inline-flex items-center gap-1.5 bg-[#526048] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#3f4a36] transition-all shadow-xs active:scale-95"
+                >
+                  <Store size={15} />
+                  <span>{isManufacturer ? "Seller Dashboard" : "Sell on Wangs"}</span>
+                </Link>
+              )}
 
               {/* Wishlist Icon */}
               <Link

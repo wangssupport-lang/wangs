@@ -6,7 +6,13 @@ const AuthContext = createContext();
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [mfgProfile, setMfgProfile] = useState(null);
-  const [platformSettings, setPlatformSettings] = useState({ allow_seller_registration: false });
+  const [platformSettings, setPlatformSettings] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wangs_platform_settings');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return { allow_seller_registration: false };
+  });
   const [loading, setLoading] = useState(true);
 
   // Initialize session key for guests if not exists
@@ -21,7 +27,12 @@ export function AuthProvider({ children }) {
   const loadPlatformSettings = async () => {
     try {
       const s = await api.getPlatformSettings();
-      if (s) setPlatformSettings(s);
+      if (s) {
+        setPlatformSettings(s);
+        try {
+          localStorage.setItem('wangs_platform_settings', JSON.stringify(s));
+        } catch {}
+      }
     } catch (err) {
       // offline / default
     }

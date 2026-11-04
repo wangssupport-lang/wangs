@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
 
 export default function HomePage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
+  const { allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
   const toast = useToast();
   const [bestsellers, setBestsellers] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -187,13 +189,15 @@ export default function HomePage() {
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </a>
 
-                <Link
-                  to="/manufacturer/register"
-                  className="bg-surface text-on-surface font-title-md text-sm px-6 py-3.5 rounded-full shadow-xs hover:bg-surface-variant border border-outline-variant/40 transition-all flex items-center gap-2 font-semibold active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-secondary text-[18px]">storefront</span>
-                  <span>Register as a Manufacturer (0% Commission)</span>
-                </Link>
+                {(allowSellerRegistration || isAuthorizedToSell) && (
+                  <Link
+                    to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
+                    className="bg-surface text-on-surface font-title-md text-sm px-6 py-3.5 rounded-full shadow-xs hover:bg-surface-variant border border-outline-variant/40 transition-all flex items-center gap-2 font-semibold active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-secondary text-[18px]">storefront</span>
+                    <span>{isManufacturer ? "Seller Dashboard" : "Register as a Manufacturer (0% Commission)"}</span>
+                  </Link>
+                )}
               </div>
 
               {/* 3 Metric Stat Cards */}
@@ -1385,48 +1389,50 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 5. Sell Your Pickles on Wangs Banner Card (Exact match to Image 3) */}
-        <section className="relative overflow-hidden rounded-xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
-              <span className="material-symbols-outlined text-[28px]">soup_kitchen</span>
+        {/* 5. Sell Your Pickles on Wangs Banner Card (Only when registration is enabled) */}
+        {(allowSellerRegistration || isAuthorizedToSell) && (
+          <section className="relative overflow-hidden rounded-xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
+                <span className="material-symbols-outlined text-[28px]">soup_kitchen</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="font-label-sm text-[10px] text-primary font-bold uppercase tracking-wider">
+                  Artisan Maker Guild
+                </span>
+                <h3 className="font-headline-sm text-sm font-serif font-bold text-on-surface leading-tight">
+                  Turn Your Family Recipe Into a Business
+                </h3>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="font-label-sm text-[10px] text-primary font-bold uppercase tracking-wider">
-                Artisan Maker Guild
-              </span>
-              <h3 className="font-headline-sm text-sm font-serif font-bold text-on-surface leading-tight">
-                Turn Your Family Recipe Into a Business
-              </h3>
+            <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
+              Join 320+ verified home cooks and regional manufacturers delivering authentic Indian flavors directly to food lovers nationwide.
+            </p>
+            <div className="flex items-center gap-4 py-1">
+              <div className="flex flex-col">
+                <span className="font-title-lg text-base font-bold text-primary">320+</span>
+                <span className="font-label-sm text-[10px] text-outline">Active Makers</span>
+              </div>
+              <div className="h-6 w-px bg-outline-variant/40" />
+              <div className="flex flex-col">
+                <span className="font-title-lg text-base font-bold text-primary">₹0 Fee</span>
+                <span className="font-label-sm text-[10px] text-outline">To List Batches</span>
+              </div>
+              <div className="h-6 w-px bg-outline-variant/40" />
+              <div className="flex flex-col">
+                <span className="font-title-lg text-base font-bold text-primary">Pan-India</span>
+                <span className="font-label-sm text-[10px] text-outline">Jar Logistics</span>
+              </div>
             </div>
-          </div>
-          <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
-            Join 320+ verified home cooks and regional manufacturers delivering authentic Indian flavors directly to food lovers nationwide.
-          </p>
-          <div className="flex items-center gap-4 py-1">
-            <div className="flex flex-col">
-              <span className="font-title-lg text-base font-bold text-primary">320+</span>
-              <span className="font-label-sm text-[10px] text-outline">Active Makers</span>
-            </div>
-            <div className="h-6 w-px bg-outline-variant/40" />
-            <div className="flex flex-col">
-              <span className="font-title-lg text-base font-bold text-primary">₹0 Fee</span>
-              <span className="font-label-sm text-[10px] text-outline">To List Batches</span>
-            </div>
-            <div className="h-6 w-px bg-outline-variant/40" />
-            <div className="flex flex-col">
-              <span className="font-title-lg text-base font-bold text-primary">Pan-India</span>
-              <span className="font-label-sm text-[10px] text-outline">Jar Logistics</span>
-            </div>
-          </div>
-          <Link
-            to="/manufacturer/register"
-            className="w-full h-11 rounded-full bg-primary text-on-primary font-label-lg text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-xs"
-          >
-            <span className="material-symbols-outlined text-[19px]">storefront</span>
-            <span>Register as Seller</span>
-          </Link>
-        </section>
+            <Link
+              to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
+              className="w-full h-11 rounded-full bg-primary text-on-primary font-label-lg text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[19px]">storefront</span>
+              <span>{isManufacturer ? "Seller Dashboard" : "Register as Seller"}</span>
+            </Link>
+          </section>
+        )}
 
         {/* 6. Trust Badges Strip (2x2 Grid) */}
         <section className="grid grid-cols-2 gap-2.5 pt-1">

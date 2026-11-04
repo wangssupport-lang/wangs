@@ -28,7 +28,7 @@ function checkEmailTypo(email) {
 
 export default function ManufacturerRegisterPage() {
   const navigate = useNavigate();
-  const { user, isAuthorizedToSell, isManufacturer } = useAuth();
+  const { user, isAuthorizedToSell, isManufacturer, allowSellerRegistration } = useAuth();
 
   // Full onboarding form data (for authorized users)
   const [formData, setFormData] = useState({
@@ -289,6 +289,31 @@ export default function ManufacturerRegisterPage() {
           >
             <span>Open Manufacturer Dashboard</span>
             <ArrowRight size={15} />
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // IF SELLER REGISTRATION IS PAUSED BY ADMIN: Show onboarding closed notice
+  if (!allowSellerRegistration && !isAuthorizedToSell) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <div className="bg-white p-8 sm:p-12 rounded-3xl border border-stone-200 shadow-xl space-y-4">
+          <div className="w-16 h-16 bg-amber-50 text-amber-700 border border-amber-200 rounded-3xl flex items-center justify-center mx-auto mb-2">
+            <Lock size={28} />
+          </div>
+          <h1 className="font-serif text-2xl font-bold text-stone-900">
+            Producer Onboarding Paused
+          </h1>
+          <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
+            New seller applications are currently paused while our culinary curation team processes active batch reviews. Please check back soon or return to the storefront.
+          </p>
+          <Link
+            to="/"
+            className="inline-block mt-4 px-6 py-2.5 bg-[#9b4100] text-white text-xs font-bold rounded-full shadow-sm hover:bg-[#bf550d] transition-all"
+          >
+            Return to Storefront
           </Link>
         </div>
       </div>
