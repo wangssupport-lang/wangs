@@ -613,7 +613,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? (
+            {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
                 <div>
                   <span className="font-bold block">Local Development Access:</span>
@@ -636,11 +636,6 @@ export default function AdminDashboardPage() {
                     1-Click Sign In
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-[11px] text-stone-600">
-                <span className="font-bold text-stone-900 block">Production Superadmin Access:</span>
-                <span>Enter the <code className="font-mono text-forest-900 font-bold">DJANGO_ADMIN_USERNAME</code> and password configured in your Render environment.</span>
               </div>
             )}
 
