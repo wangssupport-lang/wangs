@@ -7,9 +7,9 @@ export default function Footer() {
   const showSellWithUs = Boolean(allowSellerRegistration);
 
   return (
-    <footer className="bg-forest-950 text-stone-400 py-8 md:py-10 border-t border-forest-900/80">
+    <footer className="bg-stone-900 text-stone-400 py-8 md:py-10 border-t border-stone-800">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6 pb-6 border-b border-forest-900/80 text-center md:text-left">
+        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-6 pb-6 border-b border-stone-800 text-center md:text-left">
           {/* Brand Wordmark & 1-line Tagline */}
           <div className="space-y-1.5">
             <Link to="/" className="inline-flex items-center gap-2.5">
@@ -29,16 +29,16 @@ export default function Footer() {
 
           {/* Essential Store Navigation */}
           <div className="flex flex-wrap items-center justify-center md:justify-end gap-x-6 gap-y-2.5 text-xs font-medium text-stone-300">
-            <Link to="/products" className="hover:text-white transition-colors">
+            <Link to="/products" className="hover:text-red-400 transition-colors">
               Pickles
             </Link>
-            <Link to="/brands" className="hover:text-white transition-colors">
+            <Link to="/brands" className="hover:text-red-400 transition-colors">
               Brands
             </Link>
-            <Link to="/about" className="hover:text-white transition-colors">
+            <Link to="/about" className="hover:text-red-400 transition-colors">
               About
             </Link>
-            <Link to="/contact" className="hover:text-white transition-colors">
+            <Link to="/contact" className="hover:text-red-400 transition-colors">
               Contact
             </Link>
             {showSellWithUs && (
@@ -50,7 +50,7 @@ export default function Footer() {
               </Link>
             )}
             {isAuthorizedToSell && !showSellWithUs && (
-              <Link to="/manufacturer" className="hover:text-white transition-colors">
+              <Link to="/manufacturer" className="hover:text-red-400 transition-colors">
                 Seller Portal
               </Link>
             )}

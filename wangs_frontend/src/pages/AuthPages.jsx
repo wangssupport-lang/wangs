@@ -339,7 +339,7 @@ export default function AuthPage() {
               alt="Wangs"
               className="h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
-            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-forest-950 uppercase group-hover:text-forest-800 transition-colors">
+            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-red-600 uppercase group-hover:text-red-700 transition-colors">
               Wangs
             </span>
           </Link>
@@ -349,9 +349,9 @@ export default function AuthPage() {
         </div>
 
         {/* Artisan Seller Gateway link */}
-        <div className="p-2.5 bg-amber-50/80 border border-amber-200/90 rounded-2xl flex items-center justify-between gap-2 text-xs">
+        <div className="p-2.5 bg-red-50/60 border border-red-200/90 rounded-2xl flex items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="p-1 bg-amber-500 text-stone-950 rounded-lg">
+            <span className="p-1 bg-red-600 text-white rounded-lg">
               <Store size={13} />
             </span>
             <span className="text-stone-800 text-[11px] font-medium">
@@ -360,7 +360,7 @@ export default function AuthPage() {
           </div>
           <Link
             to="/manufacturer/login"
-            className="text-forest-900 hover:text-forest-950 font-bold underline whitespace-nowrap text-[11px]"
+            className="text-red-600 hover:text-red-700 font-bold underline whitespace-nowrap text-[11px]"
           >
             Seller Login Space →
           </Link>
@@ -372,14 +372,14 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
-              className={`py-2.5 rounded-xl transition-all cursor-pointer ${isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${isLogin ? 'bg-white text-red-600 shadow-sm font-bold' : 'hover:text-stone-900'}`}
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
-              className={`py-2.5 rounded-xl transition-all cursor-pointer ${!isLogin ? 'bg-white text-forest-950 shadow-sm font-bold' : 'hover:text-stone-900'}`}
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${!isLogin ? 'bg-white text-red-600 shadow-sm font-bold' : 'hover:text-stone-900'}`}
             >
               Create Account
             </button>
@@ -393,7 +393,7 @@ export default function AuthPage() {
             >
               <span>← Back to Sign In</span>
             </button>
-            <span className="text-[11px] font-semibold text-forest-800 bg-forest-50 px-2.5 py-0.5 rounded-full border border-forest-200">
+            <span className="text-[11px] font-semibold text-red-600 bg-red-50 px-2.5 py-0.5 rounded-full border border-red-200">
               Password Recovery
             </span>
           </div>
@@ -422,7 +422,7 @@ export default function AuthPage() {
                   setError('');
                   setSuccessMsg('Please enter your password to sign in.');
                 }}
-                className="px-3.5 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl font-bold text-[11px] shadow-2xs transition-all cursor-pointer flex items-center gap-1"
+                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-[11px] shadow-xs transition-all cursor-pointer flex items-center gap-1"
               >
                 <span>Sign In Now</span>
                 <ArrowRight size={12} />
@@ -487,14 +487,14 @@ export default function AuthPage() {
                     value={resetEmail}
                     onChange={(e) => setResetEmail(e.target.value)}
                     placeholder="Enter your registered email"
-                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <button
                   type="button"
                   disabled={resetOtpLoading || resetTimer > 0}
                   onClick={handleSendResetOtp}
-                  className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl transition-all disabled:opacity-50 shrink-0 cursor-pointer shadow-2xs"
+                  className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all disabled:opacity-50 shrink-0 cursor-pointer shadow-xs"
                 >
                   {resetOtpLoading ? 'Sending...' : resetTimer > 0 ? `Resend (${resetTimer}s)` : 'Send Code'}
                 </button>
@@ -513,7 +513,7 @@ export default function AuthPage() {
                 value={resetOtpCode}
                 onChange={(e) => setResetOtpCode(e.target.value.replace(/\D/g, ''))}
                 placeholder="Enter 6-digit code from email"
-                className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-mono text-center tracking-widest text-sm"
+                className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 font-mono text-center tracking-widest text-sm"
               />
             </div>
 
@@ -530,7 +530,7 @@ export default function AuthPage() {
                   value={resetPasswordVal}
                   onChange={(e) => setResetPasswordVal(e.target.value)}
                   placeholder="Enter new password (min 6 characters)"
-                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                 />
                 <button
                   type="button"
@@ -557,7 +557,7 @@ export default function AuthPage() {
                   value={resetConfirmPasswordVal}
                   onChange={(e) => setResetConfirmPasswordVal(e.target.value)}
                   placeholder="Re-enter new password to confirm"
-                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                 />
                 <button
                   type="button"
@@ -575,7 +575,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={resetSubmitting}
-              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <span>{resetSubmitting ? 'Resetting Password...' : 'Reset Password & Sign In'}</span>
               <ArrowRight size={15} />
@@ -615,7 +615,7 @@ export default function AuthPage() {
                   onChange={handleChange}
                   placeholder="Username or registered email"
                   autoComplete="username"
-                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 font-medium"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600/20 focus:border-red-600 font-medium"
                 />
               </div>
             </div>
@@ -634,7 +634,7 @@ export default function AuthPage() {
                     setSuccessMsg('');
                     setExistingAccountEmail('');
                   }}
-                  className="text-[11px] text-forest-800 hover:text-forest-950 font-bold hover:underline cursor-pointer"
+                  className="text-[11px] text-red-600 hover:text-red-700 font-bold hover:underline cursor-pointer"
                 >
                   Forgot Password?
                 </button>
@@ -649,7 +649,7 @@ export default function AuthPage() {
                   onChange={handleChange}
                   placeholder="Enter your password"
                   autoComplete="current-password"
-                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 font-medium"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600/20 focus:border-red-600 font-medium"
                 />
                 <button
                   type="button"
@@ -666,7 +666,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <span>{loading ? 'Signing In...' : 'Sign In'}</span>
               <ArrowRight size={15} />
@@ -678,7 +678,7 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={() => { setIsLogin(false); setShowForgotPassword(false); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
-                  className="text-forest-900 font-bold hover:underline cursor-pointer"
+                  className="text-red-600 font-bold hover:underline cursor-pointer"
                 >
                   Create an Account
                 </button>
@@ -700,7 +700,7 @@ export default function AuthPage() {
                   value={formData.first_name}
                   onChange={handleChange}
                   placeholder="e.g. Arenla"
-                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
               <div>
@@ -711,7 +711,7 @@ export default function AuthPage() {
                   value={formData.last_name}
                   onChange={handleChange}
                   placeholder="e.g. Ao"
-                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
             </div>
@@ -732,7 +732,7 @@ export default function AuthPage() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="e.g. shopper@gmail.com"
-                    className={`w-full pl-10 pr-3 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                    className={`w-full pl-10 pr-3 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 ${
                       otpVerified ? 'border-emerald-400 bg-emerald-50/50' : 'border-stone-200'
                     }`}
                   />
@@ -742,7 +742,7 @@ export default function AuthPage() {
                     type="button"
                     disabled={otpLoading || !formData.email || !formData.email.includes('@')}
                     onClick={handleSendCustomerOtp}
-                    className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors disabled:opacity-50"
+                    className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors disabled:opacity-50"
                   >
                     {otpLoading ? 'Sending...' : otpSent ? 'Resend OTP' : 'Send OTP'}
                   </button>
@@ -755,9 +755,9 @@ export default function AuthPage() {
 
               {/* OTP Code Entry Popover */}
               {otpSent && !otpVerified && (
-                <div className="mt-2.5 p-3.5 bg-forest-50/80 border border-forest-200 rounded-xl space-y-2">
+                <div className="mt-2.5 p-3.5 bg-red-50/60 border border-red-200 rounded-xl space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-forest-950">
+                    <span className="text-[11px] font-semibold text-stone-900">
                       Enter 6-digit OTP sent to {formData.email}:
                     </span>
                     {otpTimer > 0 && (
@@ -771,7 +771,7 @@ export default function AuthPage() {
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       placeholder="6-digit OTP"
-                      className="w-36 px-3 py-1.5 bg-white border border-forest-600 rounded-xl text-center font-mono text-xs font-bold tracking-wider text-stone-900"
+                      className="w-36 px-3 py-1.5 bg-white border border-red-500 rounded-xl text-center font-mono text-xs font-bold tracking-wider text-stone-900"
                     />
                     <button
                       type="button"
@@ -795,13 +795,13 @@ export default function AuthPage() {
                 value={formData.phone_number}
                 onChange={handleChange}
                 placeholder="+91 98765 43210"
-                className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
               />
             </div>
 
             {/* Delivery address info notice (not required during signup) */}
-            <div className="bg-cream-50/80 border border-stone-200/80 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-stone-600">
-              <MapPin size={16} className="text-forest-700 shrink-0 mt-0.5" />
+            <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-stone-600">
+              <MapPin size={16} className="text-red-600 shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-stone-800">Delivery Address</span>
                 <p className="text-[11px] text-stone-500 mt-0.5">
@@ -824,7 +824,7 @@ export default function AuthPage() {
                     onChange={handleChange}
                     autoComplete="new-password"
                     placeholder="Min. 6 characters"
-                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                   />
                   <button
                     type="button"
@@ -851,7 +851,7 @@ export default function AuthPage() {
                     onChange={handleChange}
                     autoComplete="new-password"
                     placeholder="Re-enter password"
-                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    className="w-full pl-3 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                   />
                   <button
                     type="button"
@@ -869,7 +869,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <span>{loading ? 'Creating Account...' : 'Complete Registration'}</span>
               <ArrowRight size={15} />
@@ -879,7 +879,7 @@ export default function AuthPage() {
 
         {/* Security badge footer */}
         <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2 text-[11px] text-stone-500">
-          <ShieldCheck size={14} className="text-forest-700" />
+          <ShieldCheck size={14} className="text-red-600" />
           <span>Secured with Gmail / Email OTP & 256-Bit SSL Encryption</span>
         </div>
       </div>
@@ -897,7 +897,7 @@ export default function AuthPage() {
             </button>
 
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl bg-forest-100 flex items-center justify-center text-forest-800 shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600 shrink-0">
                 <MapPin size={24} />
               </div>
               <div>
@@ -914,7 +914,7 @@ export default function AuthPage() {
               </div>
             ) : (
               <form onSubmit={handleSavePopupAddress} className="space-y-3.5 text-xs">
-                <div className="bg-cream-50 p-3 rounded-xl border border-stone-200/70 text-stone-700">
+                <div className="bg-stone-50 p-3 rounded-xl border border-stone-200/70 text-stone-700">
                   <p className="font-medium text-stone-800 mb-0.5">Where should we deliver your pickles?</p>
                   <p className="text-[11px] text-stone-500">
                     You can set your primary address now for quick 1-click checkout, or skip and add it whenever you place an order.
@@ -936,7 +936,7 @@ export default function AuthPage() {
                     value={popupAddress.address_line1}
                     onChange={(e) => setPopupAddress({ ...popupAddress, address_line1: e.target.value })}
                     placeholder="House / flat number and street name"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                   />
                 </div>
 
@@ -947,7 +947,7 @@ export default function AuthPage() {
                     value={popupAddress.address_line2}
                     onChange={(e) => setPopupAddress({ ...popupAddress, address_line2: e.target.value })}
                     placeholder="e.g. Near Kohima War Cemetery or Landmark"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                   />
                 </div>
 
@@ -960,7 +960,7 @@ export default function AuthPage() {
                       value={popupAddress.city}
                       onChange={(e) => setPopupAddress({ ...popupAddress, city: e.target.value })}
                       placeholder="Kohima"
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                     />
                   </div>
                   <div>
@@ -971,7 +971,7 @@ export default function AuthPage() {
                       value={popupAddress.state}
                       onChange={(e) => setPopupAddress({ ...popupAddress, state: e.target.value })}
                       placeholder="Nagaland"
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                     />
                   </div>
                   <div>
@@ -989,7 +989,7 @@ export default function AuthPage() {
                         })
                       }
                       placeholder="797001"
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono text-center text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl font-mono text-center text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                     />
                   </div>
                 </div>
@@ -998,7 +998,7 @@ export default function AuthPage() {
                   <button
                     type="submit"
                     disabled={addressLoading}
-                    className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                     <span>{addressLoading ? 'Saving Address...' : 'Save Delivery Address'}</span>
                     <ArrowRight size={15} />

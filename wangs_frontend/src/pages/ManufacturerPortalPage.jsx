@@ -294,7 +294,7 @@ export default function ManufacturerPortalPage() {
                   value={sellerPasswordIdentifier}
                   onChange={(e) => setSellerPasswordIdentifier(e.target.value)}
                   placeholder="e.g. seller@brand.in or username"
-                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  className="w-full pl-10 pr-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
             </div>
@@ -306,7 +306,7 @@ export default function ManufacturerPortalPage() {
                 </label>
                 <Link
                   to="/login?tab=forgot-password"
-                  className="text-[11px] text-forest-800 hover:text-forest-950 font-bold hover:underline"
+                  className="text-[11px] text-red-600 hover:text-red-700 font-bold hover:underline"
                 >
                   Forgot Password?
                 </Link>
@@ -319,7 +319,7 @@ export default function ManufacturerPortalPage() {
                   value={sellerPassword}
                   onChange={(e) => setSellerPassword(e.target.value)}
                   placeholder="Enter your seller account password"
-                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
                 <button
                   type="button"
@@ -336,7 +336,7 @@ export default function ManufacturerPortalPage() {
             <button
               type="submit"
               disabled={sellerLoginLoading}
-              className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
             >
               <span>{sellerLoginLoading ? 'Signing In...' : 'Sign In to Seller Space'}</span>
               <ArrowRight size={15} />
@@ -355,9 +355,9 @@ export default function ManufacturerPortalPage() {
             <div className="flex flex-col gap-1.5 pt-1">
               <Link
                 to="/manufacturer/register"
-                className="text-stone-600 hover:text-forest-900 font-medium"
+                className="text-stone-600 hover:text-red-600 font-medium"
               >
-                Not yet authorized? <strong className="text-forest-900 underline">Apply to Sell on Wangs</strong>
+                Not yet authorized? <strong className="text-red-600 underline">Apply to Sell on Wangs</strong>
               </Link>
               <a
                 href="/documents/wangs_seller_rules.pdf"

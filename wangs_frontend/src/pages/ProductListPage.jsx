@@ -108,9 +108,9 @@ export default function ProductListPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-4 sm:space-y-6">
       {/* Brand Store Filter Indicator if active */}
       {brandParam && (
-        <div className="flex items-center justify-between p-3 sm:p-4 bg-forest-950 text-cream-100 rounded-2xl shadow-xs">
+        <div className="flex items-center justify-between p-3 sm:p-4 bg-red-600 text-white rounded-2xl shadow-xs">
           <div className="flex items-center gap-2 text-xs font-semibold">
-            <span className="text-amber-300 font-bold uppercase tracking-wider text-[10px]">Brand Store:</span>
+            <span className="text-amber-200 font-bold uppercase tracking-wider text-[10px]">Brand Store:</span>
             <span className="text-white font-serif font-bold text-sm">
               {products[0]?.manufacturer?.business_name || brandParam.replace(/-/g, ' ')}
             </span>
@@ -118,7 +118,7 @@ export default function ProductListPage() {
           <button
             type="button"
             onClick={() => updateFilter('brand', '')}
-            className="flex items-center gap-1 text-xs text-stone-300 hover:text-white px-2.5 py-1 rounded-lg bg-forest-900 border border-forest-800"
+            className="flex items-center gap-1 text-xs text-white/90 hover:text-white px-2.5 py-1 rounded-lg bg-red-700 border border-red-500"
           >
             <span>Clear</span>
             <X size={12} />
@@ -145,7 +145,7 @@ export default function ProductListPage() {
           {activeFiltersCount > 0 && (
             <button
               onClick={clearAllFilters}
-              className="text-xs text-chilli-700 hover:underline font-bold ml-1 hidden sm:inline"
+              className="text-xs text-red-600 hover:underline font-bold ml-1 hidden sm:inline"
             >
               Reset ({activeFiltersCount})
             </button>
@@ -159,7 +159,7 @@ export default function ProductListPage() {
             id="sort"
             value={orderingParam}
             onChange={(e) => updateFilter('ordering', e.target.value)}
-            className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-forest-800 font-semibold"
+            className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-red-600 font-semibold"
           >
             <option value="popularity">Popularity & Bestsellers</option>
             <option value="price_asc">Price: Low to High</option>
@@ -175,7 +175,7 @@ export default function ProductListPage() {
           type="button"
           onClick={() => updateFilter('dietary_type', '')}
           className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-            !dietaryParam ? 'bg-forest-900 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            !dietaryParam ? 'bg-red-600 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
           }`}
         >
           All Types
@@ -184,7 +184,7 @@ export default function ProductListPage() {
           type="button"
           onClick={() => updateFilter('dietary_type', dietaryParam === 'NON_VEG' ? '' : 'NON_VEG')}
           className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-            dietaryParam === 'NON_VEG' ? 'bg-forest-900 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            dietaryParam === 'NON_VEG' ? 'bg-red-600 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
           }`}
         >
           Non-Veg
@@ -193,7 +193,7 @@ export default function ProductListPage() {
           type="button"
           onClick={() => updateFilter('dietary_type', dietaryParam === 'VEG' ? '' : 'VEG')}
           className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-            dietaryParam === 'VEG' ? 'bg-forest-900 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            dietaryParam === 'VEG' ? 'bg-red-600 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
           }`}
         >
           Veg
@@ -211,7 +211,7 @@ export default function ProductListPage() {
           type="button"
           onClick={() => updateFilter('spice_level', spiceParam === 'FIERY_KING_CHILLI' ? '' : 'FIERY_KING_CHILLI')}
           className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-            spiceParam === 'FIERY_KING_CHILLI' ? 'bg-chilli-700 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
+            spiceParam === 'FIERY_KING_CHILLI' ? 'bg-red-600 text-white shadow-xs' : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
           }`}
         >
           🔥 King Chilli
@@ -231,7 +231,7 @@ export default function ProductListPage() {
               <button
                 onClick={() => updateFilter('category', '')}
                 className={`w-full text-left py-2 px-3 rounded-xl transition-all ${
-                  !categoryParam ? 'bg-forest-900 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-cream-100'
+                  !categoryParam ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-red-50 hover:text-red-700'
                 }`}
               >
                 All Pickles
@@ -241,11 +241,11 @@ export default function ProductListPage() {
                   key={c.id}
                   onClick={() => updateFilter('category', c.slug)}
                   className={`w-full text-left py-2 px-3 rounded-xl transition-all flex items-center justify-between ${
-                    categoryParam === c.slug ? 'bg-forest-900 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-cream-100'
+                    categoryParam === c.slug ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-red-50 hover:text-red-700'
                   }`}
                 >
                   <span>{c.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${categoryParam === c.slug ? 'bg-forest-800 text-white' : 'bg-stone-100 text-stone-500'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${categoryParam === c.slug ? 'bg-red-700 text-white' : 'bg-stone-100 text-stone-500'}`}>
                     {c.product_count}
                   </span>
                 </button>
@@ -264,7 +264,7 @@ export default function ProductListPage() {
                   type="button"
                   onClick={() => updateFilter('brand', '')}
                   className={`w-full text-left py-2 px-3 rounded-xl transition-all ${
-                    !brandParam ? 'bg-forest-900 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-cream-100'
+                    !brandParam ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-red-50 hover:text-red-700'
                   }`}
                 >
                   All Brand Houses
@@ -278,11 +278,11 @@ export default function ProductListPage() {
                       type="button"
                       onClick={() => updateFilter('brand', bSlug)}
                       className={`w-full text-left py-2 px-3 rounded-xl transition-all flex items-center justify-between ${
-                        isSelected ? 'bg-forest-900 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-cream-100'
+                        isSelected ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-stone-700 hover:bg-red-50 hover:text-red-700'
                       }`}
                     >
                       <span className="truncate">{b.business_name}</span>
-                      <ShieldCheck size={12} className={isSelected ? 'text-amber-300' : 'text-emerald-600'} />
+                      <ShieldCheck size={12} className={isSelected ? 'text-amber-200' : 'text-emerald-600'} />
                     </button>
                   );
                 })}
@@ -308,7 +308,7 @@ export default function ProductListPage() {
                     name="dietary"
                     checked={dietaryParam === opt.val}
                     onChange={() => updateFilter('dietary_type', opt.val)}
-                    className="text-forest-900 focus:ring-forest-900"
+                    className="text-red-600 focus:ring-red-600"
                   />
                   <span>{opt.label}</span>
                 </label>
@@ -335,9 +335,9 @@ export default function ProductListPage() {
                     name="spice"
                     checked={spiceParam === opt.val}
                     onChange={() => updateFilter('spice_level', opt.val)}
-                    className="text-chilli-700 focus:ring-chilli-700"
+                    className="text-red-600 focus:ring-red-600"
                   />
-                  <span className={opt.val === 'FIERY_KING_CHILLI' ? 'text-chilli-700 font-bold' : ''}>
+                  <span className={opt.val === 'FIERY_KING_CHILLI' ? 'text-red-600 font-bold' : ''}>
                     {opt.label}
                   </span>
                 </label>
@@ -352,7 +352,7 @@ export default function ProductListPage() {
                 type="checkbox"
                 checked={inStockParam}
                 onChange={(e) => updateFilter('in_stock', e.target.checked ? 'true' : '')}
-                className="rounded text-forest-900 focus:ring-forest-900"
+                className="rounded text-red-600 focus:ring-red-600"
               />
               <span>In-stock items only</span>
             </label>
@@ -373,7 +373,7 @@ export default function ProductListPage() {
               <p className="mt-2 text-sm text-stone-600">{loadError}</p>
               <button
                 onClick={() => setRetryCount((count) => count + 1)}
-                className="mt-4 rounded-xl bg-forest-900 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-forest-950"
+                className="mt-4 rounded-xl bg-red-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-red-700"
               >
                 Try again
               </button>
@@ -389,7 +389,7 @@ export default function ProductListPage() {
               </p>
               <button
                 onClick={clearAllFilters}
-                className="px-5 py-2.5 bg-forest-900 text-white text-xs font-bold rounded-xl shadow-md hover:bg-forest-950 transition-colors"
+                className="px-5 py-2.5 bg-red-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-red-700 transition-colors"
               >
                 Reset All Filters
               </button>
@@ -432,10 +432,10 @@ export default function ProductListPage() {
             {/* Header */}
             <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Filter size={16} className="text-forest-900" />
+                <Filter size={16} className="text-red-600" />
                 <h3 className="font-serif font-bold text-base text-stone-900">Filter Pickles</h3>
                 {activeFiltersCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full bg-forest-100 text-forest-900 text-xs font-bold">
+                  <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
                     {activeFiltersCount} active
                   </span>
                 )}
@@ -468,7 +468,7 @@ export default function ProductListPage() {
                       onClick={() => updateFilter('dietary_type', opt.val)}
                       className={`py-2 px-3 rounded-xl font-medium text-left border transition-all ${
                         dietaryParam === opt.val
-                          ? 'border-forest-900 bg-forest-50 text-forest-950 font-bold'
+                          ? 'border-red-600 bg-red-50 text-red-700 font-bold'
                           : 'border-stone-200 bg-stone-50 text-stone-700'
                       }`}
                     >
@@ -486,7 +486,7 @@ export default function ProductListPage() {
                     type="button"
                     onClick={() => updateFilter('category', '')}
                     className={`px-3 py-1.5 rounded-xl border text-xs transition-all ${
-                      !categoryParam ? 'border-forest-900 bg-forest-900 text-white font-bold' : 'border-stone-200 bg-stone-50 text-stone-700'
+                      !categoryParam ? 'border-red-600 bg-red-600 text-white font-bold' : 'border-stone-200 bg-stone-50 text-stone-700'
                     }`}
                   >
                     All
@@ -497,7 +497,7 @@ export default function ProductListPage() {
                       type="button"
                       onClick={() => updateFilter('category', c.slug)}
                       className={`px-3 py-1.5 rounded-xl border text-xs transition-all ${
-                        categoryParam === c.slug ? 'border-forest-900 bg-forest-900 text-white font-bold' : 'border-stone-200 bg-stone-50 text-stone-700'
+                        categoryParam === c.slug ? 'border-red-600 bg-red-600 text-white font-bold' : 'border-stone-200 bg-stone-50 text-stone-700'
                       }`}
                     >
                       {c.name} ({c.product_count})
@@ -514,7 +514,7 @@ export default function ProductListPage() {
                     type="checkbox"
                     checked={inStockParam}
                     onChange={(e) => updateFilter('in_stock', e.target.checked ? 'true' : '')}
-                    className="w-5 h-5 rounded text-forest-900 focus:ring-forest-900"
+                    className="w-5 h-5 rounded text-red-600 focus:ring-red-600"
                   />
                 </label>
               </div>
@@ -536,7 +536,7 @@ export default function ProductListPage() {
                       onClick={() => updateFilter('spice_level', opt.val)}
                       className={`w-full py-2 px-3 rounded-xl font-medium text-left border transition-all ${
                         spiceParam === opt.val
-                          ? 'border-forest-900 bg-forest-50 text-forest-950 font-bold'
+                          ? 'border-red-600 bg-red-50 text-red-700 font-bold'
                           : 'border-stone-200 bg-stone-50 text-stone-700'
                       }`}
                     >
@@ -559,7 +559,7 @@ export default function ProductListPage() {
               <button
                 type="button"
                 onClick={() => setMobileFilterOpen(false)}
-                className="flex-[2] py-3 bg-forest-900 text-white font-bold rounded-xl shadow active:scale-95 transition-all text-xs"
+                className="flex-[2] py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow active:scale-95 transition-all text-xs"
               >
                 Apply & View Products
               </button>

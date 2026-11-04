@@ -146,7 +146,7 @@ export default function CheckoutPage() {
       <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-4">
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is empty</h2>
         <p className="text-xs text-stone-500">Add handcrafted pickles to proceed with checkout.</p>
-        <Link to="/products" className="inline-block px-6 py-3 bg-forest-900 text-white text-xs font-bold rounded-xl shadow-md">
+        <Link to="/products" className="inline-block px-6 py-3 bg-red-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-red-700">
           Explore Pickles
         </Link>
       </div>
@@ -156,7 +156,7 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
       <div className="mb-8">
-        <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Safe & Encrypted</span>
+        <span className="text-xs font-bold tracking-wider uppercase text-red-600">Safe & Encrypted</span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">Checkout & Delivery</h1>
         <p className="text-xs text-stone-500 mt-1">
           Direct dispatch from verified artisan producers in Kohima and Mokokchung.
@@ -174,20 +174,20 @@ export default function CheckoutPage() {
         {/* Checkout Steps Form */}
         <div className="lg:col-span-7 space-y-6">
           {/* Mobile Collapsible Order Summary Banner */}
-          <div className="lg:hidden bg-cream-100 p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-3">
+          <div className="lg:hidden bg-red-50/40 p-4 rounded-2xl border border-red-100 shadow-2xs space-y-3">
             <button
               type="button"
               onClick={() => setShowMobileSummary(!showMobileSummary)}
               className="w-full flex items-center justify-between text-left"
             >
               <div className="flex items-center gap-2">
-                <ShoppingBag size={16} className="text-forest-900" />
+                <ShoppingBag size={16} className="text-red-600" />
                 <span className="font-bold text-xs text-stone-900">
                   Order Summary ({items.length} {items.length === 1 ? 'item' : 'items'})
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-serif font-black text-sm text-forest-950">
+                <span className="font-serif font-black text-sm text-red-600">
                   ₹{parseFloat(summary.total_amount).toFixed(0)}
                 </span>
                 <ChevronDown size={14} className={`text-stone-500 transition-transform ${showMobileSummary ? 'rotate-180' : ''}`} />
@@ -238,7 +238,7 @@ export default function CheckoutPage() {
             {/* 1. Customer Details */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <h2 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-3 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-forest-900 text-white text-xs flex items-center justify-center font-bold font-mono">1</span>
+                <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">1</span>
                 <span>Contact Details</span>
               </h2>
 
@@ -252,7 +252,7 @@ export default function CheckoutPage() {
                     value={formData.customer_name}
                     onChange={handleChange}
                     placeholder="e.g. Moa Longkumer"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <div>
@@ -264,7 +264,7 @@ export default function CheckoutPage() {
                     value={formData.customer_email}
                     onChange={handleChange}
                     placeholder="e.g. moa@example.com"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -279,7 +279,7 @@ export default function CheckoutPage() {
                     value={formData.customer_phone}
                     onChange={handleChange}
                     placeholder="e.g. +91 98765 43210"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
               </div>
@@ -289,7 +289,7 @@ export default function CheckoutPage() {
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                 <h2 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-forest-900 text-white text-xs flex items-center justify-center font-bold font-mono">2</span>
+                  <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">2</span>
                   <span>Delivery Address</span>
                 </h2>
                 {savedAddresses.length > 0 && (
@@ -305,9 +305,9 @@ export default function CheckoutPage() {
                       key={addr.id}
                       type="button"
                       onClick={() => handleSelectSavedAddress(addr)}
-                      className="px-3 py-1.5 bg-cream-100 hover:bg-forest-100 border border-stone-200 rounded-xl text-xs text-stone-800 font-medium flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs text-red-700 font-medium flex items-center gap-1.5 transition-colors"
                     >
-                      <Truck size={13} className="text-forest-700" />
+                      <Truck size={13} className="text-red-600" />
                       <span>{addr.city} ({addr.postal_code})</span>
                     </button>
                   ))}
@@ -324,7 +324,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_address_line1}
                     onChange={handleChange}
                     placeholder="e.g. House No. 42, Ministers Hill"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -335,7 +335,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_address_line2}
                     onChange={handleChange}
                     placeholder="e.g. Near Kohima War Cemetery"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <div>
@@ -347,7 +347,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_city}
                     onChange={handleChange}
                     placeholder="e.g. Kohima or Dimapur"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <div>
@@ -359,7 +359,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_state}
                     onChange={handleChange}
                     placeholder="e.g. Assam, Delhi, Karnataka"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
                   />
                 </div>
                 <div>
@@ -377,7 +377,7 @@ export default function CheckoutPage() {
                       shipping_postal_code: e.target.value.replace(/\D/g, '').slice(0, 6),
                     }))}
                     placeholder="e.g. 797001"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800 font-mono font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-mono font-medium"
                   />
                 </div>
               </div>
@@ -387,30 +387,30 @@ export default function CheckoutPage() {
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <h2 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-3 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-forest-900 text-white text-xs flex items-center justify-center font-bold font-mono">3</span>
+                  <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">3</span>
                   <span>Payment Gateway</span>
                 </span>
-                <span className="text-xs text-forest-800 font-bold flex items-center gap-1 bg-forest-50 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-red-600 font-bold flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full">
                   <Lock size={12} /> Test Sandbox Mode
                 </span>
               </h2>
 
               <div className="space-y-3 text-xs">
-                <label className="p-4 border-2 border-forest-800 rounded-2xl bg-forest-50/60 flex items-center justify-between cursor-pointer shadow-sm">
+                <label className="p-4 border-2 border-red-600 rounded-2xl bg-red-50/50 flex items-center justify-between cursor-pointer shadow-sm">
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
                       name="payment_method"
                       checked={selectedPaymentMethod === 'RAZORPAY_TEST'}
                       onChange={() => setSelectedPaymentMethod('RAZORPAY_TEST')}
-                      className="text-forest-900 focus:ring-forest-900"
+                      className="text-red-600 focus:ring-red-600"
                     />
                     <div>
                       <span className="font-bold text-stone-900 block text-sm">Razorpay Payment Gateway (Test Mode)</span>
                       <span className="text-stone-500 text-[11px]">Instant UPI (Google Pay, PhonePe, Paytm), Cards, Netbanking</span>
                     </div>
                   </div>
-                  <CreditCard size={22} className="text-forest-800" />
+                  <CreditCard size={22} className="text-red-600" />
                 </label>
               </div>
             </div>
@@ -418,7 +418,7 @@ export default function CheckoutPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-forest-900 hover:bg-forest-950 text-white font-bold text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-101 active:scale-99"
+              className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-101 active:scale-99"
             >
               {loading ? (
                 <span>Calculating order and locking inventory...</span>
@@ -485,7 +485,7 @@ export default function CheckoutPage() {
               </div>
               <div className="border-t border-stone-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-950">
                 <span>Total Amount Payable</span>
-                <span className="text-2xl font-serif font-black text-forest-950">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                <span className="text-2xl font-serif font-black text-red-600">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
               </div>
             </div>
 
@@ -515,13 +515,13 @@ export default function CheckoutPage() {
         <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-cream-50 p-6 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-red-700 via-red-600 to-rose-700 text-white p-6 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-black tracking-wider text-amber-300">Razorpay Test Gateway</span>
+                <span className="text-[10px] uppercase font-black tracking-wider text-amber-200">Razorpay Test Gateway</span>
                 <h3 className="font-serif font-bold text-lg text-white">Wangs Artisanal Marketplace</h3>
               </div>
               <div className="text-right">
-                <span className="text-[11px] text-cream-300 block">Total Due</span>
+                <span className="text-[11px] text-red-100 block">Total Due</span>
                 <span className="font-serif font-black text-xl text-white">₹{parseFloat(pendingOrder?.total_amount || summary.total_amount).toFixed(2)}</span>
               </div>
             </div>
@@ -600,7 +600,7 @@ export default function CheckoutPage() {
 
               {paymentStep === 'VERIFYING' && (
                 <div className="py-10 text-center space-y-3">
-                  <div className="w-10 h-10 border-4 border-forest-900 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
                   <p className="text-sm font-bold text-stone-900">Verifying signature with marketplace server...</p>
                   <p className="text-xs text-stone-500">Creating immutable financial transaction records.</p>
                 </div>

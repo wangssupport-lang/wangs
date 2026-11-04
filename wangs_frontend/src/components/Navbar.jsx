@@ -107,18 +107,18 @@ export default function Navbar() {
     : 0;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/90 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-red-100/80 shadow-xs">
       {/* Main Header Row */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 sm:h-[4.75rem] items-center justify-between gap-4">
           {/* Brand Logo & Wordmark */}
-          <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3.5 select-none">
+          <Link to="/" className="group flex flex-shrink-0 items-center gap-2 sm:gap-3 select-none">
             <img
               src="/logo.png"
               alt="Wangs"
               className="h-8 w-auto sm:h-9 sm:w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
-            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-forest-950 uppercase group-hover:text-forest-800 transition-colors">
+            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.12em] leading-none text-red-600 uppercase group-hover:text-red-700 transition-colors">
               Wangs
             </span>
           </Link>
@@ -131,8 +131,8 @@ export default function Navbar() {
                 value={searchQuery}
                 onFocus={() => setSearchFocused(true)}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search king chilli, bamboo shoot, artisan pickles..."
-                className="w-full pl-11 pr-24 py-2.5 bg-stone-100/80 border border-stone-200/90 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-forest-800/20 focus:border-forest-800 focus:bg-white transition-all font-medium"
+                placeholder="Search king chilli, shredded chicken, bamboo shoot, pickles..."
+                className="w-full pl-11 pr-24 py-2.5 bg-stone-50 border border-stone-200 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-600 focus:bg-white transition-all font-medium shadow-2xs"
               />
               <Search size={16} className="absolute left-4 top-3 text-stone-400" />
               {searchQuery && (
@@ -146,7 +146,7 @@ export default function Navbar() {
               )}
               <button
                 type="submit"
-                className="absolute right-1.5 top-1 px-4 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-full shadow-xs transition-colors"
+                className="absolute right-1.5 top-1 px-4 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-full shadow-xs transition-colors"
               >
                 Search
               </button>
@@ -176,7 +176,7 @@ export default function Navbar() {
                     <button
                       key={tag}
                       onClick={() => handleQuickSearch(tag)}
-                      className="px-3 py-1 bg-stone-100 hover:bg-forest-900 hover:text-white rounded-full text-stone-700 transition-colors text-[11px] font-medium"
+                      className="px-3 py-1 bg-stone-100 hover:bg-red-600 hover:text-white rounded-full text-stone-700 transition-colors text-[11px] font-medium"
                     >
                       {tag}
                     </button>
@@ -212,7 +212,7 @@ export default function Navbar() {
                       {/* User Info */}
                       {user ? (
                         <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
                             {(user.first_name || user.username || 'U')[0].toUpperCase()}
                           </div>
                           <div className="min-w-0">
@@ -229,7 +229,7 @@ export default function Navbar() {
                           <Link
                             to="/login"
                             onClick={() => setMobileProfileOpen(false)}
-                            className="block text-center w-full py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-2xs"
+                            className="block text-center w-full py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs shadow-2xs"
                           >
                             Sign In / Register
                           </Link>
@@ -242,7 +242,7 @@ export default function Navbar() {
                         onClick={() => setMobileProfileOpen(false)}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-stone-800 hover:bg-stone-50 transition-colors font-medium border-b border-stone-100"
                       >
-                        <Package size={16} className="text-forest-700 shrink-0" />
+                        <Package size={16} className="text-red-600 shrink-0" />
                         <div className="min-w-0">
                           <p className="font-semibold text-stone-900">Track Item & Orders</p>
                           <p className="text-[10px] text-stone-500">Live order shipment status</p>
@@ -254,9 +254,9 @@ export default function Navbar() {
                         <Link
                           to="/manufacturer"
                           onClick={() => setMobileProfileOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-50 transition-colors border-b border-stone-100"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-red-600 font-bold hover:bg-stone-50 transition-colors border-b border-stone-100"
                         >
-                          <Store size={15} className="text-forest-700 shrink-0" />
+                          <Store size={15} className="text-red-600 shrink-0" />
                           <span>Seller Dashboard</span>
                         </Link>
                       ) : null}
@@ -283,12 +283,12 @@ export default function Navbar() {
 
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="relative w-9 h-9 rounded-full bg-forest-950 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform"
+                className="relative w-9 h-9 rounded-full bg-red-600 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform hover:bg-red-700"
                 aria-label={`Shopping Basket with ${itemsCount} items`}
               >
                 <ShoppingBag size={17} className="text-white" />
                 {itemsCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-forest-950 shadow-xs">
+                  <span className="absolute -top-1 -right-1 min-w-[17px] h-[17px] px-1 bg-amber-400 text-stone-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-white shadow-xs">
                     {itemsCount > 99 ? '99+' : itemsCount}
                   </span>
                 )}
@@ -304,7 +304,7 @@ export default function Navbar() {
                 aria-label="Home"
                 title="Home"
               >
-                <Home size={16} className="text-forest-900" />
+                <Home size={16} className="text-red-600" />
                 <span className="hidden sm:inline text-xs font-bold ml-1.5">Home</span>
               </Link>
 
@@ -328,7 +328,7 @@ export default function Navbar() {
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                       className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-colors border border-stone-200"
                     >
-                      <div className="w-6 h-6 rounded-full bg-forest-900 text-white flex items-center justify-center font-bold text-[10px]">
+                      <div className="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center font-bold text-[10px]">
                         {(user.first_name || user.username || 'U')[0].toUpperCase()}
                       </div>
                       <span className="hidden sm:inline">{user.first_name || user.username}</span>
@@ -347,24 +347,24 @@ export default function Navbar() {
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-stone-700 hover:bg-stone-100 transition-colors font-medium"
                         >
-                          <Package size={15} className="text-forest-700" /> My Orders & Addresses
+                          <Package size={15} className="text-red-600" /> My Orders & Addresses
                         </Link>
 
                         {isManufacturer ? (
                           <Link
                             to="/manufacturer"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-red-600 font-bold hover:bg-stone-100 transition-colors"
                           >
-                            <Store size={15} className="text-forest-700" /> Seller Dashboard
+                            <Store size={15} className="text-red-600" /> Seller Dashboard
                           </Link>
                         ) : isAuthorizedToSell ? (
                           <Link
                             to="/manufacturer/register"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-forest-900 font-bold hover:bg-stone-100 transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-red-600 font-bold hover:bg-stone-100 transition-colors"
                           >
-                            <Store size={15} className="text-forest-700" /> Sell with Us
+                            <Store size={15} className="text-red-600" /> Sell with Us
                           </Link>
                         ) : null}
 
@@ -398,28 +398,28 @@ export default function Navbar() {
                       to="/login"
                       className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-stone-800 hover:bg-stone-100 transition-all border border-stone-200 shadow-2xs"
                     >
-                      <User size={15} className="text-forest-900" />
+                      <User size={15} className="text-red-600" />
                       <span className="hidden sm:inline">Sign In</span>
                     </Link>
                   </div>
                 )}
               </div>
 
-              {/* Desktop Shopping Basket Button */}
+              {/* Desktop Shopping Basket Button - Food Delivery Style Red Button */}
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="group relative px-3 py-2 sm:px-3.5 sm:py-2 rounded-xl bg-forest-900 hover:bg-forest-950 text-white shadow-md flex items-center gap-2 transition-all active:scale-95"
+                className="group relative px-4 py-2.5 rounded-full bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-600/20 flex items-center gap-2 transition-all active:scale-95"
                 aria-label={`Shopping Basket with ${itemsCount} items`}
               >
                 <div className="relative">
-                  <ShoppingBag size={18} className="text-cream-100 group-hover:scale-110 transition-transform" />
+                  <ShoppingBag size={17} className="text-white group-hover:scale-110 transition-transform" />
                   {itemsCount > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-forest-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-forest-950 shadow-xs animate-scale-up">
+                    <span className="absolute -top-2 -right-2 min-w-[17px] h-[17px] px-1 bg-amber-400 text-stone-950 font-black text-[9px] leading-tight rounded-full flex items-center justify-center border border-white shadow-xs animate-scale-up">
                       {itemsCount > 99 ? '99+' : itemsCount}
                     </span>
                   )}
                 </div>
-                <span className="hidden sm:inline text-xs font-bold tracking-tight">
+                <span className="text-xs font-bold tracking-tight">
                   Cart
                 </span>
               </button>
@@ -435,8 +435,8 @@ export default function Navbar() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search king chilli, bamboo shoot, artisan pickles..."
-                className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-xl text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-forest-800 focus:bg-white shadow-2xs font-medium"
+                placeholder="Search king chilli, shredded chicken, pickles..."
+                className="w-full pl-9 pr-16 py-2 bg-stone-100/90 border border-stone-200/90 rounded-full text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-red-600 focus:bg-white shadow-2xs font-medium"
               />
               <Search size={15} className="absolute left-3 top-2.5 text-stone-400" />
               {searchQuery && (
@@ -451,7 +451,7 @@ export default function Navbar() {
               )}
               <button
                 type="submit"
-                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-[11px] font-bold rounded-lg shadow-2xs active:scale-95 transition-transform"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-full shadow-2xs active:scale-95 transition-transform"
               >
                 Go
               </button>
@@ -459,16 +459,16 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* 3. Refined Artisanal Navigation Ribbon (Hidden on mobile homepage to match screenshot design) */}
+        {/* 3. Refined Artisanal Navigation Ribbon */}
         <nav className={`relative z-10 items-center justify-between border-t border-stone-200/70 py-2 sm:py-2.5 text-xs font-medium text-stone-600 gap-3 ${location.pathname === '/' ? 'hidden md:flex' : 'flex'}`}>
           {/* Left: Dietary Filters (Responsive & fluid on mobile) */}
           <div className="w-full lg:w-auto flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar scroll-smooth py-0.5">
             <Link
               to="/products"
-              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
                 !searchParams.get('dietary_type') && !searchParams.get('category') && !searchParams.get('search')
-                  ? 'bg-forest-950 text-white shadow-xs'
-                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
               }`}
             >
               <span className="sm:hidden">All</span>
@@ -477,10 +477,10 @@ export default function Navbar() {
 
             <Link
               to="/products?dietary_type=NON_VEG"
-              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
                 searchParams.get('dietary_type') === 'NON_VEG'
-                  ? 'bg-forest-950 text-white shadow-xs'
-                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
               }`}
             >
               Non-Veg
@@ -488,10 +488,10 @@ export default function Navbar() {
 
             <Link
               to="/products?dietary_type=VEG"
-              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
                 searchParams.get('dietary_type') === 'VEG'
-                  ? 'bg-forest-950 text-white shadow-xs'
-                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
               }`}
             >
               Veg
@@ -499,10 +499,10 @@ export default function Navbar() {
 
             <Link
               to="/products?dietary_type=VEG_MIXED"
-              className={`px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
+              className={`px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-full transition-all whitespace-nowrap text-[11px] sm:text-xs font-semibold ${
                 searchParams.get('dietary_type') === 'VEG_MIXED'
-                  ? 'bg-forest-950 text-white shadow-xs'
-                  : 'bg-stone-100/90 text-stone-700 hover:bg-stone-200 hover:text-stone-950'
+                  ? 'bg-red-600 text-white shadow-sm'
+                  : 'bg-stone-100 text-stone-700 hover:bg-red-50 hover:text-red-700'
               }`}
             >
               <span className="sm:hidden">Veg Mixed</span>
@@ -514,15 +514,15 @@ export default function Navbar() {
           <div className="hidden lg:flex items-center gap-5 text-xs text-stone-600 flex-shrink-0">
             <Link
               to="/brands"
-              className="flex items-center gap-1.5 text-stone-700 hover:text-forest-950 transition-colors font-semibold"
+              className="flex items-center gap-1.5 text-stone-700 hover:text-red-600 transition-colors font-semibold"
             >
-              <Store size={13} className="text-amber-600" />
+              <Store size={13} className="text-red-600" />
               <span>Artisan Brands</span>
             </Link>
 
             <Link
               to="/products?bestsellers=true"
-              className="flex items-center gap-1.5 text-stone-700 hover:text-forest-950 transition-colors font-semibold"
+              className="flex items-center gap-1.5 text-stone-700 hover:text-red-600 transition-colors font-semibold"
             >
               <Sparkles size={13} className="text-amber-500" />
               <span>Bestsellers</span>

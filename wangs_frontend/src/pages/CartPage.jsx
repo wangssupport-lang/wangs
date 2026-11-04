@@ -99,16 +99,16 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
-        <div className="w-24 h-24 bg-cream-100 rounded-3xl flex items-center justify-center mx-auto text-forest-800/40 shadow-inner">
+        <div className="w-24 h-24 bg-red-50 rounded-3xl flex items-center justify-center mx-auto text-red-500 shadow-inner">
           <ShoppingBag size={40} />
         </div>
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is currently empty</h2>
         <p className="text-xs sm:text-sm text-stone-500 max-w-sm mx-auto leading-relaxed">
-          Taste authentic King Chilli, bamboo shoot, and wild forest condiments handcrafted by verified heritage producers.
+          Taste authentic King Chilli, bamboo shoot, and traditional recipes handcrafted by verified heritage producers.
         </p>
         <Link
           to="/products"
-          className="mt-4 inline-flex items-center gap-2 px-7 py-3.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-2xl shadow-md transition-all hover:scale-102"
+          className="mt-4 inline-flex items-center gap-2 px-7 py-3.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl shadow-md shadow-red-600/20 transition-all hover:scale-102"
         >
           <span>Browse Authentic Pickles</span>
           <ArrowRight size={15} />
@@ -122,7 +122,7 @@ export default function CartPage() {
       {/* Title & Free Delivery Progress */}
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200/80 pb-6">
         <div>
-          <span className="text-xs font-bold tracking-wider uppercase text-forest-700">Artisan Cart</span>
+          <span className="text-xs font-bold tracking-wider uppercase text-red-600">Artisan Cart</span>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">
             Shopping Basket ({itemsCount} {itemsCount === 1 ? 'jar' : 'jars'})
           </h1>
@@ -154,7 +154,7 @@ export default function CartPage() {
                     className="w-20 h-20 object-cover rounded-2xl border border-stone-200 flex-shrink-0 shadow-sm"
                   />
                   <div>
-                    <Link to={`/product/${item.product.slug}`} className="font-serif font-bold text-base text-stone-900 hover:text-forest-800 transition-colors line-clamp-1">
+                    <Link to={`/product/${item.product.slug}`} className="font-serif font-bold text-base text-stone-900 hover:text-red-600 transition-colors line-clamp-1">
                       {item.product.title}
                     </Link>
                     <p className="text-xs text-stone-500 mt-0.5">
@@ -211,10 +211,10 @@ export default function CartPage() {
           </div>
 
           <div className="flex justify-between items-center pt-2">
-            <Link to="/products" className="text-xs text-forest-800 font-bold hover:underline">
+            <Link to="/products" className="text-xs text-red-600 font-bold hover:underline">
               ← Continue Shopping in Pantry
             </Link>
-            <button onClick={handleClearCart} className="text-xs text-stone-400 hover:text-chilli-700 transition-colors">
+            <button onClick={handleClearCart} className="text-xs text-stone-400 hover:text-red-600 transition-colors">
               Clear All Items
             </button>
           </div>
@@ -225,7 +225,7 @@ export default function CartPage() {
           {/* Promo Code Box */}
           <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-artisan space-y-3">
             <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
-              <Tag size={15} className="text-forest-700" /> Apply Promo Code
+              <Tag size={15} className="text-red-600" /> Apply Promo Code
             </h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold">
@@ -241,12 +241,12 @@ export default function CartPage() {
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   placeholder="e.g. WANGS10 or WANGS50"
-                  className="flex-1 px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs uppercase font-mono font-bold focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  className="flex-1 px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs uppercase font-mono font-bold focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
                 <button
                   type="submit"
                   disabled={calculating}
-                  className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
                 >
                   Apply
                 </button>
@@ -259,8 +259,8 @@ export default function CartPage() {
           </div>
 
           {/* Pricing Breakdown Card */}
-          <div className="bg-cream-100 p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-5">
-            <h3 className="font-serif font-bold text-lg text-stone-900 border-b border-stone-200/80 pb-3">
+          <div className="bg-red-50/40 p-7 rounded-3xl border border-red-100 shadow-artisan space-y-5">
+            <h3 className="font-serif font-bold text-lg text-stone-900 border-b border-red-200/80 pb-3">
               Order Breakdown
             </h3>
 
@@ -296,15 +296,15 @@ export default function CartPage() {
                 </span>
               </div>
 
-              <div className="border-t border-stone-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-950">
+              <div className="border-t border-red-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-950">
                 <span>Total Amount Payable</span>
-                <span className="text-2xl font-serif font-black text-forest-950">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                <span className="text-2xl font-serif font-black text-red-600">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
               </div>
             </div>
 
             <button
               onClick={() => navigate('/checkout')}
-              className="w-full py-4 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-2xl shadow-lg hover:shadow-xl flex items-center justify-center gap-2 transition-all hover:scale-101 active:scale-99"
+              className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl flex items-center justify-center gap-2 transition-all hover:scale-101 active:scale-99"
             >
               <span>Proceed to Delivery & Checkout</span>
               <ArrowRight size={15} />
@@ -316,7 +316,7 @@ export default function CartPage() {
                 <span>100% Escrow Protection & Tamper-Evident Packaging</span>
               </p>
               <p className="flex items-center gap-1.5 font-medium">
-                <Truck size={14} className="text-forest-600 flex-shrink-0" />
+                <Truck size={14} className="text-red-600 flex-shrink-0" />
                 <span>Direct express air dispatch</span>
               </p>
             </div>

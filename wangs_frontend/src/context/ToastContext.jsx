@@ -37,10 +37,10 @@ export function ToastProvider({ children }) {
             key={t.id}
             className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium border transition-all animate-in fade-in slide-in-from-bottom-2 ${
               t.type === 'success'
-                ? 'bg-forest-950 text-cream-100 border-emerald-500/40'
+                ? 'bg-stone-900 text-white border-emerald-500/40'
                 : t.type === 'error'
-                ? 'bg-stone-900 text-rose-100 border-rose-500/40'
-                : 'bg-forest-950 text-cream-100 border-forest-700'
+                ? 'bg-stone-900 text-rose-100 border-red-500/40'
+                : 'bg-stone-900 text-white border-stone-700'
             }`}
           >
             <div className="flex items-center gap-2.5">

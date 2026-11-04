@@ -201,20 +201,20 @@ export default function DeliveryPage() {
   return (
     <div className="min-h-screen bg-stone-100/90 text-stone-900 pb-16">
       {/* Top Header Bar for Delivery Fleet */}
-      <div className="bg-forest-950 text-cream-50 sticky top-0 z-30 shadow-md border-b border-forest-900">
+      <div className="bg-red-600 text-white sticky top-0 z-30 shadow-md border-b border-red-700">
         <div className="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-forest-800 text-amber-400 flex items-center justify-center font-bold shadow-inner">
+            <div className="w-9 h-9 rounded-xl bg-red-700 text-white flex items-center justify-center font-bold shadow-inner">
               <Truck size={20} />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
                 <span className="font-bold text-sm tracking-wide text-white uppercase">Wangs Express</span>
-                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30">
+                <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/20 text-white font-bold border border-white/30">
                   COURIER
                 </span>
               </div>
-              <p className="text-[10px] text-cream-200/80">Direct Delivery & Customer Route Navigator</p>
+              <p className="text-[10px] text-red-100">Direct Delivery & Customer Route Navigator</p>
             </div>
           </div>
 
@@ -222,7 +222,7 @@ export default function DeliveryPage() {
             <button
               type="button"
               onClick={startScanner}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-forest-950 font-bold text-xs shadow transition-all active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-stone-50 text-red-600 font-bold text-xs shadow transition-all active:scale-95 cursor-pointer"
             >
               <QrCode size={16} />
               <span className="hidden sm:inline">Scan Pack QR</span>
@@ -236,7 +236,7 @@ export default function DeliveryPage() {
                   setSearchParams({});
                   loadRecentParcels();
                 }}
-                className="p-2 rounded-xl bg-forest-900 hover:bg-forest-800 text-cream-100 text-xs transition-colors"
+                className="p-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs transition-colors"
                 title="View All Parcels"
               >
                 <ArrowLeft size={16} />
@@ -257,14 +257,14 @@ export default function DeliveryPage() {
                 value={orderIdInput}
                 onChange={(e) => setOrderIdInput(e.target.value)}
                 placeholder="Scan QR or enter Order # (e.g. WNG-20261026-0060E5) or AWB..."
-                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-forest-800"
+                className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm font-mono text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
               />
             </div>
             <div className="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 sm:flex-initial px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50"
+                className="flex-1 sm:flex-initial px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50"
               >
                 {loading ? 'Searching...' : 'Find Parcel'}
               </button>
@@ -356,7 +356,7 @@ export default function DeliveryPage() {
               {/* Customer Destination & Contact Details */}
               <div className="lg:col-span-5 bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/90 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
-                  <MapPin size={18} className="text-forest-800 shrink-0" />
+                  <MapPin size={18} className="text-red-600 shrink-0" />
                   <h3 className="font-bold text-sm text-stone-900 uppercase tracking-wide">Delivery Destination</h3>
                 </div>
 
@@ -386,7 +386,7 @@ export default function DeliveryPage() {
                           href={`https://wa.me/${getCleanPhone(order.customer_phone)}?text=Hello%20${encodeURIComponent(order.customer_name)},%20your%20Wangs%20artisan%20pickle%20parcel%20is%20arriving%20now!`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
+                          className="px-2.5 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1 transition-colors shadow-2xs"
                         >
                           <MessageSquare size={13} />
                           <span>WhatsApp</span>
@@ -422,7 +422,7 @@ export default function DeliveryPage() {
                     href={order.maps_url || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.formatted_address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="w-full py-2.5 px-3 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center gap-2 transition-all shadow-xs"
+                    className="w-full py-2.5 px-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold inline-flex items-center justify-center gap-2 transition-all shadow-xs"
                   >
                     <Navigation size={15} />
                     <span>Navigate in Google Maps (GPS)</span>
@@ -445,7 +445,7 @@ export default function DeliveryPage() {
               <div className="lg:col-span-7 bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/90 shadow-xs flex flex-col justify-between space-y-3">
                 <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
                   <div className="flex items-center gap-2">
-                    <Navigation size={18} className="text-forest-800 shrink-0" />
+                    <Navigation size={18} className="text-red-600 shrink-0" />
                     <div>
                       <h3 className="font-bold text-sm text-stone-900 uppercase tracking-wide">Live Customer Map Location</h3>
                       <p className="text-[10px] text-stone-500">Destination coordinates: {order.coordinates?.lat.toFixed(4)}, {order.coordinates?.lng.toFixed(4)}</p>
@@ -464,7 +464,7 @@ export default function DeliveryPage() {
                     loading="lazy"
                     src={`https://www.openstreetmap.org/export/embed.html?bbox=${(order.coordinates?.lng || 94.1086) - 0.035}%2C${(order.coordinates?.lat || 25.6751) - 0.025}%2C${(order.coordinates?.lng || 94.1086) + 0.035}%2C${(order.coordinates?.lat || 25.6751) + 0.025}&layer=mapnik&marker=${order.coordinates?.lat || 25.6751}%2C${order.coordinates?.lng || 94.1086}`}
                   />
-                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-forest-950 shadow-sm border border-stone-200 flex items-center gap-1.5">
+                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-stone-900 shadow-sm border border-stone-200 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                     <span>Customer Destination Marker</span>
                   </div>
@@ -473,14 +473,14 @@ export default function DeliveryPage() {
                 {/* Quick Map Location Footer Strip */}
                 <div className="p-2.5 bg-stone-50 rounded-xl border border-stone-200/80 flex flex-wrap items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 text-stone-700">
-                    <Compass size={14} className="text-forest-800" />
+                    <Compass size={14} className="text-red-600" />
                     <span className="text-[11px] font-medium truncate max-w-xs">{order.formatted_address}</span>
                   </div>
                   <a
                     href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(order.formatted_address)}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-forest-800 hover:text-forest-950 font-bold text-[11px] inline-flex items-center gap-1 underline"
+                    className="text-red-600 hover:text-red-700 font-bold text-[11px] inline-flex items-center gap-1 underline"
                   >
                     <span>Get Turn-by-Turn Route</span>
                     <ExternalLink size={12} />
@@ -493,12 +493,12 @@ export default function DeliveryPage() {
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/90 shadow-xs space-y-4">
               <div className="flex items-center justify-between gap-2 pb-3 border-b border-stone-100">
                 <div className="flex items-center gap-2">
-                  <Package size={18} className="text-forest-800" />
+                  <Package size={18} className="text-red-600" />
                   <h3 className="font-bold text-sm text-stone-900 uppercase tracking-wide">
                     Customer Products in Parcel ({order.total_items_count || order.items?.length || 0} Units)
                   </h3>
                 </div>
-                <span className="text-xs font-mono font-bold text-forest-950">
+                <span className="text-xs font-mono font-bold text-red-600">
                   Total Value: ₹{order.total_amount}
                 </span>
               </div>
@@ -536,7 +536,7 @@ export default function DeliveryPage() {
                       </div>
                       <div className="flex items-center justify-between gap-1 pt-1 font-mono">
                         <span className="text-[10px] text-stone-500">₹{item.unit_price} each</span>
-                        <span className="font-bold text-forest-900">₹{item.subtotal}</span>
+                        <span className="font-bold text-red-600">₹{item.subtotal}</span>
                       </div>
                     </div>
                   </div>
@@ -557,7 +557,7 @@ export default function DeliveryPage() {
           /* Empty or Fleet Overview: Recent Active Dispatches */
           <div className="space-y-4">
             <div className="bg-white rounded-2xl p-6 sm:p-8 border border-stone-200/90 shadow-xs text-center space-y-4">
-              <div className="w-16 h-16 rounded-2xl bg-forest-950 text-amber-400 flex items-center justify-center mx-auto shadow-sm">
+              <div className="w-16 h-16 rounded-2xl bg-red-600 text-white flex items-center justify-center mx-auto shadow-md">
                 <QrCode size={34} />
               </div>
               <div className="max-w-md mx-auto space-y-1">
@@ -573,7 +573,7 @@ export default function DeliveryPage() {
                 <button
                   type="button"
                   onClick={startScanner}
-                  className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-forest-950 font-bold text-xs sm:text-sm rounded-xl shadow transition-all active:scale-95 inline-flex items-center gap-2 cursor-pointer"
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all active:scale-95 inline-flex items-center gap-2 cursor-pointer"
                 >
                   <Camera size={18} />
                   <span>Open Camera Scanner</span>
@@ -585,7 +585,7 @@ export default function DeliveryPage() {
             <div className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/90 shadow-xs space-y-3">
               <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
                 <div className="flex items-center gap-2">
-                  <Truck size={17} className="text-forest-800" />
+                  <Truck size={17} className="text-red-600" />
                   <h3 className="font-bold text-sm text-stone-900 uppercase tracking-wide">
                     Recent Dispatches & Delivery Queue
                   </h3>
@@ -627,7 +627,7 @@ export default function DeliveryPage() {
                       </div>
 
                       <div className="text-right">
-                        <span className="font-mono font-bold text-xs text-forest-950 block">₹{p.total_amount}</span>
+                        <span className="font-mono font-bold text-xs text-stone-900 block">₹{p.total_amount}</span>
                         <span className="text-[10px] text-stone-400">{p.items_count} items</span>
                       </div>
                     </div>
@@ -738,7 +738,7 @@ export default function DeliveryPage() {
                 value={deliveryNotes}
                 onChange={(e) => setDeliveryNotes(e.target.value)}
                 placeholder="e.g. Handed over to recipient, security gate, or signature collected..."
-                className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
               />
             </div>
 

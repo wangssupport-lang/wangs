@@ -75,7 +75,7 @@ export default function ProductCard({ product }) {
   const weightText = product.weight_grams ? `${product.weight_grams}g` : '';
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/85 bg-white shadow-2xs hover:shadow-lg hover:border-forest-700/40 transition-all duration-300">
+    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/85 bg-white shadow-2xs hover:shadow-xl hover:border-red-500 transition-all duration-300">
       <div>
         {/* Product Image Container */}
         <Link
@@ -93,20 +93,20 @@ export default function ProductCard({ product }) {
           {/* Badges on Top */}
           <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1 items-center">
             {discountPercent > 0 && (
-              <span className="rounded-md bg-rose-600 text-white font-extrabold text-[9.5px] sm:text-[10px] px-1.5 py-0.5 shadow-xs tracking-tight">
+              <span className="rounded-full bg-red-600 text-white font-extrabold text-[9.5px] sm:text-[10px] px-2 py-0.5 shadow-xs tracking-tight">
                 {discountPercent}% OFF
               </span>
             )}
             {product.is_bestseller && (
-              <span className="inline-flex items-center gap-0.5 rounded-md bg-amber-400 text-amber-950 font-bold text-[9.5px] sm:text-[10px] px-1.5 py-0.5 shadow-xs">
-                <Sparkles size={9} className="fill-amber-950" /> Bestseller
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-400 text-stone-950 font-bold text-[9.5px] sm:text-[10px] px-2 py-0.5 shadow-xs">
+                <Sparkles size={9} className="fill-stone-950" /> Bestseller
               </span>
             )}
           </div>
 
           {/* Weight Badge on Bottom-Right */}
           {weightText && (
-            <div className="absolute right-2 bottom-2 z-10 bg-white/90 backdrop-blur-md border border-white/60 text-stone-800 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-2xs">
+            <div className="absolute right-2 bottom-2 z-10 bg-white/95 backdrop-blur-md border border-stone-200/70 text-stone-800 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
               {weightText}
             </div>
           )}
@@ -125,7 +125,7 @@ export default function ProductCard({ product }) {
         <div className="p-3 sm:p-4 space-y-1">
           {/* Product Title */}
           <Link to={`/product/${product.slug}`} className="block">
-            <h3 className="font-bold text-stone-900 text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[1.9rem] sm:min-h-[2.4rem] group-hover:text-forest-900 transition-colors">
+            <h3 className="font-bold text-stone-900 text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[1.9rem] sm:min-h-[2.4rem] group-hover:text-red-600 transition-colors">
               {product.title}
             </h3>
           </Link>
@@ -164,18 +164,18 @@ export default function ProductCard({ product }) {
             ) : null}
           </div>
 
-          {/* Action: Add Button (+) or Stepper */}
+          {/* Action: Food Delivery "+ Add" Button or Stepper */}
           {cartItem ? (
-            <div className="flex items-center rounded-xl bg-forest-50 border border-forest-900/70 overflow-hidden shadow-2xs h-8 sm:h-9 shrink-0">
+            <div className="flex items-center rounded-full bg-red-50 border border-red-500 overflow-hidden shadow-2xs h-8 sm:h-9 shrink-0">
               <button
                 type="button"
                 onClick={handleDecrement}
                 aria-label={`Decrease quantity of ${product.title}`}
-                className="w-7 h-full flex items-center justify-center text-forest-900 hover:bg-forest-100 active:scale-90 transition-all font-bold"
+                className="w-7 h-full flex items-center justify-center text-red-600 hover:bg-red-100 active:scale-90 transition-all font-bold"
               >
                 <Minus size={12} />
               </button>
-              <span className="px-2 text-xs font-black text-forest-950 font-mono select-none">
+              <span className="px-2 text-xs font-black text-red-700 font-mono select-none">
                 {cartItem.quantity}
               </span>
               <button
@@ -183,7 +183,7 @@ export default function ProductCard({ product }) {
                 onClick={handleIncrement}
                 disabled={cartItem.quantity >= (product.stock_quantity || 99) || !inStock}
                 aria-label={`Increase quantity of ${product.title}`}
-                className="w-7 h-full flex items-center justify-center text-forest-900 hover:bg-forest-100 active:scale-90 transition-all font-bold disabled:opacity-30"
+                className="w-7 h-full flex items-center justify-center text-red-600 hover:bg-red-100 active:scale-90 transition-all font-bold disabled:opacity-30"
               >
                 <Plus size={12} />
               </button>
@@ -194,22 +194,28 @@ export default function ProductCard({ product }) {
               onClick={handleAddToCart}
               disabled={!inStock || adding}
               aria-label={`Add ${product.title} to cart`}
-              className={`w-8 h-8 sm:h-9 sm:w-9 rounded-xl text-xs font-bold flex items-center justify-center shadow-xs transition-all active:scale-90 shrink-0 ${
+              className={`px-3 sm:px-3.5 h-8 sm:h-9 rounded-full text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all active:scale-90 shrink-0 ${
                 added
                   ? 'bg-emerald-600 text-white'
                   : inStock
-                  ? 'bg-forest-900 hover:bg-forest-950 text-white hover:shadow-xs'
+                  ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-md'
                   : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
               }`}
             >
               {added ? (
-                <CheckCircle size={15} className="text-white" />
+                <>
+                  <CheckCircle size={14} className="text-white" />
+                  <span className="hidden sm:inline">Added</span>
+                </>
               ) : adding ? (
                 <span className="animate-pulse text-xs">...</span>
               ) : !inStock ? (
-                <span className="text-[9px]">Sold</span>
+                <span className="text-[10px]">Sold</span>
               ) : (
-                <Plus size={16} strokeWidth={2.5} />
+                <>
+                  <Plus size={14} strokeWidth={2.5} />
+                  <span>Add</span>
+                </>
               )}
             </button>
           )}

@@ -57,7 +57,7 @@ function AppLayout() {
   const isDeliveryRoute = location.pathname.startsWith('/delivery');
 
   return (
-    <div className={`min-h-screen flex flex-col bg-cream-50 text-stone-900 selection:bg-forest-800 selection:text-white ${isAdminRoute || isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
+    <div className={`min-h-screen flex flex-col bg-[#fafafa] text-stone-900 selection:bg-red-600 selection:text-white ${isAdminRoute || isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
       <ScrollToTop />
       {!isAdminRoute && !isDeliveryRoute && <Navbar />}
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
@@ -146,7 +146,7 @@ class ErrorBoundary extends React.Component {
             <div className="flex gap-2 justify-center pt-2">
               <button
                 onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
-                className="px-4 py-2 bg-forest-900 text-white rounded-xl text-xs font-bold shadow cursor-pointer"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow cursor-pointer transition-colors"
               >
                 Reload View
               </button>

@@ -274,7 +274,7 @@ export default function ManufacturerRegisterPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-md space-y-4">
-          <div className="w-14 h-14 bg-forest-100 text-forest-800 rounded-2xl flex items-center justify-center mx-auto">
+          <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center mx-auto">
             <Store size={28} />
           </div>
           <h2 className="font-serif font-bold text-2xl text-stone-900">
@@ -285,7 +285,7 @@ export default function ManufacturerRegisterPage() {
           </p>
           <Link
             to="/manufacturer"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-md transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md transition-all"
           >
             <span>Open Manufacturer Dashboard</span>
             <ArrowRight size={15} />
@@ -392,7 +392,7 @@ export default function ManufacturerRegisterPage() {
                         }
                       }}
                       placeholder="e.g. seller@brand.in or your_email@gmail.com"
-                      className={`w-full pl-10 pr-3 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                      className={`w-full pl-10 pr-3 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 ${
                         reqOtpVerified ? 'border-emerald-400 bg-emerald-50/50' : 'border-stone-200'
                       }`}
                     />
@@ -402,7 +402,7 @@ export default function ManufacturerRegisterPage() {
                       type="button"
                       disabled={reqOtpLoading || !requestData.email || !requestData.email.includes('@')}
                       onClick={handleSendRequestOtp}
-                      className="px-3.5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors disabled:opacity-50"
+                      className="px-3.5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs whitespace-nowrap transition-colors disabled:opacity-50"
                     >
                       {reqOtpLoading ? 'Sending...' : reqOtpSent ? 'Resend OTP' : 'Send OTP'}
                     </button>
@@ -435,15 +435,15 @@ export default function ManufacturerRegisterPage() {
 
                 {/* OTP Code Entry Popover with Explicit Recipient Target */}
                 {reqOtpSent && !reqOtpVerified && (
-                  <div className="mt-2.5 p-3.5 bg-forest-50/90 border border-forest-200 rounded-xl space-y-2.5">
+                  <div className="mt-2.5 p-3.5 bg-red-50/70 border border-red-200 rounded-xl space-y-2.5">
                     <div className="flex items-start gap-2">
-                      <Sparkles size={15} className="text-forest-700 mt-0.5 shrink-0" />
-                      <div className="text-[12px] text-forest-950 leading-relaxed">
-                        Verification code sent directly to: <strong className="font-mono text-forest-900 bg-white px-1.5 py-0.5 rounded border border-forest-200">{requestData.email}</strong>. Please check that Gmail/email inbox (and spam folder).
+                      <Sparkles size={15} className="text-red-600 mt-0.5 shrink-0" />
+                      <div className="text-[12px] text-stone-900 leading-relaxed">
+                        Verification code sent directly to: <strong className="font-mono text-red-600 bg-white px-1.5 py-0.5 rounded border border-red-200">{requestData.email}</strong>. Please check that Gmail/email inbox (and spam folder).
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-1 border-t border-forest-200/60">
-                      <span className="text-[11px] font-semibold text-forest-900">
+                    <div className="flex items-center justify-between pt-1 border-t border-red-200/60">
+                      <span className="text-[11px] font-semibold text-stone-900">
                         Enter 6-digit code:
                       </span>
                       {reqOtpTimer > 0 && (
@@ -457,7 +457,7 @@ export default function ManufacturerRegisterPage() {
                         value={reqOtpCode}
                         onChange={(e) => setReqOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="6-digit OTP"
-                        className="w-36 px-3 py-2 bg-white border border-forest-600 rounded-xl text-center font-mono text-sm font-bold tracking-widest text-stone-900 shadow-inner"
+                        className="w-36 px-3 py-2 bg-white border border-red-500 rounded-xl text-center font-mono text-sm font-bold tracking-widest text-stone-900 shadow-inner"
                       />
                       <button
                         type="button"
@@ -486,7 +486,7 @@ export default function ManufacturerRegisterPage() {
                       value={requestData.password}
                       onChange={(e) => setRequestData({ ...requestData, password: e.target.value })}
                       placeholder="Min. 6 characters"
-                      className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      className="w-full pl-10 pr-11 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
                     />
                     <button
                       type="button"
@@ -512,7 +512,7 @@ export default function ManufacturerRegisterPage() {
                       value={requestData.confirm_password}
                       onChange={(e) => setRequestData({ ...requestData, confirm_password: e.target.value })}
                       placeholder="Re-enter password"
-                      className={`w-full pl-10 pr-11 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                      className={`w-full pl-10 pr-11 py-2.5 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 ${
                         requestData.confirm_password && requestData.password === requestData.confirm_password
                           ? 'border-emerald-500 bg-emerald-50/20'
                           : 'border-stone-200'
@@ -575,7 +575,7 @@ export default function ManufacturerRegisterPage() {
                   value={requestData.fssai_number}
                   onChange={(e) => setRequestData({ ...requestData, fssai_number: e.target.value.replace(/\D/g, '').slice(0, 14) })}
                   placeholder="Enter 14-digit numeric FSSAI registration code"
-                  className={`w-full px-3 py-2.5 bg-stone-50 border rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 ${
+                  className={`w-full px-3 py-2.5 bg-stone-50 border rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 ${
                     requestData.fssai_number?.length === 14 ? 'border-emerald-400 bg-emerald-50/30' : 'border-stone-200'
                   }`}
                 />
@@ -600,7 +600,7 @@ export default function ManufacturerRegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
                 <span>{loading ? 'Submitting Request...' : 'Request Seller Authorization'}</span>
                 <ArrowRight size={15} />
@@ -620,7 +620,7 @@ export default function ManufacturerRegisterPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="text-center max-w-2xl mx-auto mb-10">
-        <div className="w-16 h-16 bg-forest-100 text-forest-800 rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+        <div className="w-16 h-16 bg-red-50 text-red-600 rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-xs">
           <Store size={30} />
         </div>
         <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-800 font-bold text-[10px] rounded-full uppercase tracking-wider mb-2">
@@ -665,7 +665,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.full_name}
                   onChange={handleChange}
                   placeholder="e.g. Arenla Ao"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
               <div>
@@ -677,7 +677,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.username}
                   onChange={handleChange}
                   placeholder="e.g. arenla_craft"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
             </div>
@@ -692,7 +692,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="seller@wangs.in"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
               <div>
@@ -705,7 +705,7 @@ export default function ManufacturerRegisterPage() {
                     value={formData.password}
                     onChange={handleChange}
                     placeholder="Min. 6 characters"
-                    className="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700 text-stone-900"
+                    className="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 text-stone-900"
                   />
                   <button
                     type="button"
@@ -728,7 +728,7 @@ export default function ManufacturerRegisterPage() {
                     value={formData.confirm_password}
                     onChange={handleChange}
                     placeholder="Re-enter password"
-                    className="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700 text-stone-900"
+                    className="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 text-stone-900"
                   />
                   <button
                     type="button"
@@ -759,7 +759,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.business_name}
                   onChange={handleChange}
                   placeholder="e.g. Arenla's Heritage Foods"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
               <div>
@@ -771,7 +771,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.location_district}
                   onChange={handleChange}
                   placeholder="e.g. Kohima, Mokokchung, Wokha"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
             </div>
@@ -784,7 +784,7 @@ export default function ManufacturerRegisterPage() {
                 value={formData.brand_story}
                 onChange={handleChange}
                 placeholder="Share your culinary heritage, wood-smoking methods, heirloom chillies, and values..."
-                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
               />
             </div>
           </div>
@@ -807,14 +807,14 @@ export default function ManufacturerRegisterPage() {
                     value={formData.contact_email}
                     onChange={handleChange}
                     placeholder="orders@arenlafoods.in"
-                    className="flex-1 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                    className="flex-1 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                   />
                   {!otpVerified ? (
                     <button
                       type="button"
                       disabled={otpLoading || !formData.contact_email}
                       onClick={handleSendEmailOtp}
-                      className="px-3 py-2 bg-forest-800 text-white rounded-xl text-[11px] font-bold whitespace-nowrap disabled:opacity-50"
+                      className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-bold whitespace-nowrap disabled:opacity-50 transition-colors shadow-xs"
                     >
                       {otpSent ? 'Resend' : 'Verify Email'}
                     </button>
@@ -834,7 +834,7 @@ export default function ManufacturerRegisterPage() {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="6-digit OTP"
-                        className="w-36 px-3 py-1.5 bg-white border border-forest-600 rounded-xl text-center font-mono text-sm font-bold tracking-widest focus:ring-2 focus:ring-forest-600 focus:outline-none"
+                        className="w-36 px-3 py-1.5 bg-white border border-red-500 rounded-xl text-center font-mono text-sm font-bold tracking-widest focus:ring-2 focus:ring-red-500 focus:outline-none"
                       />
                       <button
                         type="button"
@@ -858,7 +858,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.contact_phone}
                   onChange={handleChange}
                   placeholder="+91 94360 12345"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
             </div>
@@ -873,7 +873,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.business_address}
                   onChange={handleChange}
                   placeholder="Sector / Ward / Village / Landmark"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>
               <div>
@@ -886,17 +886,17 @@ export default function ManufacturerRegisterPage() {
                   value={formData.postal_code}
                   onChange={(e) => setFormData({ ...formData, postal_code: e.target.value.replace(/\D/g, '').slice(0, 6) })}
                   placeholder="797001"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-700 font-mono"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-mono"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 4: Mandatory FSSAI Food Licensing */}
-          <div className="p-6 bg-cream-50/80 rounded-2xl border-2 border-forest-800/30 space-y-4">
+          <div className="p-6 bg-stone-50 rounded-2xl border-2 border-red-500/30 space-y-4">
             <div className="flex items-center gap-2">
-              <ShieldCheck size={20} className="text-forest-800" />
-              <h3 className="font-serif font-bold text-sm text-forest-950">
+              <ShieldCheck size={20} className="text-red-600" />
+              <h3 className="font-serif font-bold text-sm text-stone-900">
                 4. Mandatory FSSAI Food Safety Licensing
               </h3>
             </div>
@@ -907,7 +907,7 @@ export default function ManufacturerRegisterPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <div className="flex justify-between items-center mb-1">
-                  <label className="block text-forest-950 font-bold">
+                  <label className="block text-stone-900 font-bold">
                     FSSAI License / Registration # (14 Digits) *
                   </label>
                   <span className={`text-[11px] font-mono font-bold ${formData.fssai_license_number?.length === 14 ? 'text-emerald-700' : 'text-stone-400'}`}>
@@ -924,7 +924,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.fssai_license_number}
                   onChange={(e) => setFormData({ ...formData, fssai_license_number: e.target.value.replace(/\D/g, '').slice(0, 14) })}
                   placeholder="e.g. 10023064000124"
-                  className="w-full px-3.5 py-2.5 bg-white border-2 border-forest-800/40 rounded-xl font-mono text-sm tracking-wider text-forest-950 focus:border-forest-800 focus:outline-none"
+                  className="w-full px-3.5 py-2.5 bg-white border-2 border-red-500/40 rounded-xl font-mono text-sm tracking-wider text-stone-900 focus:border-red-600 focus:outline-none"
                 />
               </div>
 
@@ -936,7 +936,7 @@ export default function ManufacturerRegisterPage() {
                   value={formData.gst_number}
                   onChange={handleChange}
                   placeholder="e.g. 13AABCA1234Z1Z5"
-                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-700 uppercase"
+                  className="w-full px-3.5 py-2.5 bg-white border border-stone-200 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 uppercase"
                 />
               </div>
             </div>
@@ -1014,7 +1014,7 @@ export default function ManufacturerRegisterPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 download="wangs_seller_rules.pdf"
-                className="inline-flex items-center gap-1 text-forest-900 hover:text-forest-950 font-bold text-[11px] hover:underline"
+                className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold text-[11px] hover:underline"
               >
                 📄 Download Official Seller Rules & Policy Handbook (PDF)
               </a>
@@ -1024,7 +1024,7 @@ export default function ManufacturerRegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+            className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50 cursor-pointer"
           >
             <span>{loading ? 'Submitting Application...' : 'Submit Seller Application'}</span>
             <ArrowRight size={16} />

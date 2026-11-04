@@ -71,14 +71,14 @@ const getShipmentMilestones = (order) => {
     },
     {
       stage: 'Artisan Batch Preparation & Jar Sealing',
-      location: 'Artisan Kitchen & Packing Hub, Nagaland',
+      location: 'Artisan Workshop & Packing Hub, Regional Heritage Facility',
       time: `${orderDateStr}, Afternoon`,
       status: 'completed',
       detail: 'Traditional slow-pickled batch sealed in food-grade airtight containers.'
     },
     {
       stage: 'Consignment Handed Over to Air Freight Partner',
-      location: 'Dimapur Cargo Terminal, Nagaland (797112)',
+      location: 'Dimapur Air Cargo Terminal (797112)',
       time: isDispatched ? dispatchDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 06:45 PM' : 'Scheduled upon packing',
       status: isDispatched ? 'completed' : 'upcoming',
       detail: `Parcel barcode scanned and Airway Bill (AWB ${order.tracking_number || 'WNG-AWB-PENDING'}) generated via ${order.courier_partner || 'Air Cargo Express'}.`
@@ -223,9 +223,9 @@ export default function CustomerAccountPage() {
               <span className="hidden sm:inline-block h-4 w-px bg-stone-300" />
               <Link
                 to="/manufacturer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-forest-950 text-amber-300 hover:bg-forest-900 font-bold text-xs shadow-xs transition-all active:scale-98"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-600 text-white hover:bg-red-700 font-bold text-xs shadow-xs transition-all active:scale-98"
               >
-                <ShieldCheck size={14} className="text-amber-400" />
+                <ShieldCheck size={14} className="text-white" />
                 <span>Seller Studio</span>
               </Link>
             </>
@@ -249,7 +249,7 @@ export default function CustomerAccountPage() {
           <button
             onClick={() => setActiveTab('orders')}
             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'orders' ? 'bg-forest-900 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+              activeTab === 'orders' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
             <Package size={15} /> Track Orders ({orders.length})
@@ -258,7 +258,7 @@ export default function CustomerAccountPage() {
           <button
             onClick={() => setActiveTab('addresses')}
             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'addresses' ? 'bg-forest-900 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+              activeTab === 'addresses' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
             <MapPin size={15} /> Addresses ({addresses.length})
@@ -267,7 +267,7 @@ export default function CustomerAccountPage() {
           <button
             onClick={() => setActiveTab('profile')}
             className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'profile' ? 'bg-forest-900 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+              activeTab === 'profile' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
             <User size={15} /> Profile
@@ -278,9 +278,9 @@ export default function CustomerAccountPage() {
             <div className="shrink-0 lg:pt-2">
               <Link
                 to="/manufacturer"
-                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-bold bg-forest-950 text-amber-300 hover:bg-forest-900 transition-colors shadow-xs whitespace-nowrap"
+                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-xs whitespace-nowrap"
               >
-                <ShieldCheck size={15} className="text-amber-400" />
+                <ShieldCheck size={15} className="text-white" />
                 <span>Seller Studio</span>
               </Link>
             </div>
@@ -302,7 +302,7 @@ export default function CustomerAccountPage() {
                   </p>
                   <Link
                     to="/products"
-                    className="mt-4 inline-block px-4 py-2 bg-forest-800 text-white text-xs font-semibold rounded-lg"
+                    className="mt-4 inline-block px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-colors shadow-xs"
                   >
                     Browse Pickles
                   </Link>
@@ -349,7 +349,7 @@ export default function CustomerAccountPage() {
                               ? 'bg-blue-100 text-blue-900 border border-blue-300'
                               : ord.status === 'CANCELLED'
                               ? 'bg-red-100 text-red-900 border border-red-300'
-                              : 'bg-forest-100 text-forest-900 border border-forest-300'
+                              : 'bg-red-100 text-red-900 border border-red-300'
                           }`}>
                             {ord.status === 'DISPATCHED' && <Plane size={12} className="animate-bounce" />}
                             {ord.status === 'DELIVERED' && <CheckCircle size={12} />}
@@ -363,7 +363,7 @@ export default function CustomerAccountPage() {
                       <div className="bg-stone-50/70 rounded-2xl p-4 sm:p-6 border border-stone-200/80">
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2">
-                            <Truck size={16} className="text-forest-800" />
+                            <Truck size={16} className="text-red-600" />
                             <h4 className="font-serif font-bold text-sm text-stone-900">Live Parcel Journey</h4>
                           </div>
                           <span className="text-[11px] text-stone-500 font-medium">
@@ -372,7 +372,7 @@ export default function CustomerAccountPage() {
                               : ord.status === 'DISPATCHED'
                               ? 'En route via Air Cargo'
                               : ord.status === 'PROCESSING'
-                              ? 'Preparing in Artisan Kitchen'
+                              ? 'Preparing in Artisan Workshop'
                               : 'Order Confirmed'}
                           </span>
                         </div>
@@ -387,7 +387,7 @@ export default function CustomerAccountPage() {
                               
                               {/* Active Progress Connector Line */}
                               <div
-                                className="absolute left-6 top-4 h-1 bg-forest-700 transition-all duration-500 z-0"
+                                className="absolute left-6 top-4 h-1 bg-red-600 transition-all duration-500 z-0"
                                 style={{
                                   width: `${(currentStepIdx / (TRACKING_STEPS.length - 1)) * 100}%`,
                                   maxWidth: 'calc(100% - 3rem)'
@@ -405,9 +405,9 @@ export default function CustomerAccountPage() {
                                     <div
                                       className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
                                         isCompleted
-                                          ? 'bg-forest-800 text-white shadow-xs'
+                                          ? 'bg-red-600 text-white shadow-xs'
                                           : isCurrent
-                                          ? 'bg-forest-900 text-white ring-4 ring-forest-200 shadow-md scale-105'
+                                          ? 'bg-red-600 text-white ring-4 ring-red-100 shadow-md scale-105'
                                           : 'bg-white border-2 border-stone-200 text-stone-400'
                                       }`}
                                     >
@@ -416,7 +416,7 @@ export default function CustomerAccountPage() {
 
                                     <div className="mt-2.5 space-y-0.5">
                                       <span className={`text-xs block leading-tight ${
-                                        isCurrent ? 'font-bold text-forest-950' : isCompleted ? 'font-semibold text-stone-800' : 'text-stone-400 font-medium'
+                                        isCurrent ? 'font-bold text-red-700' : isCompleted ? 'font-semibold text-stone-800' : 'text-stone-400 font-medium'
                                       }`}>
                                         {step.title}
                                       </span>
@@ -424,7 +424,7 @@ export default function CustomerAccountPage() {
                                         {step.subtitle}
                                       </span>
                                       {isCurrent && (
-                                        <span className="inline-block mt-1 px-2 py-0.5 bg-forest-100 text-forest-800 rounded-full text-[9px] font-bold uppercase tracking-wider">
+                                        <span className="inline-block mt-1 px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[9px] font-bold uppercase tracking-wider">
                                           Current
                                         </span>
                                       )}
@@ -447,16 +447,16 @@ export default function CustomerAccountPage() {
                                   {idx < TRACKING_STEPS.length - 1 && (
                                     <div
                                       className={`absolute left-4 top-8 bottom-0 w-0.5 -ml-[1px] ${
-                                        idx < currentStepIdx ? 'bg-forest-700' : 'bg-stone-200'
+                                        idx < currentStepIdx ? 'bg-red-600' : 'bg-stone-200'
                                       }`}
                                     />
                                   )}
                                   <div
                                     className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 z-10 ${
                                       isCompleted
-                                        ? 'bg-forest-800 text-white'
+                                        ? 'bg-red-600 text-white'
                                         : isCurrent
-                                        ? 'bg-forest-900 text-white ring-3 ring-forest-200'
+                                        ? 'bg-red-600 text-white ring-3 ring-red-100'
                                         : 'bg-white border-2 border-stone-200 text-stone-400'
                                     }`}
                                   >
@@ -464,11 +464,11 @@ export default function CustomerAccountPage() {
                                   </div>
                                   <div className="space-y-0.5 pb-2">
                                     <div className="flex items-center gap-2">
-                                      <span className={`text-xs ${isCurrent ? 'font-bold text-forest-950' : isCompleted ? 'font-semibold text-stone-800' : 'text-stone-400'}`}>
+                                      <span className={`text-xs ${isCurrent ? 'font-bold text-red-700' : isCompleted ? 'font-semibold text-stone-800' : 'text-stone-400'}`}>
                                         {step.title}
                                       </span>
                                       {isCurrent && (
-                                        <span className="px-1.5 py-0.5 bg-forest-100 text-forest-800 rounded text-[9px] font-bold">
+                                        <span className="px-1.5 py-0.5 bg-red-100 text-red-700 rounded text-[9px] font-bold">
                                           Active
                                         </span>
                                       )}
@@ -542,7 +542,7 @@ export default function CustomerAccountPage() {
                               <button
                                 type="button"
                                 onClick={() => setTrackingModalOrder(ord)}
-                                className="px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
+                                className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-all active:scale-95"
                               >
                                 <Navigation size={13} />
                                 <span>Track Milestones</span>
@@ -725,7 +725,7 @@ export default function CustomerAccountPage() {
                               <div
                                 className={`absolute -left-6 top-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
                                   isDone
-                                    ? 'bg-forest-800 text-white'
+                                    ? 'bg-red-600 text-white'
                                     : isCurrent
                                     ? 'bg-purple-700 text-white ring-4 ring-purple-100 animate-pulse'
                                     : 'bg-white border-2 border-stone-300 text-stone-400'
@@ -741,7 +741,7 @@ export default function CustomerAccountPage() {
                                 <span className="text-[10px] text-stone-400 font-mono">{milestone.time}</span>
                               </div>
 
-                              <p className="text-[11px] text-forest-900 font-medium">{milestone.location}</p>
+                              <p className="text-[11px] text-red-700 font-medium">{milestone.location}</p>
                               <p className="text-[11px] text-stone-500 leading-relaxed">{milestone.detail}</p>
                             </div>
                           );
@@ -764,7 +764,7 @@ export default function CustomerAccountPage() {
                       <button
                         type="button"
                         onClick={() => setTrackingModalOrder(null)}
-                        className="px-5 py-2 bg-forest-900 hover:bg-forest-950 text-white rounded-xl font-bold transition-all shadow-xs"
+                        className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-xs"
                       >
                         Close
                       </button>
@@ -779,7 +779,7 @@ export default function CustomerAccountPage() {
                 <h3 className="font-serif font-bold text-base text-stone-900">Saved Shipping Addresses</h3>
                 <button
                   onClick={() => setShowAddressModal(true)}
-                  className="px-3 py-1.5 bg-forest-800 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-xs"
                 >
                   <Plus size={14} /> Add New Address
                 </button>
@@ -789,7 +789,7 @@ export default function CustomerAccountPage() {
                 {addresses.map((addr) => (
                   <div key={addr.id} className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm relative text-xs space-y-1">
                     {addr.is_default && (
-                      <span className="absolute top-3 right-3 px-2 py-0.5 bg-forest-100 text-forest-800 font-bold rounded text-[10px]">
+                      <span className="absolute top-3 right-3 px-2 py-0.5 bg-red-100 text-red-700 font-bold rounded text-[10px]">
                         Default
                       </span>
                     )}
@@ -881,14 +881,14 @@ export default function CustomerAccountPage() {
                       <div className="flex gap-2 pt-2">
                         <button
                           type="submit"
-                          className="flex-1 py-2 bg-forest-800 text-white rounded-lg font-semibold"
+                          className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors shadow-xs"
                         >
                           Save Address
                         </button>
                         <button
                           type="button"
                           onClick={() => setShowAddressModal(false)}
-                          className="py-2 px-3 border border-stone-200 rounded-lg"
+                          className="py-2 px-3 border border-stone-200 rounded-lg hover:bg-stone-50"
                         >
                           Cancel
                         </button>
@@ -918,15 +918,15 @@ export default function CustomerAccountPage() {
                 </div>
                 <div>
                   <span className="text-stone-500 block">Account Role</span>
-                  <span className="font-semibold text-forest-800">{user.role}</span>
+                  <span className="font-semibold text-red-600">{user.role}</span>
                 </div>
               </div>
 
               {isManufacturer && (
-                <div className="mt-4 p-4 rounded-xl bg-forest-950 text-cream-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="mt-4 p-4 rounded-xl bg-stone-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 text-amber-300 font-bold text-xs">
-                      <ShieldCheck size={14} className="text-amber-400" />
+                    <div className="flex items-center gap-1.5 text-red-400 font-bold text-xs">
+                      <ShieldCheck size={14} className="text-red-400" />
                       <span>Seller Studio Hub</span>
                     </div>
                     <p className="text-[11px] text-stone-300">
@@ -935,7 +935,7 @@ export default function CustomerAccountPage() {
                   </div>
                   <Link
                     to="/manufacturer"
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-forest-950 font-bold text-xs shadow transition-all whitespace-nowrap active:scale-95 self-start sm:self-center"
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all whitespace-nowrap active:scale-95 self-start sm:self-center"
                   >
                     <span>Open Studio</span>
                     <ArrowRight size={12} />

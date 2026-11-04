@@ -65,10 +65,10 @@ export default function MaintenancePage({ message }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-950 via-forest-900 to-[#0e2c1a] text-cream-50 flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative overflow-hidden select-none">
+    <div className="min-h-screen bg-gradient-to-br from-stone-950 via-stone-900 to-[#1c0a0a] text-white flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative overflow-hidden select-none">
       {/* Background radial gold aura */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[38rem] h-[38rem] rounded-full bg-red-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ef4444_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
 
       {/* Top Header */}
       <header className="relative z-10 max-w-7xl mx-auto w-full flex items-center justify-between py-2">
@@ -119,20 +119,20 @@ export default function MaintenancePage({ message }) {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email for opening alert..."
                   disabled={submitting}
-                  className="w-full px-4 py-2.5 rounded-xl bg-forest-900/90 border border-forest-700/80 text-white placeholder-stone-400 text-xs focus:outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/50"
+                  className="w-full px-4 py-2.5 rounded-xl bg-stone-900 border border-stone-700 text-white placeholder-stone-400 text-xs focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500/50"
                   required
                 />
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full sm:w-auto whitespace-nowrap inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-forest-950 font-bold text-xs shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-60"
+                  className="w-full sm:w-auto whitespace-nowrap inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all active:scale-98 cursor-pointer disabled:opacity-60"
                 >
                   <span>{submitting ? 'Subscribing...' : 'Notify Me'}</span>
                   <ArrowRight size={13} />
                 </button>
               </div>
               {notifyFeedback && (
-                <p className="text-[11px] text-amber-300/90 text-left pl-1">{notifyFeedback}</p>
+                <p className="text-[11px] text-red-300 text-left pl-1">{notifyFeedback}</p>
               )}
             </form>
           )}
@@ -140,8 +140,8 @@ export default function MaintenancePage({ message }) {
 
         {/* Orders Guaranteed Assurance Banner */}
         <div className="pt-2 max-w-md mx-auto w-full">
-          <div className="p-3.5 rounded-2xl bg-forest-900/60 border border-forest-800 backdrop-blur-md text-center space-y-1">
-            <div className="flex items-center justify-center gap-2 text-amber-300 font-bold text-xs">
+          <div className="p-3.5 rounded-2xl bg-stone-900/80 border border-stone-800 backdrop-blur-md text-center space-y-1">
+            <div className="flex items-center justify-center gap-2 text-red-400 font-bold text-xs">
               <ShieldCheck size={16} />
               <span>Orders Guaranteed</span>
             </div>
@@ -157,9 +157,9 @@ export default function MaintenancePage({ message }) {
             type="button"
             onClick={handleManualCheck}
             disabled={checkingNow}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-forest-900/80 hover:bg-forest-800 border border-forest-700 text-stone-300 hover:text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-stone-900 hover:bg-stone-800 border border-stone-700 text-stone-300 hover:text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
           >
-            <RefreshCw size={13} className={`text-amber-400 ${checkingNow ? 'animate-spin' : ''}`} />
+            <RefreshCw size={13} className={`text-red-400 ${checkingNow ? 'animate-spin' : ''}`} />
             <span>{checkingNow ? 'Checking status...' : 'Check If Storefront Is Live'}</span>
           </button>
           <div className="flex items-center gap-1.5 text-[10px] text-stone-400">
@@ -173,7 +173,7 @@ export default function MaintenancePage({ message }) {
       </main>
 
       {/* Footer Support Info */}
-      <footer className="relative z-10 max-w-7xl mx-auto w-full text-center text-[11px] text-stone-400 py-3 border-t border-forest-900/80 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="relative z-10 max-w-7xl mx-auto w-full text-center text-[11px] text-stone-400 py-3 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-2">
         <span>© {new Date().getFullYear()} Wangs Marketplace · Verified Artisanal Producers</span>
         <div className="flex items-center gap-4 text-stone-300">
           <span className="flex items-center gap-1">

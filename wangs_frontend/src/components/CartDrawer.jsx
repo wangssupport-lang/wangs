@@ -59,14 +59,14 @@ export default function CartDrawer() {
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-8">
         <div className="w-screen max-w-full sm:max-w-md bg-white shadow-2xl flex flex-col border-l border-stone-200">
           {/* Drawer Header */}
-          <div className="px-5 sm:px-6 py-4 sm:py-5 bg-gradient-to-b from-cream-100 to-white border-b border-stone-200 flex items-center justify-between">
+          <div className="px-5 sm:px-6 py-4 sm:py-5 bg-gradient-to-b from-red-50/50 to-white border-b border-stone-200 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-forest-900 text-cream-100 flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-sm">
                 <ShoppingBag size={18} />
               </div>
               <div>
                 <h2 className="font-serif font-bold text-lg text-stone-950 leading-none">
-                  Your Artisan Basket
+                  Your Basket
                 </h2>
                 <span className="text-[11px] text-stone-500 font-medium">
                   {itemsCount} {itemsCount === 1 ? 'jar' : 'jars'} selected
@@ -95,13 +95,13 @@ export default function CartDrawer() {
           <div className="flex-1 overflow-y-auto px-6 py-4 divide-y divide-stone-100">
             {items.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center py-12 space-y-4">
-                <div className="w-20 h-20 rounded-full bg-cream-100 flex items-center justify-center text-forest-800/40">
+                <div className="w-20 h-20 rounded-full bg-red-50 flex items-center justify-center text-red-500">
                   <ShoppingBag size={36} />
                 </div>
                 <div className="space-y-1">
                   <h3 className="font-serif font-bold text-xl text-stone-900">Your basket is empty</h3>
                   <p className="text-xs text-stone-500 max-w-xs mx-auto leading-relaxed">
-                    Explore authentic King Chilli, fermented bamboo shoot, and traditional heritage pickles handcrafted in Kohima.
+                    Explore authentic King Chilli, fermented bamboo shoot, and traditional heritage pickles.
                   </p>
                 </div>
                 <button
@@ -109,7 +109,7 @@ export default function CartDrawer() {
                     setIsDrawerOpen(false);
                     navigate('/products');
                   }}
-                  className="px-6 py-3 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                  className="px-6 py-3 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition-all"
                 >
                   Explore Authentic Pickles
                 </button>
@@ -130,7 +130,7 @@ export default function CartDrawer() {
                     <Link
                       to={`/product/${item.product.slug}`}
                       onClick={() => setIsDrawerOpen(false)}
-                      className="font-serif font-bold text-sm text-stone-900 hover:text-forest-800 line-clamp-1 leading-snug"
+                      className="font-serif font-bold text-sm text-stone-900 hover:text-red-600 line-clamp-1 leading-snug"
                     >
                       {item.product.title}
                     </Link>
@@ -208,7 +208,7 @@ export default function CartDrawer() {
                 </div>
                 <div className="border-t border-stone-200 pt-2.5 flex justify-between items-baseline text-sm font-bold text-stone-950">
                   <span>Total Payable</span>
-                  <span className="text-xl font-serif text-forest-950">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                  <span className="text-xl font-serif text-red-600">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -216,14 +216,14 @@ export default function CartDrawer() {
                 <Link
                   to="/cart"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-1 py-3 text-center text-xs font-bold text-forest-900 bg-white border border-forest-900/30 rounded-xl hover:bg-forest-50 transition-colors shadow-sm active:scale-95"
+                  className="flex-1 py-3 text-center text-xs font-bold text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-colors shadow-sm active:scale-95"
                 >
                   View Cart
                 </Link>
                 <Link
                   to="/checkout"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-forest-900 hover:bg-forest-950 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95"
+                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={15} />

@@ -6,7 +6,7 @@ export function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-10">
       <div className="text-center space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-forest-800">Quality & Standards</span>
+        <span className="text-xs font-bold uppercase tracking-wider text-red-600">Quality & Standards</span>
         <h1 className="font-serif text-4xl font-bold text-stone-900">About Wangs (wangs.in)</h1>
         <p className="text-sm text-stone-600 max-w-xl mx-auto">
           India's dedicated multi-vendor marketplace connecting verified artisanal food producers with culinary enthusiasts nationwide.
@@ -16,7 +16,7 @@ export function AboutPage() {
       <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-6 leading-relaxed">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-forest-50 text-forest-800 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
               <Award size={18} />
             </div>
             <h4 className="font-serif font-bold text-stone-900 text-sm">72h Firewood Smoke</h4>
@@ -123,7 +123,7 @@ export function RefundsPage() {
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-8 text-xs sm:text-sm text-stone-700 leading-relaxed">
       {/* Header */}
       <div className="border-b border-stone-200 pb-5">
-        <span className="text-xs font-bold uppercase tracking-wider text-forest-800">
+        <span className="text-xs font-bold uppercase tracking-wider text-red-600">
           Store Policies & Producer Autonomy
         </span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-1">
@@ -150,8 +150,8 @@ export function RefundsPage() {
       </div>
 
       {/* Manufacturer Discretion Highlight Banner */}
-      <div className="p-5 sm:p-6 bg-forest-950 text-cream-100 rounded-2xl sm:rounded-3xl border border-forest-800 shadow-sm space-y-2">
-        <div className="flex items-center gap-2 text-amber-300 font-bold text-xs uppercase tracking-wider">
+      <div className="p-5 sm:p-6 bg-stone-900 text-white rounded-2xl sm:rounded-3xl border border-stone-800 shadow-sm space-y-2">
+        <div className="flex items-center gap-2 text-red-400 font-bold text-xs uppercase tracking-wider">
           <Award size={15} />
           <span>Manufacturer Autonomy & Decision-Making</span>
         </div>
@@ -259,7 +259,7 @@ export function RefundsPage() {
         </div>
         <Link
           to="/contact"
-          className="px-4 py-2 bg-forest-900 text-white rounded-xl font-bold text-xs hover:bg-forest-950 transition-colors self-start sm:self-auto text-center"
+          className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors self-start sm:self-auto text-center shadow-xs"
         >
           Contact Support
         </Link>
@@ -278,20 +278,20 @@ export function ContactPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2 text-center">
-          <MapPin size={24} className="text-forest-800 mx-auto" />
+          <MapPin size={24} className="text-red-600 mx-auto" />
           <h3 className="font-serif font-bold text-sm text-stone-900">Artisan Workshop & HQ</h3>
           <p className="text-stone-500">Ministers Hill, Sector 4, Kohima - 797001</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2 text-center">
-          <Mail size={24} className="text-forest-800 mx-auto" />
+          <Mail size={24} className="text-red-600 mx-auto" />
           <h3 className="font-serif font-bold text-sm text-stone-900">Support Email</h3>
           <p className="text-stone-700 font-semibold">wangssupport@gmail.com</p>
           <p className="text-stone-400 text-[11px]">Direct Support & Inquiries</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2 text-center">
-          <Phone size={24} className="text-forest-800 mx-auto" />
+          <Phone size={24} className="text-red-600 mx-auto" />
           <h3 className="font-serif font-bold text-sm text-stone-900">Customer Helpline</h3>
           <p className="text-stone-500">+91 94360 12345</p>
           <p className="text-stone-400 text-[11px]">Mon - Sat: 9 AM to 6 PM IST</p>

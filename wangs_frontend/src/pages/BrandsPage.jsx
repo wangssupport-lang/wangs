@@ -46,10 +46,10 @@ export default function BrandsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-      <section className="relative mb-10 overflow-hidden rounded-3xl bg-[#f1eee6] px-6 py-10 sm:px-10 sm:py-14">
-        <div className="absolute -right-8 -top-16 h-56 w-56 rounded-full border-[28px] border-white/30 sm:right-10 sm:top-1/2 sm:-translate-y-1/2" />
+      <section className="relative mb-10 overflow-hidden rounded-3xl bg-red-50/60 border border-red-100 px-6 py-10 sm:px-10 sm:py-14">
+        <div className="absolute -right-8 -top-16 h-56 w-56 rounded-full border-[28px] border-red-200/40 sm:right-10 sm:top-1/2 sm:-translate-y-1/2" />
         <div className="relative max-w-2xl">
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-forest-700">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-red-600">
             <Store size={15} /> The people behind the pantry
           </p>
           <h1 className="mt-4 font-serif text-4xl font-medium leading-tight text-stone-900 sm:text-5xl">
@@ -98,7 +98,7 @@ export default function BrandsPage() {
       )}
 
       <div className="mt-10 flex justify-center">
-        <Link to="/products" className="group inline-flex items-center gap-2 rounded-full bg-forest-900 px-5 py-3 text-xs font-semibold text-white transition-colors hover:bg-forest-800">
+        <Link to="/products" className="group inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-xs font-semibold text-white transition-colors hover:bg-red-700 shadow-md">
           Browse all products <ArrowRight size={15} className="transition-transform group-hover:translate-x-1" />
         </Link>
       </div>
