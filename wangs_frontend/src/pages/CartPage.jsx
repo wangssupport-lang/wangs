@@ -108,7 +108,7 @@ export default function CartPage() {
         </p>
         <Link
           to="/products"
-          className="mt-4 inline-flex items-center gap-2 px-7 py-3.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-2xl shadow-md shadow-red-600/20 transition-all hover:scale-102"
+          className="mt-4 inline-flex items-center gap-2 px-7 py-3.5 bg-primary hover:bg-primary-container text-on-primary text-xs font-bold rounded-2xl shadow-xs transition-all active:scale-95"
         >
           <span>Browse Authentic Pickles</span>
           <ArrowRight size={15} />
@@ -120,18 +120,18 @@ export default function CartPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-8">
       {/* Title & Free Delivery Progress */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200/80 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-outline-variant/30 pb-6">
         <div>
-          <span className="text-xs font-bold tracking-wider uppercase text-red-600">Artisan Cart</span>
-          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">
+          <span className="text-xs font-bold tracking-wider uppercase text-primary">Artisan Cart</span>
+          <h1 className="font-serif text-3xl sm:text-4xl font-bold text-on-surface mt-1">
             Shopping Basket ({itemsCount} {itemsCount === 1 ? 'jar' : 'jars'})
           </h1>
         </div>
 
         {/* Free Shipping Pill */}
-        <div className="bg-emerald-50/90 px-4 py-2.5 rounded-2xl border border-emerald-200 shadow-sm max-w-md w-full sm:w-auto text-xs">
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-950">
-            <Truck size={15} className="text-emerald-700 shrink-0" />
+        <div className="bg-surface-container-low px-4 py-2.5 rounded-2xl border border-outline-variant/30 shadow-xs max-w-md w-full sm:w-auto text-xs">
+          <div className="flex items-center gap-2 text-xs font-bold text-on-surface">
+            <Truck size={15} className="text-primary shrink-0" />
             <span>100% Free Nationwide Delivery Included on All Orders</span>
           </div>
         </div>
@@ -140,7 +140,7 @@ export default function CartPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
         {/* Items List */}
         <div className="lg:col-span-8 space-y-4">
-          <div className="bg-white rounded-3xl border border-stone-200 shadow-artisan divide-y divide-stone-100 overflow-hidden">
+          <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-xs divide-y divide-outline-variant/20 overflow-hidden">
             {items.map((item) => (
               <div key={item.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
                 <div className="flex items-center gap-4">
@@ -151,16 +151,16 @@ export default function CartPage() {
                       e.target.onerror = null;
                       e.target.src = '/featured-pouches.png';
                     }}
-                    className="w-20 h-20 object-cover rounded-2xl border border-stone-200 flex-shrink-0 shadow-sm"
+                    className="w-20 h-20 object-cover rounded-2xl border border-outline-variant/30 flex-shrink-0 shadow-xs"
                   />
                   <div>
-                    <Link to={`/product/${item.product.slug}`} className="font-serif font-bold text-base text-stone-900 hover:text-red-600 transition-colors line-clamp-1">
+                    <Link to={`/product/${item.product.slug}`} className="font-serif font-bold text-base text-on-surface hover:text-primary transition-colors line-clamp-1">
                       {item.product.title}
                     </Link>
-                    <p className="text-xs text-stone-500 mt-0.5">
+                    <p className="text-xs text-on-surface-variant mt-0.5">
                       {item.product.weight_grams}g · {item.product.manufacturer?.business_name}
                     </p>
-                    <p className="text-sm font-bold text-stone-950 mt-1 font-serif">
+                    <p className="text-sm font-bold text-primary mt-1 font-serif">
                       ₹{parseFloat(item.product.price).toFixed(0)} each
                     </p>
                     {(item.product.is_in_stock === false || (item.product.stock_quantity !== undefined && item.product.stock_quantity <= 0)) && (
@@ -172,29 +172,29 @@ export default function CartPage() {
                 </div>
 
                 {/* Adjuster & Line Total */}
-                <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                  <div className="flex items-center border border-stone-300 rounded-xl bg-stone-50 overflow-hidden shadow-inner">
+                <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+                  <div className="flex items-center border border-outline-variant/30 rounded-xl bg-surface-container-low overflow-hidden">
                     <button
                       onClick={() => changeQuantity(item.product.id, item.quantity - 1)}
                       disabled={updatingProductId === item.product.id}
                       aria-label={`Decrease quantity of ${item.product.title}`}
-                      className="px-3 py-1.5 text-stone-600 hover:bg-stone-200 transition-colors"
+                      className="px-3 py-1.5 text-on-surface-variant hover:bg-surface-container transition-colors"
                     >
                       <Minus size={13} />
                     </button>
-                    <span className="px-3 text-xs font-black text-stone-900 font-mono">{item.quantity}</span>
+                    <span className="px-3 text-xs font-black text-on-surface font-mono">{item.quantity}</span>
                     <button
                       onClick={() => changeQuantity(item.product.id, item.quantity + 1)}
                       disabled={updatingProductId === item.product.id || item.quantity >= item.product.stock_quantity}
                       aria-label={`Increase quantity of ${item.product.title}`}
-                      className="px-3 py-1.5 text-stone-600 hover:bg-stone-200 transition-colors"
+                      className="px-3 py-1.5 text-on-surface-variant hover:bg-surface-container transition-colors"
                     >
                       <Plus size={13} />
                     </button>
                   </div>
 
                   <div className="text-right">
-                    <span className="text-lg font-serif font-bold text-stone-950 block">
+                    <span className="text-lg font-serif font-bold text-primary block">
                       ₹{(parseFloat(item.product.price) * item.quantity).toFixed(0)}
                     </span>
                     <button
@@ -296,28 +296,28 @@ export default function CartPage() {
                 </span>
               </div>
 
-              <div className="border-t border-red-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-950">
+              <div className="border-t border-outline-variant/30 pt-3 flex justify-between items-baseline text-sm font-bold text-on-surface">
                 <span>Total Amount Payable</span>
-                <span className="text-2xl font-serif font-black text-red-600">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                <span className="text-2xl font-serif font-black text-primary">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
               </div>
             </div>
 
             <button
               onClick={() => navigate('/checkout')}
-              className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl flex items-center justify-center gap-2 transition-all hover:scale-101 active:scale-99"
+              className="w-full py-4 bg-primary hover:bg-primary-container text-on-primary font-bold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
             >
-              <span>Proceed to Delivery & Checkout</span>
+              <span>Proceed to Delivery &amp; Checkout</span>
               <ArrowRight size={15} />
             </button>
 
-            <div className="space-y-2 pt-2 text-[11px] text-stone-500">
+            <div className="space-y-2 pt-2 text-[11px] text-on-surface-variant">
               <p className="flex items-center gap-1.5 font-medium">
-                <ShieldCheck size={14} className="text-emerald-600 flex-shrink-0" />
-                <span>100% Escrow Protection & Tamper-Evident Packaging</span>
+                <ShieldCheck size={14} className="text-secondary flex-shrink-0" />
+                <span>100% Escrow Protection &amp; Tamper-Evident Packaging</span>
               </p>
               <p className="flex items-center gap-1.5 font-medium">
-                <Truck size={14} className="text-red-600 flex-shrink-0" />
-                <span>Direct express air dispatch</span>
+                <Truck size={14} className="text-primary flex-shrink-0" />
+                <span>Direct zero-leak express logistics</span>
               </p>
             </div>
           </div>

@@ -140,7 +140,7 @@ export default function MaintenancePage({ message }) {
 
         {/* Orders Guaranteed Assurance Banner */}
         <div className="pt-2 max-w-md mx-auto w-full">
-          <div className="p-3.5 rounded-2xl bg-stone-900/80 border border-stone-800 backdrop-blur-md text-center space-y-1">
+          <div className="p-3.5 rounded-2xl bg-stone-900 border border-stone-800 text-center space-y-1">
             <div className="flex items-center justify-center gap-2 text-red-400 font-bold text-xs">
               <ShieldCheck size={16} />
               <span>Orders Guaranteed</span>

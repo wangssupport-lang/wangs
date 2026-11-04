@@ -352,15 +352,15 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            <div className="absolute bottom-4 left-4 bg-stone-900/90 backdrop-blur-md text-white text-xs font-bold px-3.5 py-1.5 rounded-full border border-stone-700 flex items-center gap-2">
+            <div className="absolute bottom-4 left-4 bg-inverse-surface text-inverse-on-surface text-xs font-bold px-3.5 py-1.5 rounded-full border border-outline-variant/30 flex items-center gap-2">
               <span>{currentBundle.sublabel}</span>
               <span className="opacity-40">|</span>
-              <span className="text-amber-300 font-medium">100% Homemade Small Batch</span>
+              <span className="text-secondary-fixed font-medium">100% Homemade Small Batch</span>
             </div>
 
             {/* Sold Out Overlay */}
             {!isInStock && (
-              <div className="absolute inset-0 bg-stone-950/65 backdrop-blur-[2px] flex flex-col items-center justify-center p-6 z-20 text-center rounded-2xl sm:rounded-3xl">
+              <div className="absolute inset-0 bg-stone-950/75 flex flex-col items-center justify-center p-6 z-20 text-center rounded-2xl sm:rounded-3xl">
                 <span className="px-4 py-2 rounded-xl bg-stone-900/95 text-white text-sm sm:text-base font-bold border border-white/20 shadow-2xl leading-tight">
                   All Product Sold Out
                 </span>
@@ -969,7 +969,7 @@ export default function ProductDetailPage() {
 
       {/* Review Submission Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-stone-950/70 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
@@ -1117,17 +1117,17 @@ export default function ProductDetailPage() {
 
       {/* Floating Bottom Sticky Bar on Mobile */}
       {showStickyBar && (
-        <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200 p-2.5 sm:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom duration-200">
+        <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 bg-surface border-t border-outline-variant/30 p-2.5 sm:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.06)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom duration-200">
           <div className="flex items-center gap-2 min-w-0">
             <img
               src={product.primary_image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=100&q=80'}
               alt={product.title}
-              className="w-10 h-10 object-cover rounded-lg border border-stone-200 flex-shrink-0"
+              className="w-10 h-10 object-cover rounded-lg border border-outline-variant/30 flex-shrink-0"
             />
             <div className="truncate">
-              <p className="font-bold text-xs text-stone-900 truncate">{product.title}</p>
-              <p className="text-[11px] font-serif font-black text-red-600">
-                ₹{activePrice} <span className="font-sans font-normal text-[10px] text-stone-500">({currentBundle.name})</span>
+              <p className="font-bold text-xs text-on-surface truncate">{product.title}</p>
+              <p className="text-[11px] font-serif font-black text-primary">
+                ₹{activePrice} <span className="font-sans font-normal text-[10px] text-on-surface-variant">({currentBundle.name})</span>
               </p>
             </div>
           </div>

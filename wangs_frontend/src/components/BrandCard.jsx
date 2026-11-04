@@ -26,10 +26,10 @@ export default function BrandCard({ brand, compact = false }) {
     return (
       <Link
         to={targetUrl}
-        className="w-[200px] xs:w-[220px] sm:w-auto shrink-0 snap-start group flex items-center gap-3 bg-white rounded-2xl border border-stone-200/90 hover:border-red-500 p-3 hover:shadow-md transition-all select-none text-left"
+        className="w-[200px] xs:w-[220px] sm:w-auto shrink-0 snap-start group flex items-center gap-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 hover:border-primary p-3 hover:shadow-md transition-all select-none text-left"
         title={`Visit ${brandName}`}
       >
-        <div className="w-12 h-12 rounded-2xl bg-red-600 text-white flex items-center justify-center font-serif font-black text-sm border border-red-500/30 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+        <div className="w-12 h-12 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-serif font-black text-sm border border-outline-variant/30 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden shrink-0">
           {brand.logo_image && !logoFailed ? (
             <img
               src={brand.logo_image}
@@ -43,11 +43,11 @@ export default function BrandCard({ brand, compact = false }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <h3 className="font-serif font-bold text-stone-900 text-xs sm:text-sm group-hover:text-red-600 transition-colors leading-tight truncate">
+          <h3 className="font-serif font-bold text-on-surface text-xs sm:text-sm group-hover:text-primary transition-colors leading-tight truncate">
             {brandName}
           </h3>
           {location && (
-            <p className="text-[11px] text-stone-500 truncate mt-0.5">
+            <p className="text-[11px] text-on-surface-variant truncate mt-0.5">
               {location}
             </p>
           )}
@@ -60,12 +60,12 @@ export default function BrandCard({ brand, compact = false }) {
   return (
     <Link
       to={targetUrl}
-      className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-stone-200/90 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-red-500 hover:shadow-xl"
+      className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-lg"
     >
       <div>
         <div className="flex items-center justify-between gap-4">
           {/* Logo / Crest */}
-          <div className="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center font-serif font-bold text-lg border border-red-500/30 shadow-sm overflow-hidden flex-shrink-0">
+          <div className="w-14 h-14 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-serif font-bold text-lg border border-outline-variant/30 shadow-xs overflow-hidden flex-shrink-0">
             {brand.logo_image && !logoFailed ? (
               <img
                 src={brand.logo_image}
@@ -78,7 +78,7 @@ export default function BrandCard({ brand, compact = false }) {
             )}
           </div>
 
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 border border-red-100 text-red-600 text-xs font-bold group-hover:bg-red-600 group-hover:text-white transition-colors">
+          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-xs font-bold group-hover:bg-primary group-hover:text-on-primary transition-colors">
             <span>View Items</span>
             <ArrowUpRight size={13} />
           </span>
@@ -87,24 +87,24 @@ export default function BrandCard({ brand, compact = false }) {
         {/* Brand Name & Location */}
         <div className="mt-4">
           <div className="flex items-center gap-1.5">
-            <h3 className="font-serif text-xl font-bold text-stone-900 group-hover:text-red-600 transition-colors">
+            <h3 className="font-serif text-xl font-bold text-on-surface group-hover:text-primary transition-colors">
               {brandName}
             </h3>
-            <ShieldCheck size={16} className="text-emerald-600 flex-shrink-0" />
+            <ShieldCheck size={16} className="text-secondary flex-shrink-0" />
           </div>
 
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-stone-500">
-            <MapPin size={13} className="text-red-600 flex-shrink-0" />
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-on-surface-variant">
+            <MapPin size={13} className="text-primary flex-shrink-0" />
             <span>{location}</span>
           </p>
 
-          <p className="mt-2.5 text-xs text-stone-600 line-clamp-2 leading-relaxed">
+          <p className="mt-2.5 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
             {tagline}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-red-600 group-hover:text-red-700">
+      <div className="mt-6 pt-4 border-t border-outline-variant/20 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary-container">
         <span>Open Brand Store</span>
         <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
       </div>

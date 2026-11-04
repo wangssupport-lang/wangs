@@ -241,14 +241,14 @@ export default function HomePage() {
                   className="w-full h-[420px] object-cover rounded-2xl shadow-md"
                 />
 
-                {/* Floating Badge 1: Top Left */}
-                <div className="absolute top-6 left-6 bg-surface/95 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 border border-outline-variant/30">
+                {/* Floating Badge 1: Top Left - Solid Clean Surface */}
+                <div className="absolute top-6 left-6 bg-surface px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 border border-outline-variant/30">
                   <span className="material-symbols-outlined text-secondary text-[17px]">verified</span>
                   <span className="font-label-md text-xs font-bold text-on-surface">Sun-Cured Batch #24 Active</span>
                 </div>
 
-                {/* Floating Badge 2: Bottom Right */}
-                <div className="absolute bottom-6 right-6 bg-inverse-surface/92 text-inverse-on-surface backdrop-blur-md p-3.5 rounded-xl shadow-xl flex items-center gap-3 max-w-[260px] border border-white/10">
+                {/* Floating Badge 2: Bottom Right - Solid Clean Badge */}
+                <div className="absolute bottom-6 right-6 bg-inverse-surface text-inverse-on-surface p-3.5 rounded-xl shadow-xl flex items-center gap-3 max-w-[260px] border border-white/10">
                   <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
                     <span className="material-symbols-outlined text-on-secondary-container text-[22px]">thermostat</span>
                   </div>
@@ -745,9 +745,6 @@ export default function HomePage() {
               <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
             </Link>
           </div>
-
-          {/* Background warm glow */}
-          <div className="absolute -right-6 -bottom-6 w-36 h-36 rounded-full bg-amber-500/20 blur-2xl pointer-events-none" />
         </div>
 
         {/* 3. Secondary Filter Pills */}
@@ -806,7 +803,7 @@ export default function HomePage() {
                 <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
                   25% OFF
                 </span>
-                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-xs flex items-center gap-0.5 shadow-xs">
+                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
                   <span className="material-symbols-outlined text-[10px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                   <span className="font-label-sm text-[10px] font-bold text-on-surface">4.9</span>
                 </div>
@@ -846,7 +843,7 @@ export default function HomePage() {
                 <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-error text-on-error font-label-sm text-[9px] font-bold">
                   18% OFF
                 </span>
-                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-xs flex items-center gap-0.5 shadow-xs">
+                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
                   <span className="material-symbols-outlined text-[10px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
                   <span className="font-label-sm text-[10px] font-bold text-on-surface">4.8</span>
                 </div>

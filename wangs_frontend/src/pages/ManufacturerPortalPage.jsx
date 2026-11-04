@@ -1197,7 +1197,7 @@ export default function ManufacturerPortalPage() {
 
       {/* Quick Quantity & Restock Management Modal */}
       {quickStockModal && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-stone-200 space-y-4">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div className="flex items-center gap-2">
@@ -1294,7 +1294,7 @@ export default function ManufacturerPortalPage() {
 
       {/* Add / Edit Product Modal */}
       {showAddProductModal && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full my-auto shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-fade-in">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white flex items-center justify-between border-b border-amber-500/30 shrink-0">
@@ -1690,7 +1690,7 @@ export default function ManufacturerPortalPage() {
           PARCEL SHIPPING SLIP / PACKING LABEL MODAL (READY TO PRINT & AFFIX)
          ===================================================================== */}
       {selectedParcelOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full p-5 sm:p-7 shadow-2xl relative space-y-4 my-auto max-h-[90vh] overflow-y-auto">
             {/* Top Toolbar (Hidden during print) */}
             <div className="flex items-center justify-between pb-3 border-b border-stone-200 no-print">
@@ -1971,7 +1971,7 @@ export default function ManufacturerPortalPage() {
 
       {/* Official Seller Rules & Policy Handbook Modal */}
       {showSellerRulesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-stone-950/70 backdrop-blur-xs overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-stone-950/75 overflow-y-auto">
           <div className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-4xl w-full my-8 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
             {/* Modal Header & Quick Actions Toolbar */}
             <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-5 sm:p-6 flex items-center justify-between gap-4 border-b border-amber-500/40">

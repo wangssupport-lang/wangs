@@ -1513,7 +1513,7 @@ export default function AdminDashboardPage() {
                         <th className="py-3 px-4 min-w-[180px] max-w-[260px]">Artisan Pitch</th>
                         <th className="py-3 px-4 min-w-[120px]">Submitted</th>
                         <th className="py-3 px-4 min-w-[130px]">Status</th>
-                        <th className="py-3 px-4 min-w-[180px] text-right sticky right-0 bg-stone-50/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10">
+                        <th className="py-3 px-4 min-w-[180px] text-right sticky right-0 bg-stone-50 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10">
                           Admin Actions
                         </th>
                       </tr>
@@ -1634,7 +1634,7 @@ export default function AdminDashboardPage() {
                           </td>
 
                           {/* Column 6: Admin Actions (STICKY RIGHT - NEVER CUT OFF) */}
-                          <td className="py-3.5 px-4 text-right whitespace-nowrap sticky right-0 bg-white/95 backdrop-blur-xs shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10 group-hover:bg-cream-50/95 transition-colors">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap sticky right-0 bg-white shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10 group-hover:bg-cream-50 transition-colors">
                             <div className="flex items-center justify-end gap-1.5">
                               {!req.is_authorized ? (
                                 <>
@@ -3022,7 +3022,7 @@ export default function AdminDashboardPage() {
 
       {/* Seller Inspection Portfolio Modal */}
       {selectedSeller && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200 p-6 space-y-5 text-xs animate-in fade-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-stone-100 pb-4">
@@ -3192,7 +3192,7 @@ export default function AdminDashboardPage() {
 
       {/* Application Inspection Modal */}
       {inspectingRequest && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 p-6 space-y-5 text-xs animate-in zoom-in-95 duration-150">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-stone-100 pb-4">
@@ -3318,7 +3318,7 @@ export default function AdminDashboardPage() {
 
       {/* Account Ban & Rule Enforcement Modal */}
       {banModalUser && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full border border-stone-200 shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div className="flex items-center gap-2 text-red-700 font-bold text-sm">

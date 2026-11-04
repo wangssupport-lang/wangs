@@ -510,9 +510,9 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Razorpay Test Modal Simulation */}
+      {/* Razorpay Test Modal Simulation - Solid Overlay */}
       {paymentStep && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-red-700 via-red-600 to-rose-700 text-white p-6 flex items-center justify-between">

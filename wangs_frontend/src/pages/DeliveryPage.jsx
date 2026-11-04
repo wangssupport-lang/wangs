@@ -464,7 +464,7 @@ export default function DeliveryPage() {
                     loading="lazy"
                     src={`https://www.openstreetmap.org/export/embed.html?bbox=${(order.coordinates?.lng || 94.1086) - 0.035}%2C${(order.coordinates?.lat || 25.6751) - 0.025}%2C${(order.coordinates?.lng || 94.1086) + 0.035}%2C${(order.coordinates?.lat || 25.6751) + 0.025}&layer=mapnik&marker=${order.coordinates?.lat || 25.6751}%2C${order.coordinates?.lng || 94.1086}`}
                   />
-                  <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2.5 py-1 rounded-lg text-[10px] font-bold text-stone-900 shadow-sm border border-stone-200 flex items-center gap-1.5">
+                  <div className="absolute top-2 left-2 bg-white px-2.5 py-1 rounded-lg text-[10px] font-bold text-stone-900 shadow-sm border border-stone-200 flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
                     <span>Customer Destination Marker</span>
                   </div>
@@ -645,7 +645,7 @@ export default function DeliveryPage() {
 
       {/* Camera QR Scanner Modal */}
       {isScannerOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-stone-900 text-white rounded-3xl max-w-md w-full overflow-hidden shadow-2xl border border-stone-700 flex flex-col">
             <div className="p-4 border-b border-stone-800 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -675,7 +675,7 @@ export default function DeliveryPage() {
                 <div className="w-16 h-16 border-2 border-amber-400/60 rounded-lg animate-pulse" />
               </div>
 
-              <div className="absolute bottom-3 left-3 right-3 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-xl text-center text-xs text-cream-100">
+              <div className="absolute bottom-3 left-3 right-3 bg-stone-900/95 px-3 py-1.5 rounded-xl text-center text-xs text-cream-100 shadow-md">
                 {scannerStatus}
               </div>
             </div>
@@ -712,7 +712,7 @@ export default function DeliveryPage() {
 
       {/* Mark Delivered Modal */}
       {showDeliveredModal && order && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in">
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
             <div className="text-center space-y-1">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto">

@@ -634,9 +634,9 @@ export default function CustomerAccountPage() {
                 })
               )}
 
-              {/* Live Consignment Milestones Modal */}
+              {/* Live Consignment Milestones Modal - Solid Overlay */}
               {trackingModalOrder && (
-                <div className="fixed inset-0 z-50 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-stone-900/75 flex items-center justify-center p-4">
                   <div className="bg-white rounded-3xl max-w-xl w-full p-6 sm:p-7 shadow-2xl border border-stone-200 max-h-[90vh] overflow-y-auto space-y-5 animate-in fade-in duration-200">
                     {/* Modal Header */}
                     <div className="flex items-start justify-between gap-3 border-b border-stone-100 pb-4">
@@ -809,9 +809,9 @@ export default function CustomerAccountPage() {
                 ))}
               </div>
 
-              {/* Add Address Modal */}
+              {/* Add Address Modal - Solid Overlay */}
               {showAddressModal && (
-                <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-50 bg-stone-900/75 flex items-center justify-center p-4">
                   <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
                     <h3 className="font-serif font-bold text-lg text-stone-900">Add New Shipping Address</h3>
                     <form onSubmit={handleAddAddress} className="space-y-3 text-xs">

@@ -50,32 +50,32 @@ export default function CartDrawer() {
 
   return (
     <div className="fixed inset-0 z-[70] overflow-hidden">
-      {/* Backdrop */}
+      {/* Backdrop - Solid opacity, no glass blur */}
       <div
-        className="absolute inset-0 bg-stone-950/60 backdrop-blur-sm transition-opacity duration-300"
+        className="absolute inset-0 bg-stone-950/70 transition-opacity duration-300"
         onClick={() => setIsDrawerOpen(false)}
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-0 sm:pl-8">
-        <div className="w-screen max-w-full sm:max-w-md bg-white shadow-2xl flex flex-col border-l border-stone-200">
+        <div className="w-screen max-w-full sm:max-w-md bg-surface-container-lowest shadow-2xl flex flex-col border-l border-outline-variant/30">
           {/* Drawer Header */}
-          <div className="px-5 sm:px-6 py-4 sm:py-5 bg-gradient-to-b from-red-50/50 to-white border-b border-stone-200 flex items-center justify-between">
+          <div className="px-5 sm:px-6 py-4 sm:py-5 bg-surface-container-low border-b border-outline-variant/30 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-red-600 text-white flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-primary text-on-primary flex items-center justify-center shadow-xs">
                 <ShoppingBag size={18} />
               </div>
               <div>
-                <h2 className="font-serif font-bold text-lg text-stone-950 leading-none">
-                  Your Basket
+                <h2 className="font-serif font-bold text-lg text-on-surface leading-none">
+                  Your Jar Bag
                 </h2>
-                <span className="text-[11px] text-stone-500 font-medium">
+                <span className="text-[11px] text-on-surface-variant font-medium">
                   {itemsCount} {itemsCount === 1 ? 'jar' : 'jars'} selected
                 </span>
               </div>
             </div>
             <button
               onClick={() => setIsDrawerOpen(false)}
-              className="p-1.5 rounded-full text-stone-400 hover:text-stone-800 hover:bg-stone-100 transition-colors"
+              className="p-1.5 rounded-full text-outline hover:text-on-surface hover:bg-surface-container transition-colors"
             >
               <X size={20} />
             </button>
@@ -206,9 +206,9 @@ export default function CartDrawer() {
                     )}
                   </span>
                 </div>
-                <div className="border-t border-stone-200 pt-2.5 flex justify-between items-baseline text-sm font-bold text-stone-950">
+                <div className="border-t border-outline-variant/30 pt-2.5 flex justify-between items-baseline text-sm font-bold text-on-surface">
                   <span>Total Payable</span>
-                  <span className="text-xl font-serif text-red-600">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                  <span className="text-xl font-serif text-primary">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
                 </div>
               </div>
 
@@ -216,14 +216,14 @@ export default function CartDrawer() {
                 <Link
                   to="/cart"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-1 py-3 text-center text-xs font-bold text-red-600 bg-white border border-red-200 rounded-xl hover:bg-red-50 transition-colors shadow-sm active:scale-95"
+                  className="flex-1 py-3 text-center text-xs font-bold text-primary bg-surface-container-lowest border border-primary/40 rounded-xl hover:bg-primary-fixed transition-colors shadow-xs active:scale-95"
                 >
                   View Cart
                 </Link>
                 <Link
                   to="/checkout"
                   onClick={() => setIsDrawerOpen(false)}
-                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95"
+                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-on-primary bg-primary hover:bg-primary-container rounded-xl shadow-md transition-all active:scale-95"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={15} />

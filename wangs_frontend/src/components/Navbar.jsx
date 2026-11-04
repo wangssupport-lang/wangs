@@ -124,8 +124,8 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* 2. Main Navigation Bar - Stitch Heritage Warm Surface (#fff8f4) */}
-      <div className="bg-surface/95 backdrop-blur-xl border-b border-outline-variant/30 text-on-surface">
+      {/* 2. Main Navigation Bar - Stitch Heritage Solid Warm Surface (#fff8f4) */}
+      <div className="bg-surface border-b border-outline-variant/30 text-on-surface">
         <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8">
           {/* Mobile Top Row */}
           <div className="flex md:hidden items-center justify-between h-14 gap-2">

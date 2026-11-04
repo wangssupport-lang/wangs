@@ -6,42 +6,42 @@ export function AboutPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-10">
       <div className="text-center space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-red-600">Quality & Standards</span>
-        <h1 className="font-serif text-4xl font-bold text-stone-900">About Wangs (wangs.in)</h1>
-        <p className="text-sm text-stone-600 max-w-xl mx-auto">
+        <span className="text-xs font-bold uppercase tracking-wider text-primary">Quality &amp; Standards</span>
+        <h1 className="font-serif text-4xl font-bold text-on-surface">About Wangs (wangs.in)</h1>
+        <p className="text-sm text-on-surface-variant max-w-xl mx-auto">
           India's dedicated multi-vendor marketplace connecting verified artisanal food producers with culinary enthusiasts nationwide.
         </p>
       </div>
 
-      <div className="prose prose-stone text-xs sm:text-sm text-stone-700 space-y-6 leading-relaxed">
+      <div className="prose prose-stone text-xs sm:text-sm text-on-surface-variant space-y-6 leading-relaxed">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-red-50 text-red-600 flex items-center justify-center">
+          <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+            <div className="w-9 h-9 rounded-xl bg-primary-fixed text-primary flex items-center justify-center">
               <Award size={18} />
             </div>
-            <h4 className="font-serif font-bold text-stone-900 text-sm">72h Firewood Smoke</h4>
-            <p className="text-xs text-stone-500 leading-relaxed">Meats cured over aged oak firewood embers for distinctive campfire depth.</p>
+            <h4 className="font-serif font-bold text-on-surface text-sm">Sun-Cured Maturation</h4>
+            <p className="text-xs text-on-surface-variant leading-relaxed">Artisan batches cured in glazed earthen martabans under regional micro-climates.</p>
           </div>
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-chilli-50 text-chilli-700 flex items-center justify-center">
+          <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+            <div className="w-9 h-9 rounded-xl bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
               <Flame size={18} />
             </div>
-            <h4 className="font-serif font-bold text-stone-900 text-sm">Authentic King Chilli</h4>
-            <p className="text-xs text-stone-500 leading-relaxed">Genuine Raja Mircha steeped in virgin cold-pressed mustard oil.</p>
+            <h4 className="font-serif font-bold text-on-surface text-sm">Wood-Pressed Oils</h4>
+            <p className="text-xs text-on-surface-variant leading-relaxed">Stone-ground spices steeped in virgin cold-pressed mustard and sesame oils.</p>
           </div>
-          <div className="p-5 bg-white rounded-2xl border border-stone-200/90 shadow-sm space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center">
+          <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
+            <div className="w-9 h-9 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
               <ShieldCheck size={18} />
             </div>
-            <h4 className="font-serif font-bold text-stone-900 text-sm">Verified Producers</h4>
-            <p className="text-xs text-stone-500 leading-relaxed">All producers hold active FSSAI registration with verified hygiene protocols.</p>
+            <h4 className="font-serif font-bold text-on-surface text-sm">Verified Producers</h4>
+            <p className="text-xs text-on-surface-variant leading-relaxed">All producers hold active FSSAI registration with verified hygiene protocols.</p>
           </div>
         </div>
 
-        <div className="bg-cream-100 p-6 rounded-2xl border border-stone-200 text-xs sm:text-sm space-y-3">
-          <h3 className="font-serif font-bold text-base text-stone-900">Marketplace Standards</h3>
+        <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30 text-xs sm:text-sm space-y-3">
+          <h3 className="font-serif font-bold text-base text-on-surface">Marketplace Standards</h3>
           <p>
-            Wangs provides direct nationwide logistics, transparent 10% platform commission, and tamper-evident packaging for certified artisanal food entrepreneurs. Every glass jar is sealed with food-grade safety film and shipped via express air delivery.
+            Wangs provides direct nationwide logistics, transparent 0% seller commission for early artisanal partners, and tamper-evident packaging for certified artisanal food entrepreneurs. Every glass jar is sealed with food-grade safety film and shipped via zero-leak express logistics.
           </p>
         </div>
       </div>

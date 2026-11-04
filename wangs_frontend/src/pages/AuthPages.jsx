@@ -330,37 +330,37 @@ export default function AuthPage() {
 
   return (
     <div className="max-w-md mx-auto px-4 py-12 sm:py-16">
-      <div className="bg-white p-7 sm:p-9 rounded-3xl border border-stone-200/90 shadow-xl space-y-6">
+      <div className="bg-surface-container-lowest p-7 sm:p-9 rounded-3xl border border-outline-variant/30 shadow-xs space-y-6">
         {/* Brand Crest Header */}
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center gap-3 mb-2 group select-none">
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-2 group select-none">
             <img
-              src="/logo.png"
+              src="/logo-red.png"
               alt="Wangs"
               className="h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
             />
-            <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-red-600 uppercase group-hover:text-red-700 transition-colors">
+            <span className="font-headline-md font-bold text-2xl sm:text-[1.85rem] tracking-tight leading-none text-primary group-hover:text-primary-container transition-colors">
               Wangs
             </span>
           </Link>
-          <p className="text-xs text-stone-500 font-medium">
-            Artisanal Food & Handcrafted Pickles
+          <p className="text-xs text-on-surface-variant font-medium">
+            Authentic Indian Pickles Handcrafted by Heritage Makers
           </p>
         </div>
 
         {/* Artisan Seller Gateway link */}
-        <div className="p-2.5 bg-red-50/60 border border-red-200/90 rounded-2xl flex items-center justify-between gap-2 text-xs">
+        <div className="p-2.5 bg-surface-container-low border border-outline-variant/30 rounded-2xl flex items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2">
-            <span className="p-1 bg-red-600 text-white rounded-lg">
+            <span className="p-1 bg-primary text-on-primary rounded-lg">
               <Store size={13} />
             </span>
-            <span className="text-stone-800 text-[11px] font-medium">
-              Are you an <strong>Artisan Seller</strong>?
+            <span className="text-on-surface text-[11px] font-medium">
+              Are you an <strong>Artisan Maker</strong>?
             </span>
           </div>
           <Link
             to="/manufacturer/login"
-            className="text-red-600 hover:text-red-700 font-bold underline whitespace-nowrap text-[11px]"
+            className="text-primary hover:text-primary-container font-bold underline whitespace-nowrap text-[11px]"
           >
             Seller Login Space →
           </Link>
@@ -368,18 +368,18 @@ export default function AuthPage() {
 
         {/* Tab switch / Header */}
         {!showForgotPassword ? (
-          <div className="grid grid-cols-2 bg-stone-100 p-1 rounded-2xl text-xs font-semibold text-stone-600">
+          <div className="grid grid-cols-2 bg-surface-container p-1 rounded-2xl text-xs font-semibold text-on-surface-variant">
             <button
               type="button"
               onClick={() => { setIsLogin(true); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
-              className={`py-2.5 rounded-xl transition-all cursor-pointer ${isLogin ? 'bg-white text-red-600 shadow-sm font-bold' : 'hover:text-stone-900'}`}
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${isLogin ? 'bg-primary text-on-primary shadow-xs font-bold' : 'hover:text-on-surface'}`}
             >
               Sign In
             </button>
             <button
               type="button"
               onClick={() => { setIsLogin(false); setError(''); setSuccessMsg(''); setExistingAccountEmail(''); }}
-              className={`py-2.5 rounded-xl transition-all cursor-pointer ${!isLogin ? 'bg-white text-red-600 shadow-sm font-bold' : 'hover:text-stone-900'}`}
+              className={`py-2.5 rounded-xl transition-all cursor-pointer ${!isLogin ? 'bg-primary text-on-primary shadow-xs font-bold' : 'hover:text-on-surface'}`}
             >
               Create Account
             </button>
@@ -884,9 +884,9 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Post-Registration Address Setup Popup Modal */}
+      {/* Post-Registration Address Setup Popup Modal - Solid Overlay */}
       {showAddressPopup && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/75 animate-fade-in overflow-y-auto">
           <div className="bg-white w-full max-w-lg rounded-3xl p-5 sm:p-7 shadow-2xl border border-stone-200 relative animate-scale-up max-h-[92vh] overflow-y-auto">
             <button
               onClick={handleSkipAddress}

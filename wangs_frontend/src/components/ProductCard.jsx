@@ -108,17 +108,17 @@ export default function ProductCard({ product }) {
             />
           </Link>
 
-          {/* Terroir / Location Pill */}
-          <span className="absolute top-2.5 left-2.5 bg-surface/90 backdrop-blur-md px-2.5 py-1 rounded-full font-label-sm text-[11px] text-primary font-bold shadow-xs">
+          {/* Terroir / Location Pill - Solid Clean Surface */}
+          <span className="absolute top-2.5 left-2.5 bg-surface px-2.5 py-1 rounded-full font-label-sm text-[11px] text-primary font-bold shadow-xs border border-outline-variant/30">
             {provenance}
           </span>
 
-          {/* Wishlist Button */}
+          {/* Wishlist Button - Solid Clean Surface */}
           <button
             type="button"
             onClick={toggleWishlist}
             aria-label="Save to Wishlist"
-            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-surface/80 backdrop-blur-md flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all shadow-xs"
+            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-surface flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all shadow-xs border border-outline-variant/30"
           >
             <Heart
               size={17}
@@ -126,14 +126,14 @@ export default function ProductCard({ product }) {
             />
           </button>
 
-          {/* Heat Meter Badge */}
-          <div className="absolute bottom-2.5 left-2.5 bg-inverse-surface/85 text-inverse-on-surface px-2 py-0.5 rounded-lg font-label-sm text-[10px] sm:text-[11px] flex items-center gap-1 backdrop-blur-xs">
+          {/* Heat Meter Badge - Solid Clean Badge */}
+          <div className="absolute bottom-2.5 left-2.5 bg-inverse-surface text-inverse-on-surface px-2 py-0.5 rounded-lg font-label-sm text-[10px] sm:text-[11px] flex items-center gap-1">
             <span>{spiceIndicator}</span>
           </div>
 
           {/* Sold out badge */}
           {!inStock && (
-            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-[2px] flex items-center justify-center p-3 z-20 text-center">
+            <div className="absolute inset-0 bg-stone-950/75 flex items-center justify-center p-3 z-20 text-center">
               <span className="px-3 py-1 rounded-full bg-stone-900 text-white text-xs font-bold border border-white/20 shadow-md">
                 Batch Sold Out
               </span>
