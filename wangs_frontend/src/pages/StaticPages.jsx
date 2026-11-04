@@ -104,10 +104,16 @@ export function ShippingPage() {
         </p>
         <div className="bg-cream-100 p-5 rounded-xl border border-stone-200 space-y-2">
           <h3 className="font-bold text-stone-900 text-sm">Estimated Delivery Timelines:</h3>
-          <ul className="list-disc pl-5 space-y-1 text-xs">
-            <li><strong>Regional Priority:</strong> 2-3 business days.</li>
-            <li><strong>Metro Cities (Delhi, Mumbai, Bengaluru, Kolkata, Chennai, Hyderabad):</strong> 4-5 business days via air cargo.</li>
-            <li><strong>Rest of India:</strong> 5-7 business days.</li>
+          <ul className="list-disc pl-5 space-y-2 text-xs">
+            <li>
+              <strong>Within Kohima:</strong> Delivered within <strong>12 hours</strong> (in best case <strong>30 minutes – 1 hour</strong>) via hyper-local courier.
+            </li>
+            <li>
+              <strong>Out of Kohima (Within Nagaland):</strong> Delivered in <strong>1 – 2 days</strong> via regional priority logistics.
+            </li>
+            <li>
+              <strong>Out of Nagaland (Pan-India):</strong> Delivered in <strong>4 – 10 days</strong> via certified domestic express network.
+            </li>
           </ul>
         </div>
         <p>

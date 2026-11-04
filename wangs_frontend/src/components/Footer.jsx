@@ -93,9 +93,9 @@ export default function Footer() {
                 <Truck size={20} />
               </div>
               <div className="space-y-1">
-                <h4 className="font-bold text-sm text-stone-100 font-serif">Pan-India Direct Express</h4>
+                <h4 className="font-bold text-sm text-stone-100 font-serif">Express Regional Delivery</h4>
                 <p className="text-xs text-stone-400 leading-relaxed">
-                  Fast, climate-conscious dispatch straight from origin kitchen doors to your home.
+                  Within Kohima: 12 hrs (best case 30m–1h) · Nagaland: 1–2 days · Pan-India: 4–10 days.
                 </p>
               </div>
             </div>

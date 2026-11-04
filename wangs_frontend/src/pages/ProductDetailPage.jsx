@@ -654,13 +654,13 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Delivery PIN Code Checker */}
-          <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-sm space-y-2">
+          <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-sm space-y-3">
             <div className="flex items-center justify-between text-xs font-bold text-stone-800">
               <span className="flex items-center gap-1.5">
                 <Truck size={15} className="text-red-600" />
-                <span>Check Express Delivery Speed to your PIN</span>
+                <span>Check Delivery Speed to your PIN</span>
               </span>
-              <span className="text-[11px] text-stone-400 font-normal">Air cargo courier</span>
+              <span className="text-[11px] text-stone-400 font-normal">Direct Origin Dispatch</span>
             </div>
             <form onSubmit={handleCheckPincode} className="flex gap-2">
               <input
@@ -676,16 +676,52 @@ export default function ProductDetailPage() {
               <button
                 type="submit"
                 disabled={checkingPin}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shrink-0 transition-colors"
               >
                 {checkingPin ? 'Checking...' : 'Check'}
               </button>
             </form>
             {pincodeResult && (
-              <p className={`text-xs mt-1 font-medium ${pincodeResult.valid ? 'text-emerald-700' : 'text-red-500'}`}>
-                {pincodeResult.message}
-              </p>
+              <div className={`p-2.5 rounded-xl text-xs font-medium border ${pincodeResult.valid ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                <p>{pincodeResult.message}</p>
+                {pincodeResult.valid && pincodeResult.estimated_delivery && (
+                  <p className="text-[11px] text-emerald-700 font-bold mt-0.5">
+                    Estimated Timeline: {pincodeResult.estimated_delivery}
+                  </p>
+                )}
+              </div>
             )}
+
+            {/* Official 3-tier timeline indicator */}
+            <div className="pt-2 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
+              <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200/80">
+                <div className="flex items-center gap-1 text-amber-900 font-bold">
+                  <Clock size={12} className="text-amber-700 shrink-0" />
+                  <span>Within Kohima</span>
+                </div>
+                <p className="text-stone-600 text-[10.5px] mt-0.5 leading-snug">
+                  Within <strong className="text-stone-900">12 hrs</strong> (best case <strong className="text-stone-900">30 mins – 1 hr</strong>)
+                </p>
+              </div>
+              <div className="p-2 rounded-xl bg-orange-50/70 border border-orange-200/80">
+                <div className="flex items-center gap-1 text-orange-900 font-bold">
+                  <Truck size={12} className="text-orange-700 shrink-0" />
+                  <span>Out of Kohima</span>
+                </div>
+                <p className="text-stone-600 text-[10.5px] mt-0.5 leading-snug">
+                  Nagaland: <strong className="text-stone-900">1 – 2 days</strong>
+                </p>
+              </div>
+              <div className="p-2 rounded-xl bg-stone-50 border border-stone-200/80">
+                <div className="flex items-center gap-1 text-stone-800 font-bold">
+                  <Package size={12} className="text-stone-600 shrink-0" />
+                  <span>Out of Nagaland</span>
+                </div>
+                <p className="text-stone-600 text-[10.5px] mt-0.5 leading-snug">
+                  Pan-India: <strong className="text-stone-900">4 – 10 days</strong>
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Flexible Brand Bundle Builder (2-4 Items · Save 10%) */}

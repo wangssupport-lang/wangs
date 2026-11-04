@@ -697,15 +697,29 @@ def check_pincode_serviceability(request):
             'message': 'Please enter a valid 6-digit PIN code.'
         }, status=200)
 
-    region = "Regional Priority" if pincode.startswith('797') or pincode.startswith('798') else "Pan-India"
-    est_days = "2-3 business days" if pincode.startswith('797') or pincode.startswith('798') else "4-6 business days"
+    is_kohima = pincode.startswith('7970')
+    is_nagaland = pincode.startswith(('797', '798'))
+
+    if is_kohima:
+        region = "Within Kohima (Express Local)"
+        est_delivery = "Within 12 hours (in best case 30 mins – 1 hour)"
+        message = f"⚡ Express Local Delivery to Kohima ({pincode}): Delivered within 12 hours (in best case 30 mins – 1 hour)."
+    elif is_nagaland:
+        region = "Nagaland (Outside Kohima)"
+        est_delivery = "1 – 2 days"
+        message = f"🚚 Intra-Nagaland Express to {pincode}: Delivered within 1 – 2 days."
+    else:
+        region = "Pan-India (Outside Nagaland)"
+        est_delivery = "4 – 10 days"
+        message = f"📦 Pan-India Courier to {pincode}: Delivered within 4 – 10 days."
+
     return Response({
         'valid': True,
         'pincode': pincode,
         'serviceable': True,
         'region': region,
-        'estimated_delivery': est_days,
-        'message': f'Standard delivery available to {pincode} ({est_days}).'
+        'estimated_delivery': est_delivery,
+        'message': message,
     }, status=200)
 
 

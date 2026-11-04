@@ -61,6 +61,16 @@ const getShipmentMilestones = (order) => {
   const transitDate = new Date(orderDate.getTime() + 36 * 3600 * 1000);
   const destinationDate = new Date(orderDate.getTime() + 60 * 3600 * 1000);
 
+  const pin = (order.shipping_postal_code || '').replace(/\D/g, '');
+  const isKohima = pin.startsWith('7970');
+  const isNagaland = pin.startsWith('797') || pin.startsWith('798');
+  let estDeliveryText = 'Estimated in 4–10 days';
+  if (isKohima) {
+    estDeliveryText = 'Estimated within 12 hours (best case 30 mins – 1 hour)';
+  } else if (isNagaland) {
+    estDeliveryText = 'Estimated in 1–2 days';
+  }
+
   return [
     {
       stage: 'Order Confirmed & Payment Verified',
@@ -78,22 +88,22 @@ const getShipmentMilestones = (order) => {
     },
     {
       stage: 'Consignment Handed Over to Air Freight Partner',
-      location: 'Dimapur Air Cargo Terminal (797112)',
+      location: isKohima ? 'Kohima Local Dispatch Hub (797001)' : 'Dimapur Air Cargo Terminal (797112)',
       time: isDispatched ? dispatchDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 06:45 PM' : 'Scheduled upon packing',
       status: isDispatched ? 'completed' : 'upcoming',
-      detail: `Parcel barcode scanned and Airway Bill (AWB ${order.tracking_number || 'WNG-AWB-PENDING'}) generated via ${order.courier_partner || 'Air Cargo Express'}.`
+      detail: `Parcel barcode scanned and Airway Bill (AWB ${order.tracking_number || 'WNG-AWB-PENDING'}) generated via ${order.courier_partner || (isKohima ? 'Local Express Courier' : 'Air Cargo Express')}.`
     },
     {
-      stage: 'In-Flight Air Mail Transit',
-      location: 'Guwahati / Kolkata Air Mail Sorting Gateway',
+      stage: isKohima ? 'Out for Local Delivery' : 'In-Flight Air Mail Transit',
+      location: isKohima ? 'Kohima City Route Hub' : 'Guwahati / Kolkata Air Mail Sorting Gateway',
       time: isDispatched ? transitDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 10:15 AM' : 'Pending dispatch',
       status: isDispatched ? (isDelivered ? 'completed' : 'current') : 'upcoming',
-      detail: `Express domestic air cargo transit connecting to ${order.shipping_state || 'destination state'}.`
+      detail: isKohima ? `Assigned to express runner for direct doorstep drop in Kohima.` : `Express domestic air cargo transit connecting to ${order.shipping_state || 'destination state'}.`
     },
     {
       stage: 'Delivered',
       location: `${order.shipping_address_line1 || ''}${order.shipping_city ? `, ${order.shipping_city}` : ''}${order.shipping_state ? `, ${order.shipping_state}` : ''}${order.shipping_postal_code ? ` (${order.shipping_postal_code})` : ''}`.replace(/^,\s*/, '') || 'Destination Address',
-      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 02:40 PM' : 'Estimated in 2-3 business days',
+      time: isDelivered ? destinationDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) + ', 02:40 PM' : estDeliveryText,
       status: isDelivered ? 'completed' : 'upcoming',
       detail: isDelivered ? `Parcel successfully delivered to ${order.customer_name || 'recipient'}.` : 'Final doorstep delivery with recipient confirmation.'
     }
