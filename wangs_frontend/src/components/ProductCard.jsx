@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingBag, CheckCircle, Plus, Minus, Sparkles, Star, Zap } from 'lucide-react';
+import { Heart, Plus, Minus, Check, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 
@@ -10,12 +10,13 @@ export default function ProductCard({ product }) {
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   // Check if item is already in basket
-  const cartItem = cart?.items?.find((i) => i.product.id === product.id);
+  const cartItem = cart?.items?.find((i) => i.product?.id === product?.id);
 
-  const inStock = product.is_in_stock !== false && (product.stock_quantity === undefined || product.stock_quantity > 0);
-  const isLowStock = inStock && product.stock_quantity > 0 && product.stock_quantity <= 5;
+  const inStock = product?.is_in_stock !== false && (product?.stock_quantity === undefined || product?.stock_quantity > 0);
+  const isLowStock = inStock && product?.stock_quantity > 0 && product?.stock_quantity <= 5;
 
   const handleAddToCart = async (e) => {
     e.preventDefault();
@@ -26,8 +27,8 @@ export default function ProductCard({ product }) {
     try {
       await addToCart(product.id, 1);
       setAdded(true);
-      toast.success(`Added ${product.title} to basket`);
-      setTimeout(() => setAdded(false), 1400);
+      toast.success(`Added ${product.title} to Jar Bag`);
+      setTimeout(() => setAdded(false), 1500);
     } catch (err) {
       toast.error(err.message || 'Could not add to cart');
     } finally {
@@ -42,7 +43,7 @@ export default function ProductCard({ product }) {
       try {
         await updateQuantity(product.id, cartItem.quantity + 1);
       } catch (err) {
-        toast.error(err.message || 'Could not update basket quantity');
+        toast.error(err.message || 'Could not update quantity');
       }
     }
   };
@@ -54,9 +55,16 @@ export default function ProductCard({ product }) {
       try {
         await updateQuantity(product.id, cartItem.quantity - 1);
       } catch (err) {
-        toast.error(err.message || 'Could not update basket quantity');
+        toast.error(err.message || 'Could not update quantity');
       }
     }
+  };
+
+  const toggleWishlist = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsWishlisted(!isWishlisted);
+    toast.success(isWishlisted ? 'Removed from saved batches' : 'Saved to your spice cellar');
   };
 
   const priceNum = Math.round(Number(product.price) || 0);
@@ -68,159 +76,181 @@ export default function ProductCard({ product }) {
 
   const imageUrl = (!imageError && product.primary_image_url)
     ? product.primary_image_url
-    : '/featured-pouches.png';
+    : '/images/stitch/stitch_3_d0bc312725.jpg';
 
-  const brandName = product.manufacturer?.business_name || 'Artisan Brand';
-  const provenance = product.origin_district || product.manufacturer?.location_district || '';
-  const weightText = product.weight_grams ? `${product.weight_grams}g` : '';
+  const brandName = product.manufacturer?.business_name || product.brand?.name || 'Heritage Kitchen';
+  const provenance = product.origin_district || product.origin_state || product.manufacturer?.location_district || 'Sun-Cured Terroir';
+  const weightText = product.weight_grams ? `${product.weight_grams}g` : '350g Jar';
+
+  // Heat meter representation
+  const spiceRating = product.heat_level || (product.spice_level ? String(product.spice_level) : 'MEDIUM');
+  let spiceIndicator = '🌶️🌶️ Medium';
+  if (spiceRating === 'EXTRA_HOT' || spiceRating === '4' || spiceRating === '5') {
+    spiceIndicator = '🌶️🌶️🌶️🌶️ Extreme Ghost Heat';
+  } else if (spiceRating === 'HOT' || spiceRating === '3') {
+    spiceIndicator = '🌶️🌶️🌶️ Fiery Hot';
+  } else if (spiceRating === 'MILD' || spiceRating === '1') {
+    spiceIndicator = '🌶️ Mild & Sweet';
+  }
 
   return (
-    <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/85 bg-white shadow-2xs hover:shadow-xl hover:border-red-500 transition-all duration-300">
+    <article className="group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-outline-variant/30 transition-all duration-300 flex flex-col justify-between">
       <div>
-        {/* Product Image Container */}
-        <Link
-          to={`/product/${product.slug}`}
-          className="block relative aspect-square overflow-hidden bg-stone-100/80"
-        >
-          <img
-            src={imageUrl}
-            alt={product.title}
-            onError={() => setImageError(true)}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
-            loading="lazy"
-          />
+        {/* Top Image Showcase */}
+        <div className="relative h-56 sm:h-64 bg-surface-container-high overflow-hidden">
+          <Link to={`/product/${product.slug}`} className="block w-full h-full">
+            <img
+              src={imageUrl}
+              alt={product.title}
+              onError={() => setImageError(true)}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          </Link>
 
-          {/* Badges on Top */}
-          <div className="absolute left-2 top-2 z-10 flex flex-wrap gap-1 items-center">
-            {discountPercent > 0 && (
-              <span className="rounded-full bg-red-600 text-white font-extrabold text-[9.5px] sm:text-[10px] px-2 py-0.5 shadow-xs tracking-tight">
-                {discountPercent}% OFF
-              </span>
-            )}
-            {product.is_bestseller && (
-              <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-400 text-stone-950 font-bold text-[9.5px] sm:text-[10px] px-2 py-0.5 shadow-xs">
-                <Sparkles size={9} className="fill-stone-950" /> Bestseller
-              </span>
-            )}
+          {/* Terroir / Location Pill */}
+          <span className="absolute top-2.5 left-2.5 bg-surface/90 backdrop-blur-md px-2.5 py-1 rounded-full font-label-sm text-[11px] text-primary font-bold shadow-xs">
+            {provenance}
+          </span>
+
+          {/* Wishlist Button */}
+          <button
+            type="button"
+            onClick={toggleWishlist}
+            aria-label="Save to Wishlist"
+            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-surface/80 backdrop-blur-md flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all shadow-xs"
+          >
+            <Heart
+              size={17}
+              className={isWishlisted ? 'fill-primary text-primary' : 'text-on-surface-variant'}
+            />
+          </button>
+
+          {/* Heat Meter Badge */}
+          <div className="absolute bottom-2.5 left-2.5 bg-inverse-surface/85 text-inverse-on-surface px-2 py-0.5 rounded-lg font-label-sm text-[10px] sm:text-[11px] flex items-center gap-1 backdrop-blur-xs">
+            <span>{spiceIndicator}</span>
           </div>
 
-          {/* Weight Badge on Bottom-Right */}
-          {weightText && (
-            <div className="absolute right-2 bottom-2 z-10 bg-white/95 backdrop-blur-md border border-stone-200/70 text-stone-800 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
-              {weightText}
-            </div>
-          )}
-
-          {/* Out of Stock Overlay */}
+          {/* Sold out badge */}
           {!inStock && (
-            <div className="absolute inset-0 bg-stone-950/50 backdrop-blur-[2px] flex items-center justify-center p-3 z-20 text-center">
-              <span className="px-3 py-1 rounded-full bg-stone-900/90 text-white text-xs font-bold border border-white/20 shadow-md">
-                Sold Out
+            <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-[2px] flex items-center justify-center p-3 z-20 text-center">
+              <span className="px-3 py-1 rounded-full bg-stone-900 text-white text-xs font-bold border border-white/20 shadow-md">
+                Batch Sold Out
               </span>
             </div>
           )}
-        </Link>
+        </div>
 
-        {/* Card Body */}
-        <div className="p-3 sm:p-4 space-y-1">
-          {/* Product Title */}
+        {/* Content Body */}
+        <div className="p-3.5 sm:p-4 flex flex-col gap-1.5">
+          {/* Artisan Maker with Verified Check */}
+          <div className="flex items-center gap-1 text-[12px] text-on-surface-variant font-medium truncate">
+            <span className="material-symbols-outlined text-[15px] text-secondary">verified</span>
+            <span className="truncate">{brandName}</span>
+          </div>
+
+          {/* Title */}
           <Link to={`/product/${product.slug}`} className="block">
-            <h3 className="font-bold text-stone-900 text-xs sm:text-[14px] leading-snug line-clamp-2 min-h-[1.9rem] sm:min-h-[2.4rem] group-hover:text-red-600 transition-colors">
+            <h3 className="font-title-md text-[14px] sm:text-[16px] text-on-surface group-hover:text-primary transition-colors font-bold line-clamp-2 leading-snug">
               {product.title}
             </h3>
           </Link>
 
-          {/* Subtitle: Brand · Weight */}
-          <p className="text-[11px] text-stone-500 truncate">
-            {brandName} {weightText ? `· ${weightText}` : ''}
-          </p>
-        </div>
-      </div>
-
-      {/* Pricing & Cart Action Bar */}
-      <div className="p-3 sm:p-4 pt-0 sm:pt-0 mt-auto">
-        <div className="pt-2 flex items-center justify-between gap-2 border-t border-stone-100">
-          {/* Price block */}
-          <div className="min-w-0">
-            <div className="flex items-baseline gap-1">
-              <span className="font-bold text-sm sm:text-base text-stone-950">
-                ₹{priceNum}
-              </span>
-              {hasDiscount && (
-                <span className="text-[10px] sm:text-[11px] text-stone-400 line-through">
-                  ₹{mrpNum}
-                </span>
-              )}
+          {/* Rating & Reviews */}
+          <div className="flex items-center gap-2 pt-0.5">
+            <div className="flex items-center bg-tertiary-fixed text-on-tertiary-fixed px-1.5 py-0.5 rounded font-label-sm text-[11px] font-bold">
+              <span>{product.rating || '4.8'}</span>
+              <span className="material-symbols-outlined text-[13px] ml-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
             </div>
-
-            {isLowStock ? (
-              <p className="text-[9.5px] font-bold text-amber-700 flex items-center gap-0.5 truncate">
-                <Zap size={9} /> Only {product.stock_quantity} left
-              </p>
-            ) : !inStock ? (
-              <p className="text-[9.5px] font-bold text-stone-400">
-                Out of Stock
-              </p>
-            ) : null}
+            <span className="font-body-sm text-[11px] text-outline">
+              ({product.review_count || 320}+ reviews)
+            </span>
           </div>
 
-          {/* Action: Food Delivery "+ Add" Button or Stepper */}
-          {cartItem ? (
-            <div className="flex items-center rounded-full bg-red-50 border border-red-500 overflow-hidden shadow-2xs h-8 sm:h-9 shrink-0">
-              <button
-                type="button"
-                onClick={handleDecrement}
-                aria-label={`Decrease quantity of ${product.title}`}
-                className="w-7 h-full flex items-center justify-center text-red-600 hover:bg-red-100 active:scale-90 transition-all font-bold"
-              >
-                <Minus size={12} />
-              </button>
-              <span className="px-2 text-xs font-black text-red-700 font-mono select-none">
-                {cartItem.quantity}
+          {/* Pricing */}
+          <div className="flex items-baseline gap-2 pt-1">
+            <span className="font-title-lg text-[18px] sm:text-[20px] text-primary font-bold">
+              ₹{priceNum}
+            </span>
+            {hasDiscount && (
+              <span className="font-body-sm text-xs text-outline line-through">
+                ₹{mrpNum}
               </span>
-              <button
-                type="button"
-                onClick={handleIncrement}
-                disabled={cartItem.quantity >= (product.stock_quantity || 99) || !inStock}
-                aria-label={`Increase quantity of ${product.title}`}
-                className="w-7 h-full flex items-center justify-center text-red-600 hover:bg-red-100 active:scale-90 transition-all font-bold disabled:opacity-30"
-              >
-                <Plus size={12} />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={!inStock || adding}
-              aria-label={`Add ${product.title} to cart`}
-              className={`px-3 sm:px-3.5 h-8 sm:h-9 rounded-full text-xs font-bold flex items-center justify-center gap-1 shadow-sm transition-all active:scale-90 shrink-0 ${
-                added
-                  ? 'bg-emerald-600 text-white'
-                  : inStock
-                  ? 'bg-red-600 hover:bg-red-700 text-white hover:shadow-md'
-                  : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
-              }`}
-            >
-              {added ? (
-                <>
-                  <CheckCircle size={14} className="text-white" />
-                  <span className="hidden sm:inline">Added</span>
-                </>
-              ) : adding ? (
-                <span className="animate-pulse text-xs">...</span>
-              ) : !inStock ? (
-                <span className="text-[10px]">Sold</span>
-              ) : (
-                <>
-                  <Plus size={14} strokeWidth={2.5} />
-                  <span>Add</span>
-                </>
-              )}
-            </button>
-          )}
+            )}
+            {discountPercent > 0 && (
+              <span className="font-label-sm text-[11px] text-secondary font-bold">
+                {discountPercent}% OFF
+              </span>
+            )}
+          </div>
+
+          {/* Heritage Micro-Badge */}
+          <div className="bg-surface-container-low px-2 py-1 rounded-lg mt-1">
+            <p className="font-body-sm text-[11px] text-on-surface-variant flex items-center gap-1 truncate">
+              <span className="material-symbols-outlined text-primary text-[14px]">wb_sunny</span>
+              <span>Wood Churned Oil • {weightText}</span>
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Cart Action Footer */}
+      <div className="p-3.5 sm:p-4 pt-0">
+        {cartItem ? (
+          <div className="w-full flex items-center justify-between bg-primary-fixed text-on-primary-fixed rounded-xl px-2 py-1.5 shadow-sm border border-primary/20">
+            <button
+              type="button"
+              onClick={handleDecrement}
+              aria-label={`Decrease ${product.title}`}
+              className="w-8 h-8 rounded-lg bg-surface/80 flex items-center justify-center text-primary font-bold hover:bg-surface active:scale-90 transition-all"
+            >
+              <Minus size={15} />
+            </button>
+            <span className="font-bold text-sm text-primary">
+              {cartItem.quantity} in Bag
+            </span>
+            <button
+              type="button"
+              onClick={handleIncrement}
+              disabled={cartItem.quantity >= (product.stock_quantity || 99) || !inStock}
+              aria-label={`Increase ${product.title}`}
+              className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center font-bold hover:bg-primary-container active:scale-90 transition-all disabled:opacity-40"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!inStock || adding}
+            aria-label={`Add ${product.title} to Cart`}
+            className={`w-full py-2.5 rounded-xl font-title-md text-[13px] sm:text-[14px] font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 active:scale-95 ${
+              added
+                ? 'bg-tertiary text-on-tertiary'
+                : inStock
+                ? 'bg-primary text-on-primary hover:bg-primary-container'
+                : 'bg-surface-variant text-outline cursor-not-allowed'
+            }`}
+          >
+            {added ? (
+              <>
+                <Check size={17} />
+                <span>Added to Jar Bag</span>
+              </>
+            ) : adding ? (
+              <span className="animate-pulse">Adding...</span>
+            ) : !inStock ? (
+              <span>Out of Stock</span>
+            ) : (
+              <>
+                <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
+                <span>Add to Cart</span>
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </article>
   );
 }

@@ -104,43 +104,37 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 shadow-md">
-      {/* 1. Top Announcement Ribbon - Wine Red (#540f13) */}
-      <div className="bg-[#540f13] text-[#f7eedb] border-b border-[#6a1318]/60 text-[11px] font-medium py-1.5 px-4 select-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-center gap-3 sm:gap-6 whitespace-nowrap text-center">
-          <span className="flex items-center gap-1.5 font-semibold text-xs tracking-wide">
-            <Leaf size={12} className="text-[#f5a7a7]" />
-            <span>Authentic Naga Pickles &amp; Local Delicacies</span>
-          </span>
-          <span className="text-white/20 hidden sm:inline">|</span>
-          <span className="hidden sm:flex items-center gap-1.5 text-stone-200">
-            <Truck size={12} className="text-[#f5a7a7]" />
-            <span>Pan India Delivery</span>
-          </span>
-          <span className="text-white/20 hidden md:inline">|</span>
-          <span className="hidden md:flex items-center gap-1.5 text-stone-200">
-            <ShieldCheck size={12} className="text-[#f5a7a7]" />
-            <span>Quality Assured</span>
-          </span>
-          <span className="text-white/20 hidden lg:inline">|</span>
-          <span className="hidden lg:flex items-center gap-1.5 text-stone-200">
-            <Heart size={12} className="text-[#f5a7a7]" />
-            <span>Support Local Producers</span>
-          </span>
+    <header className="sticky top-0 z-40 shadow-xs">
+      {/* 1. Top Announcement Ribbon - Stitch Terracotta (#9b4100) */}
+      <div className="bg-primary text-on-primary border-b border-primary-container text-[11px] font-medium py-1.5 px-4 select-none">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md text-label-md">
+          <div className="flex items-center gap-2">
+            <Truck size={14} className="text-primary-fixed" />
+            <span>Complimentary Artisan Delivery on Sun-Cured Heritage Pickles above ₹499 Across India</span>
+          </div>
+          <div className="hidden md:flex items-center gap-4 text-primary-fixed">
+            <span className="flex items-center gap-1">
+              <ShieldCheck size={13} /> FSSAI Certified Purity
+            </span>
+            <span className="opacity-40">|</span>
+            <span className="flex items-center gap-1">
+              <Sparkles size={13} /> 100% Sun-Matured Batches
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* 2. Main Navigation Bar - Dark Obsidian (#151312) */}
-      <div className="bg-[#151312]/95 backdrop-blur-md border-b border-white/10 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 sm:h-[4.75rem] items-center justify-between gap-4">
+      {/* 2. Main Navigation Bar - Stitch Heritage Warm Surface (#fff8f4) */}
+      <div className="bg-surface/95 backdrop-blur-xl border-b border-outline-variant/30 text-on-surface">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex h-18 sm:h-20 items-center justify-between gap-4">
             
             {/* Mobile Left: Hamburger Menu Button */}
             <div className="flex md:hidden items-center">
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 -ml-2 rounded-xl text-stone-300 hover:text-white hover:bg-white/10 transition-colors"
+                className="p-2 -ml-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
                 aria-label="Toggle navigation menu"
               >
                 {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -148,136 +142,117 @@ export default function Navbar() {
             </div>
 
             {/* Brand Logo & Mountain Wordmark */}
-            <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3 select-none">
-              <img
-                src="/logo-white.png"
-                alt="Wangs"
-                className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
-              />
-              <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.12em] leading-none text-white uppercase group-hover:text-stone-200 transition-colors">
-                Wangs
-              </span>
-            </Link>
+            <div className="flex items-center gap-3 shrink-0">
+              <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3 select-none">
+                <img
+                  src="/logo-red.png"
+                  alt="Wangs Pickle Marketplace Logo"
+                  className="h-8 sm:h-9 w-auto object-contain transition-transform duration-200 group-hover:scale-105"
+                />
+                <span className="font-headline-md font-bold text-2xl sm:text-[1.85rem] tracking-tight leading-none text-primary group-hover:text-primary-container transition-colors">
+                  Wangs
+                </span>
+              </Link>
 
-            {/* Desktop Center Navigation Links */}
-            <nav className="hidden md:flex items-center gap-6 lg:gap-8 text-xs font-semibold tracking-wide">
-              <Link
-                to="/"
-                className={`pb-1 transition-colors ${
-                  location.pathname === '/'
-                    ? 'text-white border-b-2 border-white font-bold'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                Home
-              </Link>
-              <Link
-                to="/products"
-                className={`pb-1 transition-colors ${
-                  location.pathname === '/products'
-                    ? 'text-white border-b-2 border-white font-bold'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                Shop
-              </Link>
-              <Link
-                to="/brands"
-                className={`pb-1 transition-colors ${
-                  location.pathname === '/brands'
-                    ? 'text-white border-b-2 border-white font-bold'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                Our Producers
-              </Link>
-              <Link
-                to="/about"
-                className={`pb-1 transition-colors ${
-                  location.pathname === '/about'
-                    ? 'text-white border-b-2 border-white font-bold'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                About
-              </Link>
-              <Link
-                to="/contact"
-                className={`pb-1 transition-colors ${
-                  location.pathname === '/contact'
-                    ? 'text-white border-b-2 border-white font-bold'
-                    : 'text-stone-300 hover:text-white'
-                }`}
-              >
-                Contact
-              </Link>
-            </nav>
+              {/* Delivery Pin Dropdown (Desktop) */}
+              <div className="hidden lg:flex items-center gap-1 pl-3 font-label-md text-label-md text-on-surface-variant cursor-pointer hover:text-primary transition-colors border-l border-outline-variant/30">
+                <span className="material-symbols-outlined text-[18px] text-primary">pin_drop</span>
+                <span className="font-semibold text-on-surface">Deliver to:</span>
+                <span>560001 (Bengaluru)</span>
+                <ChevronDown size={14} className="text-outline" />
+              </div>
+            </div>
 
-            {/* Right Action Cluster: Search Icon, Cart, Sign In Pill */}
-            <div className="flex items-center gap-1.5 sm:gap-3">
-              {/* Search Toggle Button */}
+            {/* Global Search Bar (Desktop) */}
+            <div className="flex-1 max-w-xl hidden md:flex items-center">
+              <form onSubmit={handleSearch} className="w-full flex items-center bg-surface-container-low rounded-full px-4 py-2 border border-outline-variant/30 focus-within:bg-surface-container-lowest focus-within:shadow-[0_0_0_1.5px_#9b4100] transition-all">
+                <Search size={18} className="text-outline mr-2 shrink-0" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search 500+ handmade mango, garlic, gongura, lime pickles, or regional makers..."
+                  className="w-full bg-transparent font-body-sm text-body-sm text-on-surface placeholder:text-outline focus:outline-none"
+                />
+                <button type="submit" className="font-label-sm text-label-sm font-bold text-primary pl-2 shrink-0 hover:text-primary-container transition-colors">
+                  Search
+                </button>
+              </form>
+            </div>
+
+            {/* Right Action Cluster */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Sell on Wangs CTA Button */}
+              <Link
+                to="/manufacturer/register"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-tertiary text-on-tertiary font-label-md text-label-md px-3.5 py-1.5 rounded-full hover:bg-tertiary-container hover:text-on-tertiary-container transition-all shadow-xs"
+              >
+                <Store size={15} />
+                <span>Sell on Wangs</span>
+              </Link>
+
+              {/* Mobile Search Toggle */}
               <button
                 type="button"
                 onClick={() => setSearchOpen(!searchOpen)}
-                className="p-2 rounded-full text-stone-300 hover:text-white hover:bg-white/10 transition-colors"
+                className="md:hidden p-2 rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
                 aria-label="Search catalog"
-                title="Search"
               >
-                <Search size={19} />
+                <Search size={20} />
               </button>
 
               {/* Shopping Cart Pill Button */}
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="relative p-2 rounded-full text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                className="relative p-2 rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors cursor-pointer"
                 aria-label={`Shopping Basket with ${itemsCount} items`}
                 title="Cart"
               >
-                <ShoppingBag size={21} className="text-white" />
+                <ShoppingBag size={22} className="text-on-surface" />
                 {itemsCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[#85191e] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center border border-[#151312] shadow-xs">
+                  <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-primary text-on-primary font-bold text-[9px] leading-tight rounded-full flex items-center justify-center shadow-xs">
                     {itemsCount > 99 ? '99+' : itemsCount}
                   </span>
                 )}
               </button>
 
-              {/* Sign In / User Profile Dropdown (Desktop & Tablet) */}
+              {/* Sign In / User Profile Dropdown */}
               <div className="relative hidden sm:block">
                 {user ? (
                   <>
                     <button
                       onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-[#f5e6d3] text-stone-900 hover:bg-white transition-all shadow-sm"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-surface-container hover:bg-surface-container-high transition-all shadow-xs border border-outline-variant/30 text-on-surface"
                     >
-                      <div className="w-5 h-5 rounded-full bg-[#85191e] text-white flex items-center justify-center font-bold text-[10px]">
+                      <div className="w-5 h-5 rounded-full bg-primary text-on-primary flex items-center justify-center font-bold text-[10px]">
                         {(user.first_name || user.username || 'U')[0].toUpperCase()}
                       </div>
                       <span className="hidden sm:inline">{user.first_name || user.username}</span>
-                      <ChevronDown size={13} className="text-stone-600" />
+                      <ChevronDown size={13} className="text-outline" />
                     </button>
 
                     {userDropdownOpen && (
-                      <div className="absolute right-0 mt-2 w-56 bg-stone-900 rounded-2xl shadow-2xl border border-white/15 py-2 z-50 text-xs text-white">
-                        <div className="px-4 py-2.5 border-b border-white/10 bg-stone-950/60">
-                          <p className="font-bold text-white">{user.first_name} {user.last_name}</p>
-                          <p className="text-stone-400 truncate text-[11px]">{user.email}</p>
+                      <div className="absolute right-0 mt-2 w-56 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/40 py-2 z-50 text-xs text-on-surface">
+                        <div className="px-4 py-2.5 border-b border-outline-variant/20 bg-surface-container-low">
+                          <p className="font-bold text-on-surface">{user.first_name} {user.last_name}</p>
+                          <p className="text-on-surface-variant truncate text-[11px]">{user.email}</p>
                         </div>
 
                         <Link
                           to="/account"
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-stone-300 hover:bg-white/10 hover:text-white transition-colors font-medium"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-on-surface hover:bg-surface-container transition-colors font-medium"
                         >
-                          <Package size={15} className="text-[#dc4437]" /> My Orders &amp; Addresses
+                          <Package size={15} className="text-primary" /> My Orders &amp; Addresses
                         </Link>
 
                         {isManufacturer ? (
                           <Link
                             to="/manufacturer"
                             onClick={() => setUserDropdownOpen(false)}
-                            className="flex items-center gap-2.5 px-4 py-2.5 text-amber-300 font-bold hover:bg-white/10 transition-colors"
+                            className="flex items-center gap-2.5 px-4 py-2.5 text-secondary font-bold hover:bg-surface-container transition-colors"
                           >
-                            <Store size={15} className="text-amber-400" /> Seller Dashboard
+                            <Store size={15} className="text-secondary" /> Seller Dashboard
                           </Link>
                         ) : null}
 
@@ -287,7 +262,7 @@ export default function Navbar() {
                             logout();
                             navigate('/');
                           }}
-                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-red-400 hover:bg-red-950/40 border-t border-white/10 mt-1 transition-colors"
+                          className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-error hover:bg-error-container/40 border-t border-outline-variant/20 mt-1 transition-colors"
                         >
                           <LogOut size={15} /> Sign Out
                         </button>
@@ -297,14 +272,30 @@ export default function Navbar() {
                 ) : (
                   <Link
                     to="/login"
-                    className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 bg-[#f5e6d3] hover:bg-white text-stone-950 font-bold text-xs rounded-full shadow-md transition-all active:scale-95"
+                    className="inline-flex items-center gap-1.5 px-4 sm:px-5 py-2 bg-primary hover:bg-primary-container text-on-primary font-bold text-xs rounded-full shadow-xs transition-all active:scale-95"
                   >
-                    <User size={14} className="text-stone-900" />
+                    <User size={14} />
                     <span>Sign In</span>
                   </Link>
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* 3. Sub-navigation Category Strip (Stitch Warm Low Surface) */}
+        <div className="bg-surface-container-low border-t border-outline-variant/20">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-6 overflow-x-auto no-scrollbar py-2 text-xs font-semibold text-on-surface-variant whitespace-nowrap">
+            <Link to="/products" className="hover:text-primary transition-colors py-0.5">All Pickles</Link>
+            <Link to="/products?category=mango-achar" className="hover:text-primary transition-colors py-0.5">Mango Achar</Link>
+            <Link to="/products?category=andhra-gongura" className="hover:text-primary transition-colors py-0.5">Andhra Gongura</Link>
+            <Link to="/products?category=rajasthani-ker-sangri" className="hover:text-primary transition-colors py-0.5">Rajasthani Ker Sangri</Link>
+            <Link to="/products?category=south-indian-non-veg" className="hover:text-primary transition-colors py-0.5">South Indian Non-Veg</Link>
+            <Link to="/products?category=bamboo-shoot-pickle" className="hover:text-primary transition-colors py-0.5">Bhut Jolokia &amp; Bamboo</Link>
+            <Link to="/products?category=chilli-pickle" className="hover:text-primary transition-colors py-0.5">Garlic &amp; Chutneys</Link>
+            <Link to="/brands" className="hover:text-primary transition-colors py-0.5 flex items-center gap-1">
+              <Sparkles size={12} className="text-secondary" /> Verified Makers
+            </Link>
           </div>
         </div>
 
