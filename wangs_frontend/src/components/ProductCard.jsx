@@ -184,6 +184,17 @@ export default function ProductCard({ product }) {
             )}
           </div>
 
+          {/* Micro Psychology: Scarcity & Small Batch Social Proof */}
+          <div className="flex items-center justify-between text-[10.5px] pt-1.5 border-t border-outline-variant/20 text-on-surface-variant">
+            <span className="flex items-center gap-1 text-primary font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
+              <span>Small Batch Cure</span>
+            </span>
+            <span className="font-semibold text-outline">
+              {product.weight_grams ? `${product.weight_grams}g Glass Jar` : 'Glass Jar'}
+            </span>
+          </div>
+
           {/* Heritage Micro-Badge */}
           <div className="bg-surface-container-low px-2 py-1 rounded-lg mt-1">
             <p className="font-body-sm text-[11px] text-on-surface-variant flex items-center gap-1 truncate">

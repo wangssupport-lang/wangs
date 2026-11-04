@@ -81,12 +81,38 @@ export default function CartDrawer() {
             </button>
           </div>
 
-          {/* Free Shipping Badge */}
+          {/* Milestone Progress Bar: Goal Gradient Effect */}
           {items.length > 0 && (
-            <div className="px-6 py-2.5 bg-emerald-50/80 border-b border-emerald-100 text-xs">
-              <div className="flex items-center gap-1.5 text-emerald-950 font-bold text-[11px]">
-                <Truck size={14} className="text-emerald-700 shrink-0" />
-                <span>100% Free Nationwide Delivery Unlocked on All Orders!</span>
+            <div className="px-5 py-3 bg-gradient-to-r from-amber-50/90 via-orange-50/70 to-emerald-50/90 border-b border-amber-200/60 text-xs space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                {subtotal >= 699 ? (
+                  <span className="font-bold text-emerald-800 flex items-center gap-1">
+                    <Sparkles size={13} className="text-emerald-600 shrink-0" />
+                    <span>Free Shipping + Free Handcrafted Tasting Spoon Unlocked!</span>
+                  </span>
+                ) : (
+                  <span className="font-semibold text-stone-800 flex items-center gap-1">
+                    <span>Add <strong className="text-primary font-bold">₹{Math.round(699 - subtotal)}</strong> more for a <strong className="text-amber-800">Free Tasting Spoon! 🥄</strong></span>
+                  </span>
+                )}
+                <span className="text-[10px] font-mono font-bold text-stone-500">
+                  {Math.min(100, Math.round((subtotal / 699) * 100))}%
+                </span>
+              </div>
+
+              {/* Visual Progress Bar */}
+              <div className="w-full h-2 bg-stone-200 rounded-full overflow-hidden p-0.5">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-500 via-orange-500 to-emerald-600 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, Math.max(12, Math.round((subtotal / 699) * 100)))}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[9.5px] text-stone-500">
+                <span className="flex items-center gap-1 text-emerald-700 font-bold">
+                  <Truck size={11} /> 100% Free Shipping Included
+                </span>
+                <span>Tier ₹699: Free Wooden Spoon</span>
               </div>
             </div>
           )}

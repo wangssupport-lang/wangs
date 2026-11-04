@@ -133,18 +133,33 @@ export default function Navbar() {
   const currentCategory = searchParams.get('category') || '';
   const isBrowsePage = location.pathname === '/' || location.pathname === '/products';
 
+  const [ribbonIndex, setRibbonIndex] = useState(0);
+  const RIBBON_MESSAGES = [
+    { text: "Complimentary Express Delivery on Sun-Cured Heritage Pickles above ₹499 Across India", highlight: "100% Free" },
+    { text: "⚡ Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days", highlight: "Express Local" },
+    { text: "🎁 Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!", highlight: "Free Gift" },
+    { text: "🏺 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week", highlight: "High Demand" }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setRibbonIndex((prev) => (prev + 1) % 4);
+    }, 4500);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <header className="sticky top-0 z-40 bg-[#fff8f4] shadow-xs w-full select-none">
       {/* ========================================================
-          1. TOP ANNOUNCEMENT RIBBON (DESKTOP ONLY)
+          1. TOP ANNOUNCEMENT RIBBON (Psychological Social Proof & Trust)
           ======================================================== */}
-      <div className="hidden md:block bg-[#9b4100] text-white border-b border-[#bf550d] text-[11px] font-medium py-1.5 px-4">
+      <div className="bg-[#9b4100] text-white border-b border-[#bf550d] text-[10.5px] sm:text-[11px] font-medium py-1 px-3 sm:px-4 transition-all duration-300">
         <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md">
-          <div className="flex items-center gap-2">
-            <Truck size={14} className="text-[#ffdbcb]" />
-            <span>Complimentary Artisan Delivery on Sun-Cured Heritage Pickles above ₹499 Across India</span>
+          <div className="flex items-center gap-2 overflow-hidden truncate">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+            <span className="truncate">{RIBBON_MESSAGES[ribbonIndex].text}</span>
           </div>
-          <div className="flex items-center gap-4 text-[#ffdbcb]">
+          <div className="hidden md:flex items-center gap-4 text-[#ffdbcb] shrink-0">
             <span className="flex items-center gap-1">
               <ShieldCheck size={13} /> FSSAI Certified Purity
             </span>

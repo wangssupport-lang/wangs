@@ -7,6 +7,7 @@ import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import LiveSocialProof from './components/LiveSocialProof';
 
 import HomePage from './pages/HomePage';
 import BrandsPage from './pages/BrandsPage';
@@ -109,6 +110,7 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
 
+      {!isAdminRoute && !isDeliveryRoute && <LiveSocialProof />}
       {!isAdminRoute && !isDeliveryRoute && <Footer />}
       {!isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && (
         <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />

@@ -532,6 +532,49 @@ export default function ProductDetailPage() {
             </span>
           </div>
 
+          {/* Psychology & Live Social Proof Urgency Hub */}
+          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-50/70 border border-amber-200/90 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xs">
+            <div className="flex items-center justify-between text-xs flex-wrap gap-2">
+              <span className="flex items-center gap-2 font-bold text-stone-900">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                </span>
+                <span>16 pickle lovers viewing this batch right now</span>
+              </span>
+              <span className="text-[10px] bg-amber-200 text-amber-950 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                Small Batch #{product?.id ? (product.id * 3 + 7) : '18'}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-stone-700 pt-0.5">
+              <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1.5 rounded-xl border border-amber-200/50">
+                <Clock size={13} className="text-amber-700 shrink-0" />
+                <span>Order in next <strong className="text-stone-950 font-mono">02h 45m</strong> for Same-Day Dispatch!</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1.5 rounded-xl border border-amber-200/50">
+                <Flame size={13} className="text-red-600 shrink-0" />
+                <span>Harvest Notice: <strong className="text-stone-950">Only 4 jars left</strong> in today's cure</span>
+              </div>
+            </div>
+
+            {/* Sensory & Heritage Mental Simulation Pillars */}
+            <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
+              <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
+                <span className="block font-bold text-stone-900 text-[10.5px]">🏺 Clay Cured</span>
+                <span className="text-stone-500 text-[9px]">Zero plastic vats</span>
+              </div>
+              <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
+                <span className="block font-bold text-stone-900 text-[10.5px]">🌿 Wood Ghani</span>
+                <span className="text-stone-500 text-[9px]">Cold-pressed oil</span>
+              </div>
+              <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
+                <span className="block font-bold text-stone-900 text-[10.5px]">📦 Zero-Leak</span>
+                <span className="text-stone-500 text-[9px]">Cushioned glass wrap</span>
+              </div>
+            </div>
+          </div>
+
           {/* Recommended Bundle Offer Strip */}
           <div className="p-3 bg-red-600 text-white rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs">
             <div className="flex items-center gap-2">
