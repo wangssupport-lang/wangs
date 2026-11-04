@@ -214,7 +214,7 @@ export default function Navbar() {
             </nav>
 
             {/* Right Action Cluster: Search Icon, Cart, Sign In Pill */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3">
               {/* Search Toggle Button */}
               <button
                 type="button"
@@ -223,7 +223,7 @@ export default function Navbar() {
                 aria-label="Search catalog"
                 title="Search"
               >
-                <Search size={18} />
+                <Search size={19} />
               </button>
 
               {/* Shopping Cart Pill Button */}
@@ -233,16 +233,16 @@ export default function Navbar() {
                 aria-label={`Shopping Basket with ${itemsCount} items`}
                 title="Cart"
               >
-                <ShoppingBag size={20} className="text-white" />
+                <ShoppingBag size={21} className="text-white" />
                 {itemsCount > 0 && (
-                  <span className="absolute top-0 right-0 min-w-[17px] h-[17px] px-1 bg-[#85191e] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center border border-[#151312] shadow-xs">
+                  <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[#85191e] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center border border-[#151312] shadow-xs">
                     {itemsCount > 99 ? '99+' : itemsCount}
                   </span>
                 )}
               </button>
 
-              {/* Sign In / User Profile Dropdown */}
-              <div className="relative">
+              {/* Sign In / User Profile Dropdown (Desktop & Tablet) */}
+              <div className="relative hidden sm:block">
                 {user ? (
                   <>
                     <button

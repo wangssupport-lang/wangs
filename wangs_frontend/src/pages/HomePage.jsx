@@ -80,27 +80,34 @@ export default function HomePage() {
     }
   };
 
-  // Filter items based on dietary category
-  const matchingBestsellers = bestsellers.filter((product) => {
-    if (!product.is_bestseller) return false;
-    if (selectedDietary === 'ALL') return true;
-    return product.dietary_type === selectedDietary;
+  // Category filter state
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+
+  const filteredProducts = allProducts.filter((product) => {
+    if (selectedCategory === 'ALL') return true;
+    const catSlug = product.category?.slug || product.category_slug || '';
+    const catName = (product.category?.name || product.title || '').toLowerCase();
+    if (selectedCategory === 'vegetarian-pickles') {
+      return product.dietary_type === 'VEG' || catSlug.includes('veg');
+    }
+    if (selectedCategory === 'bamboo-shoot-pickle') {
+      return catSlug.includes('bamboo') || catName.includes('bamboo');
+    }
+    if (selectedCategory === 'smoked-meat-pickle') {
+      return catSlug.includes('smoked') || catSlug.includes('meat') || catName.includes('beef') || catName.includes('meat');
+    }
+    if (selectedCategory === 'pork-pickle') {
+      return catSlug.includes('pork') || catName.includes('pork');
+    }
+    if (selectedCategory === 'chilli-pickle') {
+      return catSlug.includes('chilli') || catName.includes('chilli') || catName.includes('mircha');
+    }
+    return catSlug === selectedCategory;
   });
 
-  let sectionTitle = 'Bestsellers';
-  let displayedItems = [];
-
-  if (matchingBestsellers.length > 0) {
-    sectionTitle = 'Bestsellers';
-    displayedItems = matchingBestsellers;
-  } else {
-    sectionTitle = 'Items';
-    const matchingCatalog = allProducts.filter((product) => {
-      if (selectedDietary === 'ALL') return true;
-      return product.dietary_type === selectedDietary;
-    });
-    displayedItems = matchingCatalog.length > 0 ? matchingCatalog : allProducts;
-  }
+  const displayedItems = selectedCategory === 'ALL'
+    ? (bestsellers.some((p) => p.is_bestseller) ? bestsellers.filter((p) => p.is_bestseller) : allProducts).slice(0, 8)
+    : (filteredProducts.length > 0 ? filteredProducts : allProducts).slice(0, 8);
 
   return (
     <div className="bg-[#151312] text-stone-900">
@@ -108,56 +115,72 @@ export default function HomePage() {
       {/* ========================================================
           MOBILE HERO SECTION (Matching Mobile Mockup in Image)
           ======================================================== */}
-      <div className="sm:hidden bg-[#151312] text-white px-4 pt-5 pb-8 space-y-4">
+      <div className="sm:hidden relative overflow-hidden bg-[#151312] text-white px-4 pt-6 pb-8 space-y-5">
+        {/* Ambient Warm Backlights */}
+        <div className="absolute w-72 h-72 rounded-full bg-[#dc4437]/15 blur-[90px] pointer-events-none -top-10 -right-10" />
+        <div className="absolute w-60 h-60 rounded-full bg-amber-600/10 blur-[80px] pointer-events-none top-1/2 -left-10" />
+
         {/* Upper Kicker */}
-        <p className="text-[11px] font-bold tracking-[0.25em] text-stone-400 uppercase text-center">
+        <p className="text-[11px] font-bold tracking-[0.25em] text-[#d6c7b2] uppercase text-center select-none">
           AUTHENTIC NAGA PICKLES
         </p>
 
         {/* Big Serif Headline */}
-        <h1 className="font-serif text-[2.2rem] font-medium leading-[1.12] tracking-tight text-center text-[#f7eedb]">
+        <h1 className="font-serif text-[2.45rem] font-medium leading-[1.08] tracking-tight text-center text-[#f7eedb]">
           Local Flavours <br />
-          from <span className="text-[#dc4437]">Nagaland</span>
+          from <span className="bg-gradient-to-r from-[#ff5a43] via-[#dc4437] to-[#b91c1c] bg-clip-text text-transparent font-semibold">Nagaland</span>
         </h1>
 
         {/* Subtitle Paragraph */}
-        <p className="text-xs text-stone-300 leading-relaxed text-center max-w-xs mx-auto">
+        <p className="text-xs sm:text-sm text-stone-300 leading-relaxed text-center max-w-xs mx-auto font-normal">
           Handcrafted pickles and traditional delicacies from local homes and producers.
         </p>
 
         {/* Mobile Action Buttons */}
         <div className="flex flex-col gap-2.5 pt-1">
-          {/* Primary Shop Pickles Button */}
+          {/* Primary Shop Pickles Button with Rich Crimson Gradient */}
           <Link
             to="/products"
-            className="w-full py-3.5 px-6 bg-[#85191e] hover:bg-[#9c1e24] text-white font-bold text-xs rounded-full shadow-lg shadow-red-950/60 flex items-center justify-center gap-2 transition-all active:scale-95"
+            className="w-full py-3.5 px-6 bg-gradient-to-r from-[#9c1e24] via-[#85191e] to-[#6e1216] hover:from-[#b02229] hover:to-[#7f151a] text-white font-bold text-xs sm:text-sm rounded-full shadow-[0_10px_25px_rgba(133,25,30,0.55)] border border-red-500/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 cursor-pointer"
           >
-            <ShoppingBag size={16} />
+            <ShoppingBag size={17} />
             <span>Shop Pickles</span>
           </Link>
 
           {/* Secondary Liquid Glass Button */}
           <Link
             to="/brands"
-            className="group relative w-full py-3.5 px-6 rounded-full font-bold text-xs text-white flex items-center justify-center gap-2 transition-all active:scale-95 backdrop-blur-2xl bg-white/[0.08] border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] overflow-hidden"
+            className="group relative w-full py-3.5 px-6 rounded-full font-bold text-xs sm:text-sm text-white flex items-center justify-center gap-2 transition-all active:scale-95 backdrop-blur-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] overflow-hidden cursor-pointer"
           >
             <span className="relative z-10">Explore Producers</span>
-            <ArrowRight size={14} className="relative z-10" />
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
+            <ArrowRight size={15} className="relative z-10 transition-transform group-hover:translate-x-1" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 pointer-events-none" />
           </Link>
         </div>
 
-        {/* Hero Product Visual (Jars & Relishes) with Liquid Glass Badge */}
+        {/* Hero Product Visual (Jars & Relishes) with Ambient Glow & Floating Liquid Glass Badges */}
         <div className="relative py-2 flex flex-col items-center">
-          <div className="relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl bg-[#181615]">
+          {/* Ambient Glow behind Jars */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#dc4437]/20 via-amber-600/10 to-transparent blur-2xl rounded-3xl pointer-events-none" />
+          
+          <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/15 shadow-[0_15px_40px_rgba(0,0,0,0.65)] bg-[#181615]">
             <img
-              src="/images/hero/hero_jars_showcase.jpg"
-              alt="Authentic Wangs Naga Bamboo Shoot and Dried Beef Pickles"
-              className="w-full h-auto object-cover max-h-[300px]"
+              src="/images/hero/hero_jars_clean.jpg"
+              alt="Authentic Wangs Naga Bamboo Shoot and Shredded Beef Pickles"
+              className="w-full h-auto object-cover max-h-[320px] transition-transform duration-500 hover:scale-105"
             />
-            {/* Liquid Glass Overlay Pill */}
-            <div className="absolute top-3 left-3 backdrop-blur-xl bg-black/45 border border-white/20 text-white rounded-full px-3 py-1 text-[10px] font-bold flex items-center gap-1.5 shadow-lg">
-              <Sparkles size={11} className="text-amber-400" />
+            {/* Soft Ambient Vignette */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#151312]/70 via-transparent to-black/20 pointer-events-none" />
+
+            {/* Floating Liquid Glass Badge 1 (Top-Left) */}
+            <div className="absolute top-3 left-3 backdrop-blur-xl bg-black/55 border border-white/20 text-white rounded-full px-3 py-1 text-[10px] font-bold flex items-center gap-1.5 shadow-lg">
+              <Star size={11} className="text-amber-400 fill-amber-400" />
+              <span>4.9 · Artisan Naga Relishes</span>
+            </div>
+
+            {/* Floating Liquid Glass Badge 2 (Bottom-Right) */}
+            <div className="absolute bottom-3 right-3 backdrop-blur-xl bg-black/55 border border-white/20 text-white rounded-full px-3 py-1 text-[10px] font-bold flex items-center gap-1.5 shadow-lg">
+              <Sparkles size={11} className="text-red-400" />
               <span>100% Traditional Slow-Cure</span>
             </div>
           </div>
@@ -165,23 +188,23 @@ export default function HomePage() {
 
         {/* 3 Bottom Feature Badges */}
         <div className="grid grid-cols-3 gap-2 pt-3 border-t border-white/10 text-center text-white">
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white">
-              <Leaf size={14} />
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white shadow-xs">
+              <Leaf size={14} className="text-emerald-400" />
             </div>
             <span className="text-[10px] text-[#eae0d0] font-medium leading-tight">Locally Sourced Ingredients</span>
           </div>
 
-          <div className="flex flex-col items-center gap-1 border-l border-white/10 pl-2">
-            <div className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white">
-              <Utensils size={14} />
+          <div className="flex flex-col items-center gap-1.5 border-l border-white/10 pl-2">
+            <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white shadow-xs">
+              <Utensils size={14} className="text-amber-400" />
             </div>
             <span className="text-[10px] text-[#eae0d0] font-medium leading-tight">Traditional Recipes</span>
           </div>
 
-          <div className="flex flex-col items-center gap-1 border-l border-white/10 pl-2">
-            <div className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white">
-              <Store size={14} />
+          <div className="flex flex-col items-center gap-1.5 border-l border-white/10 pl-2">
+            <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white shadow-xs">
+              <Store size={14} className="text-[#dc4437]" />
             </div>
             <span className="text-[10px] text-[#eae0d0] font-medium leading-tight">Support Local Producers</span>
           </div>
@@ -203,14 +226,14 @@ export default function HomePage() {
           {/* Left Column: Typography, Actions, and Badges */}
           <div className="col-span-12 lg:col-span-6 space-y-6 flex flex-col items-start text-left z-10">
             {/* Upper Kicker */}
-            <p className="text-xs font-bold tracking-[0.25em] text-stone-400 uppercase select-none">
+            <p className="text-xs font-bold tracking-[0.25em] text-[#d6c7b2] uppercase select-none">
               AUTHENTIC NAGA PICKLES
             </p>
 
             {/* Giant Serif Headline */}
             <h1 className="font-serif text-4xl sm:text-5xl lg:text-[4.25rem] font-medium leading-[1.08] tracking-tight text-[#f7eedb]">
               Local Flavours <br />
-              from <span className="text-[#dc4437]">Nagaland</span>
+              from <span className="bg-gradient-to-r from-[#ff5a43] via-[#dc4437] to-[#b91c1c] bg-clip-text text-transparent font-semibold">Nagaland</span>
             </h1>
 
             {/* Subtitle */}
@@ -223,7 +246,7 @@ export default function HomePage() {
               {/* Primary Shop Pickles Pill */}
               <Link
                 to="/products"
-                className="px-8 py-3.5 bg-[#85191e] hover:bg-[#9c1e24] text-white font-bold text-sm rounded-full shadow-lg shadow-red-950/70 inline-flex items-center gap-2.5 transition-all active:scale-95 hover:shadow-red-900/50 cursor-pointer"
+                className="px-8 py-3.5 bg-gradient-to-r from-[#9c1e24] via-[#85191e] to-[#6e1216] hover:from-[#b02229] hover:to-[#7f151a] text-white font-bold text-sm rounded-full shadow-[0_10px_25px_rgba(133,25,30,0.55)] border border-red-500/30 inline-flex items-center gap-2.5 transition-all active:scale-95 cursor-pointer"
               >
                 <ShoppingBag size={17} />
                 <span>Shop Pickles</span>
@@ -245,22 +268,22 @@ export default function HomePage() {
             {/* 3 Bottom Feature Badges with Vertical Dividers */}
             <div className="pt-8 border-t border-white/10 grid grid-cols-3 gap-4 w-full max-w-lg">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0">
-                  <Leaf size={15} />
+                <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white shrink-0 shadow-xs">
+                  <Leaf size={15} className="text-emerald-400" />
                 </div>
                 <span className="text-xs text-[#eae0d0] font-medium leading-tight">Locally Sourced Ingredients</span>
               </div>
 
               <div className="flex items-center gap-2.5 border-l border-white/10 pl-3">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0">
-                  <Utensils size={15} />
+                <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white shrink-0 shadow-xs">
+                  <Utensils size={15} className="text-amber-400" />
                 </div>
                 <span className="text-xs text-[#eae0d0] font-medium leading-tight">Traditional Recipes</span>
               </div>
 
               <div className="flex items-center gap-2.5 border-l border-white/10 pl-3">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white shrink-0">
-                  <Store size={15} />
+                <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/15 flex items-center justify-center text-white shrink-0 shadow-xs">
+                  <Store size={15} className="text-[#dc4437]" />
                 </div>
                 <span className="text-xs text-[#eae0d0] font-medium leading-tight">Support Local Producers</span>
               </div>
@@ -286,7 +309,7 @@ export default function HomePage() {
               {/* Main Image Frame with Ambient Glow */}
               <div className="relative rounded-3xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-[#181615]">
                 <img
-                  src="/images/hero/hero_jars_showcase.jpg"
+                  src="/images/hero/hero_jars_clean.jpg"
                   alt="Authentic Wangs Naga Pickles - Bamboo Shoot and Shredded Beef Relish"
                   className="w-full h-auto object-cover max-h-[460px]"
                 />
@@ -394,12 +417,37 @@ export default function HomePage() {
               </Link>
             </div>
 
+            {/* Quick Category Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-4 pt-1 -mx-4 px-4 sm:mx-0 sm:px-0">
+              {[
+                { id: 'ALL', label: 'All Pickles', icon: Sparkles },
+                { id: 'bamboo-shoot-pickle', label: 'Bamboo Shoot', icon: Leaf },
+                { id: 'smoked-meat-pickle', label: 'Smoked Meat', icon: Flame },
+                { id: 'pork-pickle', label: 'Pork Pickles', icon: Utensils },
+                { id: 'chilli-pickle', label: 'King Chilli', icon: Flame },
+                { id: 'vegetarian-pickles', label: 'Vegetarian', icon: Leaf },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setSelectedCategory(id)}
+                  className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    selectedCategory === id
+                      ? 'bg-[#85191e] text-white shadow-md shadow-red-950/20'
+                      : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/80 shadow-2xs'
+                  }`}
+                >
+                  <Icon size={13} className={selectedCategory === id ? 'text-white' : 'text-[#85191e]'} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-6">
               {loading
                 ? [1, 2, 3, 4].map((i) => (
                     <div key={i} className="h-96 rounded-2xl bg-stone-100 animate-pulse" />
                   ))
-                : (bestsellers.some((p) => p.is_bestseller) ? bestsellers.filter((p) => p.is_bestseller) : allProducts).slice(0, 8).map((product) => (
+                : displayedItems.map((product) => (
                     <ProductCard key={product.id} product={product} />
                   ))
               }
