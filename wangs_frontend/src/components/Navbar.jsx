@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag, Search, User, ChevronDown, ShieldCheck, Store,
-  Sparkles, LogOut, Package, Heart, Truck, X, MapPin
+  Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
+import { api } from '../api';
 
 export default function Navbar() {
   const { user, isManufacturer, isAuthorizedToSell, allowSellerRegistration, logout } = useAuth();
@@ -19,6 +20,71 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [locationModalOpen, setLocationModalOpen] = useState(false);
+
+  // Notifications State (Real-time Seller Inflow & Announcements)
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('wangs_read_seller_notifs') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // Load public notification feed
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const notifs = await api.getPublicNotifications();
+        if (Array.isArray(notifs)) {
+          setNotifications(notifs);
+
+          // If there is an unread new seller notification, notify user once per session
+          const unreadSellerNotifs = notifs.filter(
+            (n) => n.type === 'NEW_SELLER' && !readNotifIds.includes(n.id)
+          );
+
+          if (unreadSellerNotifs.length > 0) {
+            const newest = unreadSellerNotifs[0];
+            const sessionGreeted = sessionStorage.getItem('wangs_notified_newest_seller');
+            if (sessionGreeted !== newest.id) {
+              sessionStorage.setItem('wangs_notified_newest_seller', newest.id);
+              toast.success(
+                `🎉 New Artisan Seller Joined: ${newest.business_name} (${newest.location_district || 'India'}) is now live on Wangs!`,
+                5000
+              );
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load public notifications', err);
+      }
+    }
+    loadNotifications();
+  }, []);
+
+  const unreadCount = notifications.filter((n) => !readNotifIds.includes(n.id)).length;
+
+  const markAllNotificationsAsRead = () => {
+    const allIds = notifications.map((n) => n.id);
+    setReadNotifIds(allIds);
+    try {
+      localStorage.setItem('wangs_read_seller_notifs', JSON.stringify(allIds));
+    } catch {}
+  };
+
+  const handleNotificationClick = (notif) => {
+    if (!readNotifIds.includes(notif.id)) {
+      const updated = [...readNotifIds, notif.id];
+      setReadNotifIds(updated);
+      try {
+        localStorage.setItem('wangs_read_seller_notifs', JSON.stringify(updated));
+      } catch {}
+    }
+    setNotificationsOpen(false);
+    navigate(notif.link || '/brands');
+  };
 
   // Stored delivery pincode
   const [deliveryPincode, setDeliveryPincode] = useState(() => {
@@ -34,6 +100,7 @@ export default function Navbar() {
   useEffect(() => {
     setUserDropdownOpen(false);
     setLocationModalOpen(false);
+    setNotificationsOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
@@ -118,34 +185,39 @@ export default function Navbar() {
                 </div>
               </Link>
 
-              {/* Right Controls: Delivery Location Pill + Notifications Bell + Profile Avatar */}
+              {/* Right Controls: Notifications Bell + Cart + Profile Avatar */}
               <div className="flex items-center gap-1.5 shrink-0">
-                {/* Delivery Location Pill */}
+                {/* Notifications Bell */}
                 <button
                   type="button"
-                  onClick={() => setLocationModalOpen(true)}
-                  aria-label="Delivery Location"
-                  className="h-8 px-2 rounded-full bg-[#faf2ed] hover:bg-[#f4ece7] flex items-center gap-1 text-[#574238] transition-colors border border-[#dec0b3]/40 text-left active:scale-95"
+                  onClick={() => setNotificationsOpen(!notificationsOpen)}
+                  aria-label="Notifications"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#574238] hover:text-[#9b4100] relative hover:bg-[#faf2ed] transition-colors active:scale-95 cursor-pointer"
+                  title="Marketplace Notifications"
                 >
-                  <span className="material-symbols-outlined text-[#9b4100] text-[15px]">location_on</span>
-                  <div className="flex flex-col text-left leading-none">
-                    <span className="text-[7.5px] text-[#8a7267] font-medium leading-none">Deliver to</span>
-                    <span className="text-[10px] font-bold text-[#1e1b18] truncate max-w-[78px] leading-tight">
-                      {deliveryPincode}
+                  <Bell size={18} className="text-[#574238]" />
+                  {unreadCount > 0 && (
+                    <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 bg-[#9b4100] text-white text-[8px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#fff8f4]">
+                      {unreadCount}
                     </span>
-                  </div>
-                  <ChevronDown size={11} className="text-[#8a7267] shrink-0 ml-0.5" />
+                  )}
                 </button>
 
-                {/* Notifications Bell */}
-                <Link
-                  to="/account"
-                  aria-label="Notifications"
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#574238] hover:text-[#9b4100] relative hover:bg-[#faf2ed] transition-colors active:scale-95"
+                {/* Shopping Bag / Cart */}
+                <button
+                  type="button"
+                  onClick={() => setIsDrawerOpen(true)}
+                  aria-label={`Shopping Basket with ${itemsCount} items`}
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#574238] hover:text-[#9b4100] relative hover:bg-[#faf2ed] transition-colors active:scale-95 cursor-pointer"
+                  title="Cart"
                 >
-                  <span className="material-symbols-outlined text-[19px]">notifications</span>
-                  <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-[#9b4100]" />
-                </Link>
+                  <ShoppingBag size={18} className="text-[#1e1b18]" />
+                  {itemsCount > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-[#9b4100] text-white font-bold text-[8.5px] rounded-full flex items-center justify-center">
+                      {itemsCount > 99 ? '99+' : itemsCount}
+                    </span>
+                  )}
+                </button>
 
                 {/* Profile / Account Icon */}
                 <Link
@@ -245,7 +317,7 @@ export default function Navbar() {
               DESKTOP NAVIGATION ROW (Exact Match to Desktop Spec)
               ---------------------------------------------------- */}
           <div className="hidden md:flex h-16 sm:h-[72px] items-center justify-between gap-4">
-            {/* Left: Brand Logo & Wordmark + Deliver To */}
+            {/* Left: Brand Logo & Wordmark */}
             <div className="flex items-center gap-4 shrink-0">
               <Link to="/" className="group flex items-center gap-2.5 select-none shrink-0">
                 <img
@@ -257,18 +329,6 @@ export default function Navbar() {
                   Wangs
                 </span>
               </Link>
-
-              {/* Delivery Pin Dropdown (Desktop) */}
-              <button
-                type="button"
-                onClick={() => setLocationModalOpen(true)}
-                className="hidden lg:flex items-center gap-1.5 pl-4 text-xs font-medium text-[#574238] cursor-pointer hover:text-[#9b4100] transition-colors border-l border-[#dec0b3]/40"
-              >
-                <span className="material-symbols-outlined text-[18px] text-[#9b4100]">pin_drop</span>
-                <span className="font-bold text-[#1e1b18]">Deliver to:</span>
-                <span>{deliveryPincode} (Bengaluru)</span>
-                <ChevronDown size={14} className="text-[#8a7267]" />
-              </button>
             </div>
 
             {/* Middle: Global Search Bar with All Regions filter */}
@@ -322,6 +382,21 @@ export default function Navbar() {
               >
                 <Heart size={21} className="text-[#1e1b18]" />
               </Link>
+
+              {/* Notifications Bell (Desktop) */}
+              <button
+                type="button"
+                onClick={() => setNotificationsOpen(!notificationsOpen)}
+                className="relative p-2 rounded-full text-[#574238] hover:text-[#9b4100] hover:bg-[#faf2ed] transition-colors cursor-pointer"
+                title="Marketplace Notifications"
+              >
+                <Bell size={21} className="text-[#1e1b18]" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-[#9b4100] text-white font-bold text-[8.5px] leading-tight rounded-full flex items-center justify-center ring-2 ring-[#fff8f4]">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
 
               {/* Shopping Cart Pill Button */}
               <button
@@ -425,6 +500,118 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* ========================================================
+          NOTIFICATION CENTER (Real-Time Seller Inflow & Alerts)
+          ======================================================== */}
+      {notificationsOpen && (
+        <>
+          {/* Backdrop for closing */}
+          <div
+            className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]"
+            onClick={() => setNotificationsOpen(false)}
+          />
+
+          <div className="fixed md:absolute top-14 md:top-full right-2 md:right-8 z-50 w-[calc(100vw-16px)] md:w-[380px] max-h-[82vh] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Header */}
+            <div className="p-3.5 bg-gradient-to-r from-[#181512] via-[#241f1a] to-[#181512] text-white flex items-center justify-between border-b border-stone-800">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-[#9b4100] flex items-center justify-center text-white shadow-xs">
+                  <Bell size={15} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-sm leading-tight text-white">Marketplace Notifications</h3>
+                  <p className="text-[10px] text-stone-300">New seller arrivals &amp; harvest batches</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllNotificationsAsRead}
+                    className="text-[10px] text-amber-300 hover:text-white font-bold transition-colors cursor-pointer"
+                  >
+                    Mark read
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setNotificationsOpen(false)}
+                  className="p-1 text-stone-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                  title="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* List */}
+            <div className="overflow-y-auto divide-y divide-stone-100 flex-1 p-1 max-h-[60vh]">
+              {notifications.length === 0 ? (
+                <div className="py-10 text-center text-xs text-stone-400">
+                  <Bell size={24} className="mx-auto text-stone-300 mb-2" />
+                  <p className="font-semibold text-stone-600">You're all caught up!</p>
+                  <p className="text-[11px] mt-0.5">When new artisan sellers join, you'll be notified here.</p>
+                </div>
+              ) : (
+                notifications.map((notif) => {
+                  const isRead = readNotifIds.includes(notif.id);
+                  return (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleNotificationClick(notif)}
+                      className={`p-3 rounded-xl transition-all cursor-pointer flex items-start gap-3 ${
+                        isRead ? 'bg-transparent hover:bg-stone-50' : 'bg-amber-50/50 hover:bg-amber-50'
+                      }`}
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-[#faf2ed] border border-[#dec0b3]/40 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                        {notif.type === 'NEW_SELLER' ? (
+                          <Store size={18} className="text-[#9b4100]" />
+                        ) : (
+                          <Sparkles size={18} className="text-amber-600" />
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            notif.type === 'NEW_SELLER'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {notif.type === 'NEW_SELLER' ? 'New Artisan Seller' : 'Batch Release'}
+                          </span>
+                          {!isRead && (
+                            <span className="w-2 h-2 rounded-full bg-[#9b4100] shrink-0" />
+                          )}
+                        </div>
+
+                        <p className="font-serif font-bold text-xs text-stone-900 leading-snug">
+                          {notif.title}
+                        </p>
+                        <p className="text-[11px] text-stone-600 leading-relaxed line-clamp-2">
+                          {notif.message}
+                        </p>
+
+                        <div className="flex items-center gap-1 pt-1 text-[11px] font-bold text-[#9b4100] hover:text-[#783000]">
+                          <span>Explore Kitchen Storefront</span>
+                          <ArrowRight size={12} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-2.5 bg-stone-50 border-t border-stone-100 text-center text-[10px] text-stone-500 font-medium flex items-center justify-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Real-time artisan seller onboarding alerts</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ========================================================
           DELIVERY LOCATION MODAL / POPUP

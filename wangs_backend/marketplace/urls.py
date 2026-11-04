@@ -14,7 +14,8 @@ from .views import (
     AdminOrderViewSet, AdminCommissionView, AdminSettlementsView, AdminAuditLogsView,
     AdminUserViewSet, AdminSellerRequestView, PlatformSettingsView, AdminToggleSellerRegistrationView,
     AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
-    AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet
+    AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet,
+    PublicNotificationView
 )
 
 router = DefaultRouter()
@@ -40,6 +41,7 @@ urlpatterns = [
     path('auth/request-seller-access/', RequestSellerAccessView.as_view(), name='request-seller-access'),
     
     # Storefront & Brands (Amazon-style Brand Spotlight)
+    path('notifications/', PublicNotificationView.as_view(), name='public-notifications'),
     path('brands/', BrandListView.as_view(), name='brands-list'),
     path('brands/<slug:slug>/', BrandDetailView.as_view(), name='brand-detail'),
     path('pincode/check/', check_pincode_serviceability, name='pincode-check'),

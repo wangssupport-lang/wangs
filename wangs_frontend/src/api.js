@@ -81,6 +81,9 @@ export const api = {
   resetPassword: (payload) => apiRequest('/auth/reset-password/', { method: 'POST', body: JSON.stringify(payload) }),
   requestSellerAccess: (payload) => apiRequest('/auth/request-seller-access/', { method: 'POST', body: JSON.stringify(payload) }),
 
+  // Public Notifications Feed (New Seller Inflow & Campaigns)
+  getPublicNotifications: () => apiRequest('/notifications/'),
+
   // Brands (Amazon-style Brand Spotlight)
   getBrands: (params = {}) => {
     const query = new URLSearchParams(params).toString();

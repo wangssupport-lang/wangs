@@ -504,6 +504,51 @@ class BrandDetailView(views.APIView):
         })
 
 
+class PublicNotificationView(views.APIView):
+    """
+    Public notification feed for users and shoppers:
+    - Newly joined approved artisan sellers and kitchens
+    - Seasonal harvest and fresh batch campaigns
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        notifications = []
+        recent_sellers = ManufacturerProfile.objects.filter(
+            status=ManufacturerProfile.Status.APPROVED
+        ).order_by('-created_at')[:8]
+
+        for s in recent_sellers:
+            notifications.append({
+                'id': f'new-seller-{s.id}',
+                'type': 'NEW_SELLER',
+                'title': f'New Heritage Seller: {s.business_name}',
+                'message': f'{s.business_name} from {s.location_district or "India"} has joined Wangs. Explore their authentic heirloom batches!',
+                'business_name': s.business_name,
+                'location_district': s.location_district or '',
+                'slug': s.slug,
+                'tagline': s.tagline or (s.brand_story[:120] + '...' if s.brand_story else 'Handcrafted small-batch regional recipes.'),
+                'logo_image': s.logo_image or '',
+                'created_at': s.created_at.isoformat() if s.created_at else None,
+                'link': '/brands',
+            })
+
+        active_banners = HeroBanner.objects.filter(is_active=True).order_by('display_order', '-created_at')[:2]
+        for b in active_banners:
+            notifications.append({
+                'id': f'campaign-{b.id}',
+                'type': 'CAMPAIGN',
+                'title': b.title,
+                'message': b.subtitle or (f'Use code {b.coupon_code} for discount' if b.coupon_code else 'Fresh small-batches now available.'),
+                'coupon_code': b.coupon_code,
+                'cta_text': b.cta_text,
+                'link': b.cta_link or '/products',
+                'created_at': b.created_at.isoformat() if b.created_at else None,
+            })
+
+        return Response(notifications)
+
+
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
