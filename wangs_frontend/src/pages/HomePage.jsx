@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -17,16 +17,58 @@ export default function HomePage() {
   const [heroBanners, setHeroBanners] = useState([]);
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
-  // Flash deal countdown timer simulation: 04h : 18m : 14s
-  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 18, seconds: 14 });
+  const bannerScrollRef = useRef(null);
+  const isInteractingWithBanner = useRef(false);
+
+  const displayBanners = (heroBanners && heroBanners.length > 0)
+    ? heroBanners
+    : [
+        {
+          id: 'default',
+          title: "The Great Achar Season",
+          subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+          badge_text: "FRESH BATCH LIVE",
+          coupon_code: "ACHAR15",
+          cta_text: "Shop Now",
+          cta_link: "/products?category=andhra-gongura",
+          bg_color: "#9b4100",
+        }
+      ];
+
+  const handleBannerScroll = () => {
+    if (!bannerScrollRef.current) return;
+    const { scrollLeft, clientWidth } = bannerScrollRef.current;
+    if (clientWidth > 0) {
+      const idx = Math.round(scrollLeft / clientWidth);
+      if (idx >= 0 && idx < displayBanners.length && idx !== activeBannerIndex) {
+        setActiveBannerIndex(idx);
+      }
+    }
+  };
+
+  const scrollToBanner = (idx) => {
+    if (!bannerScrollRef.current) return;
+    bannerScrollRef.current.scrollTo({
+      left: idx * bannerScrollRef.current.clientWidth,
+      behavior: 'smooth'
+    });
+    setActiveBannerIndex(idx);
+  };
 
   useEffect(() => {
-    if (heroBanners.length <= 1) return;
+    if (displayBanners.length <= 1) return;
     const interval = setInterval(() => {
-      setActiveBannerIndex((prev) => (prev + 1) % heroBanners.length);
-    }, 5000);
+      if (isInteractingWithBanner.current) return;
+      if (!bannerScrollRef.current) return;
+      const nextIndex = (activeBannerIndex + 1) % displayBanners.length;
+      scrollToBanner(nextIndex);
+    }, 5500);
+
     return () => clearInterval(interval);
-  }, [heroBanners.length]);
+  }, [displayBanners.length, activeBannerIndex]);
+
+  // Flash deal countdown timer simulation: 04h : 18m : 14s
+  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 18, seconds: 14 });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -715,85 +757,117 @@ export default function HomePage() {
           MOBILE VIEW (EXACTLY MATCHING STITCH IMAGES 1, 2 & 3)
           ======================================================== */}
       <div className="md:hidden flex flex-col gap-4 px-3.5 pt-3 pb-8">
-        {/* 1. Hero Promo Banner Card (Dynamic & Admin Uploadable) */}
-        <section className="flex flex-col gap-2">
+        {/* 1. Hero Promo Banner Carousel (Horizontally Scrollable & Swipeable) */}
+        <section className="flex flex-col gap-2 relative">
           <div
-            className="relative w-full overflow-hidden rounded-xl shadow-md text-on-primary min-h-[160px] p-4 flex flex-col justify-between transition-all duration-300"
-            style={{
-              backgroundColor: currentBanner.bg_color || '#9b4100',
-              backgroundImage: bannerBgImg
-                ? `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.25) 100%), url(${bannerBgImg})`
-                    : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
-              >
-                <div className="flex flex-col gap-1 z-10">
-                  {currentBanner.badge_text && (
-                    <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-                      <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
-                      <span>{currentBanner.badge_text}</span>
-                    </span>
-                  )}
-                  <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
-                    {currentBanner.title}
-                  </h2>
-                  {currentBanner.subtitle && (
-                    <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2 drop-shadow-xs">
-                      {currentBanner.subtitle}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between z-10 pt-2">
-                  {currentBanner.coupon_code ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard?.writeText(currentBanner.coupon_code);
-                        toast.success(`Coupon code ${currentBanner.coupon_code} copied!`);
-                      }}
-                      className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
-                      title="Tap to copy code"
-                    >
-                      <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
-                      <span className="font-label-md text-xs font-bold text-white tracking-wider">
-                        {currentBanner.coupon_code}
+            ref={bannerScrollRef}
+            onScroll={handleBannerScroll}
+            onTouchStart={() => { isInteractingWithBanner.current = true; }}
+            onTouchEnd={() => { setTimeout(() => { isInteractingWithBanner.current = false; }, 2500); }}
+            onMouseEnter={() => { isInteractingWithBanner.current = true; }}
+            onMouseLeave={() => { isInteractingWithBanner.current = false; }}
+            className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar scroll-smooth -mx-1 px-1 py-0.5"
+            style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
+          >
+            {displayBanners.map((banner, index) => {
+              const bgImg = banner.effective_image_url || banner.image_url || banner.image;
+              return (
+                <div
+                  key={banner.id || index}
+                  className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md text-on-primary min-h-[165px] p-4 flex flex-col justify-between"
+                  style={{
+                    backgroundColor: banner.bg_color || '#9b4100',
+                    backgroundImage: bgImg
+                      ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url(${bgImg})`
+                      : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                  }}
+                >
+                  <div className="flex flex-col gap-1 z-10">
+                    {banner.badge_text && (
+                      <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                        <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
+                        <span>{banner.badge_text}</span>
                       </span>
-                    </button>
-                  ) : <div />}
+                    )}
+                    <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                      {banner.title}
+                    </h2>
+                    {banner.subtitle && (
+                      <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2 drop-shadow-xs">
+                        {banner.subtitle}
+                      </p>
+                    )}
+                  </div>
 
-                  <Link
-                    to={currentBanner.cta_link || '/products'}
-                    className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
-                  >
-                    <span>{currentBanner.cta_text || 'Shop Now'}</span>
-                    <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
-                  </Link>
-                </div>
-
-                {/* Slide Indicator Dots */}
-                {heroBanners && heroBanners.length > 1 ? (
-                  <div className="absolute bottom-2.5 right-28 flex items-center gap-1.5 z-20">
-                    {heroBanners.map((_, idx) => (
+                  <div className="flex items-center justify-between z-10 pt-2">
+                    {banner.coupon_code ? (
                       <button
-                        key={idx}
                         type="button"
-                        onClick={() => setActiveBannerIndex(idx)}
-                        className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                          activeBannerIndex === idx ? 'w-4 bg-white' : 'w-1.5 bg-white/50 hover:bg-white/80'
-                        }`}
-                        aria-label={`Slide ${idx + 1}`}
-                      />
-                    ))}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard?.writeText(banner.coupon_code);
+                          toast.success(`Coupon code ${banner.coupon_code} copied!`);
+                        }}
+                        className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
+                        title="Tap to copy code"
+                      >
+                        <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
+                        <span className="font-label-md text-xs font-bold text-white tracking-wider">
+                          {banner.coupon_code}
+                        </span>
+                      </button>
+                    ) : <div />}
+
+                    <Link
+                      to={banner.cta_link || '/products'}
+                      className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+                    >
+                      <span>{banner.cta_text || 'Shop Now'}</span>
+                      <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                    </Link>
                   </div>
-                ) : (
-                  <div className="absolute bottom-2.5 right-28 flex items-center gap-1 z-20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+
+                  {/* Slide Indicator Dots Inside Card */}
+                  <div className="absolute bottom-3 right-28 flex items-center gap-1 z-20 pointer-events-none">
+                    {displayBanners.length > 1 ? (
+                      displayBanners.map((_, dotIdx) => (
+                        <span
+                          key={dotIdx}
+                          className={`h-1.5 rounded-full transition-all ${
+                            activeBannerIndex === dotIdx ? 'w-3.5 bg-white' : 'w-1.5 bg-white/50'
+                          }`}
+                        />
+                      ))
+                    ) : (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                      </>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* External Interactive Indicator Dots under the banner */}
+          {displayBanners.length > 1 && (
+            <div className="flex items-center justify-center gap-1.5 pt-0.5">
+              {displayBanners.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => scrollToBanner(idx)}
+                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                    activeBannerIndex === idx ? 'w-5 bg-primary' : 'w-1.5 bg-outline-variant/60 hover:bg-outline'
+                  }`}
+                  aria-label={`Slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Fast Filter Pills */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-3.5 px-3.5 py-1">

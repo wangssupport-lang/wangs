@@ -1610,6 +1610,28 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {/* Recommended Banner Image Size Specification Box */}
+              <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 space-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 font-bold text-amber-950">
+                  <Sparkles size={14} className="text-amber-700 shrink-0" />
+                  <span>Recommended Banner Image Specifications:</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-amber-900 leading-normal">
+                  <div>
+                    <span className="font-bold text-amber-950">Optimal Resolution:</span> 1200 × 600 px (2:1 Ratio)
+                  </div>
+                  <div>
+                    <span className="font-bold text-amber-950">Minimum Resolution:</span> 800 × 400 px
+                  </div>
+                  <div>
+                    <span className="font-bold text-amber-950">Formats &amp; Size:</span> JPG, PNG, WebP (under 5MB)
+                  </div>
+                  <div>
+                    <span className="font-bold text-amber-950">Composition:</span> Center subject; auto-overlay preserves readability
+                  </div>
+                </div>
+              </div>
+
               {/* Or Direct Image URL input */}
               <div className="space-y-1">
                 <label className="block text-stone-600 font-semibold text-[11px]">
