@@ -1,25 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
 
 export default function Footer() {
-  const { isAuthorizedToSell, isManufacturer, allowSellerRegistration } = useAuth();
-  const toast = useToast();
-  const [email, setEmail] = useState('');
-  const [subscribed, setSubscribed] = useState(false);
-
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (email && email.includes('@')) {
-      setSubscribed(true);
-      toast.success('Welcome to The Spice Heritage Club! Check your inbox for private batch invitations.');
-      setEmail('');
-    } else {
-      toast.error('Please enter a valid email address');
-    }
-  };
-
   return (
     <footer className="w-full bg-surface-container-high text-on-surface mt-16 border-t border-outline-variant/30">
       {/* Heritage Producer Program Banner */}
@@ -57,13 +39,13 @@ export default function Footer() {
       {/* Main Footer Content */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 sm:py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-          {/* Brand & Newsletter Column */}
+          {/* Brand Column */}
           <div className="lg:col-span-2 flex flex-col gap-4">
             <div className="flex items-center gap-2.5">
               <img
                 src="/logo.png"
                 alt="Wangs"
-                className="h-8 w-8 object-contain"
+                className="h-9 w-9 object-contain"
               />
               <span className="font-headline-md text-2xl font-serif font-bold text-primary tracking-tight">
                 Wangs
@@ -73,31 +55,6 @@ export default function Footer() {
             <p className="font-body-md text-sm text-on-surface-variant max-w-sm leading-relaxed">
               Discover India's deepest culinary heirloom traditions. Unadulterated achars, lonche, uppinakayi, and chutneys sourced directly from verified village kitchens.
             </p>
-
-            {/* Newsletter Subscription */}
-            <div className="flex flex-col gap-2 max-w-md pt-2">
-              <span className="font-label-md text-xs sm:text-sm text-on-surface font-bold uppercase tracking-wider">
-                Join The Spice Heritage Club
-              </span>
-              <form onSubmit={handleSubscribe} className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email address"
-                  className="w-full bg-surface-container-lowest px-4 py-2.5 rounded-xl font-body-sm text-sm text-on-surface placeholder:text-outline border border-outline-variant/40 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                <button
-                  type="submit"
-                  className="bg-primary text-on-primary font-label-md text-sm px-5 py-2.5 rounded-xl hover:bg-primary-container font-bold transition-colors shrink-0 shadow-sm active:scale-95"
-                >
-                  {subscribed ? 'Joined!' : 'Subscribe'}
-                </button>
-              </form>
-              <span className="font-body-sm text-xs text-outline">
-                Weekly stories of grandmothers, spices & private batch tastings.
-              </span>
-            </div>
           </div>
 
           {/* Column 2: Artisanal Marketplace */}
@@ -122,13 +79,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link to="/account/orders" className="hover:text-primary transition-colors">
+                <Link to="/account" className="hover:text-primary transition-colors">
                   Track My Ceramic Delivery
                 </Link>
               </li>
               <li>
                 <Link to="/about" className="hover:text-primary transition-colors">
-                  Quality & Lab Reports
+                  Quality &amp; Lab Reports
                 </Link>
               </li>
             </ul>
@@ -157,7 +114,7 @@ export default function Footer() {
               </li>
               <li>
                 <Link to="/refunds" className="hover:text-primary transition-colors">
-                  Refunds & Replacement
+                  Refunds &amp; Replacement
                 </Link>
               </li>
               <li>
@@ -179,7 +136,7 @@ export default function Footer() {
             <span className="opacity-40">•</span>
             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
             <span className="opacity-40">•</span>
-            <Link to="/refunds" className="hover:text-primary transition-colors">Shipping & Refunds</Link>
+            <Link to="/refunds" className="hover:text-primary transition-colors">Shipping &amp; Refunds</Link>
           </div>
         </div>
       </div>
