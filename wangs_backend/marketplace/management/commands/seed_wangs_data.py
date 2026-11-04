@@ -401,7 +401,7 @@ class Command(BaseCommand):
                 'status': Product.Status.APPROVED,
                 'is_featured': False,
                 'is_bestseller': True,
-                'primary_image_url': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=800&q=80',
+                'primary_image_url': '/images/hero/bamboo_shoot_pickle_signature.jpg',
             },
             {
                 'manufacturer': dzuko_profile,
@@ -425,8 +425,8 @@ class Command(BaseCommand):
                 'stock_quantity': 25,
                 'status': Product.Status.APPROVED,
                 'is_featured': True,
-                'is_bestseller': False,
-                'primary_image_url': 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=80',
+                'is_bestseller': True,
+                'primary_image_url': '/images/hero/dried_beef_pickle_signature.jpg',
             },
             {
                 'manufacturer': arenla_profile,

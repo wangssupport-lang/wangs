@@ -165,9 +165,9 @@ export default function HomePage() {
           
           <div className="relative w-full max-w-sm overflow-hidden rounded-3xl border border-white/15 shadow-[0_15px_40px_rgba(0,0,0,0.65)] bg-[#181615]">
             <img
-              src="/images/hero/hero_jars_clean.jpg"
+              src="/images/hero/wangs_signature_jars_master.jpg"
               alt="Authentic Wangs Naga Bamboo Shoot and Shredded Beef Pickles"
-              className="w-full h-auto object-cover max-h-[320px] transition-transform duration-500 hover:scale-105"
+              className="w-full h-auto object-cover max-h-[340px] transition-transform duration-500 hover:scale-105"
             />
             {/* Soft Ambient Vignette */}
             <div className="absolute inset-0 bg-gradient-to-t from-[#151312]/70 via-transparent to-black/20 pointer-events-none" />
@@ -309,7 +309,7 @@ export default function HomePage() {
               {/* Main Image Frame with Ambient Glow */}
               <div className="relative rounded-3xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.7)] bg-[#181615]">
                 <img
-                  src="/images/hero/hero_jars_clean.jpg"
+                  src="/images/hero/wangs_signature_jars_master.jpg"
                   alt="Authentic Wangs Naga Pickles - Bamboo Shoot and Shredded Beef Relish"
                   className="w-full h-auto object-cover max-h-[460px]"
                 />
