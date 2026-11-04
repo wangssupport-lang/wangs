@@ -126,21 +126,68 @@ export default function Navbar() {
 
       {/* 2. Main Navigation Bar - Stitch Heritage Warm Surface (#fff8f4) */}
       <div className="bg-surface/95 backdrop-blur-xl border-b border-outline-variant/30 text-on-surface">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-18 sm:h-20 items-center justify-between gap-4">
-            
-            {/* Mobile Left: Hamburger Menu Button */}
-            <div className="flex md:hidden items-center">
-              <button
-                type="button"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-2 -ml-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
-                aria-label="Toggle navigation menu"
-              >
-                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-              </button>
+        <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8">
+          {/* Mobile Top Row */}
+          <div className="flex md:hidden items-center justify-between h-14 gap-2">
+            <Link to="/" className="flex items-center gap-2 shrink-0">
+              <img
+                src="/logo-red.png"
+                alt="Wangs"
+                className="h-7 w-auto object-contain"
+              />
+              <span className="font-headline-md font-bold text-xl tracking-tight text-primary">
+                Wangs
+              </span>
+            </Link>
+
+            {/* Mobile Delivery Pin */}
+            <div className="flex items-center gap-1 text-[11px] font-semibold text-on-surface-variant truncate">
+              <span className="material-symbols-outlined text-[15px] text-primary">pin_drop</span>
+              <span className="truncate">Deliver to Bengaluru 560...</span>
+              <ChevronDown size={12} className="text-outline shrink-0" />
             </div>
 
+            {/* Mobile Actions: Cart & Profile */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                onClick={() => setIsDrawerOpen(true)}
+                className="relative p-2 rounded-full text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+                aria-label="Cart"
+              >
+                <ShoppingBag size={20} className="text-on-surface" />
+                {itemsCount > 0 && (
+                  <span className="absolute top-0.5 right-0.5 min-w-[16px] h-[16px] px-1 bg-primary text-on-primary font-bold text-[8.5px] leading-tight rounded-full flex items-center justify-center shadow-xs">
+                    {itemsCount > 99 ? '99+' : itemsCount}
+                  </span>
+                )}
+              </button>
+
+              <Link
+                to={user ? '/account' : '/login'}
+                className="w-7 h-7 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-bold text-xs ml-1 shadow-xs border border-outline-variant/40"
+              >
+                {user ? (user.first_name || user.username || 'U')[0].toUpperCase() : <User size={14} />}
+              </Link>
+            </div>
+          </div>
+
+          {/* Mobile Search Row */}
+          <div className="pb-2.5 md:hidden">
+            <form onSubmit={handleSearch} className="relative w-full flex items-center bg-surface-container-low rounded-full px-3.5 py-1.5 border border-outline-variant/30 focus-within:bg-surface-container-lowest focus-within:shadow-[0_0_0_1.5px_#9b4100]">
+              <Search size={16} className="text-outline mr-2 shrink-0" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search 500+ handmade mango, regional makers..."
+                className="w-full bg-transparent text-xs text-on-surface placeholder:text-outline focus:outline-none"
+              />
+              <span className="material-symbols-outlined text-[18px] text-outline ml-1">mic</span>
+            </form>
+          </div>
+
+          {/* Desktop Navigation Row */}
+          <div className="hidden md:flex h-18 sm:h-20 items-center justify-between gap-4">
             {/* Brand Logo & Mountain Wordmark */}
             <div className="flex items-center gap-3 shrink-0">
               <Link to="/" className="group flex flex-shrink-0 items-center gap-2.5 sm:gap-3 select-none">
@@ -191,15 +238,14 @@ export default function Navbar() {
                 <span>Sell on Wangs</span>
               </Link>
 
-              {/* Mobile Search Toggle */}
-              <button
-                type="button"
-                onClick={() => setSearchOpen(!searchOpen)}
-                className="md:hidden p-2 rounded-full text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors"
-                aria-label="Search catalog"
+              {/* Wishlist Icon */}
+              <Link
+                to="/brands"
+                className="p-2 rounded-full text-on-surface-variant hover:text-primary transition-colors"
+                title="Wishlist"
               >
-                <Search size={20} />
-              </button>
+                <Heart size={21} className="text-on-surface" />
+              </Link>
 
               {/* Shopping Cart Pill Button */}
               <button
