@@ -18,8 +18,8 @@ def send_smtp_email(to_email: str, subject: str, html_content: str):
     if not to_email:
         return False, {"error": "No recipient email address provided."}
 
-    host_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '')).strip()
-    host_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '')).replace(' ', '').strip()
+    host_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '') or 'wangssupport@gmail.com').strip()
+    host_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or 'xphhqfosryvzyscc').replace(' ', '').strip()
     if not host_user or not host_pass:
         return False, {"error": "SMTP credentials (EMAIL_HOST_USER / EMAIL_HOST_PASSWORD) not configured."}
 
@@ -136,8 +136,8 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
         pass
 
     # Try SMTP first if credentials are present (capable of delivering to ANY valid Gmail / external address)
-    smtp_user = os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '')
-    smtp_pass = os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '')
+    smtp_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '') or 'wangssupport@gmail.com').strip()
+    smtp_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or 'xphhqfosryvzyscc').replace(' ', '').strip()
     if smtp_user and smtp_pass:
         sent, info = send_smtp_email(to_email, subject, html_content)
         if sent:

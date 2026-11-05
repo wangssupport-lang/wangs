@@ -26,6 +26,13 @@ function checkEmailTypo(email) {
   return null;
 }
 
+function formatCountdown(totalSeconds) {
+  if (!totalSeconds || totalSeconds <= 0) return '00:00';
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 export default function ManufacturerRegisterPage() {
   const navigate = useNavigate();
   const { user, isAuthorizedToSell, isManufacturer, allowSellerRegistration } = useAuth();
@@ -80,6 +87,8 @@ export default function ManufacturerRegisterPage() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpDeliveredLive, setOtpDeliveredLive] = useState(false);
+  const [otpResendTimer, setOtpResendTimer] = useState(0);
+  const [otpExpiryTimer, setOtpExpiryTimer] = useState(0);
 
   // Dedicated OTP verification state for "Request Seller Authorization" form
   const [reqOtpSent, setReqOtpSent] = useState(false);
@@ -87,42 +96,86 @@ export default function ManufacturerRegisterPage() {
   const [reqOtpVerified, setReqOtpVerified] = useState(false);
   const [reqOtpLoading, setReqOtpLoading] = useState(false);
   const [reqOtpTimer, setReqOtpTimer] = useState(0);
+  const [reqOtpExpiryTimer, setReqOtpExpiryTimer] = useState(0);
+
+  // Timer countdown for producer onboarding OTP
+  useEffect(() => {
+    let interval = null;
+    if (otpResendTimer > 0) {
+      interval = setInterval(() => {
+        setOtpResendTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpResendTimer]);
+
+  useEffect(() => {
+    let interval = null;
+    if (otpExpiryTimer > 0) {
+      interval = setInterval(() => {
+        setOtpExpiryTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpExpiryTimer]);
 
   // Timer countdown for request OTP resend
   useEffect(() => {
     let interval = null;
     if (reqOtpTimer > 0) {
       interval = setInterval(() => {
-        setReqOtpTimer((prev) => prev - 1);
+        setReqOtpTimer((prev) => (prev > 0 ? prev - 1 : 0));
       }, 1000);
     }
     return () => clearInterval(interval);
   }, [reqOtpTimer]);
+
+  useEffect(() => {
+    let interval = null;
+    if (reqOtpExpiryTimer > 0) {
+      interval = setInterval(() => {
+        setReqOtpExpiryTimer((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [reqOtpExpiryTimer]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSendEmailOtp = async () => {
-    const emailToVerify = formData.contact_email || formData.email;
+    const emailToVerify = (formData.contact_email || formData.email || '').trim().toLowerCase();
     if (!emailToVerify || !emailToVerify.includes('@')) {
       setErrorMsg('Please provide a valid contact email first.');
       return;
     }
     setOtpLoading(true);
     setErrorMsg('');
+    setSuccessMsg('');
     try {
       const res = await api.sendOtp(emailToVerify, 'SELLER');
       setOtpSent(true);
+      setOtpResendTimer(60);
+      setOtpExpiryTimer(600); // 10 minutes
       setOtpDeliveredLive(Boolean(res?.delivered_via_email));
+      if (res?.delivered_via_email === false) {
+        setErrorMsg(res?.warning || 'Notice: Email delivery credentials issue. Please verify email address.');
+      } else {
+        setSuccessMsg(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your inbox and spam folder.`);
+      }
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to dispatch email verification code via Resend.');
+      setErrorMsg(err.message || 'Failed to dispatch email verification code. Please check your email.');
     } finally {
       setOtpLoading(false);
     }
   };
 
   const handleVerifyEmailOtp = async () => {
+    if (otpExpiryTimer <= 0) {
+      setErrorMsg('Verification code has expired. Please click "Resend Code" to get a fresh code.');
+      return;
+    }
     if (!otpCode || otpCode.trim().length !== 6) {
       setErrorMsg('Enter the 6-digit verification code.');
       return;
@@ -130,11 +183,12 @@ export default function ManufacturerRegisterPage() {
     setOtpLoading(true);
     setErrorMsg('');
     try {
-      const emailToVerify = formData.contact_email || formData.email;
+      const emailToVerify = (formData.contact_email || formData.email || '').trim().toLowerCase();
       await api.verifyOtp(emailToVerify, otpCode.trim(), 'SELLER');
       setOtpVerified(true);
+      setSuccessMsg(`Email ${emailToVerify} verified successfully!`);
     } catch (err) {
-      setErrorMsg(err.message || 'Invalid verification code.');
+      setErrorMsg(err.message || 'Invalid or expired verification code.');
     } finally {
       setOtpLoading(false);
     }
@@ -154,6 +208,7 @@ export default function ManufacturerRegisterPage() {
       const res = await api.sendOtp(emailToVerify, 'SELLER_REQUEST');
       setReqOtpSent(true);
       setReqOtpTimer(60);
+      setReqOtpExpiryTimer(600); // 10 minutes
       if (res?.delivered_via_email === false) {
         setErrorMsg(res?.warning || 'Notice: Email delivery credentials are not configured in wangs_backend/.env.');
       } else {
@@ -168,6 +223,10 @@ export default function ManufacturerRegisterPage() {
 
   const handleVerifyRequestOtp = async (e) => {
     if (e) e.preventDefault();
+    if (reqOtpExpiryTimer <= 0) {
+      setErrorMsg('Verification code has expired. Please click "Resend OTP" to get a fresh code.');
+      return;
+    }
     if (!reqOtpCode || reqOtpCode.trim().length !== 6) {
       setErrorMsg('Please enter the 6-digit verification code.');
       return;
@@ -471,9 +530,21 @@ export default function ManufacturerRegisterPage() {
                       <span className="text-[11px] font-semibold text-stone-900">
                         Enter 6-digit code:
                       </span>
-                      {reqOtpTimer > 0 && (
-                        <span className="text-[10px] text-stone-500 font-medium">Resend available in {reqOtpTimer}s</span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {reqOtpExpiryTimer > 0 ? (
+                          <span className="flex items-center gap-1 text-[10.5px] text-amber-800 font-semibold bg-amber-100/80 px-2 py-0.5 rounded border border-amber-200">
+                            <Clock size={11} />
+                            Expires in: {formatCountdown(reqOtpExpiryTimer)}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-red-600 font-bold bg-red-100 px-2 py-0.5 rounded border border-red-200">
+                            Code Expired
+                          </span>
+                        )}
+                        {reqOtpTimer > 0 && (
+                          <span className="text-[10px] text-stone-500 font-medium">Resend in {reqOtpTimer}s</span>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <input
@@ -486,7 +557,7 @@ export default function ManufacturerRegisterPage() {
                       />
                       <button
                         type="button"
-                        disabled={reqOtpLoading || reqOtpCode.length !== 6}
+                        disabled={reqOtpLoading || reqOtpExpiryTimer <= 0 || reqOtpCode.length !== 6}
                         onClick={handleVerifyRequestOtp}
                         className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-colors disabled:opacity-50 shadow-sm"
                       >
@@ -830,28 +901,91 @@ export default function ManufacturerRegisterPage() {
                     required
                     name="contact_email"
                     value={formData.contact_email}
-                    onChange={handleChange}
+                    onChange={(e) => {
+                      handleChange(e);
+                      if (otpVerified || otpSent) {
+                        setOtpVerified(false);
+                        setOtpSent(false);
+                        setOtpCode('');
+                        setOtpResendTimer(0);
+                        setOtpExpiryTimer(0);
+                      }
+                    }}
                     placeholder="orders@arenlafoods.in"
                     className="flex-1 px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                   />
                   {!otpVerified ? (
                     <button
                       type="button"
-                      disabled={otpLoading || !formData.contact_email}
+                      disabled={otpLoading || !formData.contact_email || otpResendTimer > 0}
                       onClick={handleSendEmailOtp}
-                      className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-bold whitespace-nowrap disabled:opacity-50 transition-colors shadow-xs"
+                      className="px-3.5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-bold whitespace-nowrap disabled:opacity-50 transition-colors shadow-xs flex items-center gap-1.5 cursor-pointer"
                     >
-                      {otpSent ? 'Resend' : 'Verify Email'}
+                      {otpLoading ? (
+                        'Sending...'
+                      ) : otpSent ? (
+                        otpResendTimer > 0 ? (
+                          <>
+                            <Clock size={12} className="animate-spin" />
+                            <span>Resend in {otpResendTimer}s</span>
+                          </>
+                        ) : (
+                          'Resend Code'
+                        )
+                      ) : (
+                        'Verify Email'
+                      )}
                     </button>
                   ) : (
-                    <span className="px-3 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap">
-                      <CheckCircle size={12} /> Verified
+                    <span className="px-3.5 py-2 bg-emerald-100 text-emerald-800 rounded-xl text-[11px] font-bold flex items-center gap-1.5 whitespace-nowrap shadow-xs">
+                      <CheckCircle size={13} /> Verified
                     </span>
                   )}
                 </div>
 
+                {/* Typo Suggestion for Public Contact Email */}
+                {(() => {
+                  const typoSuggestion = checkEmailTypo(formData.contact_email);
+                  if (typoSuggestion && !otpVerified) {
+                    return (
+                      <div className="mt-1.5 p-2 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between text-xs text-amber-900">
+                        <span>Did you mean <strong>{typoSuggestion}</strong>?</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({ ...formData, contact_email: typoSuggestion });
+                            setOtpSent(false);
+                            setOtpVerified(false);
+                            setOtpCode('');
+                          }}
+                          className="font-bold underline text-amber-950 hover:text-amber-800 ml-2 cursor-pointer"
+                        >
+                          Correct it
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
                 {otpSent && !otpVerified && (
-                  <div className="mt-2.5 space-y-2">
+                  <div className="mt-2.5 p-3.5 bg-red-50/70 border border-red-200 rounded-xl space-y-2.5">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-stone-700">
+                        Code sent to: <strong className="font-mono text-red-700 bg-white px-1.5 py-0.5 rounded border border-red-200">{formData.contact_email}</strong>
+                      </span>
+                      {otpExpiryTimer > 0 ? (
+                        <span className="flex items-center gap-1 text-amber-800 font-semibold bg-amber-100/80 px-2 py-0.5 rounded border border-amber-200">
+                          <Clock size={11} />
+                          Expires in: {formatCountdown(otpExpiryTimer)}
+                        </span>
+                      ) : (
+                        <span className="text-red-700 font-bold bg-red-100 px-2 py-0.5 rounded border border-red-200">
+                          Code Expired
+                        </span>
+                      )}
+                    </div>
+
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
@@ -859,17 +993,27 @@ export default function ManufacturerRegisterPage() {
                         value={otpCode}
                         onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="6-digit OTP"
-                        className="w-36 px-3 py-1.5 bg-white border border-red-500 rounded-xl text-center font-mono text-sm font-bold tracking-widest focus:ring-2 focus:ring-red-500 focus:outline-none"
+                        className="w-36 px-3 py-2 bg-white border border-red-500 rounded-xl text-center font-mono text-sm font-bold tracking-widest text-stone-900 shadow-inner focus:ring-2 focus:ring-red-500 focus:outline-none"
                       />
                       <button
                         type="button"
-                        disabled={otpLoading}
+                        disabled={otpLoading || otpExpiryTimer <= 0 || otpCode.length !== 6}
                         onClick={handleVerifyEmailOtp}
-                        className="px-4 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                        className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
                       >
-                        Confirm Code
+                        {otpLoading ? 'Verifying...' : 'Confirm Code'}
                       </button>
                     </div>
+
+                    {otpExpiryTimer === 0 ? (
+                      <p className="text-[11px] text-red-700 font-medium">
+                        Your 6-digit verification code has expired. Please click "Resend Code" to receive a fresh code.
+                      </p>
+                    ) : (
+                      <p className="text-[10.5px] text-stone-600">
+                        Didn't receive it? Please check your <strong>Spam / Promotions</strong> folder. Code is valid for 10 minutes.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
