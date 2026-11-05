@@ -42,6 +42,10 @@ services:
         value: xphhqfosryvzyscc
       - key: DEFAULT_FROM_EMAIL
         value: wangssupport@gmail.com
+      - key: MAIL_RELAY_URL
+        value: https://wangs.in/api/mail-relay
+      - key: MAIL_RELAY_SECRET
+        value: wangs-internal-mail-secret-key-2026
 
 databases:
   - name: wangs-postgres

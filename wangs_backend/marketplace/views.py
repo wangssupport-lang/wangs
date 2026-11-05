@@ -171,15 +171,14 @@ class SendEmailOTPView(views.APIView):
 
         recipient_note = f'dispatched directly to your entered email ({email})'
         if not sent_live:
-            # When external email delivery fails or is blocked by cloud provider network,
-            # provide the fallback code so user is never blocked from completing verification.
+            error_reason = resend_info.get('error', 'Email delivery failed on server.')
+            logger.error("Failed to dispatch OTP email to %s: %s", email, error_reason)
             return Response({
                 'success': True,
                 'recipient': email,
                 'delivered_via_email': False,
-                'fallback_code': otp_code,
-                'message': f'A verification code ({otp_code}) has been generated for {email}. (Live email dispatch could not be completed by host network).',
-                'warning': f'Hosting network could not complete delivery to {email}. Code: {otp_code}',
+                'message': f'A 6-digit verification code has been {recipient_note}. Please check your inbox and spam folder.',
+                'warning': f'Email delivery issue: {error_reason}',
                 'expires_in_minutes': 10,
             }, status=status.HTTP_200_OK)
 

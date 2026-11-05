@@ -168,7 +168,31 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
     except Exception:
         pass
 
-    # Try SMTP first if credentials are present (capable of delivering to ANY valid Gmail / external address)
+    # 1. Attempt Vercel HTTPS Mail Relay (bypasses Render cloud SMTP firewall over port 443 HTTPS)
+    relay_url = (os.getenv('MAIL_RELAY_URL') or 'https://wangs.in/api/mail-relay').strip()
+    relay_secret = (os.getenv('MAIL_RELAY_SECRET') or 'wangs-internal-mail-secret-key-2026').strip()
+    try:
+        relay_resp = requests.post(
+            relay_url,
+            json={
+                "to": to_email,
+                "subject": subject,
+                "html": html_content,
+                "secret": relay_secret,
+            },
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        if relay_resp.status_code == 200:
+            resp_data = relay_resp.json()
+            if resp_data.get('success'):
+                logger.info("Email delivered via Vercel HTTPS Mail Relay to %s: %s", to_email, resp_data)
+                print(f"[WANGS VERCEL RELAY SUCCESS] Delivered to: {to_email} | Subject: {subject}")
+                return True, {"provider": "VERCEL_RELAY", "to": to_email, "messageId": resp_data.get('messageId')}
+    except Exception as exc_relay:
+        logger.warning("Vercel HTTPS mail relay unavailable or failed: %s", exc_relay)
+
+    # 2. Try direct SMTP (capable of delivering to ANY valid Gmail / external address where port 587/465 is open)
     smtp_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '') or 'wangssupport@gmail.com').strip()
     smtp_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or 'xphhqfosryvzyscc').replace(' ', '').strip()
     smtp_info = None

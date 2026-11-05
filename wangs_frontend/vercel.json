@@ -41,6 +41,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/mail-relay",
+      "destination": "/api/relay-mail.js"
+    },
+    {
+      "source": "/mail-relay",
+      "destination": "/api/relay-mail.js"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "https://wangs.onrender.com/api/$1"
     },

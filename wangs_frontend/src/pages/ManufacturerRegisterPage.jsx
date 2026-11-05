@@ -160,15 +160,9 @@ export default function ManufacturerRegisterPage() {
       setOtpSent(true);
       setOtpResendTimer(60);
       setOtpExpiryTimer(600); // 10 minutes
+      setOtpCode(''); // Always require manual entry from inbox
       setOtpDeliveredLive(Boolean(res?.delivered_via_email));
-      if (res?.delivered_via_email === false && res?.fallback_code) {
-        setOtpCode(res.fallback_code);
-        setOtpNotice(`Verification code: ${res.fallback_code} (auto-filled). Click "Confirm Code" to verify.`);
-      } else if (res?.delivered_via_email === false) {
-        setErrorMsg(res?.warning || 'Notice: Email delivery credentials issue. Please verify email address.');
-      } else {
-        setOtpNotice(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your inbox and spam folder.`);
-      }
+      setOtpNotice(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your inbox and spam folder.`);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to dispatch email verification code. Please check your email.');
     } finally {
@@ -214,14 +208,8 @@ export default function ManufacturerRegisterPage() {
       setReqOtpSent(true);
       setReqOtpTimer(60);
       setReqOtpExpiryTimer(600); // 10 minutes
-      if (res?.delivered_via_email === false && res?.fallback_code) {
-        setReqOtpCode(res.fallback_code);
-        setReqOtpNotice(`Verification code: ${res.fallback_code} (auto-filled). Click "Confirm OTP" to verify.`);
-      } else if (res?.delivered_via_email === false) {
-        setErrorMsg(res?.warning || 'Notice: Email delivery credentials are not configured in wangs_backend/.env.');
-      } else {
-        setReqOtpNotice(res?.message || `A 6-digit verification code has been dispatched directly to your entered email (${emailToVerify}). Please check that inbox (and spam folder).`);
-      }
+      setReqOtpCode(''); // Always require manual entry from inbox
+      setReqOtpNotice(res?.message || `A 6-digit verification code has been dispatched directly to your entered email (${emailToVerify}). Please check that inbox (and spam folder).`);
     } catch (err) {
       setErrorMsg(err.message || 'Failed to dispatch verification email. Please check your email and try again.');
     } finally {
