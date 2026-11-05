@@ -1498,49 +1498,6 @@ export default function HomePage() {
             </Link>
           </section>
         )}
-
-        {/* 6. Trust Badges Strip (2x2 Grid) */}
-        <section className="grid grid-cols-2 gap-2.5 pt-1">
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-9 h-9 rounded-full bg-secondary-fixed flex items-center justify-center text-on-secondary-fixed shrink-0">
-              <span className="material-symbols-outlined text-[19px]">oil_barrel</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Pure Cold-Pressed</span>
-              <span className="font-label-sm text-[10px] text-outline">Authentic Mustard Oil</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-9 h-9 rounded-full bg-tertiary-fixed flex items-center justify-center text-on-tertiary-fixed shrink-0">
-              <span className="material-symbols-outlined text-[19px]">science</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Lab-Tested</span>
-              <span className="font-label-sm text-[10px] text-outline">FSSAI Certified Purity</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-9 h-9 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed shrink-0">
-              <span className="material-symbols-outlined text-[19px]">handshake</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Direct from Artisan</span>
-              <span className="font-label-sm text-[10px] text-outline">No Factory Fillers</span>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2.5 p-3 rounded-xl bg-surface-container-low border border-outline-variant/30">
-            <div className="w-9 h-9 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
-              <span className="material-symbols-outlined text-[19px]">security</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-label-md text-xs font-bold text-on-surface leading-tight">Zero-Leak Guard</span>
-              <span className="font-label-sm text-[10px] text-outline">Cushioned Jar Transit</span>
-            </div>
-          </div>
-        </section>
       </div>
     </div>
   );
