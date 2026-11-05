@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import {
-  ShieldCheck, Truck, PackageCheck, Store, Mail,
+  Truck, Store, Mail,
   ArrowRight, Lock, Sparkles, HeartHandshake, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -11,60 +11,18 @@ export default function Footer() {
 
   return (
     <footer className="w-full bg-[#161311] text-stone-200 mt-20 border-t border-stone-800 selection:bg-[#9b4100] selection:text-white">
-      {/* 1. Value Proposition & Trust Pillars Banner */}
+      {/* 1. Express Regional Delivery Banner */}
       <div className="border-b border-stone-800/80 bg-[#1c1815]">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-8 lg:py-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
-            {/* Pillar 1 */}
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-[#9b4100]/20 text-[#ffb691] border border-[#9b4100]/40 flex items-center justify-center shrink-0">
-                <Store size={20} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-sm text-stone-100 font-serif">Artisan Earthen Kitchens</h4>
-                <p className="text-xs text-stone-400 leading-relaxed">
-                  Connecting 320+ verified multi-generational regional makers directly with pickle connoisseurs.
-                </p>
-              </div>
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-5">
+          <div className="flex items-center gap-3.5 max-w-xl">
+            <div className="w-10 h-10 rounded-xl bg-orange-950/60 text-orange-300 border border-orange-700/40 flex items-center justify-center shrink-0">
+              <Truck size={20} />
             </div>
-
-            {/* Pillar 2 */}
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-950/60 text-emerald-300 border border-emerald-700/40 flex items-center justify-center shrink-0">
-                <ShieldCheck size={20} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-sm text-stone-100 font-serif">Zero Synthetic Preservatives</h4>
-                <p className="text-xs text-stone-400 leading-relaxed">
-                  Sun-cured in wood-pressed oils with stone-ground heirloom spices and zero artificial additives.
-                </p>
-              </div>
-            </div>
-
-            {/* Pillar 3 */}
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-950/60 text-amber-300 border border-amber-700/40 flex items-center justify-center shrink-0">
-                <PackageCheck size={20} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-sm text-stone-100 font-serif">Zero-Leak Transit Guard</h4>
-                <p className="text-xs text-stone-400 leading-relaxed">
-                  Multi-cushioned shockproof packaging engineered specifically for glass &amp; ceramic martabans.
-                </p>
-              </div>
-            </div>
-
-            {/* Pillar 4 */}
-            <div className="flex items-start gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-orange-950/60 text-orange-300 border border-orange-700/40 flex items-center justify-center shrink-0">
-                <Truck size={20} />
-              </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-sm text-stone-100 font-serif">Express Regional Delivery</h4>
-                <p className="text-xs text-stone-400 leading-relaxed">
-                  Within Kohima: 12 hrs (best case 30m–1h) · Nagaland: 1–2 days · Pan-India: 4–10 days.
-                </p>
-              </div>
+            <div className="space-y-0.5">
+              <h4 className="font-bold text-sm text-stone-100 font-serif">Express Regional Delivery</h4>
+              <p className="text-xs text-stone-400 leading-relaxed">
+                Within Kohima: 12 hrs (best case 30m–1h) · Nagaland: 1–2 days · Pan-India: 4–10 days.
+              </p>
             </div>
           </div>
         </div>
