@@ -41,6 +41,10 @@
   ],
   "rewrites": [
     {
+      "source": "/api/ping",
+      "destination": "/api/ping.js"
+    },
+    {
       "source": "/api/mail-relay",
       "destination": "/api/relay-mail.js"
     },
