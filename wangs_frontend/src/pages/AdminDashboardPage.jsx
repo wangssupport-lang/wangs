@@ -6,7 +6,7 @@ import {
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
   Home, LogOut, Download, Copy, Check,
-  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink
+  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -102,6 +102,7 @@ export default function AdminDashboardPage() {
     cta_link: '/products?category=andhra-gongura',
     bg_color: '#9b4100',
     image_url: '',
+    is_image_only: false,
     is_active: true,
     display_order: 0,
   });
@@ -581,6 +582,7 @@ export default function AdminDashboardPage() {
       cta_link: '/products?category=andhra-gongura',
       bg_color: '#9b4100',
       image_url: '',
+      is_image_only: false,
       is_active: true,
       display_order: 0,
     });
@@ -597,6 +599,7 @@ export default function AdminDashboardPage() {
       cta_link: b.cta_link || '/products',
       bg_color: b.bg_color || '#9b4100',
       image_url: b.image_url || '',
+      is_image_only: !!b.is_image_only,
       is_active: b.is_active ?? true,
       display_order: b.display_order ?? 0,
     });
@@ -606,36 +609,43 @@ export default function AdminDashboardPage() {
 
   const handleSaveBanner = async (e) => {
     e.preventDefault();
-    if (!bannerForm.title.trim()) {
-      toast.error('Campaign Title / Headline is required');
+    if (!bannerForm.is_image_only && !bannerForm.title.trim()) {
+      toast.error('Campaign Title / Headline is required for text overlay banners');
+      return;
+    }
+    if (bannerForm.is_image_only && !bannerImageFile && !bannerForm.image_url.trim() && !bannerImagePreview) {
+      toast.error('Please upload an image or provide an image URL for Image-Only banner');
       return;
     }
 
     setBannerUploading(true);
     try {
+      const bannerTitle = bannerForm.title.trim() || (bannerForm.is_image_only ? 'Graphic Promo Banner' : 'Campaign Banner');
       let payload;
       if (bannerImageFile) {
         payload = new FormData();
-        payload.append('title', bannerForm.title);
-        payload.append('subtitle', bannerForm.subtitle);
-        payload.append('badge_text', bannerForm.badge_text);
-        payload.append('coupon_code', bannerForm.coupon_code);
-        payload.append('cta_text', bannerForm.cta_text);
-        payload.append('cta_link', bannerForm.cta_link);
-        payload.append('bg_color', bannerForm.bg_color);
+        payload.append('title', bannerTitle);
+        payload.append('subtitle', bannerForm.is_image_only ? '' : (bannerForm.subtitle || ''));
+        payload.append('badge_text', bannerForm.is_image_only ? '' : (bannerForm.badge_text || ''));
+        payload.append('coupon_code', bannerForm.is_image_only ? '' : (bannerForm.coupon_code || ''));
+        payload.append('cta_text', bannerForm.is_image_only ? '' : (bannerForm.cta_text || 'Shop Now'));
+        payload.append('cta_link', bannerForm.cta_link || '/products');
+        payload.append('bg_color', bannerForm.bg_color || '#9b4100');
+        payload.append('is_image_only', String(bannerForm.is_image_only));
         payload.append('is_active', String(bannerForm.is_active));
         payload.append('display_order', String(bannerForm.display_order));
         payload.append('image', bannerImageFile);
       } else {
         payload = {
-          title: bannerForm.title,
-          subtitle: bannerForm.subtitle,
-          badge_text: bannerForm.badge_text,
-          coupon_code: bannerForm.coupon_code,
-          cta_text: bannerForm.cta_text,
-          cta_link: bannerForm.cta_link,
-          bg_color: bannerForm.bg_color,
-          image_url: bannerForm.image_url,
+          title: bannerTitle,
+          subtitle: bannerForm.is_image_only ? '' : (bannerForm.subtitle || ''),
+          badge_text: bannerForm.is_image_only ? '' : (bannerForm.badge_text || ''),
+          coupon_code: bannerForm.is_image_only ? '' : (bannerForm.coupon_code || ''),
+          cta_text: bannerForm.is_image_only ? '' : (bannerForm.cta_text || 'Shop Now'),
+          cta_link: bannerForm.cta_link || '/products',
+          bg_color: bannerForm.bg_color || '#9b4100',
+          image_url: bannerForm.image_url || '',
+          is_image_only: bannerForm.is_image_only,
           is_active: bannerForm.is_active,
           display_order: bannerForm.display_order,
         };
@@ -1555,10 +1565,48 @@ export default function AdminDashboardPage() {
                 )}
               </div>
 
+              {/* Layout Mode Selector (Standard vs Image Only) */}
+              <div className="space-y-1.5 p-3 rounded-xl bg-stone-50 border border-stone-200">
+                <label className="block font-bold text-xs text-stone-800">
+                  Banner Layout Mode
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, is_image_only: false })}
+                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                      !bannerForm.is_image_only
+                        ? 'bg-forest-900 text-white border-forest-900 shadow-xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    <Type size={15} />
+                    <span>Standard (Text &amp; Button Overlay)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, is_image_only: true })}
+                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
+                      bannerForm.is_image_only
+                        ? 'bg-forest-900 text-white border-forest-900 shadow-xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    <ImageIcon size={15} />
+                    <span>Image Only (Full Graphic Banner)</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-stone-500">
+                  {bannerForm.is_image_only
+                    ? '🖼️ Image Only mode displays your artwork cleanly with 0 text/button overlays and no dark gradient. Tapping anywhere on the banner navigates to the destination link.'
+                    : '✍️ Standard mode overlays your headline, subtitle, badge pill, coupon code, and CTA button on top of your background photo.'}
+                </p>
+              </div>
+
               {/* Photo Upload Area */}
               <div className="space-y-2">
                 <label className="block font-bold text-stone-700">
-                  Banner Background Photo (Optional Image Upload)
+                  {bannerForm.is_image_only ? 'Banner Graphic Artwork (Required)' : 'Banner Background Photo (Optional)'}
                 </label>
                 <div className="border-2 border-dashed border-stone-300 hover:border-forest-600 rounded-xl p-4 bg-stone-50/60 transition-colors">
                   {bannerImagePreview ? (
@@ -1637,7 +1685,7 @@ export default function AdminDashboardPage() {
                     <span className="font-bold text-amber-950">Formats &amp; Size:</span> JPG, PNG, WebP (under 5MB)
                   </div>
                   <div>
-                    <span className="font-bold text-amber-950">Composition:</span> Center subject; auto-overlay preserves readability
+                    <span className="font-bold text-amber-950">Image-Only Tip:</span> Keep critical design/copy inside central 90%
                   </div>
                 </div>
               </div>
@@ -1661,98 +1709,133 @@ export default function AdminDashboardPage() {
                 />
               </div>
 
-              {/* Title & Badge */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block font-bold text-stone-700">
-                    Badge Pill Text <span className="text-stone-400 font-normal">(Top Tag)</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. FRESH BATCH LIVE"
-                    value={bannerForm.badge_text}
-                    onChange={(e) => setBannerForm({ ...bannerForm, badge_text: e.target.value })}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-medium"
-                  />
-                </div>
+              {/* Conditional Form Fields Based on Mode */}
+              {bannerForm.is_image_only ? (
+                <>
+                  {/* Image Only Mode: Reference Label & Click Destination Link */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block font-bold text-stone-700">
+                        Admin Label / Title <span className="text-stone-400 font-normal">(Optional, for admin table)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Naga King Chilli Festival Graphic"
+                        value={bannerForm.title}
+                        onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-medium"
+                      />
+                    </div>
 
-                <div className="space-y-1">
-                  <label className="block font-bold text-stone-700">
-                    Promo Coupon Code <span className="text-stone-400 font-normal">(Optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. ACHAR15"
-                    value={bannerForm.coupon_code}
-                    onChange={(e) => setBannerForm({ ...bannerForm, coupon_code: e.target.value.toUpperCase() })}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono font-bold tracking-wider uppercase"
-                  />
-                </div>
-              </div>
+                    <div className="space-y-1">
+                      <label className="block font-bold text-stone-700">
+                        Banner Click Destination <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. /products?category=andhra-gongura"
+                        value={bannerForm.cta_link}
+                        onChange={(e) => setBannerForm({ ...bannerForm, cta_link: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Standard Mode: Title, Badge, Subtitle, CTA Button & Link */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block font-bold text-stone-700">
+                        Badge Pill Text <span className="text-stone-400 font-normal">(Top Tag)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. FRESH BATCH LIVE"
+                        value={bannerForm.badge_text}
+                        onChange={(e) => setBannerForm({ ...bannerForm, badge_text: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-medium"
+                      />
+                    </div>
 
-              {/* Headline */}
-              <div className="space-y-1">
-                <label className="block font-bold text-stone-700">
-                  Campaign Headline / Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. The Great Achar Season"
-                  value={bannerForm.title}
-                  onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-1 focus:ring-forest-800 font-serif font-bold"
-                />
-              </div>
+                    <div className="space-y-1">
+                      <label className="block font-bold text-stone-700">
+                        Promo Coupon Code <span className="text-stone-400 font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. ACHAR15"
+                        value={bannerForm.coupon_code}
+                        onChange={(e) => setBannerForm({ ...bannerForm, coupon_code: e.target.value.toUpperCase() })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono font-bold tracking-wider uppercase"
+                      />
+                    </div>
+                  </div>
 
-              {/* Subtitle */}
-              <div className="space-y-1">
-                <label className="block font-bold text-stone-700">
-                  Tagline / Description
-                </label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars."
-                  value={bannerForm.subtitle}
-                  onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
-                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800"
-                />
-              </div>
+                  {/* Headline */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-stone-700">
+                      Campaign Headline / Title <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. The Great Achar Season"
+                      value={bannerForm.title}
+                      onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg text-sm focus:ring-1 focus:ring-forest-800 font-serif font-bold"
+                    />
+                  </div>
 
-              {/* CTA Button and Link */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block font-bold text-stone-700">CTA Button Text</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Shop Now"
-                    value={bannerForm.cta_text}
-                    onChange={(e) => setBannerForm({ ...bannerForm, cta_text: e.target.value })}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-bold"
-                  />
-                </div>
+                  {/* Subtitle */}
+                  <div className="space-y-1">
+                    <label className="block font-bold text-stone-700">
+                      Tagline / Description
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars."
+                      value={bannerForm.subtitle}
+                      onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
 
-                <div className="space-y-1">
-                  <label className="block font-bold text-stone-700">CTA Destination Link</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. /products?category=andhra-gongura"
-                    value={bannerForm.cta_link}
-                    onChange={(e) => setBannerForm({ ...bannerForm, cta_link: e.target.value })}
-                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono"
-                  />
-                </div>
-              </div>
+                  {/* CTA Button and Link */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="block font-bold text-stone-700">CTA Button Text</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Shop Now"
+                        value={bannerForm.cta_text}
+                        onChange={(e) => setBannerForm({ ...bannerForm, cta_text: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-bold"
+                      />
+                    </div>
 
-              {/* Background Theme / Color Picker */}
+                    <div className="space-y-1">
+                      <label className="block font-bold text-stone-700">CTA Destination Link</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. /products?category=andhra-gongura"
+                        value={bannerForm.cta_link}
+                        onChange={(e) => setBannerForm({ ...bannerForm, cta_link: e.target.value })}
+                        className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* Background Theme / Color Picker (Clean Grid without Awkward Wrapping) */}
               <div className="space-y-2">
                 <label className="block font-bold text-stone-700">
-                  Background Theme Color (Used behind image or as fallback gradient)
+                  Background Theme Color {bannerForm.is_image_only ? '(Fallback while image loads)' : '(Used behind image or as fallback gradient)'}
                 </label>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
                   {[
                     { name: 'Terracotta', color: '#9b4100' },
                     { name: 'Deep Spice', color: '#78350f' },
@@ -1765,35 +1848,37 @@ export default function AdminDashboardPage() {
                       key={preset.color}
                       type="button"
                       onClick={() => setBannerForm({ ...bannerForm, bg_color: preset.color })}
-                      className={`px-3 py-1.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-all ${
+                      className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
                         bannerForm.bg_color === preset.color
-                          ? 'border-forest-900 ring-2 ring-forest-800/30 font-bold'
-                          : 'border-stone-200 hover:border-stone-400'
+                          ? 'border-forest-900 ring-2 ring-forest-800/30 bg-forest-50/50 font-bold'
+                          : 'border-stone-200 hover:border-stone-400 bg-white'
                       }`}
                     >
                       <span
                         className="w-3.5 h-3.5 rounded-full border border-black/10 shrink-0"
                         style={{ backgroundColor: preset.color }}
                       />
-                      <span>{preset.name}</span>
+                      <span className="truncate">{preset.name}</span>
                     </button>
                   ))}
+                </div>
 
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <input
-                      type="color"
-                      value={bannerForm.bg_color || '#9b4100'}
-                      onChange={(e) => setBannerForm({ ...bannerForm, bg_color: e.target.value })}
-                      className="w-8 h-8 rounded-lg cursor-pointer border border-stone-300 p-0.5"
-                      title="Custom color picker"
-                    />
-                    <input
-                      type="text"
-                      value={bannerForm.bg_color}
-                      onChange={(e) => setBannerForm({ ...bannerForm, bg_color: e.target.value })}
-                      className="w-20 px-2 py-1 border border-stone-300 rounded-md text-xs font-mono uppercase"
-                    />
-                  </div>
+                <div className="flex items-center gap-2 pt-1 text-xs text-stone-600">
+                  <span className="font-medium">Custom color hex:</span>
+                  <input
+                    type="color"
+                    value={bannerForm.bg_color || '#9b4100'}
+                    onChange={(e) => setBannerForm({ ...bannerForm, bg_color: e.target.value })}
+                    className="w-7 h-7 rounded-md cursor-pointer border border-stone-300 p-0.5"
+                    title="Custom color picker"
+                  />
+                  <input
+                    type="text"
+                    value={bannerForm.bg_color}
+                    onChange={(e) => setBannerForm({ ...bannerForm, bg_color: e.target.value })}
+                    placeholder="#9B4100"
+                    className="w-24 px-2.5 py-1 border border-stone-300 rounded-md text-xs font-mono uppercase focus:ring-1 focus:ring-forest-800"
+                  />
                 </div>
               </div>
 
@@ -1861,56 +1946,85 @@ export default function AdminDashboardPage() {
 
                 {/* Mobile Preview Frame */}
                 <div className="bg-[#121212] p-3 rounded-2xl border border-stone-800">
-                  <div
-                    className="relative w-full overflow-hidden rounded-xl shadow-lg min-h-[160px] p-4 flex flex-col justify-between text-white transition-all duration-300"
-                    style={{
-                      backgroundColor: bannerForm.bg_color || '#9b4100',
-                      backgroundImage: bannerImagePreview
-                        ? `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.25) 100%), url(${bannerImagePreview})`
-                        : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                    }}
-                  >
-                    <div className="flex flex-col gap-1 z-10">
-                      {bannerForm.badge_text && (
-                        <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-                          <Flame size={12} className="text-amber-300" />
-                          <span>{bannerForm.badge_text}</span>
-                        </span>
-                      )}
-                      <h2 className="font-headline-sm text-[21px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
-                        {bannerForm.title || 'Your Campaign Headline'}
-                      </h2>
-                      {bannerForm.subtitle && (
-                        <p className="font-body-sm text-[11px] text-white/90 max-w-[250px] leading-snug line-clamp-2 drop-shadow-xs">
-                          {bannerForm.subtitle}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex items-center justify-between z-10 pt-3">
-                      {bannerForm.coupon_code ? (
-                        <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                          <span className="font-label-sm text-[10px] text-amber-200">CODE:</span>
-                          <span className="font-label-md text-xs font-bold text-white tracking-wider">
-                            {bannerForm.coupon_code}
-                          </span>
+                  {bannerForm.is_image_only ? (
+                    <div
+                      className="relative w-full overflow-hidden rounded-xl shadow-lg min-h-[165px] aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer"
+                      style={{ backgroundColor: bannerForm.bg_color || '#9b4100' }}
+                    >
+                      {bannerImagePreview ? (
+                        <img
+                          src={bannerImagePreview}
+                          alt={bannerForm.title || 'Graphic Banner'}
+                          className="w-full h-full object-cover rounded-xl"
+                        />
+                      ) : (
+                        <div className="text-center p-4 text-white/80">
+                          <ImageIcon size={32} className="mx-auto mb-2 opacity-60" />
+                          <p className="text-xs font-semibold">Image Only Banner Mode</p>
+                          <p className="text-[10px] text-white/60">Upload artwork or enter image URL</p>
                         </div>
-                      ) : <div />}
-
-                      <div className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm flex items-center gap-1 pointer-events-none">
-                        <span>{bannerForm.cta_text || 'Shop Now'}</span>
-                        <ArrowRight size={13} />
+                      )}
+                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[9px] font-bold text-white flex items-center gap-1 pointer-events-none">
+                        <Eye size={10} /> Clean Artwork (No Text Overlay)
+                      </div>
+                      {/* Slide Indicator Dots Inside Card */}
+                      <div className="absolute bottom-2.5 right-3 flex items-center gap-1 z-20 bg-black/40 backdrop-blur-xs px-2 py-1 rounded-full pointer-events-none">
+                        <span className="w-3.5 h-1.5 rounded-full bg-white" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
                       </div>
                     </div>
+                  ) : (
+                    <div
+                      className="relative w-full overflow-hidden rounded-xl shadow-lg min-h-[160px] p-4 flex flex-col justify-between text-white transition-all duration-300"
+                      style={{
+                        backgroundColor: bannerForm.bg_color || '#9b4100',
+                        backgroundImage: bannerImagePreview
+                          ? `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.25) 100%), url(${bannerImagePreview})`
+                          : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <div className="flex flex-col gap-1 z-10">
+                        {bannerForm.badge_text && (
+                          <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                            <Flame size={12} className="text-amber-300" />
+                            <span>{bannerForm.badge_text}</span>
+                          </span>
+                        )}
+                        <h2 className="font-headline-sm text-[21px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                          {bannerForm.title || 'Your Campaign Headline'}
+                        </h2>
+                        {bannerForm.subtitle && (
+                          <p className="font-body-sm text-[11px] text-white/90 max-w-[250px] leading-snug line-clamp-2 drop-shadow-xs">
+                            {bannerForm.subtitle}
+                          </p>
+                        )}
+                      </div>
 
-                    {/* Indicator Dots */}
-                    <div className="absolute bottom-2.5 right-24 flex items-center gap-1 z-20">
-                      <span className="w-3.5 h-1.5 rounded-full bg-white" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                      <div className="flex items-center justify-between z-10 pt-3">
+                        {bannerForm.coupon_code ? (
+                          <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                            <span className="font-label-sm text-[10px] text-amber-200">CODE:</span>
+                            <span className="font-label-md text-xs font-bold text-white tracking-wider">
+                              {bannerForm.coupon_code}
+                            </span>
+                          </div>
+                        ) : <div />}
+
+                        <div className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm flex items-center gap-1 pointer-events-none">
+                          <span>{bannerForm.cta_text || 'Shop Now'}</span>
+                          <ArrowRight size={13} />
+                        </div>
+                      </div>
+
+                      {/* Indicator Dots */}
+                      <div className="absolute bottom-2.5 right-24 flex items-center gap-1 z-20">
+                        <span className="w-3.5 h-1.5 rounded-full bg-white" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="text-[11px] text-stone-400 space-y-1">
@@ -1977,8 +2091,17 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="max-w-xs">
-                            <p className="font-bold text-stone-900 font-serif text-sm">{b.title}</p>
-                            <p className="text-stone-500 text-[11px] truncate">{b.subtitle || '—'}</p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-bold text-stone-900 font-serif text-sm">{b.title || 'Graphic Promo Banner'}</p>
+                              {b.is_image_only && (
+                                <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[9px] font-bold uppercase tracking-wider shrink-0">
+                                  Image Only
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-stone-500 text-[11px] truncate">
+                              {b.is_image_only ? 'Full graphic artwork banner (no text overlay)' : (b.subtitle || '—')}
+                            </p>
                           </div>
                         </td>
                         <td className="py-3 px-4 whitespace-nowrap">

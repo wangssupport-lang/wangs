@@ -903,6 +903,39 @@ export default function HomePage() {
           >
             {displayBanners.map((banner, index) => {
               const bgImg = banner.effective_image_url || banner.image_url || banner.image;
+
+              // If admin configured this banner as Image-Only, render clean graphic without dark gradient or text overlays
+              if (banner.is_image_only && bgImg) {
+                return (
+                  <Link
+                    key={banner.id || index}
+                    to={banner.cta_link || '/products'}
+                    className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
+                    style={{ backgroundColor: banner.bg_color || '#9b4100' }}
+                  >
+                    <img
+                      src={bgImg}
+                      alt={banner.title || 'Promotional Banner'}
+                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 rounded-xl"
+                    />
+
+                    {/* Slide Indicator Dots Inside Card */}
+                    {displayBanners.length > 1 && (
+                      <div className="absolute bottom-2.5 right-3 flex items-center gap-1 z-20 pointer-events-none bg-black/40 backdrop-blur-xs px-2 py-1 rounded-full">
+                        {displayBanners.map((_, dotIdx) => (
+                          <span
+                            key={dotIdx}
+                            className={`h-1.5 rounded-full transition-all ${
+                              activeBannerIndex === dotIdx ? 'w-3.5 bg-white' : 'w-1.5 bg-white/50'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </Link>
+                );
+              }
+
               return (
                 <div
                   key={banner.id || index}

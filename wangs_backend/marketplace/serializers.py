@@ -611,13 +611,16 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
 class HeroBannerSerializer(serializers.ModelSerializer):
     effective_image_url = serializers.SerializerMethodField()
+    title = serializers.CharField(required=False, allow_blank=True, default="Hero Banner")
+    badge_text = serializers.CharField(required=False, allow_blank=True, default="")
+    cta_text = serializers.CharField(required=False, allow_blank=True, default="Shop Now")
 
     class Meta:
         model = HeroBanner
         fields = [
             'id', 'title', 'subtitle', 'badge_text', 'coupon_code',
             'cta_text', 'cta_link', 'image', 'image_url', 'effective_image_url',
-            'bg_color', 'is_active', 'display_order', 'created_at', 'updated_at'
+            'bg_color', 'is_image_only', 'is_active', 'display_order', 'created_at', 'updated_at'
         ]
 
     def get_effective_image_url(self, obj):

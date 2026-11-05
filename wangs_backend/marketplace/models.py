@@ -646,15 +646,16 @@ class MaintenanceSubscriber(models.Model):
 
 
 class HeroBanner(models.Model):
-    title = models.CharField(max_length=200, default="The Great Achar Season")
+    title = models.CharField(max_length=200, blank=True, default="The Great Achar Season")
     subtitle = models.TextField(blank=True, default="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.")
-    badge_text = models.CharField(max_length=100, default="FRESH BATCH LIVE")
+    badge_text = models.CharField(max_length=100, blank=True, default="FRESH BATCH LIVE")
     coupon_code = models.CharField(max_length=50, blank=True, default="ACHAR15")
-    cta_text = models.CharField(max_length=100, default="Shop Now")
+    cta_text = models.CharField(max_length=100, blank=True, default="Shop Now")
     cta_link = models.CharField(max_length=255, default="/products?category=andhra-gongura")
     image = models.ImageField(upload_to='banners/', blank=True, null=True)
     image_url = models.TextField(blank=True, default="")
     bg_color = models.CharField(max_length=50, blank=True, default="#9b4100")
+    is_image_only = models.BooleanField(default=False, help_text="Display full graphic image without text or button overlays")
     is_active = models.BooleanField(default=True)
     display_order = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
