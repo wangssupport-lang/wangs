@@ -32,37 +32,55 @@ export default function Navbar() {
     }
   });
 
-  // Load public notification feed
+  // Load public notification feed with automatic background refresh
   useEffect(() => {
+    let cancelled = false;
     async function loadNotifications() {
       try {
         const notifs = await api.getPublicNotifications();
-        if (Array.isArray(notifs)) {
-          setNotifications(notifs);
+        if (cancelled || !Array.isArray(notifs)) return;
+        setNotifications(notifs);
 
-          // If there is an unread new seller notification, notify user once per session
-          const unreadSellerNotifs = notifs.filter(
-            (n) => n.type === 'NEW_SELLER' && !readNotifIds.includes(n.id)
-          );
+        // If there is an unread new seller notification, notify user once per session
+        const unreadSellerNotifs = notifs.filter(
+          (n) => n.type === 'NEW_SELLER' && !readNotifIds.includes(n.id)
+        );
 
-          if (unreadSellerNotifs.length > 0) {
-            const newest = unreadSellerNotifs[0];
-            const sessionGreeted = sessionStorage.getItem('wangs_notified_newest_seller');
-            if (sessionGreeted !== newest.id) {
-              sessionStorage.setItem('wangs_notified_newest_seller', newest.id);
-              toast.success(
-                `🎉 New Artisan Seller Joined: ${newest.business_name} (${newest.location_district || 'India'}) is now live on Wangs!`,
-                5000
-              );
-            }
+        if (unreadSellerNotifs.length > 0) {
+          const newest = unreadSellerNotifs[0];
+          const sessionGreeted = sessionStorage.getItem('wangs_notified_newest_seller');
+          if (sessionGreeted !== newest.id) {
+            sessionStorage.setItem('wangs_notified_newest_seller', newest.id);
+            toast.success(
+              `🎉 New Artisan Seller Joined: ${newest.business_name} (${newest.location_district || 'India'}) is now live on Wangs!`,
+              5000
+            );
           }
         }
       } catch (err) {
         console.warn('Could not load public notifications', err);
       }
     }
+
     loadNotifications();
-  }, []);
+
+    // 15-second background refresh rate for real-time notification updates
+    const pollInterval = setInterval(loadNotifications, 15000);
+
+    // Refresh immediately on tab focus
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [readNotifIds]);
 
   const unreadCount = notifications.filter((n) => !readNotifIds.includes(n.id)).length;
 

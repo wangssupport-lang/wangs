@@ -4,7 +4,7 @@ import { Heart, Plus, Minus, Check, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 
-export default function ProductCard({ product }) {
+function ProductCard({ product }) {
   const { cart, addToCart, updateQuantity } = useCart();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
@@ -265,3 +265,5 @@ export default function ProductCard({ product }) {
     </article>
   );
 }
+
+export default React.memo(ProductCard);

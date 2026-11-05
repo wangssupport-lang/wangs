@@ -1,10 +1,35 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
+
+// Isolated Memoized Countdown Component to prevent whole HomePage from re-rendering every second
+const FlashDealCountdown = React.memo(function FlashDealCountdown() {
+  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 18, seconds: 14 });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { hours: 4, minutes: 0, seconds: 0 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const pad = (n) => String(n).padStart(2, '0');
+
+  return (
+    <span className="font-bold text-primary font-mono tabular-nums">
+      {pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m : {pad(timeLeft.seconds)}s
+    </span>
+  );
+});
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -36,52 +61,48 @@ export default function HomePage() {
         }
       ];
 
-  const handleBannerScroll = () => {
-    if (!bannerScrollRef.current) return;
-    const { scrollLeft, clientWidth } = bannerScrollRef.current;
-    if (clientWidth > 0) {
-      const idx = Math.round(scrollLeft / clientWidth);
-      if (idx >= 0 && idx < displayBanners.length && idx !== activeBannerIndex) {
-        setActiveBannerIndex(idx);
-      }
-    }
-  };
+  const activeBannerIndexRef = useRef(0);
+  const scrollRafId = useRef(null);
 
-  const scrollToBanner = (idx) => {
+  // High-performance rAF-throttled scroll handler for 60Hz/120Hz smooth tracking
+  const handleBannerScroll = useCallback(() => {
+    if (scrollRafId.current) return;
+    scrollRafId.current = requestAnimationFrame(() => {
+      scrollRafId.current = null;
+      if (!bannerScrollRef.current) return;
+      const { scrollLeft, clientWidth } = bannerScrollRef.current;
+      if (clientWidth > 0) {
+        const idx = Math.round(scrollLeft / clientWidth);
+        if (idx >= 0 && idx < displayBanners.length && idx !== activeBannerIndexRef.current) {
+          activeBannerIndexRef.current = idx;
+          setActiveBannerIndex(idx);
+        }
+      }
+    });
+  }, [displayBanners.length]);
+
+  const scrollToBanner = useCallback((idx) => {
     if (!bannerScrollRef.current) return;
+    activeBannerIndexRef.current = idx;
     bannerScrollRef.current.scrollTo({
       left: idx * bannerScrollRef.current.clientWidth,
       behavior: 'smooth'
     });
     setActiveBannerIndex(idx);
-  };
+  }, []);
 
+  // Smooth, snappy 4s carousel auto-rotation decoupled from state re-renders
   useEffect(() => {
     if (displayBanners.length <= 1) return;
     const interval = setInterval(() => {
       if (isInteractingWithBanner.current) return;
       if (!bannerScrollRef.current) return;
-      const nextIndex = (activeBannerIndex + 1) % displayBanners.length;
+      const nextIndex = (activeBannerIndexRef.current + 1) % displayBanners.length;
       scrollToBanner(nextIndex);
-    }, 5500);
+    }, 4200);
 
     return () => clearInterval(interval);
-  }, [displayBanners.length, activeBannerIndex]);
-
-  // Flash deal countdown timer simulation: 04h : 18m : 14s
-  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 18, seconds: 14 });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 4, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+  }, [displayBanners.length, scrollToBanner]);
 
   useEffect(() => {
     async function loadData() {
@@ -898,8 +919,13 @@ export default function HomePage() {
             onTouchEnd={() => { setTimeout(() => { isInteractingWithBanner.current = false; }, 2500); }}
             onMouseEnter={() => { isInteractingWithBanner.current = true; }}
             onMouseLeave={() => { isInteractingWithBanner.current = false; }}
-            className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar scroll-smooth -mx-1 px-1 py-0.5"
-            style={{ WebkitOverflowScrolling: 'touch', scrollSnapType: 'x mandatory' }}
+            className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar -mx-1 px-1 py-0.5 gpu-accelerated"
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollSnapType: 'x mandatory',
+              overscrollBehaviorX: 'contain',
+              touchAction: 'pan-x pan-y',
+            }}
           >
             {displayBanners.map((banner, index) => {
               const bgImg = banner.effective_image_url || banner.image_url || banner.image;
@@ -1119,7 +1145,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-1 text-on-surface-variant font-label-sm text-[10px]">
                   <span className="material-symbols-outlined text-[12px] text-primary">timer</span>
                   <span>Batch ends in:</span>
-                  <span className="font-bold text-primary font-mono">{pad(timeLeft.hours)}h : {pad(timeLeft.minutes)}m : {pad(timeLeft.seconds)}s</span>
+                  <FlashDealCountdown />
                 </div>
               </div>
             </div>

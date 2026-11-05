@@ -61,6 +61,19 @@
   display: none;
 }
 
+/* High-Refresh Rate & GPU Hardware Compositing (60Hz / 120Hz ProMotion Optimization) */
+.gpu-accelerated {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+  will-change: scroll-position;
+  overscroll-behavior-x: contain;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
