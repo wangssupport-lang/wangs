@@ -1,46 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   ShieldCheck, Truck, PackageCheck, Store, Mail,
-  ArrowRight, CheckCircle2, Lock, Sparkles, HeartHandshake, Phone
+  ArrowRight, Lock, Sparkles, HeartHandshake, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { api } from '../api';
 
 export default function Footer() {
   const { allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
-  const toast = useToast();
-
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [isSubscribing, setIsSubscribing] = useState(false);
-  const [subscribedSuccess, setSubscribedSuccess] = useState(false);
-
-  const handleNewsletterSubmit = async (e) => {
-    e.preventDefault();
-    if (!newsletterEmail || !newsletterEmail.includes('@')) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-
-    setIsSubscribing(true);
-    try {
-      await api.apiRequest('/maintenance/notify/', {
-        method: 'POST',
-        body: JSON.stringify({ email: newsletterEmail.trim() }),
-      });
-      setSubscribedSuccess(true);
-      toast.success('Welcome to the Wangs Seasonal Harvest Guild! You will be notified when rare small batches go live.');
-      setNewsletterEmail('');
-    } catch (err) {
-      // Even if network fails or email already registered, treat gracefully
-      setSubscribedSuccess(true);
-      toast.success('Thank you! You are subscribed to our seasonal batch alerts.');
-      setNewsletterEmail('');
-    } finally {
-      setIsSubscribing(false);
-    }
-  };
 
   return (
     <footer className="w-full bg-[#161311] text-stone-200 mt-20 border-t border-stone-800 selection:bg-[#9b4100] selection:text-white">
@@ -187,8 +154,8 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 2: Regional Heritage Belts (2 cols on lg) */}
-          <div className="lg:col-span-2 space-y-3">
+          {/* Column 2: Regional Heritage Belts (3 cols on lg) */}
+          <div className="lg:col-span-3 space-y-3">
             <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
               Regional Terroirs
             </h4>
@@ -265,8 +232,8 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Customer Care & Assurance (2 cols on lg) */}
-          <div className="lg:col-span-2 space-y-3">
+          {/* Column 4: Customer Care & Assurance (3 cols on lg) */}
+          <div className="lg:col-span-3 space-y-3">
             <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
               Customer Care
             </h4>
@@ -297,47 +264,6 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
-          </div>
-
-          {/* Column 5: Seasonal Harvest Alerts (2 cols on lg) */}
-          <div className="lg:col-span-2 space-y-3">
-            <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
-              Harvest Alerts
-            </h4>
-            <p className="text-xs text-stone-400 leading-relaxed">
-              Get notified when limited summer Avakaya and winter Gobi-Shalgam batches are ready.
-            </p>
-
-            {subscribedSuccess ? (
-              <div className="p-3 bg-emerald-950/60 border border-emerald-700/60 rounded-xl text-emerald-200 text-xs flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                <span>You're on the harvest release alert list!</span>
-              </div>
-            ) : (
-              <form onSubmit={handleNewsletterSubmit} className="space-y-2">
-                <div className="relative">
-                  <input
-                    type="email"
-                    required
-                    placeholder="Enter your email"
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    className="w-full px-3 py-2 bg-stone-900 border border-stone-700 rounded-xl text-xs text-white placeholder:text-stone-500 focus:outline-hidden focus:border-amber-500 transition-colors"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isSubscribing}
-                    className="mt-1.5 w-full py-2 bg-[#9b4100] hover:bg-[#b54c00] text-white font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>Notify Me</span>
-                    <ArrowRight size={13} />
-                  </button>
-                </div>
-                <span className="text-[10px] text-stone-500 block">
-                  Zero spam. Strictly seasonal crop batch dispatches.
-                </span>
-              </form>
-            )}
           </div>
         </div>
 
