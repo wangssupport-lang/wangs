@@ -86,6 +86,26 @@ export default function Navbar() {
     navigate(notif.link || '/brands');
   };
 
+  // Public Categories for dynamic category navigation pills
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    async function loadCategories() {
+      try {
+        const res = await api.getCategories();
+        const list = Array.isArray(res) ? res : res?.results || [];
+        setCategories(list);
+      } catch (err) {
+        console.warn('Could not load categories in Navbar', err);
+      }
+    }
+    loadCategories();
+
+    const handleCategoriesChanged = () => loadCategories();
+    window.addEventListener('wangs_categories_changed', handleCategoriesChanged);
+    return () => window.removeEventListener('wangs_categories_changed', handleCategoriesChanged);
+  }, []);
+
   // Stored delivery pincode
   const [deliveryPincode, setDeliveryPincode] = useState(() => {
     try {
@@ -271,7 +291,7 @@ export default function Navbar() {
               </button>
             </form>
 
-            {/* Mobile Row 3: Category Pills Strip (Shown on Home and Catalog) */}
+            {/* Mobile Row 3: Category Pills Strip (Dynamically based on categories entered by Admin) */}
             {isBrowsePage && (
               <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
                 <Link
@@ -284,46 +304,19 @@ export default function Navbar() {
                 >
                   All Pickles
                 </Link>
-                <Link
-                  to="/products?category=andhra-gongura"
-                  className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap flex items-center shrink-0 transition-colors ${
-                    currentCategory === 'andhra-gongura'
-                      ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
-                      : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
-                  }`}
-                >
-                  Andhra Avakaya
-                </Link>
-                <Link
-                  to="/products?category=north-mustard"
-                  className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap flex items-center shrink-0 transition-colors ${
-                    currentCategory === 'north-mustard'
-                      ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
-                      : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
-                  }`}
-                >
-                  North Mustard
-                </Link>
-                <Link
-                  to="/products?category=sweet-chutneys"
-                  className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap flex items-center shrink-0 transition-colors ${
-                    currentCategory === 'sweet-chutneys'
-                      ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
-                      : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
-                  }`}
-                >
-                  Sweet Chutneys
-                </Link>
-                <Link
-                  to="/products?category=zero-oil"
-                  className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap flex items-center shrink-0 transition-colors ${
-                    currentCategory === 'zero-oil'
-                      ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
-                      : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
-                  }`}
-                >
-                  Zero Oil
-                </Link>
+                {categories.map((c) => (
+                  <Link
+                    key={c.id || c.slug}
+                    to={`/products?category=${encodeURIComponent(c.slug)}`}
+                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap flex items-center shrink-0 transition-colors ${
+                      currentCategory === c.slug
+                        ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
+                        : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
+                    }`}
+                  >
+                    {c.name}
+                  </Link>
+                ))}
               </div>
             )}
           </div>
@@ -497,21 +490,31 @@ export default function Navbar() {
 
         {/* ========================================================
             3. SUB-NAVIGATION CATEGORY STRIP (DESKTOP ONLY)
-            Exact Match to Desktop Design Spec
+            Exact Match to Desktop Design Spec (Dynamic Admin Categories)
             ======================================================== */}
         <div className="hidden md:block bg-[#faf2ed] border-t border-[#dec0b3]/30">
-          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-7 overflow-x-auto no-scrollbar py-2 text-xs font-semibold text-[#574238] whitespace-nowrap">
-            <Link to="/products?category=mango-achar" className="hover:text-[#9b4100] transition-colors py-0.5">Mango Achar</Link>
-            <Link to="/products?category=andhra-gongura" className="hover:text-[#9b4100] transition-colors py-0.5">Andhra Gongura</Link>
-            <Link to="/products?category=rajasthani-ker-sangri" className="hover:text-[#9b4100] transition-colors py-0.5">Rajasthani Ker Sangri</Link>
-            <Link to="/products?category=south-indian-non-veg" className="hover:text-[#9b4100] transition-colors py-0.5">South Indian Non-Veg Pickles</Link>
-            <Link to="/products?category=zero-oil" className="hover:text-[#9b4100] transition-colors py-0.5">Oil-Free Specials</Link>
-            <Link to="/products?category=chilli-pickle" className="hover:text-[#9b4100] transition-colors py-0.5">Garlic &amp; Chutneys</Link>
-            <Link to="/products?bestsellers=true" className="hover:text-[#9b4100] transition-colors py-0.5">Bestsellers</Link>
-            <Link to="/brands" className="hover:text-[#9b4100] transition-colors py-0.5 flex items-center gap-1">
-              <Sparkles size={12} className="text-[#904d00]" /> Direct From Farm
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-6 overflow-x-auto no-scrollbar py-2 text-xs font-semibold text-[#574238] whitespace-nowrap">
+            <Link
+              to="/products"
+              className={`py-0.5 transition-colors ${!currentCategory ? 'text-[#9b4100] font-bold' : 'hover:text-[#9b4100]'}`}
+            >
+              All Pickles
             </Link>
-            <Link to="/products?dietary_type=NON_VEG" className="hover:text-[#9b4100] transition-colors py-0.5">Meat Pickles</Link>
+            {categories.map((c) => (
+              <Link
+                key={c.id || c.slug}
+                to={`/products?category=${encodeURIComponent(c.slug)}`}
+                className={`py-0.5 transition-colors ${currentCategory === c.slug ? 'text-[#9b4100] font-bold' : 'hover:text-[#9b4100]'}`}
+              >
+                {c.name}
+              </Link>
+            ))}
+            <Link to="/products?bestsellers=true" className="hover:text-[#9b4100] transition-colors py-0.5 ml-auto flex items-center gap-1 font-bold text-[#9b4100]">
+              <Sparkles size={12} className="text-[#904d00]" /> Bestsellers
+            </Link>
+            <Link to="/brands" className="hover:text-[#9b4100] transition-colors py-0.5">
+              Artisan Brands
+            </Link>
           </div>
         </div>
       </div>

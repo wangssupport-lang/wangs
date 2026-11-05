@@ -216,4 +216,17 @@ export const api = {
   }),
   deleteAdminHeroBanner: (id) => apiRequest(`/admin/hero-banners/${id}/`, { method: 'DELETE' }),
   toggleAdminHeroBanner: (id) => apiRequest(`/admin/hero-banners/${id}/toggle_active/`, { method: 'POST' }),
+
+  // Categories Management (Admin CRUD)
+  getAdminCategories: () => apiRequest('/admin/categories/'),
+  createAdminCategory: (body) => apiRequest('/admin/categories/', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  updateAdminCategory: (id, body) => apiRequest(`/admin/categories/${id}/`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  }),
+  deleteAdminCategory: (id) => apiRequest(`/admin/categories/${id}/`, { method: 'DELETE' }),
+  toggleAdminCategory: (id) => apiRequest(`/admin/categories/${id}/toggle_active/`, { method: 'POST' }),
 };

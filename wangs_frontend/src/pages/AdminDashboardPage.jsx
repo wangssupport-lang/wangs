@@ -6,7 +6,7 @@ import {
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
   Home, LogOut, Download, Copy, Check,
-  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type
+  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -109,6 +109,18 @@ export default function AdminDashboardPage() {
   const [bannerImageFile, setBannerImageFile] = useState(null);
   const [bannerImagePreview, setBannerImagePreview] = useState('');
 
+  // Product Categories Management State (Storefront Navbar Pills & Catalog Filters)
+  const [categoriesList, setCategoriesList] = useState([]);
+  const [categorySaving, setCategorySaving] = useState(false);
+  const [editingCategoryId, setEditingCategoryId] = useState(null);
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    slug: '',
+    description: '',
+    display_order: 0,
+    is_active: true,
+  });
+
   const checkIsAuthError = (err) => {
     const msg = (err?.message || '').toLowerCase();
     return msg.includes('permission') || msg.includes('403') || msg.includes('401') || msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not authenticated');
@@ -118,7 +130,7 @@ export default function AdminDashboardPage() {
     setLoading(true);
     setSessionError(null);
     try {
-      const [met, mfgs, prods, ords, comm, stl, logs, usrs, reqs, subs, banners] = await Promise.all([
+      const [met, mfgs, prods, ords, comm, stl, logs, usrs, reqs, subs, banners, cats] = await Promise.all([
         api.getAdminMetrics().catch((err) => {
           if (checkIsAuthError(err)) throw err;
           console.warn('Metrics failed', err);
@@ -158,6 +170,7 @@ export default function AdminDashboardPage() {
         api.getAdminSellerRequests().catch(() => []),
         api.getMaintenanceSubscribers().catch(() => []),
         api.getAdminHeroBanners().catch(() => []),
+        api.getAdminCategories().catch(() => []),
       ]);
       setMetrics(met || null);
       setManufacturers(extractList(mfgs));
@@ -170,6 +183,7 @@ export default function AdminDashboardPage() {
       setSellerRequests(extractList(reqs));
       setSubscribers(extractList(subs));
       setHeroBanners(extractList(banners));
+      setCategoriesList(extractList(cats));
 
       if (comm?.current) {
         setCommForm({
@@ -696,6 +710,93 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleResetCategoryForm = () => {
+    setEditingCategoryId(null);
+    setCategoryForm({
+      name: '',
+      slug: '',
+      description: '',
+      display_order: 0,
+      is_active: true,
+    });
+  };
+
+  const handleEditCategory = (cat) => {
+    setEditingCategoryId(cat.id);
+    setCategoryForm({
+      name: cat.name || '',
+      slug: cat.slug || '',
+      description: cat.description || '',
+      display_order: cat.display_order ?? 0,
+      is_active: cat.is_active ?? true,
+    });
+  };
+
+  const handleSaveCategory = async (e) => {
+    e.preventDefault();
+    if (!categoryForm.name.trim()) {
+      toast.error('Category Name is required');
+      return;
+    }
+
+    setCategorySaving(true);
+    try {
+      const payload = {
+        name: categoryForm.name.trim(),
+        slug: categoryForm.slug.trim() || undefined,
+        description: categoryForm.description.trim(),
+        display_order: parseInt(categoryForm.display_order, 10) || 0,
+        is_active: categoryForm.is_active,
+      };
+
+      if (editingCategoryId) {
+        await api.updateAdminCategory(editingCategoryId, payload);
+        toast.success(`Category "${payload.name}" updated successfully`);
+      } else {
+        await api.createAdminCategory(payload);
+        toast.success(`Category "${payload.name}" created and added to navbar!`);
+      }
+
+      const updatedCats = await api.getAdminCategories();
+      setCategoriesList(extractList(updatedCats));
+      handleResetCategoryForm();
+      window.dispatchEvent(new Event('wangs_categories_changed'));
+    } catch (err) {
+      console.error('Failed to save category', err);
+      toast.error(err.message || 'Failed to save category');
+    } finally {
+      setCategorySaving(false);
+    }
+  };
+
+  const handleToggleCategoryActive = async (catId) => {
+    try {
+      const res = await api.toggleAdminCategory(catId);
+      setCategoriesList((prev) =>
+        prev.map((c) => (c.id === catId ? { ...c, is_active: res.is_active ?? !c.is_active } : c))
+      );
+      toast.success('Category visibility toggled');
+      window.dispatchEvent(new Event('wangs_categories_changed'));
+    } catch (err) {
+      toast.error('Failed to toggle category');
+    }
+  };
+
+  const handleDeleteCategory = async (catId, catName) => {
+    if (!window.confirm(`Are you sure you want to delete category "${catName}"?`)) return;
+    try {
+      await api.deleteAdminCategory(catId);
+      setCategoriesList((prev) => prev.filter((c) => c.id !== catId));
+      if (editingCategoryId === catId) {
+        handleResetCategoryForm();
+      }
+      toast.success(`Category "${catName}" deleted`);
+      window.dispatchEvent(new Event('wangs_categories_changed'));
+    } catch (err) {
+      toast.error('Failed to delete category');
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="max-w-7xl mx-auto py-24 px-4 text-center">
@@ -1089,6 +1190,7 @@ export default function AdminDashboardPage() {
         {[
           { id: 'metrics', label: 'Marketplace Metrics' },
           { id: 'banners', label: `Hero Promo Banners (${heroBanners.length})` },
+          { id: 'categories', label: `Categories (${categoriesList.length})` },
           {
             id: 'yet_to_approve',
             label: `Yet to be Approved (${totalYetToApprove})`,
@@ -2180,6 +2282,281 @@ export default function AdminDashboardPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Storefront Product Categories (Navbar Pills & Filters Management) */}
+      {activeTab === 'categories' && (
+        <div className="space-y-6 text-xs">
+          {/* Header Card */}
+          <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 sm:p-7 rounded-3xl border border-forest-800 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <span className="p-3 bg-amber-400 text-forest-950 rounded-2xl shadow-sm shrink-0">
+                  <Tags size={24} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-serif font-bold text-cream-50">
+                      Product Categories &amp; Navbar Pills
+                    </h2>
+                    <span className="px-2 py-0.5 bg-amber-400/20 text-amber-300 font-bold text-[10px] rounded-full uppercase tracking-wider">
+                      {categoriesList.length} Categories Configured
+                    </span>
+                  </div>
+                  <p className="text-xs text-cream-200/80 mt-1 max-w-2xl">
+                    Create, edit, reorder, or toggle product categories. The categories entered here immediately become the horizontal navigation filter pills in the top navbar and catalog for shoppers.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-full bg-white/10 text-white font-mono text-[11px] border border-white/20">
+                  Real-Time Storefront Sync
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Create/Edit Category Form (5 Cols) */}
+            <form
+              onSubmit={handleSaveCategory}
+              className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-forest-50 text-forest-900 flex items-center justify-center font-bold">
+                    <Tags size={16} />
+                  </span>
+                  <div>
+                    <h3 className="font-serif font-bold text-sm text-stone-900">
+                      {editingCategoryId ? `Edit Category #${editingCategoryId}` : 'Enter New Category'}
+                    </h3>
+                    <p className="text-[11px] text-stone-500">
+                      Controls the top navigation pill and catalog filter
+                    </p>
+                  </div>
+                </div>
+
+                {editingCategoryId && (
+                  <button
+                    type="button"
+                    onClick={handleResetCategoryForm}
+                    className="text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+
+              {/* Category Name */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Category Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Smoked Meat Pickle, Pork Pickle, Axone"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-forest-800"
+                />
+                <span className="text-[10px] text-stone-400">This exact text is displayed on the navbar filter pill.</span>
+              </div>
+
+              {/* Custom Slug (Optional) */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  URL Slug <span className="text-stone-400 font-normal">(Optional, auto-generated if blank)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. smoked-meat-pickle"
+                  value={categoryForm.slug}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value.toLowerCase().replace(/\s+/g, '-') })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-mono focus:ring-1 focus:ring-forest-800"
+                />
+                <span className="text-[10px] text-stone-400">Links to: /products?category={categoryForm.slug || 'category-name'}</span>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Description <span className="text-stone-400 font-normal">(Optional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Authentic hardwood-smoked meat cured in local Naga spices and mustard oil."
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+
+              {/* Display Order & Active Checkbox */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">Display Order</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={categoryForm.display_order}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, display_order: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800 font-mono"
+                  />
+                  <span className="text-[10px] text-stone-400">Lower order appears first (0, 1, 2...)</span>
+                </div>
+
+                <div className="flex items-center gap-2 pt-6">
+                  <input
+                    type="checkbox"
+                    id="is_active_category"
+                    checked={categoryForm.is_active}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, is_active: e.target.checked })}
+                    className="w-4 h-4 text-forest-800 rounded focus:ring-forest-800 border-stone-300 cursor-pointer"
+                  />
+                  <label htmlFor="is_active_category" className="font-bold text-stone-800 cursor-pointer select-none">
+                    Active &amp; Visible on Navbar
+                  </label>
+                </div>
+              </div>
+
+              {/* Live Preview Pill */}
+              <div className="bg-[#fff8f4] border border-[#dec0b3]/50 rounded-xl p-3 space-y-1.5">
+                <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Navbar Pill Live Preview:</span>
+                <div className="flex items-center gap-2">
+                  <span className="h-7 px-3 rounded-full text-[11px] font-bold bg-[#9b4100] text-white flex items-center shadow-xs">
+                    All Pickles
+                  </span>
+                  <span className="h-7 px-3 rounded-full text-[11px] font-semibold bg-[#f4ece7] text-[#574238] border border-[#dec0b3]/40 flex items-center shadow-xs">
+                    {categoryForm.name || 'Your Category Name'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex items-center gap-3 pt-2 border-t border-stone-100">
+                <button
+                  type="submit"
+                  disabled={categorySaving}
+                  className="px-5 py-2.5 rounded-xl bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs cursor-pointer shadow-sm disabled:opacity-50 flex items-center gap-2 active:scale-95 transition-all"
+                >
+                  {categorySaving && <RefreshCw size={14} className="animate-spin" />}
+                  <span>{categorySaving ? 'Saving...' : editingCategoryId ? 'Save Changes' : 'Add Category to Navbar'}</span>
+                </button>
+
+                {editingCategoryId && (
+                  <button
+                    type="button"
+                    onClick={handleResetCategoryForm}
+                    className="px-4 py-2.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-50 font-bold text-xs cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Right: Category Library Table (7 Cols) */}
+            <div className="lg:col-span-7 bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden space-y-0">
+              <div className="p-4 sm:p-5 border-b border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Configured Categories ({categoriesList.length})
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    These items form the top navigation pills for shoppers
+                  </p>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 text-stone-600 font-bold border-b border-stone-200 uppercase tracking-wider text-[10px]">
+                    <tr>
+                      <th className="py-3 px-4">Pill / Category Name</th>
+                      <th className="py-3 px-4">URL Slug</th>
+                      <th className="py-3 px-4 text-center">Live Products</th>
+                      <th className="py-3 px-4 text-center">Order</th>
+                      <th className="py-3 px-4 text-center">Status</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100 font-medium">
+                    {categoriesList.map((cat) => (
+                      <tr key={cat.id} className="hover:bg-stone-50/70 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <span className="h-6 px-2.5 rounded-full text-[10px] font-bold bg-[#f4ece7] text-[#574238] border border-[#dec0b3]/50 flex items-center shrink-0">
+                              {cat.name}
+                            </span>
+                            {cat.description && (
+                              <span className="text-[10px] text-stone-400 truncate max-w-[150px]" title={cat.description}>
+                                {cat.description}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-mono text-stone-600">
+                          <span className="bg-stone-100 px-1.5 py-0.5 rounded text-[11px]">
+                            {cat.slug}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono font-bold text-stone-700">
+                          {cat.product_count ?? 0}
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono font-bold text-stone-700">
+                          {cat.display_order ?? 0}
+                        </td>
+                        <td className="py-3 px-4 text-center whitespace-nowrap">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleCategoryActive(cat.id)}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold cursor-pointer transition-colors ${
+                              cat.is_active
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
+                                : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
+                            }`}
+                          >
+                            {cat.is_active ? '● Active' : '○ Hidden'}
+                          </button>
+                        </td>
+                        <td className="py-3 px-4 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleEditCategory(cat)}
+                              className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600 hover:text-stone-900 cursor-pointer"
+                              title="Edit Category"
+                            >
+                              <Edit3 size={15} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCategory(cat.id, cat.name)}
+                              className="p-1.5 hover:bg-red-50 text-red-600 hover:text-red-800 rounded-lg transition-colors cursor-pointer"
+                              title="Delete Category"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {categoriesList.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-stone-400">
+                          No categories configured yet. Add your first category using the form on the left.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

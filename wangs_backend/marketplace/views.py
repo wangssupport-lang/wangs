@@ -2569,3 +2569,25 @@ class AdminHeroBannerViewSet(viewsets.ModelViewSet):
         )
         return Response({'status': 'success', 'is_active': banner.is_active})
 
+
+class AdminCategoryViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUserRole]
+    serializer_class = CategorySerializer
+    queryset = Category.objects.all().order_by('display_order', 'id')
+    pagination_class = None
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        cat = self.get_object()
+        cat.is_active = not cat.is_active
+        cat.save(update_fields=['is_active'])
+        AuditLog.objects.create(
+            user=request.user,
+            action='CATEGORY_TOGGLED',
+            target_model='Category',
+            target_id=str(cat.id),
+            details={'name': cat.name, 'is_active': cat.is_active}
+        )
+        return Response({'status': 'success', 'is_active': cat.is_active})
+
+

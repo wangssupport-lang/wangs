@@ -15,7 +15,7 @@ from .views import (
     AdminUserViewSet, AdminSellerRequestView, PlatformSettingsView, AdminToggleSellerRegistrationView,
     AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
     AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet,
-    PublicNotificationView
+    AdminCategoryViewSet, PublicNotificationView
 )
 
 router = DefaultRouter()
@@ -29,6 +29,7 @@ router.register(r'admin/manufacturers', AdminManufacturerViewSet, basename='admi
 router.register(r'admin/products', AdminProductViewSet, basename='admin-product')
 router.register(r'admin/orders', AdminOrderViewSet, basename='admin-order')
 router.register(r'admin/hero-banners', AdminHeroBannerViewSet, basename='admin-hero-banner')
+router.register(r'admin/categories', AdminCategoryViewSet, basename='admin-category')
 
 urlpatterns = [
     # Auth & Resend Email OTP

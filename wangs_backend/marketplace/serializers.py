@@ -338,6 +338,7 @@ class ManufacturerApplicationSerializer(serializers.ModelSerializer):
 
 class CategorySerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField()
+    slug = serializers.SlugField(required=False, allow_blank=True)
 
     class Meta:
         model = Category
@@ -345,6 +346,28 @@ class CategorySerializer(serializers.ModelSerializer):
 
     def get_product_count(self, obj):
         return obj.products.filter(is_active=True, status=Product.Status.APPROVED).count()
+
+    def create(self, validated_data):
+        if not validated_data.get('slug'):
+            base_slug = slugify(validated_data['name'])
+            slug = base_slug or 'category'
+            counter = 1
+            while Category.objects.filter(slug=slug).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            validated_data['slug'] = slug
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if 'name' in validated_data and not validated_data.get('slug'):
+            base_slug = slugify(validated_data['name'])
+            slug = base_slug or 'category'
+            counter = 1
+            while Category.objects.filter(slug=slug).exclude(pk=instance.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            validated_data['slug'] = slug
+        return super().update(instance, validated_data)
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
