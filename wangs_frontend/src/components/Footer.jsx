@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Truck, Store, Mail,
-  ArrowRight, Lock, Sparkles, HeartHandshake, Phone
+  ArrowRight, Lock, Sparkles, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -71,11 +71,11 @@ export default function Footer() {
         </div>
       )}
 
-      {/* 3. Main Footer Links & Newsletter Grid */}
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 lg:gap-8">
-          {/* Column 1: Brand Identity & Mission (4 cols on lg) */}
-          <div className="lg:col-span-4 space-y-4">
+      {/* 3. Main Footer Links */}
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-10 lg:py-14">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-10">
+          {/* Column 1: Brand Identity & Mission */}
+          <div className="space-y-4 max-w-md">
             <Link to="/" className="flex items-center gap-3 group w-fit">
               <div className="w-10 h-10 rounded-xl bg-[#fff8f4] p-1 flex items-center justify-center shadow-md border border-stone-700/60 transition-transform group-hover:scale-105">
                 <img
@@ -94,7 +94,7 @@ export default function Footer() {
               </div>
             </Link>
 
-            <p className="text-xs text-stone-400 leading-relaxed max-w-sm">
+            <p className="text-xs text-stone-400 leading-relaxed">
               Discover Bharat’s richest heirloom pickle traditions. Authentic, small-batch avakaya, gongura, lonche, uppinakayi, and pachadi — sun-matured by master culinary custodians and delivered in earthenware-safe protection.
             </p>
 
@@ -112,51 +112,12 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Column 2: Regional Heritage Belts (3 cols on lg) */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
-              Regional Terroirs
-            </h4>
-            <ul className="space-y-2 text-xs text-stone-400 font-medium">
-              <li>
-                <Link to="/products?category=andhra-gongura" className="hover:text-amber-400 transition-colors">
-                  Andhra Avakaya &amp; Gongura
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?category=rajasthani-ker" className="hover:text-amber-400 transition-colors">
-                  Rajasthani Ker Sangri
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?category=punjabi-mustard" className="hover:text-amber-400 transition-colors">
-                  Punjabi Cold-Pressed Mango
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?category=northeast-bhoot" className="hover:text-amber-400 transition-colors">
-                  North-East Bhoot Jolokia
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?category=gujarati-chhundo" className="hover:text-amber-400 transition-colors">
-                  Gujarati Sweet Chhundo
-                </Link>
-              </li>
-              <li>
-                <Link to="/products?category=malabar-lemon" className="hover:text-amber-400 transition-colors">
-                  Kerala Malabar Kadumanga
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Artisanal Marketplace (2 cols on lg) */}
-          <div className="lg:col-span-2 space-y-3">
+          {/* Column 2: Artisan Marketplace */}
+          <div className="space-y-3">
             <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
               Artisan Marketplace
             </h4>
-            <ul className="space-y-2 text-xs text-stone-400 font-medium">
+            <ul className="space-y-2.5 text-xs text-stone-400 font-medium">
               {(allowSellerRegistration || isAuthorizedToSell) && (
                 <li>
                   <Link
@@ -180,45 +141,6 @@ export default function Footer() {
               <li>
                 <Link to="/about" className="hover:text-amber-400 transition-colors">
                   Kitchen Hygiene Standards
-                </Link>
-              </li>
-              <li>
-                <Link to="/wangsadminspace" className="text-stone-500 hover:text-stone-300 transition-colors">
-                  Marketplace Admin Portal
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Customer Care & Assurance (3 cols on lg) */}
-          <div className="lg:col-span-3 space-y-3">
-            <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
-              Customer Care
-            </h4>
-            <ul className="space-y-2 text-xs text-stone-400 font-medium">
-              <li>
-                <Link to="/account" className="hover:text-amber-400 transition-colors">
-                  Track Jar Consignment
-                </Link>
-              </li>
-              <li>
-                <Link to="/shipping" className="hover:text-amber-400 transition-colors">
-                  Martaban Packaging Guard
-                </Link>
-              </li>
-              <li>
-                <Link to="/refunds" className="hover:text-amber-400 transition-colors">
-                  Replacement Guarantee
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="hover:text-amber-400 transition-colors">
-                  Contact Food Curators
-                </Link>
-              </li>
-              <li>
-                <Link to="/terms" className="hover:text-amber-400 transition-colors">
-                  Platform Marketplace Terms
                 </Link>
               </li>
             </ul>
