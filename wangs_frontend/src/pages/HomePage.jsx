@@ -36,15 +36,44 @@ export default function HomePage() {
   const { addToCart } = useCart();
   const { allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
   const toast = useToast();
-  const [bestsellers, setBestsellers] = useState([]);
-  const [allProducts, setAllProducts] = useState([]);
-  const [dealProducts, setDealProducts] = useState([]);
+  const [bestsellers, setBestsellers] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('wangs_best_cache_v2');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+  const [allProducts, setAllProducts] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('wangs_prods_cache_v2');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
+  const [dealProducts, setDealProducts] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('wangs_deals_cache_v2');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
   const [activeFilter, setActiveFilter] = useState('ALL');
-  const [heroBanners, setHeroBanners] = useState([]);
+  const [heroBanners, setHeroBanners] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('wangs_banners_cache_v2');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
 
   const bannerScrollRef = useRef(null);
   const isInteractingWithBanner = useRef(false);
+
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const touchDeltaX = useRef(0);
+  const isSwipingHorizontal = useRef(false);
 
   const displayBanners = (heroBanners && heroBanners.length > 0)
     ? heroBanners
@@ -111,7 +140,42 @@ export default function HomePage() {
     setActiveBannerIndex(idx);
   }, []);
 
-  // Smooth, snappy 4s carousel auto-rotation decoupled from state re-renders
+  // Smooth finger swipe gesture handling
+  const handleTouchStart = (e) => {
+    isInteractingWithBanner.current = true;
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    touchDeltaX.current = 0;
+    isSwipingHorizontal.current = false;
+  };
+
+  const handleTouchMove = (e) => {
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = e.touches[0].clientY - touchStartY.current;
+    touchDeltaX.current = deltaX;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 8) {
+      isSwipingHorizontal.current = true;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isSwipingHorizontal.current && Math.abs(touchDeltaX.current) > 35) {
+      if (touchDeltaX.current < 0) {
+        // Swiped left -> next slide
+        const nextIdx = (activeBannerIndexRef.current + 1) % displayBanners.length;
+        scrollToBanner(nextIdx);
+      } else {
+        // Swiped right -> prev slide
+        const prevIdx = (activeBannerIndexRef.current - 1 + displayBanners.length) % displayBanners.length;
+        scrollToBanner(prevIdx);
+      }
+    }
+    setTimeout(() => {
+      isInteractingWithBanner.current = false;
+    }, 2500);
+  };
+
+  // Smooth, snappy 4.2s carousel auto-rotation paused during user swipe
   useEffect(() => {
     if (displayBanners.length <= 1) return;
     const interval = setInterval(() => {
@@ -141,6 +205,19 @@ export default function HomePage() {
         setAllProducts(prods);
         setHeroBanners(Array.isArray(banners) ? banners : []);
         setDealProducts(Array.isArray(deals) ? deals : []);
+
+        if (Array.isArray(deals) && deals.length > 0) {
+          try { sessionStorage.setItem('wangs_deals_cache_v2', JSON.stringify(deals)); } catch {}
+        }
+        if (Array.isArray(prods) && prods.length > 0) {
+          try { sessionStorage.setItem('wangs_prods_cache_v2', JSON.stringify(prods)); } catch {}
+        }
+        if (Array.isArray(banners) && banners.length > 0) {
+          try { sessionStorage.setItem('wangs_banners_cache_v2', JSON.stringify(banners)); } catch {}
+        }
+        if (Array.isArray(best) && best.length > 0) {
+          try { sessionStorage.setItem('wangs_best_cache_v2', JSON.stringify(best)); } catch {}
+        }
       } catch (err) {
         console.error('Failed to load products for homepage', err);
       }
@@ -153,9 +230,12 @@ export default function HomePage() {
     let sourceList = (dealProducts && dealProducts.length > 0) ? dealProducts : allProducts;
     if (!sourceList || sourceList.length === 0) return [];
 
-    const valid = sourceList.filter(
+    let valid = sourceList.filter(
       (p) => p.is_active !== false && (p.is_in_stock !== false || (Number(p.stock_quantity) || 0) > 0)
     );
+    if (valid.length === 0 && sourceList.length > 0) {
+      valid = sourceList;
+    }
 
     // Compute value metric: price & quantity must justify both
     const scored = valid.map((p) => {
@@ -936,11 +1016,12 @@ export default function HomePage() {
             <div
               ref={bannerScrollRef}
               onScroll={handleBannerScroll}
-              onTouchStart={() => { isInteractingWithBanner.current = true; }}
-              onTouchEnd={() => { setTimeout(() => { isInteractingWithBanner.current = false; }, 2500); }}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               onMouseEnter={() => { isInteractingWithBanner.current = true; }}
               onMouseLeave={() => { isInteractingWithBanner.current = false; }}
-              className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar -mx-1 px-1 py-0.5"
+              className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar -mx-1 px-1 py-0.5 touch-pan-x"
               style={{
                 WebkitOverflowScrolling: 'touch',
                 scrollSnapType: 'x mandatory',
@@ -955,13 +1036,17 @@ export default function HomePage() {
                     <Link
                       key={banner.id || index}
                       to={banner.cta_link || '/products'}
-                      className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
+                      className="w-full min-w-full snap-start shrink-0 relative overflow-hidden rounded-xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
                       style={{ backgroundColor: banner.bg_color || '#9b4100' }}
                     >
                       <img
                         src={bgImg}
                         alt={banner.title || 'Promotional Banner'}
                         className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 rounded-xl"
+                        onError={(e) => {
+                          e.currentTarget.onerror = null;
+                          e.currentTarget.src = '/images/hero/dried_beef_pickle_signature.jpg';
+                        }}
                       />
                     </Link>
                   );
@@ -970,7 +1055,7 @@ export default function HomePage() {
                 return (
                   <div
                     key={banner.id || index}
-                    className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md text-on-primary min-h-[165px] p-4 flex flex-col justify-between"
+                    className="w-full min-w-full snap-start shrink-0 relative overflow-hidden rounded-xl shadow-md text-on-primary min-h-[165px] p-4 flex flex-col justify-between"
                     style={{
                       backgroundColor: banner.bg_color || '#9b4100',
                       backgroundImage: bgImg
@@ -1028,34 +1113,6 @@ export default function HomePage() {
                 );
               })}
             </div>
-
-            {/* Previous & Next Navigation Arrows (Only shown when multiple banners exist) */}
-            {displayBanners.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const prev = (activeBannerIndex - 1 + displayBanners.length) % displayBanners.length;
-                    scrollToBanner(prev);
-                  }}
-                  className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center shadow-md z-20 cursor-pointer active:scale-90 transition-transform"
-                  aria-label="Previous Slide"
-                >
-                  <span className="material-symbols-outlined text-[17px]">chevron_left</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = (activeBannerIndex + 1) % displayBanners.length;
-                    scrollToBanner(next);
-                  }}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center shadow-md z-20 cursor-pointer active:scale-90 transition-transform"
-                  aria-label="Next Slide"
-                >
-                  <span className="material-symbols-outlined text-[17px]">chevron_right</span>
-                </button>
-              </>
-            )}
           </div>
 
           {/* External Interactive Indicator Dots under the banner */}
@@ -1262,9 +1319,23 @@ export default function HomePage() {
                 );
               })
             ) : (
-              <div className="p-4 text-xs text-outline text-center w-full">
-                Loading today's best value deals...
-              </div>
+              [1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className="w-[195px] sm:w-[205px] shrink-0 bg-surface-container-lowest rounded-xl p-2.5 shadow-sm border border-outline-variant/30 flex flex-col justify-between animate-pulse"
+                >
+                  <div className="w-full h-32 rounded-lg bg-surface-container" />
+                  <div className="mt-2 space-y-2">
+                    <div className="h-3 w-16 bg-surface-container rounded" />
+                    <div className="h-3.5 w-full bg-surface-container rounded" />
+                    <div className="flex justify-between">
+                      <div className="h-4 w-12 bg-surface-container rounded" />
+                      <div className="h-4 w-16 bg-surface-container rounded" />
+                    </div>
+                  </div>
+                  <div className="mt-2 h-7 w-full bg-surface-container rounded-lg" />
+                </div>
+              ))
             )}
           </div>
         </section>

@@ -26,8 +26,8 @@ export async function apiRequest(endpoint, options = {}) {
   let response = null;
   let networkError = null;
 
-  // Add timeout protection (default 12 seconds) so no slow or cold backend call hangs forever
-  const timeoutMs = options.timeout || 12000;
+  // Add timeout protection (default 25 seconds) so cold backend call on Render can wake up cleanly
+  const timeoutMs = options.timeout || 25000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const fetchSignal = options.signal || controller.signal;
