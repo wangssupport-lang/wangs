@@ -77,7 +77,9 @@ export default function ManufacturerRegisterPage() {
   const [showMfgConfirmPassword, setShowMfgConfirmPassword] = useState(false);
   const [showReqPassword, setShowReqPassword] = useState(false);
   const [showReqConfirmPassword, setShowReqConfirmPassword] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [appSubmitSuccess, setAppSubmitSuccess] = useState('');
+  const [otpNotice, setOtpNotice] = useState('');
+  const [reqOtpNotice, setReqOtpNotice] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [requestSuccess, setRequestSuccess] = useState(false);
 
@@ -152,7 +154,7 @@ export default function ManufacturerRegisterPage() {
     }
     setOtpLoading(true);
     setErrorMsg('');
-    setSuccessMsg('');
+    setOtpNotice('');
     try {
       const res = await api.sendOtp(emailToVerify, 'SELLER');
       setOtpSent(true);
@@ -161,11 +163,11 @@ export default function ManufacturerRegisterPage() {
       setOtpDeliveredLive(Boolean(res?.delivered_via_email));
       if (res?.delivered_via_email === false && res?.fallback_code) {
         setOtpCode(res.fallback_code);
-        setSuccessMsg(`Verification code: ${res.fallback_code} (auto-populated because email delivery was blocked by hosting firewall). Click "Confirm Code" to verify.`);
+        setOtpNotice(`Verification code: ${res.fallback_code} (auto-filled). Click "Confirm Code" to verify.`);
       } else if (res?.delivered_via_email === false) {
         setErrorMsg(res?.warning || 'Notice: Email delivery credentials issue. Please verify email address.');
       } else {
-        setSuccessMsg(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your inbox and spam folder.`);
+        setOtpNotice(res?.message || `A 6-digit verification code has been dispatched to ${emailToVerify}. Please check your inbox and spam folder.`);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to dispatch email verification code. Please check your email.');
@@ -189,7 +191,7 @@ export default function ManufacturerRegisterPage() {
       const emailToVerify = (formData.contact_email || formData.email || '').trim().toLowerCase();
       await api.verifyOtp(emailToVerify, otpCode.trim(), 'SELLER');
       setOtpVerified(true);
-      setSuccessMsg(`Email ${emailToVerify} verified successfully!`);
+      setOtpNotice(`Email ${emailToVerify} verified successfully!`);
     } catch (err) {
       setErrorMsg(err.message || 'Invalid or expired verification code.');
     } finally {
@@ -206,7 +208,7 @@ export default function ManufacturerRegisterPage() {
     }
     setReqOtpLoading(true);
     setErrorMsg('');
-    setSuccessMsg('');
+    setReqOtpNotice('');
     try {
       const res = await api.sendOtp(emailToVerify, 'SELLER_REQUEST');
       setReqOtpSent(true);
@@ -214,11 +216,11 @@ export default function ManufacturerRegisterPage() {
       setReqOtpExpiryTimer(600); // 10 minutes
       if (res?.delivered_via_email === false && res?.fallback_code) {
         setReqOtpCode(res.fallback_code);
-        setSuccessMsg(`Verification code: ${res.fallback_code} (auto-populated because email delivery was blocked by hosting firewall). Click "Confirm OTP" to verify.`);
+        setReqOtpNotice(`Verification code: ${res.fallback_code} (auto-filled). Click "Confirm OTP" to verify.`);
       } else if (res?.delivered_via_email === false) {
         setErrorMsg(res?.warning || 'Notice: Email delivery credentials are not configured in wangs_backend/.env.');
       } else {
-        setSuccessMsg(res?.message || `A 6-digit verification code has been dispatched directly to your entered email (${emailToVerify}). Please check that inbox (and spam folder).`);
+        setReqOtpNotice(res?.message || `A 6-digit verification code has been dispatched directly to your entered email (${emailToVerify}). Please check that inbox (and spam folder).`);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Failed to dispatch verification email. Please check your email and try again.');
@@ -243,7 +245,7 @@ export default function ManufacturerRegisterPage() {
       const emailToVerify = (requestData.email || '').trim().toLowerCase();
       await api.verifyOtp(emailToVerify, reqOtpCode.trim(), 'SELLER_REQUEST');
       setReqOtpVerified(true);
-      setSuccessMsg(`Email ${emailToVerify} verified successfully! You can now submit your seller request.`);
+      setReqOtpNotice(`Email ${emailToVerify} verified successfully! You can now submit your seller request.`);
     } catch (err) {
       setErrorMsg(err.message || 'Invalid or expired verification code. Please check your inbox or request a new code.');
     } finally {
@@ -323,7 +325,7 @@ export default function ManufacturerRegisterPage() {
         localStorage.setItem('wangs_is_registered_seller', 'true');
         window.dispatchEvent(new Event('wangs_seller_status_changed'));
       } catch {}
-      setSuccessMsg(res.message || 'Application submitted successfully! Our compliance team will review your details.');
+      setAppSubmitSuccess(res.message || 'Application submitted successfully! Our compliance team will review your details.');
       setTimeout(() => {
         navigate('/manufacturer');
       }, 3000);
@@ -439,10 +441,10 @@ export default function ManufacturerRegisterPage() {
                 </div>
               )}
 
-              {successMsg && (
+              {reqOtpNotice && (
                 <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2">
                   <CheckCircle size={15} className="flex-shrink-0 text-emerald-600" />
-                  <span>{successMsg}</span>
+                  <span>{reqOtpNotice}</span>
                 </div>
               )}
 
@@ -736,11 +738,11 @@ export default function ManufacturerRegisterPage() {
         </p>
       </div>
 
-      {successMsg ? (
+      {appSubmitSuccess ? (
         <div className="bg-emerald-50 border border-emerald-200 p-8 rounded-3xl text-center space-y-3">
           <CheckCircle size={38} className="text-emerald-600 mx-auto" />
           <h3 className="font-serif font-bold text-xl text-emerald-900">Application Submitted</h3>
-          <p className="text-xs text-emerald-800 max-w-md mx-auto">{successMsg}</p>
+          <p className="text-xs text-emerald-800 max-w-md mx-auto">{appSubmitSuccess}</p>
           <p className="text-xs text-stone-500">Redirecting to your manufacturer workspace...</p>
         </div>
       ) : (
@@ -1020,6 +1022,13 @@ export default function ManufacturerRegisterPage() {
                         Didn't receive it? Please check your <strong>Spam / Promotions</strong> folder. Code is valid for 10 minutes.
                       </p>
                     )}
+                  </div>
+                )}
+
+                {otpNotice && (
+                  <div className="mt-2 p-2.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl flex items-center gap-2 text-xs">
+                    <CheckCircle size={15} className="text-emerald-600 shrink-0" />
+                    <span>{otpNotice}</span>
                   </div>
                 )}
               </div>
