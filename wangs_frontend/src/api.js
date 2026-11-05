@@ -26,13 +26,23 @@ export async function apiRequest(endpoint, options = {}) {
   let response = null;
   let networkError = null;
 
+  // Add timeout protection (default 12 seconds) so no slow or cold backend call hangs forever
+  const timeoutMs = options.timeout || 12000;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const fetchSignal = options.signal || controller.signal;
+  const { timeout, ...fetchOptions } = options;
+
   try {
     response = await fetch(primaryUrl, {
-      ...options,
+      ...fetchOptions,
+      signal: fetchSignal,
       headers,
     });
   } catch (err) {
     networkError = err;
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   // If primaryUrl failed or returned 502/503/504 (e.g. proxy rewrite failure),
@@ -40,9 +50,12 @@ export async function apiRequest(endpoint, options = {}) {
   if (!response || (response.status >= 502 && response.status <= 504)) {
     const fallbackUrl = `${DIRECT_BACKEND}${endpoint}`;
     if (primaryUrl !== fallbackUrl) {
+      const fallbackController = new AbortController();
+      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), timeoutMs);
       try {
         response = await fetch(fallbackUrl, {
-          ...options,
+          ...fetchOptions,
+          signal: options.signal || fallbackController.signal,
           headers,
         });
       } catch (fallbackErr) {
@@ -51,8 +64,13 @@ export async function apiRequest(endpoint, options = {}) {
             ? 'Could not connect to Wangs backend at https://wangs.onrender.com. Please try again.'
             : 'Could not connect to backend server. Please verify the backend is running at http://127.0.0.1:8000.'
         );
+      } finally {
+        clearTimeout(fallbackTimeoutId);
       }
     } else if (networkError) {
+      if (networkError.name === 'AbortError') {
+        throw new Error('Connection timed out. Please try again.');
+      }
       throw networkError;
     }
   }

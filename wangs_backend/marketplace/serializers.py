@@ -51,12 +51,16 @@ class AdminUserSerializer(serializers.ModelSerializer):
         return obj.is_authorized_to_sell()
 
     def get_orders_count(self, obj):
+        if hasattr(obj, '_orders_count'):
+            return obj._orders_count
         q = Q(user=obj)
         if obj.email:
             q |= Q(customer_email__iexact=obj.email)
         return Order.objects.filter(q).distinct().count()
 
     def get_total_spent(self, obj):
+        if hasattr(obj, '_total_spent'):
+            return str(obj._total_spent)
         q = Q(user=obj)
         if obj.email:
             q |= Q(customer_email__iexact=obj.email)

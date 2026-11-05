@@ -8,6 +8,7 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q, Sum, Count, ProtectedError
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.utils import timezone
@@ -1543,10 +1544,16 @@ class AdminMetricsView(views.APIView):
         dispatched_orders = Order.objects.filter(status=Order.Status.DISPATCHED).count()
         delivered_orders = Order.objects.filter(status=Order.Status.DELIVERED).count()
 
-        gmv = paid_orders.aggregate(sum=Sum('total_amount'))['sum'] or Decimal('0.00')
-        platform_commission = paid_orders.aggregate(sum=Sum('platform_commission_total'))['sum'] or Decimal('0.00')
-        customer_platform_fees = paid_orders.aggregate(sum=Sum('customer_platform_fee'))['sum'] or Decimal('0.00')
-        delivery_collections = paid_orders.aggregate(sum=Sum('delivery_fee'))['sum'] or Decimal('0.00')
+        order_sums = paid_orders.aggregate(
+            gmv=Sum('total_amount'),
+            platform_commission=Sum('platform_commission_total'),
+            customer_platform_fees=Sum('customer_platform_fee'),
+            delivery_collections=Sum('delivery_fee')
+        )
+        gmv = order_sums['gmv'] or Decimal('0.00')
+        platform_commission = order_sums['platform_commission'] or Decimal('0.00')
+        customer_platform_fees = order_sums['customer_platform_fees'] or Decimal('0.00')
+        delivery_collections = order_sums['delivery_collections'] or Decimal('0.00')
 
         total_users = User.objects.count()
         total_customers = User.objects.filter(role=User.Role.CUSTOMER).count()
@@ -1560,15 +1567,16 @@ class AdminMetricsView(views.APIView):
 
         # Platform All-Seller Totals
         total_products_all_sellers = Product.objects.count()
-        total_items_sold_all_sellers = OrderItem.objects.filter(
+        item_sums = OrderItem.objects.filter(
             order__payment_status=Order.PaymentStatus.PAID
-        ).aggregate(sum=Sum('quantity'))['sum'] or 0
+        ).aggregate(
+            total_items=Sum('quantity'),
+            total_revenue=Sum('subtotal')
+        )
+        total_items_sold_all_sellers = item_sums['total_items'] or 0
+        total_items_sales_revenue = item_sums['total_revenue'] or Decimal('0.00')
         if total_items_sold_all_sellers == 0:
             total_items_sold_all_sellers = OrderItem.objects.all().aggregate(sum=Sum('quantity'))['sum'] or 0
-
-        total_items_sales_revenue = OrderItem.objects.filter(
-            order__payment_status=Order.PaymentStatus.PAID
-        ).aggregate(sum=Sum('subtotal'))['sum'] or Decimal('0.00')
         if total_items_sales_revenue == Decimal('0.00'):
             total_items_sales_revenue = OrderItem.objects.all().aggregate(sum=Sum('subtotal'))['sum'] or Decimal('0.00')
 
@@ -1609,7 +1617,7 @@ class AdminMetricsView(views.APIView):
 
 
 class AdminManufacturerViewSet(viewsets.ModelViewSet):
-    queryset = ManufacturerProfile.objects.all().order_by('-created_at')
+    queryset = ManufacturerProfile.objects.select_related('user').order_by('-created_at')
     serializer_class = ManufacturerProfileSerializer
     permission_classes = [IsAdminUserRole]
     pagination_class = None
@@ -1748,7 +1756,7 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
 
 
 class AdminProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all().order_by('-created_at')
+    queryset = Product.objects.select_related('manufacturer', 'manufacturer__user').prefetch_related('reviews').order_by('-created_at')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminUserRole]
     pagination_class = None
@@ -1807,7 +1815,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
 
 class AdminOrderViewSet(viewsets.ModelViewSet):
-    queryset = Order.objects.all().order_by('-created_at')
+    queryset = Order.objects.select_related('user').prefetch_related('items', 'items__product', 'items__manufacturer').order_by('-created_at')
     serializer_class = OrderSerializer
     permission_classes = [IsAdminUserRole]
     pagination_class = None
@@ -1862,10 +1870,18 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
 
 
 class AdminUserViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
-    queryset = User.objects.all().order_by('-date_joined')
     serializer_class = AdminUserSerializer
     permission_classes = [IsAdminUserRole]
     pagination_class = None
+
+    def get_queryset(self):
+        return User.objects.select_related('manufacturer_profile').annotate(
+            _orders_count=Count('orders', distinct=True),
+            _total_spent=Coalesce(
+                Sum('orders__total_amount', filter=Q(orders__payment_status=Order.PaymentStatus.PAID)),
+                Decimal('0.00')
+            )
+        ).order_by('-date_joined')
 
     def destroy(self, request, *args, **kwargs):
         target_user = self.get_object()
@@ -2100,19 +2116,33 @@ class AdminSellerRequestView(views.APIView):
         logs = AuditLog.objects.filter(
             action='SELLER_AUTHORIZATION_REQUESTED'
         ).order_by('-created_at')
+
+        # Batch lookup users and approval logs to prevent N+1 queries
+        emails = list({
+            (l.details.get('email') or '').strip().lower()
+            for l in logs
+            if l.details and l.details.get('email')
+        })
+        user_map = {
+            u.email.lower(): u
+            for u in User.objects.filter(email__in=emails)
+        } if emails else {}
+
+        approved_emails = set(
+            AuditLog.objects.filter(
+                action='SELLER_AUTHORIZATION_APPROVED',
+                details__email__in=emails
+            ).values_list('details__email', flat=True)
+        ) if emails else set()
+
         requests_list = []
         for l in logs:
             details = l.details or {}
             email = (details.get('email') or '').strip().lower()
             status_val = details.get('status')
 
-            user_match = User.objects.filter(email__iexact=email).first() if email else None
-
-            # Check if an approval log exists for this applicant email
-            has_approval_log = AuditLog.objects.filter(
-                action='SELLER_AUTHORIZATION_APPROVED',
-                details__email__iexact=email
-            ).exists() if email else False
+            user_match = user_map.get(email)
+            has_approval_log = email in approved_emails
 
             is_approved = bool(
                 status_val == 'APPROVED' or
@@ -2397,7 +2427,7 @@ class AdminSettlementsView(views.APIView):
 
     def get(self, request):
         balances = SettlementService.calculate_manufacturer_balances()
-        records = ManufacturerSettlement.objects.all().order_by('-created_at')
+        records = ManufacturerSettlement.objects.select_related('manufacturer').order_by('-created_at')
         return Response({
             'manufacturer_balances': balances,
             'settlement_records': ManufacturerSettlementSerializer(records, many=True).data,
@@ -2441,7 +2471,7 @@ class AdminAuditLogsView(views.APIView):
     permission_classes = [IsAdminUserRole]
 
     def get(self, request):
-        logs = AuditLog.objects.all().order_by('-created_at')[:50]
+        logs = AuditLog.objects.select_related('user').order_by('-created_at')[:50]
         return Response(AuditLogSerializer(logs, many=True).data)
 
 

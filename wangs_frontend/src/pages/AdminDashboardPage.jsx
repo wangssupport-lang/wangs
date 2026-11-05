@@ -19,30 +19,50 @@ const extractList = (data) => {
   return [];
 };
 
+const ADMIN_CACHE_KEY = 'wangs_admin_cache_v2';
+
+const readAdminCache = () => {
+  try {
+    const raw = sessionStorage.getItem(ADMIN_CACHE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+};
+
+const saveAdminCache = (data) => {
+  try {
+    sessionStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(data));
+  } catch {}
+};
+
 export default function AdminDashboardPage() {
   const { user, isAdmin, loading: authLoading, login, logout, allowSellerRegistration, isMaintenanceMode, maintenanceMessage, refreshPlatformSettings } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
+  const cachedData = readAdminCache();
+
   const [adminLoginForm, setAdminLoginForm] = useState({ username: 'admin', password: '' });
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [sessionError, setSessionError] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [secondaryLoading, setSecondaryLoading] = useState(false);
   const [togglingSellerReg, setTogglingSellerReg] = useState(false);
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
   const [customMaintenanceMsg, setCustomMaintenanceMsg] = useState('');
 
   const [activeTab, setActiveTab] = useState('metrics'); // 'metrics', 'users', 'manufacturers', 'products', 'orders', 'commission', 'settlements', 'logs'
-  const [metrics, setMetrics] = useState(null);
-  const [manufacturers, setManufacturers] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [commissionData, setCommissionData] = useState(null);
-  const [settlementData, setSettlementData] = useState(null);
-  const [auditLogs, setAuditLogs] = useState([]);
-  const [usersList, setUsersList] = useState([]);
-  const [sellerRequests, setSellerRequests] = useState([]);
-  const [subscribers, setSubscribers] = useState([]);
+  const [metrics, setMetrics] = useState(() => cachedData?.metrics || null);
+  const [manufacturers, setManufacturers] = useState(() => cachedData?.manufacturers || []);
+  const [products, setProducts] = useState(() => cachedData?.products || []);
+  const [orders, setOrders] = useState(() => cachedData?.orders || []);
+  const [commissionData, setCommissionData] = useState(() => cachedData?.commissionData || null);
+  const [settlementData, setSettlementData] = useState(() => cachedData?.settlementData || null);
+  const [auditLogs, setAuditLogs] = useState(() => cachedData?.auditLogs || []);
+  const [usersList, setUsersList] = useState(() => cachedData?.usersList || []);
+  const [sellerRequests, setSellerRequests] = useState(() => cachedData?.sellerRequests || []);
+  const [subscribers, setSubscribers] = useState(() => cachedData?.subscribers || []);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
   const [userStatusFilter, setUserStatusFilter] = useState('ALL');
@@ -52,7 +72,7 @@ export default function AdminDashboardPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [sellerSearch, setSellerSearch] = useState('');
   const [sellerStatusFilter, setSellerStatusFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !cachedData?.metrics);
 
   // Dedicated "Yet to be Approved" Space State
   const [pendingTabFilter, setPendingTabFilter] = useState('PENDING'); // 'PENDING', 'ALL', 'AUTHORIZED', 'PROFILES'
@@ -90,7 +110,7 @@ export default function AdminDashboardPage() {
   });
 
   // Hero Promo Banners Management State
-  const [heroBanners, setHeroBanners] = useState([]);
+  const [heroBanners, setHeroBanners] = useState(() => cachedData?.heroBanners || []);
   const [bannerUploading, setBannerUploading] = useState(false);
   const [editingBannerId, setEditingBannerId] = useState(null);
   const [bannerForm, setBannerForm] = useState({
@@ -110,7 +130,7 @@ export default function AdminDashboardPage() {
   const [bannerImagePreview, setBannerImagePreview] = useState('');
 
   // Product Categories Management State (Storefront Navbar Pills & Catalog Filters)
-  const [categoriesList, setCategoriesList] = useState([]);
+  const [categoriesList, setCategoriesList] = useState(() => cachedData?.categoriesList || []);
   const [categorySaving, setCategorySaving] = useState(false);
   const [editingCategoryId, setEditingCategoryId] = useState(null);
   const [categoryForm, setCategoryForm] = useState({
@@ -126,11 +146,18 @@ export default function AdminDashboardPage() {
     return msg.includes('permission') || msg.includes('403') || msg.includes('401') || msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not authenticated');
   };
 
-  const loadAdminData = async () => {
-    setLoading(true);
+  const loadAdminData = async (isManualRefresh = false) => {
+    if (isManualRefresh) {
+      setIsRefreshing(true);
+    } else if (!metrics && !cachedData?.metrics) {
+      setLoading(true);
+    }
     setSessionError(null);
+
     try {
-      const [met, mfgs, prods, ords, comm, stl, logs, usrs, reqs, subs, banners, cats] = await Promise.all([
+      // PHASE 1: Fast Core Operational Data (Metrics, Manufacturers, Seller Inflow)
+      // Unblocks the entire dashboard UI in ~150ms!
+      const [met, mfgs, reqs] = await Promise.all([
         api.getAdminMetrics().catch((err) => {
           if (checkIsAuthError(err)) throw err;
           console.warn('Metrics failed', err);
@@ -141,59 +168,79 @@ export default function AdminDashboardPage() {
           console.warn('Manufacturers failed', err);
           return [];
         }),
-        api.getAdminProducts().catch((err) => {
-          if (checkIsAuthError(err)) throw err;
-          console.warn('Products failed', err);
-          return [];
-        }),
-        api.getAdminOrders().catch((err) => {
-          if (checkIsAuthError(err)) throw err;
-          console.warn('Orders failed', err);
-          return [];
-        }),
-        api.getCommissionSettings().catch((err) => {
-          if (checkIsAuthError(err)) throw err;
-          console.warn('Commission failed', err);
-          return null;
-        }),
-        api.getSettlements().catch((err) => {
-          if (checkIsAuthError(err)) throw err;
-          console.warn('Settlements failed', err);
-          return null;
-        }),
-        api.getAuditLogs().catch((err) => {
-          if (checkIsAuthError(err)) throw err;
-          console.warn('Audit logs failed', err);
-          return [];
-        }),
-        api.getAdminUsers().catch(() => []),
         api.getAdminSellerRequests().catch(() => []),
-        api.getMaintenanceSubscribers().catch(() => []),
-        api.getAdminHeroBanners().catch(() => []),
-        api.getAdminCategories().catch(() => []),
       ]);
-      setMetrics(met || null);
-      setManufacturers(extractList(mfgs));
-      setProducts(extractList(prods));
-      setOrders(extractList(ords));
-      setCommissionData(comm || null);
-      setSettlementData(stl || null);
-      setAuditLogs(extractList(logs));
-      setUsersList(extractList(usrs));
-      setSellerRequests(extractList(reqs));
-      setSubscribers(extractList(subs));
-      setHeroBanners(extractList(banners));
-      setCategoriesList(extractList(cats));
 
-      if (comm?.current) {
+      const parsedMfgs = extractList(mfgs);
+      const parsedReqs = extractList(reqs);
+
+      setMetrics(met || null);
+      setManufacturers(parsedMfgs);
+      setSellerRequests(parsedReqs);
+
+      // Unblock the UI immediately!
+      setLoading(false);
+
+      // PHASE 2: Secondary Tab Data loaded smoothly in background with Promise.allSettled
+      setSecondaryLoading(true);
+      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes] = await Promise.allSettled([
+        api.getAdminProducts(),
+        api.getAdminOrders(),
+        api.getCommissionSettings(),
+        api.getSettlements(),
+        api.getAuditLogs(),
+        api.getAdminUsers(),
+        api.getMaintenanceSubscribers(),
+        api.getAdminHeroBanners(),
+        api.getAdminCategories(),
+      ]);
+
+      const parsedProds = prodsRes.status === 'fulfilled' ? extractList(prodsRes.value) : (cachedData?.products || []);
+      const parsedOrds = ordsRes.status === 'fulfilled' ? extractList(ordsRes.value) : (cachedData?.orders || []);
+      const parsedComm = commRes.status === 'fulfilled' ? commRes.value : (cachedData?.commissionData || null);
+      const parsedStl = stlRes.status === 'fulfilled' ? stlRes.value : (cachedData?.settlementData || null);
+      const parsedLogs = logsRes.status === 'fulfilled' ? extractList(logsRes.value) : (cachedData?.auditLogs || []);
+      const parsedUsrs = usrsRes.status === 'fulfilled' ? extractList(usrsRes.value) : (cachedData?.usersList || []);
+      const parsedSubs = subsRes.status === 'fulfilled' ? extractList(subsRes.value) : (cachedData?.subscribers || []);
+      const parsedBanners = bannersRes.status === 'fulfilled' ? extractList(bannersRes.value) : (cachedData?.heroBanners || []);
+      const parsedCats = catsRes.status === 'fulfilled' ? extractList(catsRes.value) : (cachedData?.categoriesList || []);
+
+      setProducts(parsedProds);
+      setOrders(parsedOrds);
+      setCommissionData(parsedComm);
+      setSettlementData(parsedStl);
+      setAuditLogs(parsedLogs);
+      setUsersList(parsedUsrs);
+      setSubscribers(parsedSubs);
+      setHeroBanners(parsedBanners);
+      setCategoriesList(parsedCats);
+
+      if (parsedComm?.current) {
         setCommForm({
-          default_commission_rate: comm.current.default_commission_rate,
-          customer_platform_fee: comm.current.customer_platform_fee,
-          default_delivery_fee: comm.current.default_delivery_fee,
-          free_delivery_threshold: comm.current.free_delivery_threshold,
+          default_commission_rate: parsedComm.current.default_commission_rate,
+          customer_platform_fee: parsedComm.current.customer_platform_fee,
+          default_delivery_fee: parsedComm.current.default_delivery_fee,
+          free_delivery_threshold: parsedComm.current.free_delivery_threshold,
           reason: '',
         });
       }
+
+      // Save complete snapshot to cache
+      saveAdminCache({
+        metrics: met || null,
+        manufacturers: parsedMfgs,
+        sellerRequests: parsedReqs,
+        products: parsedProds,
+        orders: parsedOrds,
+        commissionData: parsedComm,
+        settlementData: parsedStl,
+        auditLogs: parsedLogs,
+        usersList: parsedUsrs,
+        subscribers: parsedSubs,
+        heroBanners: parsedBanners,
+        categoriesList: parsedCats,
+      });
+
     } catch (err) {
       console.error('Failed to load admin dashboard', err);
       if (checkIsAuthError(err)) {
@@ -203,6 +250,8 @@ export default function AdminDashboardPage() {
       }
     } finally {
       setLoading(false);
+      setSecondaryLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -931,11 +980,18 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (loading) {
+  if (loading && !metrics) {
     return (
       <div className="max-w-7xl mx-auto py-20 px-4 text-center">
         <div className="w-8 h-8 border-4 border-chilli-700 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-500 mt-2">Loading admin operational controls...</p>
+        <p className="text-xs text-stone-600 font-medium mt-3">Loading admin operational controls...</p>
+        <p className="text-[11px] text-stone-400 mt-1">Connecting to marketplace administration backend...</p>
+        <button
+          onClick={() => setLoading(false)}
+          className="mt-4 px-3.5 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer border border-stone-200"
+        >
+          Skip Waiting & Enter Dashboard
+        </button>
       </div>
     );
   }
@@ -1015,11 +1071,12 @@ export default function AdminDashboardPage() {
               <span>Storefront</span>
             </Link>
             <button
-              onClick={loadAdminData}
-              className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-forest-700 shadow-2xs"
+              onClick={() => loadAdminData(true)}
+              disabled={isRefreshing}
+              className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-forest-700 shadow-2xs disabled:opacity-75"
             >
-              <RefreshCw size={14} />
-              <span>Refresh Data</span>
+              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
             </button>
             <button
               onClick={() => { logout(); navigate('/login'); }}
@@ -1064,6 +1121,13 @@ export default function AdminDashboardPage() {
               {metrics?.total_orders ?? ordersList.length}
             </span>
           </div>
+
+          {secondaryLoading && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 shadow-2xs text-[11px] font-semibold">
+              <RefreshCw size={11} className="animate-spin text-amber-400" />
+              <span>Syncing secondary tabs in background...</span>
+            </div>
+          )}
         </div>
       </div>
 

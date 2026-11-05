@@ -269,24 +269,31 @@ class SettlementService:
     def calculate_manufacturer_balances():
         """
         Summarizes settled and pending amounts per manufacturer based on completed/paid order items.
+        Optimized with single grouped aggregation to avoid N+1 query overhead.
         """
+        from django.db.models import Sum, Count
         from .models import ManufacturerProfile
+
+        paid_items = OrderItem.objects.filter(
+            order__payment_status=Order.PaymentStatus.PAID
+        ).values('manufacturer').annotate(
+            total_sales=Sum('subtotal'),
+            total_commission=Sum('commission_amount'),
+            net_payout=Sum('manufacturer_payout'),
+            total_orders=Count('order', distinct=True)
+        )
+        stats_by_mfg = {item['manufacturer']: item for item in paid_items}
+
         results = []
         for mfg in ManufacturerProfile.objects.all():
-            items = OrderItem.objects.filter(
-                manufacturer=mfg,
-                order__payment_status=Order.PaymentStatus.PAID
-            )
-            total_sales = sum(item.subtotal for item in items)
-            total_commission = sum(item.commission_amount for item in items)
-            net_payout = sum(item.manufacturer_payout for item in items)
+            stats = stats_by_mfg.get(mfg.id, {})
             results.append({
                 'manufacturer_id': mfg.id,
                 'business_name': mfg.business_name,
                 'status': mfg.status,
-                'total_orders_count': items.values('order').distinct().count(),
-                'total_sales': quantize_amount(total_sales),
-                'total_commission': quantize_amount(total_commission),
-                'net_payable': quantize_amount(net_payout),
+                'total_orders_count': stats.get('total_orders', 0),
+                'total_sales': quantize_amount(stats.get('total_sales') or Decimal('0.00')),
+                'total_commission': quantize_amount(stats.get('total_commission') or Decimal('0.00')),
+                'net_payable': quantize_amount(stats.get('net_payout') or Decimal('0.00')),
             })
         return results
