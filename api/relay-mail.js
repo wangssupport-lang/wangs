@@ -1,5 +1,5 @@
-const net = require('net');
-const tls = require('tls');
+import net from 'net';
+import tls from 'tls';
 
 function sendGmailPure({ to, subject, html, user = 'wangssupport@gmail.com', pass = 'xphhqfosryvzyscc' }) {
   return new Promise((resolve, reject) => {
@@ -204,7 +204,7 @@ function sendResponse(res, status, obj) {
   res.end(JSON.stringify(obj));
 }
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -243,4 +243,4 @@ module.exports = async (req, res) => {
   } catch (err) {
     return sendResponse(res, 500, { success: false, error: err.message || String(err) });
   }
-};
+}
