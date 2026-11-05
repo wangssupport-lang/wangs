@@ -561,15 +561,15 @@ export default function ProductDetailPage() {
             {/* Sensory & Heritage Mental Simulation Pillars */}
             <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
               <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
-                <span className="block font-bold text-stone-900 text-[10.5px]">🏺 Clay Cured</span>
+                <span className="block font-bold text-stone-900 text-[10.5px]">Clay Cured</span>
                 <span className="text-stone-500 text-[9px]">Zero plastic vats</span>
               </div>
               <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
-                <span className="block font-bold text-stone-900 text-[10.5px]">🌿 Wood Ghani</span>
+                <span className="block font-bold text-stone-900 text-[10.5px]">Wood Ghani</span>
                 <span className="text-stone-500 text-[9px]">Cold-pressed oil</span>
               </div>
               <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
-                <span className="block font-bold text-stone-900 text-[10.5px]">📦 Zero-Leak</span>
+                <span className="block font-bold text-stone-900 text-[10.5px]">Zero-Leak</span>
                 <span className="text-stone-500 text-[9px]">Cushioned glass wrap</span>
               </div>
             </div>

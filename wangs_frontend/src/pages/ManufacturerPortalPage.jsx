@@ -1067,8 +1067,9 @@ export default function ManufacturerPortalPage() {
                         {o.shipping_city}, {o.shipping_state} {o.shipping_postal_code ? `- ${o.shipping_postal_code}` : ''}
                       </p>
                       {o.customer_phone && (
-                        <p className="text-[10px] font-mono text-stone-500 mt-0.5">
-                          📞 {o.customer_phone}
+                        <p className="text-[10px] font-mono text-stone-500 mt-0.5 flex items-center gap-1">
+                          <Phone size={10} className="text-stone-500" />
+                          <span>{o.customer_phone}</span>
                         </p>
                       )}
                     </td>
@@ -1798,14 +1799,16 @@ export default function ManufacturerPortalPage() {
                         {selectedParcelOrder.shipping_city}, {selectedParcelOrder.shipping_state} - {selectedParcelOrder.shipping_postal_code}
                       </p>
                       <div className="pt-1.5 flex items-center gap-2">
-                        <span className="font-bold text-xs text-stone-900">📞 Phone:</span>
+                        <span className="font-bold text-xs text-stone-900 flex items-center gap-1">
+                          <Phone size={11} /> Phone:
+                        </span>
                         <span className="font-mono font-bold text-xs bg-white px-2 py-0.5 rounded border border-stone-300 text-stone-950">
                           {selectedParcelOrder.customer_phone || 'N/A'}
                         </span>
                       </div>
                       {selectedParcelOrder.customer_email && (
-                        <p className="text-[10px] text-stone-500 truncate pt-0.5">
-                          ✉ {selectedParcelOrder.customer_email}
+                        <p className="text-[10px] text-stone-500 truncate pt-0.5 flex items-center gap-1">
+                          <Mail size={10} /> {selectedParcelOrder.customer_email}
                         </p>
                       )}
                     </div>
@@ -1849,8 +1852,8 @@ export default function ManufacturerPortalPage() {
                         {(selectedParcelOrder.seller_district || profile?.location_district || '')}
                         {(selectedParcelOrder.seller_pincode || profile?.pincode) ? ` - ${selectedParcelOrder.seller_pincode || profile?.pincode}` : ''}
                       </p>
-                      <p className="text-stone-800 pt-1">
-                        📞 {selectedParcelOrder.seller_contact_phone || profile?.contact_phone || 'N/A'}
+                      <p className="text-stone-800 pt-1 flex items-center gap-1">
+                        <Phone size={11} /> {selectedParcelOrder.seller_contact_phone || profile?.contact_phone || 'N/A'}
                       </p>
                     </div>
                   </div>
@@ -1953,7 +1956,7 @@ export default function ManufacturerPortalPage() {
 
               {/* Fragile & Natural Ferment Advisory */}
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 text-[11px] text-amber-950 flex items-center gap-2.5">
-                <span className="text-xl leading-none">⚠️</span>
+                <AlertTriangle size={20} className="text-amber-600 shrink-0" />
                 <div>
                   <span className="font-black uppercase tracking-wide">FRAGILE / GLASS JARS: </span>
                   <span>Contains traditional cured ferments submerged in edible mustard oil. Keep upright. Handle with care during transit.</span>
@@ -1962,7 +1965,7 @@ export default function ManufacturerPortalPage() {
 
               {/* Dotted Cut & Affix Notice */}
               <div className="pt-2 text-center text-[10px] text-stone-500 border-t border-dashed border-stone-400 font-mono">
-                ✂ CUT ALONG OUTER DOTTED LINE AND SECURELY AFFIX TO PARCEL EXTERIOR · WANGS ARTISANAL MARKETPLACE
+                CUT ALONG OUTER DOTTED LINE AND SECURELY AFFIX TO PARCEL EXTERIOR · WANGS ARTISANAL MARKETPLACE
               </div>
             </div>
           </div>
@@ -2158,8 +2161,8 @@ export default function ManufacturerPortalPage() {
                   For catalog assistance, packaging inquiries, or payout questions, contact our dedicated seller support desk:
                 </p>
                 <div className="flex flex-wrap items-center gap-4 pt-1 font-semibold text-xs">
-                  <span>✉ Email: <strong>wangssupport@gmail.com</strong></span>
-                  <span>🌐 Portal: <strong>https://wangs.in/manufacturer</strong></span>
+                  <span className="flex items-center gap-1.5"><Mail size={12} /> Email: <strong>wangssupport@gmail.com</strong></span>
+                  <span className="flex items-center gap-1.5"><Store size={12} /> Portal: <strong>https://wangs.in/manufacturer</strong></span>
                 </div>
               </div>
             </div>

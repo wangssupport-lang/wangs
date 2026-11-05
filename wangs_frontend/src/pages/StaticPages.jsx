@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ShieldCheck, Mail, MapPin, Phone, Truck, RefreshCw, Award, Flame, ShieldAlert, CheckCircle2, XCircle } from 'lucide-react';
+import { ShieldCheck, Mail, MapPin, Phone, Truck, RefreshCw, Award, Flame, ShieldAlert, CheckCircle2, XCircle, Check, X } from 'lucide-react';
 
 export function AboutPage() {
   return (
@@ -190,19 +190,19 @@ export function RefundsPage() {
             </div>
             <ul className="space-y-2 text-xs text-stone-600">
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
+                <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong>Severe Transit Breakage:</strong> Glass jar or vacuum pouch arrived cracked, broken, or crushed during courier transport.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
+                <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong>Damaged Seal or Oil Leakage:</strong> Safety pop-up vacuum seal was compromised or leaked heavily inside shipping bubble wrap upon arrival.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
+                <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong>Incorrect Product Dispatched:</strong> The received item does not match the product listed on your confirmed order invoice.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
+                <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
                 <span><strong>Proven Quality Defect on Arrival:</strong> Verified freshness or spoilage anomaly reported immediately with unboxing proof.</span>
               </li>
             </ul>
@@ -216,19 +216,19 @@ export function RefundsPage() {
             </div>
             <ul className="space-y-2 text-xs text-stone-600">
               <li className="flex items-start gap-2">
-                <span className="text-rose-500 font-bold">✕</span>
+                <X size={14} className="text-rose-500 shrink-0 mt-0.5" />
                 <span><strong>Change of Mind:</strong> Ordering errors, buyer remorse, or personal cancellation requests made after courier dispatch.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-rose-500 font-bold">✕</span>
+                <X size={14} className="text-rose-500 shrink-0 mt-0.5" />
                 <span><strong>Subjective Taste & Aroma:</strong> Individual preferences regarding traditional saltiness, mustard oil pungency, or fermented aroma.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-rose-500 font-bold">✕</span>
+                <X size={14} className="text-rose-500 shrink-0 mt-0.5" />
                 <span><strong>Spice Tolerance:</strong> King Chilli preserves are authentically fiery by design and are not eligible for returns based on heat level.</span>
               </li>
               <li className="flex items-start gap-2">
-                <span className="text-rose-500 font-bold">✕</span>
+                <X size={14} className="text-rose-500 shrink-0 mt-0.5" />
                 <span><strong>Claims Without Proof / Past 48 Hours:</strong> Requests submitted without clear unboxing photos/videos or delayed beyond the 48-hour delivery window.</span>
               </li>
             </ul>

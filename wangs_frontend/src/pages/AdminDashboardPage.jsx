@@ -1764,8 +1764,8 @@ export default function AdminDashboardPage() {
                 </div>
                 <p className="text-[11px] text-stone-500">
                   {bannerForm.is_image_only
-                    ? '🖼️ Image Only mode displays your artwork cleanly with 0 text/button overlays and no dark gradient. Tapping anywhere on the banner navigates to the destination link.'
-                    : '✍️ Standard mode overlays your headline, subtitle, badge pill, coupon code, and CTA button on top of your background photo.'}
+                    ? 'Image Only mode displays your artwork cleanly with 0 text/button overlays and no dark gradient. Tapping anywhere on the banner navigates to the destination link.'
+                    : 'Standard mode overlays your headline, subtitle, badge pill, coupon code, and CTA button on top of your background photo.'}
                 </p>
               </div>
 
@@ -3044,7 +3044,7 @@ export default function AdminDashboardPage() {
                         onClick={() => handleApproveManufacturer(m.id, 'APPROVED')}
                         className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer"
                       >
-                        ✓ Approve Manufacturer Profile
+                        Approve Manufacturer Profile
                       </button>
                       <button
                         onClick={() => handleApproveManufacturer(m.id, 'REJECTED')}
@@ -3295,7 +3295,7 @@ export default function AdminDashboardPage() {
                                 : 'bg-stone-100 text-stone-600 border border-stone-300 hover:bg-stone-200'
                             }`}
                           >
-                            {u.can_sell || u.is_authorized_to_sell ? '✓ Authorized Seller' : '✕ Customer Only'}
+                            {u.can_sell || u.is_authorized_to_sell ? 'Authorized Seller' : 'Customer Only'}
                           </button>
                         </div>
                       </td>
@@ -3422,7 +3422,7 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {req.is_authorized ? (
                         <span className="px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-full text-xs font-bold">
-                          ✓ Authorized
+                          Authorized
                         </span>
                       ) : (
                         <button
@@ -3646,7 +3646,7 @@ export default function AdminDashboardPage() {
                         >
                           <span className="text-[10px] uppercase font-semibold text-amber-700">Rank:</span>
                           <span className="font-mono text-xs font-bold text-stone-900">#{m.display_priority ?? 0}</span>
-                          <span className="text-[11px] text-amber-600 group-hover:scale-110 transition-transform">✎</span>
+                          <Edit3 size={11} className="text-amber-600 group-hover:scale-110 transition-transform" />
                         </button>
                         <button
                           onClick={() => handleToggleBrandFeatured(m.id)}

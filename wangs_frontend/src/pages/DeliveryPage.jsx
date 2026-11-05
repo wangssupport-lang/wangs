@@ -323,7 +323,7 @@ export default function DeliveryPage() {
                         : 'bg-amber-50 text-amber-800 border border-amber-200'
                     }`}
                   >
-                    {order.payment_status === 'PAID' ? '✓ PREPAID' : `COD: ₹${order.total_amount}`}
+                    {order.payment_status === 'PAID' ? 'PREPAID' : `COD: ₹${order.total_amount}`}
                   </span>
                 </div>
                 <div className="text-[11px] text-stone-500 flex items-center gap-2 flex-wrap">
@@ -545,7 +545,7 @@ export default function DeliveryPage() {
 
               {/* Fragile & Packaging Advisory */}
               <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-950 flex items-center gap-2.5">
-                <span className="text-lg leading-none">⚠️</span>
+                <AlertTriangle size={18} className="text-amber-600 shrink-0" />
                 <div>
                   <span className="font-bold uppercase tracking-wider">Fragile Glass Jars: </span>
                   <span>Hand-crafted artisanal pickle batch submerged in edible mustard oil. Keep upright and verify seal intact upon customer handoff.</span>
@@ -725,8 +725,8 @@ export default function DeliveryPage() {
             </div>
 
             <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs space-y-1 text-stone-700">
-              <p>📍 <strong>Destination:</strong> {order.formatted_address}</p>
-              <p>📦 <strong>Products:</strong> {order.total_items_count} items</p>
+              <p><MapPin size={13} className="inline text-stone-600 mr-1" /><strong>Destination:</strong> {order.formatted_address}</p>
+              <p><Package size={13} className="inline text-stone-600 mr-1" /><strong>Products:</strong> {order.total_items_count} items</p>
             </div>
 
             <div>

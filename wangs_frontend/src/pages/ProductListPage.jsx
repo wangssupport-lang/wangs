@@ -214,7 +214,7 @@ export default function ProductListPage() {
             spiceParam === 'FIERY_KING_CHILLI' ? 'bg-primary text-on-primary shadow-xs' : 'bg-surface-container text-on-surface hover:bg-surface-container-high border border-outline-variant/30'
           }`}
         >
-          🌶️ King Chilli
+          King Chilli
         </button>
       </div>
 

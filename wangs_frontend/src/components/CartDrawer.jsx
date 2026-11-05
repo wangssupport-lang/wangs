@@ -92,7 +92,7 @@ export default function CartDrawer() {
                   </span>
                 ) : (
                   <span className="font-semibold text-stone-800 flex items-center gap-1">
-                    <span>Add <strong className="text-primary font-bold">₹{Math.round(699 - subtotal)}</strong> more for a <strong className="text-amber-800">Free Tasting Spoon! 🥄</strong></span>
+                    <span>Add <strong className="text-primary font-bold">₹{Math.round(699 - subtotal)}</strong> more for a <strong className="text-amber-800">Free Tasting Spoon!</strong></span>
                   </span>
                 )}
                 <span className="text-[10px] font-mono font-bold text-stone-500">

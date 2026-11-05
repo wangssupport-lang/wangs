@@ -19,7 +19,7 @@ const RECENT_ACTIVITIES = [
     slug: 'pure-raja-mircha-king-chilli-pickle',
     image: 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=200&q=80',
     time: '5 mins ago',
-    tag: '⚡ 12-Hour Express Runner'
+    tag: '12-Hour Express Runner'
   },
   {
     name: 'Ankit V.',

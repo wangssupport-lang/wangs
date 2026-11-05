@@ -744,7 +744,7 @@ export default function HomePage() {
                       : 'bg-surface-container-lowest text-on-surface hover:bg-surface-variant border border-outline-variant/30'
                   }`}
                 >
-                  Fiery Spice 🌶️🌶️🌶️
+                  Fiery Spice
                 </button>
                 <button
                   type="button"
@@ -1099,7 +1099,7 @@ export default function HomePage() {
                   : 'bg-surface-container-low text-on-surface hover:bg-surface-container'
               }`}
             >
-              <span>🌶️</span> Fiery Hot
+              Fiery Hot
             </button>
             <button
               type="button"
@@ -1451,7 +1451,7 @@ export default function HomePage() {
                         <span className="material-symbols-outlined text-[15px]">favorite</span>
                       </button>
                       <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
-                        <span>🌶️🌶️🌶️</span>
+                        <span>Hot</span>
                       </div>
                     </div>
 

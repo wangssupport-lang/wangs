@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles, Eye, EyeOff, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 
@@ -1041,7 +1041,8 @@ export default function ManufacturerRegisterPage() {
                 download="wangs_seller_rules.pdf"
                 className="inline-flex items-center gap-1 text-red-600 hover:text-red-700 font-bold text-[11px] hover:underline"
               >
-                📄 Download Official Seller Rules & Policy Handbook (PDF)
+                <FileText size={13} className="text-red-600 inline mr-1" />
+                <span>Download Official Seller Rules & Policy Handbook (PDF)</span>
               </a>
             </div>
           </div>

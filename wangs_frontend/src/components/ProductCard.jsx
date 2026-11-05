@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Plus, Minus, Check, ShoppingBag } from 'lucide-react';
+import { Heart, Plus, Minus, Check, ShoppingBag, Flame } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 
@@ -84,13 +84,13 @@ function ProductCard({ product }) {
 
   // Heat meter representation
   const spiceRating = product.heat_level || (product.spice_level ? String(product.spice_level) : 'MEDIUM');
-  let spiceIndicator = '🌶️🌶️ Medium';
+  let spiceIndicator = 'Medium Heat';
   if (spiceRating === 'EXTRA_HOT' || spiceRating === '4' || spiceRating === '5') {
-    spiceIndicator = '🌶️🌶️🌶️🌶️ Extreme Ghost Heat';
+    spiceIndicator = 'Extreme Ghost Heat';
   } else if (spiceRating === 'HOT' || spiceRating === '3') {
-    spiceIndicator = '🌶️🌶️🌶️ Fiery Hot';
+    spiceIndicator = 'Fiery Hot';
   } else if (spiceRating === 'MILD' || spiceRating === '1') {
-    spiceIndicator = '🌶️ Mild & Sweet';
+    spiceIndicator = 'Mild & Sweet';
   }
 
   return (
@@ -128,6 +128,7 @@ function ProductCard({ product }) {
 
           {/* Heat Meter Badge - Solid Clean Badge */}
           <div className="absolute bottom-2.5 left-2.5 bg-inverse-surface text-inverse-on-surface px-2 py-0.5 rounded-lg font-label-sm text-[10px] sm:text-[11px] flex items-center gap-1">
+            <Flame size={11} className="text-amber-400 shrink-0" />
             <span>{spiceIndicator}</span>
           </div>
 

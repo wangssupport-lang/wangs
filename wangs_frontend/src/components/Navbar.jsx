@@ -52,7 +52,7 @@ export default function Navbar() {
           if (sessionGreeted !== newest.id) {
             sessionStorage.setItem('wangs_notified_newest_seller', newest.id);
             toast.success(
-              `🎉 New Artisan Seller Joined: ${newest.business_name} (${newest.location_district || 'India'}) is now live on Wangs!`,
+              `New Artisan Seller Joined: ${newest.business_name} (${newest.location_district || 'India'}) is now live on Wangs!`,
               5000
             );
           }
@@ -174,9 +174,9 @@ export default function Navbar() {
   const [ribbonIndex, setRibbonIndex] = useState(0);
   const RIBBON_MESSAGES = [
     { text: "Complimentary Express Delivery on Sun-Cured Heritage Pickles above ₹499 Across India", highlight: "100% Free" },
-    { text: "⚡ Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days", highlight: "Express Local" },
-    { text: "🎁 Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!", highlight: "Free Gift" },
-    { text: "🏺 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week", highlight: "High Demand" }
+    { text: "Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days", highlight: "Express Local" },
+    { text: "Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!", highlight: "Free Gift" },
+    { text: "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week", highlight: "High Demand" }
   ];
 
   useEffect(() => {
