@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Truck, Store, Mail,
-  ArrowRight, Lock, Sparkles, Phone
+  ArrowRight, Sparkles, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -147,18 +147,8 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* 4. Bottom Legal & Payment Security Strip */}
-        <div className="border-t border-stone-800/80 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between gap-5 text-xs text-stone-400">
-          <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
-            <p>© {new Date().getFullYear()} Wangs Pickle Marketplace Pvt Ltd. Handcrafted in India.</p>
-            <div className="hidden sm:flex items-center gap-1 text-[11px] text-stone-500">
-              <span>•</span>
-              <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                <Lock size={11} /> 256-Bit SSL Encrypted
-              </span>
-            </div>
-          </div>
-
+        {/* 4. Bottom Legal Strip */}
+        <div className="border-t border-stone-800/80 mt-12 pt-8 flex items-center justify-center text-xs text-stone-400">
           {/* Legal Links (Clean without platform FSSAI mention) */}
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-medium">
             <Link to="/privacy" className="hover:text-stone-200 transition-colors">
