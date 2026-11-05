@@ -23,35 +23,68 @@ def send_smtp_email(to_email: str, subject: str, html_content: str):
     if not host_user or not host_pass:
         return False, {"error": "SMTP credentials (EMAIL_HOST_USER / EMAIL_HOST_PASSWORD) not configured."}
 
+    from django.core.mail import get_connection, EmailMultiAlternatives
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', host_user) or host_user
+    smtp_errors = []
+
+    # Attempt 1: Port 587 with STARTTLS
     try:
-        from django.core.mail import get_connection, EmailMultiAlternatives
-        connection = get_connection(
+        conn_587 = get_connection(
             backend='django.core.mail.backends.smtp.EmailBackend',
             host=getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com'),
-            port=getattr(settings, 'EMAIL_PORT', 587),
+            port=587,
             username=host_user,
             password=host_pass,
-            use_tls=getattr(settings, 'EMAIL_USE_TLS', True),
-            timeout=10
+            use_tls=True,
+            timeout=8
         )
-        from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', host_user) or host_user
         msg = EmailMultiAlternatives(
             subject=subject,
-            body="Your Wangs communication is inside this email. Please view in an HTML-capable email client.",
+            body="Your Wangs verification code is inside this email.",
             from_email=from_email,
             to=[to_email],
             reply_to=[host_user],
-            connection=connection
+            connection=conn_587
         )
         msg.attach_alternative(html_content, "text/html")
         msg.send(fail_silently=False)
-        logger.info("Email successfully dispatched via SMTP to %s", to_email)
-        print(f"[WANGS SMTP DISPATCH SUCCESS] Delivered to: {to_email} | Subject: {subject}")
-        return True, {"provider": "SMTP", "to": to_email}
-    except Exception as exc:
-        logger.error("SMTP email delivery failed to %s: %s", to_email, exc)
-        print(f"[WANGS SMTP DISPATCH ERROR] Failed to deliver to {to_email}: {exc}")
-        return False, {"provider": "SMTP", "error": str(exc)}
+        logger.info("Email successfully dispatched via SMTP (587 TLS) to %s", to_email)
+        print(f"[WANGS SMTP 587 SUCCESS] Delivered to: {to_email} | Subject: {subject}")
+        return True, {"provider": "SMTP-587", "to": to_email}
+    except Exception as exc1:
+        smtp_errors.append(f"Port 587: {exc1}")
+
+    # Attempt 2: Port 465 with direct SSL (often succeeds where 587 STARTTLS is blocked)
+    try:
+        conn_465 = get_connection(
+            backend='django.core.mail.backends.smtp.EmailBackend',
+            host=getattr(settings, 'EMAIL_HOST', 'smtp.gmail.com'),
+            port=465,
+            username=host_user,
+            password=host_pass,
+            use_ssl=True,
+            use_tls=False,
+            timeout=8
+        )
+        msg = EmailMultiAlternatives(
+            subject=subject,
+            body="Your Wangs verification code is inside this email.",
+            from_email=from_email,
+            to=[to_email],
+            reply_to=[host_user],
+            connection=conn_465
+        )
+        msg.attach_alternative(html_content, "text/html")
+        msg.send(fail_silently=False)
+        logger.info("Email successfully dispatched via SMTP (465 SSL) to %s", to_email)
+        print(f"[WANGS SMTP 465 SUCCESS] Delivered to: {to_email} | Subject: {subject}")
+        return True, {"provider": "SMTP-465", "to": to_email}
+    except Exception as exc2:
+        smtp_errors.append(f"Port 465: {exc2}")
+
+    logger.error("SMTP email delivery failed to %s: %s", to_email, " | ".join(smtp_errors))
+    print(f"[WANGS SMTP DISPATCH ERROR] Failed to deliver to {to_email}: {' | '.join(smtp_errors)}")
+    return False, {"provider": "SMTP", "error": " | ".join(smtp_errors)}
 
 
 def send_resend_email(to_email: str, subject: str, html_content: str):
@@ -138,10 +171,12 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
     # Try SMTP first if credentials are present (capable of delivering to ANY valid Gmail / external address)
     smtp_user = (os.getenv('EMAIL_HOST_USER') or getattr(settings, 'EMAIL_HOST_USER', '') or 'wangssupport@gmail.com').strip()
     smtp_pass = (os.getenv('EMAIL_HOST_PASSWORD') or getattr(settings, 'EMAIL_HOST_PASSWORD', '') or 'xphhqfosryvzyscc').replace(' ', '').strip()
+    smtp_info = None
     if smtp_user and smtp_pass:
         sent, info = send_smtp_email(to_email, subject, html_content)
         if sent:
             return True, info
+        smtp_info = info
 
     # Try Resend if configured
     resend_key = os.getenv('RESEND_API_KEY') or getattr(settings, 'RESEND_API_KEY', '')
@@ -149,9 +184,10 @@ def dispatch_email(to_email: str, subject: str, html_content: str):
         sent, info = send_resend_email(to_email, subject, html_content)
         if sent:
             return True, info
-        return False, info
+        combined_err = f"{smtp_info.get('error', '')} | Resend: {info.get('error', '')}" if smtp_info else info.get('error', '')
+        return False, {"error": combined_err, "smtp": smtp_info, "resend": info}
 
-    return False, {"error": "Email credentials missing in .env (EMAIL_HOST_USER & EMAIL_HOST_PASSWORD or RESEND_API_KEY)."}
+    return False, {"error": smtp_info.get("error", "SMTP credentials delivery failed") if smtp_info else "Email credentials missing in .env."}
 
 
 def send_otp_email(to_email: str, otp_code: str, purpose: str = 'LOGIN'):
