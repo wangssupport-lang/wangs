@@ -70,24 +70,44 @@ export default function HomePage() {
     scrollRafId.current = requestAnimationFrame(() => {
       scrollRafId.current = null;
       if (!bannerScrollRef.current) return;
-      const { scrollLeft, clientWidth } = bannerScrollRef.current;
-      if (clientWidth > 0) {
-        const idx = Math.round(scrollLeft / clientWidth);
-        if (idx >= 0 && idx < displayBanners.length && idx !== activeBannerIndexRef.current) {
-          activeBannerIndexRef.current = idx;
-          setActiveBannerIndex(idx);
+      const container = bannerScrollRef.current;
+      const { scrollLeft } = container;
+      const slides = Array.from(container.children);
+      if (slides.length > 0) {
+        let closestIdx = 0;
+        let minDiff = Infinity;
+        slides.forEach((slide, i) => {
+          const diff = Math.abs(slide.offsetLeft - container.offsetLeft - scrollLeft);
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = i;
+          }
+        });
+        if (closestIdx !== activeBannerIndexRef.current) {
+          activeBannerIndexRef.current = closestIdx;
+          setActiveBannerIndex(closestIdx);
         }
       }
     });
-  }, [displayBanners.length]);
+  }, []);
 
   const scrollToBanner = useCallback((idx) => {
     if (!bannerScrollRef.current) return;
+    const container = bannerScrollRef.current;
+    const slides = container.children;
+    if (slides && slides[idx]) {
+      const targetLeft = slides[idx].offsetLeft - container.offsetLeft;
+      container.scrollTo({
+        left: targetLeft,
+        behavior: 'smooth'
+      });
+    } else {
+      container.scrollTo({
+        left: idx * container.clientWidth,
+        behavior: 'smooth'
+      });
+    }
     activeBannerIndexRef.current = idx;
-    bannerScrollRef.current.scrollTo({
-      left: idx * bannerScrollRef.current.clientWidth,
-      behavior: 'smooth'
-    });
     setActiveBannerIndex(idx);
   }, []);
 
@@ -912,147 +932,144 @@ export default function HomePage() {
       <div className="md:hidden flex flex-col gap-4 px-3.5 pt-3 pb-8">
         {/* 1. Hero Promo Banner Carousel (Horizontally Scrollable & Swipeable) */}
         <section className="flex flex-col gap-2 relative">
-          <div
-            ref={bannerScrollRef}
-            onScroll={handleBannerScroll}
-            onTouchStart={() => { isInteractingWithBanner.current = true; }}
-            onTouchEnd={() => { setTimeout(() => { isInteractingWithBanner.current = false; }, 2500); }}
-            onMouseEnter={() => { isInteractingWithBanner.current = true; }}
-            onMouseLeave={() => { isInteractingWithBanner.current = false; }}
-            className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar -mx-1 px-1 py-0.5 gpu-accelerated"
-            style={{
-              WebkitOverflowScrolling: 'touch',
-              scrollSnapType: 'x mandatory',
-              overscrollBehaviorX: 'contain',
-              touchAction: 'pan-x pan-y',
-            }}
-          >
-            {displayBanners.map((banner, index) => {
-              const bgImg = banner.effective_image_url || banner.image_url || banner.image;
+          <div className="relative">
+            <div
+              ref={bannerScrollRef}
+              onScroll={handleBannerScroll}
+              onTouchStart={() => { isInteractingWithBanner.current = true; }}
+              onTouchEnd={() => { setTimeout(() => { isInteractingWithBanner.current = false; }, 2500); }}
+              onMouseEnter={() => { isInteractingWithBanner.current = true; }}
+              onMouseLeave={() => { isInteractingWithBanner.current = false; }}
+              className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar -mx-1 px-1 py-0.5"
+              style={{
+                WebkitOverflowScrolling: 'touch',
+                scrollSnapType: 'x mandatory',
+              }}
+            >
+              {displayBanners.map((banner, index) => {
+                const bgImg = banner.effective_image_url || banner.image_url || banner.image;
 
-              // If admin configured this banner as Image-Only, render clean graphic without dark gradient or text overlays
-              if (banner.is_image_only && bgImg) {
-                return (
-                  <Link
-                    key={banner.id || index}
-                    to={banner.cta_link || '/products'}
-                    className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
-                    style={{ backgroundColor: banner.bg_color || '#9b4100' }}
-                  >
-                    <img
-                      src={bgImg}
-                      alt={banner.title || 'Promotional Banner'}
-                      className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 rounded-xl"
-                    />
-
-                    {/* Slide Indicator Dots Inside Card */}
-                    {displayBanners.length > 1 && (
-                      <div className="absolute bottom-2.5 right-3 flex items-center gap-1 z-20 pointer-events-none bg-black/40 backdrop-blur-xs px-2 py-1 rounded-full">
-                        {displayBanners.map((_, dotIdx) => (
-                          <span
-                            key={dotIdx}
-                            className={`h-1.5 rounded-full transition-all ${
-                              activeBannerIndex === dotIdx ? 'w-3.5 bg-white' : 'w-1.5 bg-white/50'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </Link>
-                );
-              }
-
-              return (
-                <div
-                  key={banner.id || index}
-                  className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md text-on-primary min-h-[165px] p-4 flex flex-col justify-between"
-                  style={{
-                    backgroundColor: banner.bg_color || '#9b4100',
-                    backgroundImage: bgImg
-                      ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url(${bgImg})`
-                      : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                  }}
-                >
-                  <div className="flex flex-col gap-1 z-10">
-                    {banner.badge_text && (
-                      <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-                        <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
-                        <span>{banner.badge_text}</span>
-                      </span>
-                    )}
-                    <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
-                      {banner.title}
-                    </h2>
-                    {banner.subtitle && (
-                      <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2 drop-shadow-xs">
-                        {banner.subtitle}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center justify-between z-10 pt-2">
-                    {banner.coupon_code ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigator.clipboard?.writeText(banner.coupon_code);
-                          toast.success(`Coupon code ${banner.coupon_code} copied!`);
-                        }}
-                        className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
-                        title="Tap to copy code"
-                      >
-                        <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
-                        <span className="font-label-md text-xs font-bold text-white tracking-wider">
-                          {banner.coupon_code}
-                        </span>
-                      </button>
-                    ) : <div />}
-
+                // If admin configured this banner as Image-Only, render clean graphic without dark gradient or text overlays
+                if (banner.is_image_only && bgImg) {
+                  return (
                     <Link
+                      key={banner.id || index}
                       to={banner.cta_link || '/products'}
-                      className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+                      className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
+                      style={{ backgroundColor: banner.bg_color || '#9b4100' }}
                     >
-                      <span>{banner.cta_text || 'Shop Now'}</span>
-                      <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                      <img
+                        src={bgImg}
+                        alt={banner.title || 'Promotional Banner'}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 rounded-xl"
+                      />
                     </Link>
-                  </div>
+                  );
+                }
 
-                  {/* Slide Indicator Dots Inside Card */}
-                  <div className="absolute bottom-3 right-28 flex items-center gap-1 z-20 pointer-events-none">
-                    {displayBanners.length > 1 ? (
-                      displayBanners.map((_, dotIdx) => (
-                        <span
-                          key={dotIdx}
-                          className={`h-1.5 rounded-full transition-all ${
-                            activeBannerIndex === dotIdx ? 'w-3.5 bg-white' : 'w-1.5 bg-white/50'
-                          }`}
-                        />
-                      ))
-                    ) : (
-                      <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
-                      </>
-                    )}
+                return (
+                  <div
+                    key={banner.id || index}
+                    className="w-full min-w-full snap-center shrink-0 relative overflow-hidden rounded-xl shadow-md text-on-primary min-h-[165px] p-4 flex flex-col justify-between"
+                    style={{
+                      backgroundColor: banner.bg_color || '#9b4100',
+                      backgroundImage: bgImg
+                        ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url(${bgImg})`
+                        : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                    }}
+                  >
+                    <div className="flex flex-col gap-1 z-10">
+                      {banner.badge_text && (
+                        <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                          <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
+                          <span>{banner.badge_text}</span>
+                        </span>
+                      )}
+                      <h2 className="font-headline-sm text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                        {banner.title}
+                      </h2>
+                      {banner.subtitle && (
+                        <p className="font-body-sm text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2 drop-shadow-xs">
+                          {banner.subtitle}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between z-10 pt-2">
+                      {banner.coupon_code ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard?.writeText(banner.coupon_code);
+                            toast.success(`Coupon code ${banner.coupon_code} copied!`);
+                          }}
+                          className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
+                          title="Tap to copy code"
+                        >
+                          <span className="font-label-sm text-[10px] text-secondary-fixed">CODE:</span>
+                          <span className="font-label-md text-xs font-bold text-white tracking-wider">
+                            {banner.coupon_code}
+                          </span>
+                        </button>
+                      ) : <div />}
+
+                      <Link
+                        to={banner.cta_link || '/products'}
+                        className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+                      >
+                        <span>{banner.cta_text || 'Shop Now'}</span>
+                        <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
+
+            {/* Previous & Next Navigation Arrows (Only shown when multiple banners exist) */}
+            {displayBanners.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prev = (activeBannerIndex - 1 + displayBanners.length) % displayBanners.length;
+                    scrollToBanner(prev);
+                  }}
+                  className="absolute left-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center shadow-md z-20 cursor-pointer active:scale-90 transition-transform"
+                  aria-label="Previous Slide"
+                >
+                  <span className="material-symbols-outlined text-[17px]">chevron_left</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = (activeBannerIndex + 1) % displayBanners.length;
+                    scrollToBanner(next);
+                  }}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-black/40 hover:bg-black/60 text-white flex items-center justify-center shadow-md z-20 cursor-pointer active:scale-90 transition-transform"
+                  aria-label="Next Slide"
+                >
+                  <span className="material-symbols-outlined text-[17px]">chevron_right</span>
+                </button>
+              </>
+            )}
           </div>
 
           {/* External Interactive Indicator Dots under the banner */}
           {displayBanners.length > 1 && (
-            <div className="flex items-center justify-center gap-1.5 pt-0.5">
+            <div className="flex items-center justify-center gap-2 pt-1 pb-0.5">
               {displayBanners.map((_, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => scrollToBanner(idx)}
-                  className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                    activeBannerIndex === idx ? 'w-5 bg-primary' : 'w-1.5 bg-outline-variant/60 hover:bg-outline'
+                  className={`h-2 rounded-full transition-all cursor-pointer ${
+                    activeBannerIndex === idx
+                      ? 'w-6 bg-primary shadow-xs'
+                      : 'w-2 bg-stone-300 hover:bg-stone-400'
                   }`}
                   aria-label={`Slide ${idx + 1}`}
                 />
