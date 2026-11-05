@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag, Search, User, ChevronDown, ShieldCheck, Store,
-  Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight
+  Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight,
+  Trash2, Check, CheckSquare, Square
 } from 'lucide-react';
+import SwipeableNotificationItem from './SwipeableNotificationItem';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
@@ -31,6 +33,17 @@ export default function Navbar() {
       return [];
     }
   });
+  const [deletedNotifIds, setDeletedNotifIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('wangs_deleted_notif_ids') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // Multi-select mode state (triggered by long-press on any notification or select button)
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedNotifIds, setSelectedNotifIds] = useState([]);
 
   // Load public notification feed with automatic background refresh
   useEffect(() => {
@@ -43,7 +56,7 @@ export default function Navbar() {
 
         // If there is an unread new seller notification, notify user once per session
         const unreadSellerNotifs = notifs.filter(
-          (n) => n.type === 'NEW_SELLER' && !readNotifIds.includes(n.id)
+          (n) => n.type === 'NEW_SELLER' && !readNotifIds.includes(n.id) && !deletedNotifIds.includes(n.id)
         );
 
         if (unreadSellerNotifs.length > 0) {
@@ -80,16 +93,20 @@ export default function Navbar() {
       clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [readNotifIds]);
+  }, [readNotifIds, deletedNotifIds]);
 
-  const unreadCount = notifications.filter((n) => !readNotifIds.includes(n.id)).length;
+  // Notifications visible after excluding deleted ones
+  const visibleNotifications = notifications.filter((n) => !deletedNotifIds.includes(n.id));
+  const unreadCount = visibleNotifications.filter((n) => !readNotifIds.includes(n.id)).length;
 
   const markAllNotificationsAsRead = () => {
-    const allIds = notifications.map((n) => n.id);
-    setReadNotifIds(allIds);
+    const allIds = visibleNotifications.map((n) => n.id);
+    const updated = Array.from(new Set([...readNotifIds, ...allIds]));
+    setReadNotifIds(updated);
     try {
-      localStorage.setItem('wangs_read_seller_notifs', JSON.stringify(allIds));
+      localStorage.setItem('wangs_read_seller_notifs', JSON.stringify(updated));
     } catch {}
+    toast.success('Marked all as read');
   };
 
   const handleNotificationClick = (notif) => {
@@ -101,7 +118,80 @@ export default function Navbar() {
       } catch {}
     }
     setNotificationsOpen(false);
+    setIsSelectMode(false);
+    setSelectedNotifIds([]);
     navigate(notif.link || '/brands');
+  };
+
+  // 1. Delete single notification (invoked by swipe-left or quick-delete)
+  const handleDeleteSingleNotification = (id) => {
+    const next = [...deletedNotifIds, id];
+    setDeletedNotifIds(next);
+    setSelectedNotifIds((prev) => prev.filter((item) => item !== id));
+    try {
+      localStorage.setItem('wangs_deleted_notif_ids', JSON.stringify(next));
+    } catch {}
+    toast.success('Notification deleted');
+  };
+
+  // 2. Delete all notifications
+  const handleDeleteAllNotifications = () => {
+    if (visibleNotifications.length === 0) return;
+    if (window.confirm(`Delete all ${visibleNotifications.length} notifications?`)) {
+      const allIds = visibleNotifications.map((n) => n.id);
+      const next = Array.from(new Set([...deletedNotifIds, ...allIds]));
+      setDeletedNotifIds(next);
+      setSelectedNotifIds([]);
+      setIsSelectMode(false);
+      try {
+        localStorage.setItem('wangs_deleted_notif_ids', JSON.stringify(next));
+      } catch {}
+      toast.success('All notifications cleared');
+    }
+  };
+
+  // 3. Delete selected notifications
+  const handleDeleteSelectedNotifications = () => {
+    if (selectedNotifIds.length === 0) return;
+    const count = selectedNotifIds.length;
+    if (window.confirm(`Delete ${count} selected notification${count > 1 ? 's' : ''}?`)) {
+      const next = Array.from(new Set([...deletedNotifIds, ...selectedNotifIds]));
+      setDeletedNotifIds(next);
+      setSelectedNotifIds([]);
+      setIsSelectMode(false);
+      try {
+        localStorage.setItem('wangs_deleted_notif_ids', JSON.stringify(next));
+      } catch {}
+      toast.success(`Deleted ${count} notification${count > 1 ? 's' : ''}`);
+    }
+  };
+
+  // 4. Long press on any notification: activates selection mode and selects that item
+  const handleNotificationLongPress = (id) => {
+    setIsSelectMode(true);
+    setSelectedNotifIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  // 5. Toggle individual notification selection in select mode
+  const handleToggleSelectNotif = (id) => {
+    setSelectedNotifIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  // 6. Toggle Select All / Deselect All
+  const handleToggleSelectAll = () => {
+    if (selectedNotifIds.length === visibleNotifications.length) {
+      setSelectedNotifIds([]);
+    } else {
+      setSelectedNotifIds(visibleNotifications.map((n) => n.id));
+    }
+  };
+
+  const handleCloseNotifications = () => {
+    setNotificationsOpen(false);
+    setIsSelectMode(false);
+    setSelectedNotifIds([]);
   };
 
   // Public Categories for dynamic category navigation pills
@@ -389,14 +479,14 @@ export default function Navbar() {
 
             {/* Right: Actions Cluster */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Sell on Wangs CTA Button - Only visible when registration is enabled by admin or user is authorized */}
+              {/* Sell with Us CTA Button */}
               {(allowSellerRegistration || isAuthorizedToSell) && (
                 <Link
                   to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                   className="inline-flex items-center gap-1.5 bg-[#526048] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#3f4a36] transition-all shadow-xs active:scale-95"
                 >
                   <Store size={15} />
-                  <span>{isManufacturer ? "Seller Dashboard" : "Sell on Wangs"}</span>
+                  <span>Sell with Us</span>
                 </Link>
               )}
 
@@ -464,18 +554,18 @@ export default function Navbar() {
                         onClick={() => setUserDropdownOpen(false)}
                         className="flex items-center gap-2.5 px-4 py-2.5 text-[#1e1b18] hover:bg-[#faf2ed] transition-colors font-medium"
                       >
-                        <Package size={15} className="text-[#9b4100]" /> My Orders &amp; Addresses
+                        <Package size={15} className="text-[#9b4100]" /> My Account &amp; Orders
                       </Link>
 
-                      {isManufacturer ? (
+                      {(allowSellerRegistration || isAuthorizedToSell || isManufacturer) && (
                         <Link
-                          to="/manufacturer"
+                          to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-[#904d00] font-bold hover:bg-[#faf2ed] transition-colors"
                         >
-                          <Store size={15} className="text-[#904d00]" /> Seller Dashboard
+                          <Store size={15} className="text-[#904d00]" /> Sell with Us
                         </Link>
-                      ) : null}
+                      )}
 
                       <button
                         onClick={() => {
@@ -545,105 +635,153 @@ export default function Navbar() {
           {/* Backdrop for closing */}
           <div
             className="fixed inset-0 z-40 bg-black/25 backdrop-blur-[1px]"
-            onClick={() => setNotificationsOpen(false)}
+            onClick={handleCloseNotifications}
           />
 
-          <div className="fixed md:absolute top-14 md:top-full right-2 md:right-8 z-50 w-[calc(100vw-16px)] md:w-[380px] max-h-[82vh] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
-            {/* Header */}
-            <div className="p-3.5 bg-gradient-to-r from-[#181512] via-[#241f1a] to-[#181512] text-white flex items-center justify-between border-b border-stone-800">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#9b4100] flex items-center justify-center text-white shadow-xs">
-                  <Bell size={15} />
-                </div>
-                <div>
-                  <h3 className="font-serif font-bold text-sm leading-tight text-white">Marketplace Notifications</h3>
-                  <p className="text-[10px] text-stone-300">New seller arrivals &amp; harvest batches</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {unreadCount > 0 && (
+          <div className="fixed md:absolute top-14 md:top-full right-2 md:right-8 z-50 w-[calc(100vw-16px)] md:w-[390px] max-h-[82vh] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+            {/* Header: Normal Mode vs Multi-Select Mode */}
+            {isSelectMode ? (
+              <div className="p-3 bg-[#241f1a] text-white flex items-center justify-between border-b border-stone-800">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={markAllNotificationsAsRead}
-                    className="text-[10px] text-amber-300 hover:text-white font-bold transition-colors cursor-pointer"
+                    onClick={handleToggleSelectAll}
+                    className="flex items-center gap-1.5 text-xs font-bold text-white hover:text-amber-300 transition-colors cursor-pointer"
                   >
-                    Mark read
+                    <div className="w-4 h-4 rounded border border-white/60 bg-white/10 flex items-center justify-center">
+                      {selectedNotifIds.length === visibleNotifications.length && visibleNotifications.length > 0 && (
+                        <Check size={12} className="text-amber-400 stroke-[3]" />
+                      )}
+                    </div>
+                    <span>{selectedNotifIds.length === visibleNotifications.length ? 'Deselect All' : 'Select All'}</span>
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setNotificationsOpen(false)}
-                  className="p-1 text-stone-400 hover:text-white rounded-lg transition-colors cursor-pointer"
-                  title="Close"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
+                  <span className="text-[10px] bg-white/15 px-2 py-0.5 rounded-full text-stone-200 font-mono">
+                    {selectedNotifIds.length} of {visibleNotifications.length}
+                  </span>
+                </div>
 
-            {/* List */}
-            <div className="overflow-y-auto divide-y divide-stone-100 flex-1 p-1 max-h-[60vh]">
-              {notifications.length === 0 ? (
-                <div className="py-10 text-center text-xs text-stone-400">
-                  <Bell size={24} className="mx-auto text-stone-300 mb-2" />
-                  <p className="font-semibold text-stone-600">You're all caught up!</p>
-                  <p className="text-[11px] mt-0.5">When new artisan sellers join, you'll be notified here.</p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={selectedNotifIds.length === 0}
+                    onClick={handleDeleteSelectedNotifications}
+                    className="px-2.5 py-1 bg-red-600 hover:bg-red-700 disabled:opacity-40 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                  >
+                    <Trash2 size={12} />
+                    <span>Delete ({selectedNotifIds.length})</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsSelectMode(false);
+                      setSelectedNotifIds([]);
+                    }}
+                    className="px-2 py-1 text-xs text-stone-300 hover:text-white font-bold transition-colors cursor-pointer rounded-lg hover:bg-white/10"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 bg-gradient-to-r from-[#181512] via-[#241f1a] to-[#181512] text-white flex items-center justify-between border-b border-stone-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-[#9b4100] flex items-center justify-center text-white shadow-xs">
+                    <Bell size={15} />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-bold text-sm leading-tight text-white flex items-center gap-1.5">
+                      <span>Notifications</span>
+                      {visibleNotifications.length > 0 && (
+                        <span className="text-[10px] font-mono text-amber-300 font-bold bg-white/10 px-1.5 py-0.2 rounded-full">
+                          {visibleNotifications.length}
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[10px] text-stone-300">New seller arrivals &amp; harvest batches</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={markAllNotificationsAsRead}
+                      className="text-[10px] text-amber-300 hover:text-white font-bold transition-colors cursor-pointer"
+                    >
+                      Mark read
+                    </button>
+                  )}
+
+                  {visibleNotifications.length > 0 && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsSelectMode(true)}
+                        className="text-[10px] text-stone-300 hover:text-amber-300 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                        title="Select notifications to delete"
+                      >
+                        <CheckSquare size={12} />
+                        <span>Select</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDeleteAllNotifications}
+                        className="text-[10px] text-stone-300 hover:text-red-400 font-bold transition-colors cursor-pointer flex items-center gap-1"
+                        title="Delete all notifications"
+                      >
+                        <Trash2 size={12} />
+                        <span>Clear All</span>
+                      </button>
+                    </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleCloseNotifications}
+                    className="p-1 text-stone-400 hover:text-white rounded-lg transition-colors cursor-pointer"
+                    title="Close"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* List of Notifications */}
+            <div className="overflow-y-auto flex-1 p-2 max-h-[60vh]">
+              {visibleNotifications.length === 0 ? (
+                <div className="py-12 text-center text-xs text-stone-400">
+                  <Bell size={26} className="mx-auto text-stone-300 mb-2" />
+                  <p className="font-semibold text-stone-700">You're all caught up!</p>
+                  <p className="text-[11px] mt-0.5 text-stone-500">All notifications have been cleared or read.</p>
                 </div>
               ) : (
-                notifications.map((notif) => {
-                  const isRead = readNotifIds.includes(notif.id);
-                  return (
-                    <div
-                      key={notif.id}
-                      onClick={() => handleNotificationClick(notif)}
-                      className={`p-3 rounded-xl transition-all cursor-pointer flex items-start gap-3 ${
-                        isRead ? 'bg-transparent hover:bg-stone-50' : 'bg-amber-50/50 hover:bg-amber-50'
-                      }`}
-                    >
-                      <div className="w-9 h-9 rounded-xl bg-[#faf2ed] border border-[#dec0b3]/40 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                        {notif.type === 'NEW_SELLER' ? (
-                          <Store size={18} className="text-[#9b4100]" />
-                        ) : (
-                          <Sparkles size={18} className="text-amber-600" />
-                        )}
-                      </div>
-
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex items-center justify-between gap-1">
-                          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                            notif.type === 'NEW_SELLER'
-                              ? 'bg-emerald-100 text-emerald-800'
-                              : 'bg-amber-100 text-amber-800'
-                          }`}>
-                            {notif.type === 'NEW_SELLER' ? 'New Artisan Seller' : 'Batch Release'}
-                          </span>
-                          {!isRead && (
-                            <span className="w-2 h-2 rounded-full bg-[#9b4100] shrink-0" />
-                          )}
-                        </div>
-
-                        <p className="font-serif font-bold text-xs text-stone-900 leading-snug">
-                          {notif.title}
-                        </p>
-                        <p className="text-[11px] text-stone-600 leading-relaxed line-clamp-2">
-                          {notif.message}
-                        </p>
-
-                        <div className="flex items-center gap-1 pt-1 text-[11px] font-bold text-[#9b4100] hover:text-[#783000]">
-                          <span>Explore Kitchen Storefront</span>
-                          <ArrowRight size={12} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                visibleNotifications.map((notif) => (
+                  <SwipeableNotificationItem
+                    key={notif.id}
+                    notif={notif}
+                    isRead={readNotifIds.includes(notif.id)}
+                    isSelectMode={isSelectMode}
+                    isSelected={selectedNotifIds.includes(notif.id)}
+                    onToggleSelect={handleToggleSelectNotif}
+                    onLongPress={handleNotificationLongPress}
+                    onClick={handleNotificationClick}
+                    onDelete={handleDeleteSingleNotification}
+                  />
+                ))
               )}
             </div>
 
-            {/* Footer */}
-            <div className="p-2.5 bg-stone-50 border-t border-stone-100 text-center text-[10px] text-stone-500 font-medium flex items-center justify-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span>Real-time artisan seller onboarding alerts</span>
+            {/* Footer with Gesture Guidance */}
+            <div className="p-2 bg-stone-50 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-500 px-3">
+              <span className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Live updates</span>
+              </span>
+              <span className="text-stone-400 italic">
+                Swipe left to delete · Long press to select
+              </span>
             </div>
           </div>
         </>

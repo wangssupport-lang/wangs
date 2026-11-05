@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   User, Package, MapPin, Clock, CheckCircle, CheckCircle2, Plus, AlertCircle,
   LogOut, Trash2, Truck, Shield, ShieldCheck, ArrowRight, Copy, Check, ExternalLink,
-  Boxes, Plane, X, ChevronRight, Sparkles, Navigation
+  Boxes, Plane, X, ChevronRight, Sparkles, Navigation, Store
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -227,20 +227,6 @@ export default function CustomerAccountPage() {
             <span>Track Orders</span>
           </button>
 
-          {/* Seller Studio Button - ONLY visible if user is registered as a seller */}
-          {isManufacturer && (
-            <>
-              <span className="hidden sm:inline-block h-4 w-px bg-stone-300" />
-              <Link
-                to="/manufacturer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-red-600 text-white hover:bg-red-700 font-bold text-xs shadow-xs transition-all active:scale-98"
-              >
-                <ShieldCheck size={14} className="text-white" />
-                <span>Seller Studio</span>
-              </Link>
-            </>
-          )}
-
           <button
             onClick={() => {
               logout();
@@ -280,21 +266,8 @@ export default function CustomerAccountPage() {
               activeTab === 'profile' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
-            <User size={15} /> Profile
+            <User size={15} /> Profile &amp; Account
           </button>
-
-          {/* Seller Studio Sidebar Link - ONLY visible if user is registered as a seller */}
-          {isManufacturer && (
-            <div className="shrink-0 lg:pt-2">
-              <Link
-                to="/manufacturer"
-                className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-xs whitespace-nowrap"
-              >
-                <ShieldCheck size={15} className="text-white" />
-                <span>Seller Studio</span>
-              </Link>
-            </div>
-          )}
         </aside>
 
         {/* Tab Content */}
@@ -909,49 +882,157 @@ export default function CustomerAccountPage() {
               )}
             </div>
           ) : (
-            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4 text-xs">
-              <h3 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-2">
-                Personal Profile Details
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-stone-500 block">Username</span>
-                  <span className="font-semibold text-stone-900">{user.username}</span>
+            <div className="space-y-6">
+              {/* Account Section in Profile */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-6 text-xs">
+                {/* Account Header Banner */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-100 pb-5">
+                  <div className="flex items-center gap-3.5">
+                    <div className="w-12 h-12 rounded-2xl bg-[#9b4100] text-white flex items-center justify-center font-serif font-bold text-lg shadow-sm">
+                      {(user.first_name || user.username || 'U')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-serif font-bold text-lg text-stone-900 leading-tight">
+                          {`${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username}
+                        </h3>
+                        <span className="font-mono text-[10px] text-stone-400 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-200">
+                          #{user.id ? `WNG-${String(user.id).padStart(4, '0')}` : 'MEMBER'}
+                        </span>
+                      </div>
+                      <p className="text-stone-500 text-[11px] mt-0.5">
+                        @{user.username} · {user.email}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-bold text-[11px]">
+                      <CheckCircle2 size={13} className="text-emerald-600" />
+                      <span>Active Account</span>
+                    </span>
+                  </div>
                 </div>
+
+                {/* Account Information Grid */}
                 <div>
-                  <span className="text-stone-500 block">Email Address</span>
-                  <span className="font-semibold text-stone-900">{user.email}</span>
+                  <h4 className="font-serif font-bold text-sm text-stone-900 mb-3 flex items-center gap-2">
+                    <User size={15} className="text-[#9b4100]" />
+                    <span>Account Credentials &amp; Profile Details</span>
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 bg-stone-50/70 p-4 rounded-xl border border-stone-200/70">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Username</span>
+                      <span className="font-semibold text-stone-900 block mt-0.5">@{user.username}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Registered Email</span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="font-semibold text-stone-900 truncate">{user.email}</span>
+                        <CheckCircle size={12} className="text-emerald-600 shrink-0" title="Verified" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Phone / WhatsApp</span>
+                      <span className="font-semibold text-stone-900 block mt-0.5">{user.phone_number || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Role</span>
+                      <span className={`font-bold block mt-0.5 ${user.role === 'ADMIN' ? 'text-purple-700' : isManufacturer ? 'text-emerald-700' : 'text-stone-700'}`}>
+                        {user.role === 'ADMIN' ? 'Administrator' : isManufacturer ? 'Artisan Producer / Seller' : 'Verified Shopper'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Member Since</span>
+                      <span className="font-semibold text-stone-900 block mt-0.5">
+                        {user.date_joined ? new Date(user.date_joined).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : 'Verified Wangs Member'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Security &amp; Password</span>
+                      <Link
+                        to="/login?tab=forgot-password"
+                        className="text-[#9b4100] hover:text-[#783000] font-bold block mt-0.5 hover:underline"
+                      >
+                        Update / Reset Password →
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-stone-500 block">Contact Phone</span>
-                  <span className="font-semibold text-stone-900">{user.phone_number || 'Not added'}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block">Account Role</span>
-                  <span className="font-semibold text-red-600">{user.role}</span>
+
+                {/* Account Activity Summary */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div
+                    onClick={() => setActiveTab('orders')}
+                    className="p-3.5 bg-white border border-stone-200 rounded-xl hover:border-amber-400 transition-colors cursor-pointer flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center">
+                        <Package size={16} />
+                      </div>
+                      <div>
+                        <span className="font-bold text-stone-900 text-xs block">Order History</span>
+                        <span className="text-[11px] text-stone-500">{orders.length} orders recorded</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-stone-400" />
+                  </div>
+
+                  <div
+                    onClick={() => setActiveTab('addresses')}
+                    className="p-3.5 bg-white border border-stone-200 rounded-xl hover:border-amber-400 transition-colors cursor-pointer flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center">
+                        <MapPin size={16} />
+                      </div>
+                      <div>
+                        <span className="font-bold text-stone-900 text-xs block">Delivery Addresses</span>
+                        <span className="text-[11px] text-stone-500">{addresses.length} addresses saved</span>
+                      </div>
+                    </div>
+                    <ChevronRight size={14} className="text-stone-400" />
+                  </div>
                 </div>
               </div>
 
-              {isManufacturer && (
-                <div className="mt-4 p-4 rounded-xl bg-stone-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-1.5 text-red-400 font-bold text-xs">
-                      <ShieldCheck size={14} className="text-red-400" />
-                      <span>Seller Studio Hub</span>
+              {/* Artisan Partnership Section - ONLY "Sell with Us" button */}
+              <div className="bg-gradient-to-br from-[#faf2ed] via-white to-[#fff8f4] p-5 sm:p-6 rounded-2xl border border-[#dec0b3]/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-[#9b4100] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                    <Store size={20} />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-serif font-bold text-base text-[#1e1b18]">
+                        {isManufacturer ? "Artisan Producer Workspace" : "Sell on Wangs Marketplace"}
+                      </h4>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dec0b3]/30 text-[#9b4100]">
+                        {isManufacturer ? "Approved Seller" : "Artisan Partners"}
+                      </span>
                     </div>
-                    <p className="text-[11px] text-stone-300">
-                      Access your artisanal catalog, orders, and sales metrics.
+                    <p className="text-xs text-[#574238] max-w-lg leading-relaxed">
+                      {isManufacturer
+                        ? "Access your artisanal pickle catalog, manage inventory stock, monitor customer orders, and review weekly NEFT/RTGS bank payouts."
+                        : "Showcase your family heritage recipes, pure Raja Mircha, and fermented bamboo shoot pickles to customers nationwide with 0% listing fee."}
                     </p>
                   </div>
-                  <Link
-                    to="/manufacturer"
-                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition-all whitespace-nowrap active:scale-95 self-start sm:self-center"
-                  >
-                    <span>Open Studio</span>
-                    <ArrowRight size={12} />
-                  </Link>
                 </div>
-              )}
+
+                <Link
+                  to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#9b4100] hover:bg-[#803300] text-white font-bold text-xs shadow-md transition-all active:scale-95 whitespace-nowrap self-start sm:self-center cursor-pointer"
+                >
+                  <Store size={15} />
+                  <span>Sell with Us</span>
+                  <ArrowRight size={14} />
+                </Link>
+              </div>
             </div>
           )}
         </div>

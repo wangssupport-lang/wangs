@@ -344,6 +344,10 @@ class RequestSellerAccessView(views.APIView):
         phone = request.data.get('phone', '').strip()
         message = request.data.get('message', '').strip()
         password = request.data.get('password', '').strip()
+        bank_account_holder = request.data.get('bank_account_holder', '').strip()
+        bank_account_number = request.data.get('bank_account_number', '').strip()
+        bank_ifsc_code = request.data.get('bank_ifsc_code', '').strip().upper()
+        bank_name = request.data.get('bank_name', '').strip()
 
         if not email or not business_name:
             return Response({'detail': 'Business name and contact email are required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -410,6 +414,10 @@ class RequestSellerAccessView(views.APIView):
                 'fssai_number': fssai_number,
                 'phone': phone,
                 'message': message,
+                'bank_account_holder': bank_account_holder,
+                'bank_account_number': bank_account_number,
+                'bank_ifsc_code': bank_ifsc_code,
+                'bank_name': bank_name,
             }
         )
 
@@ -424,6 +432,10 @@ class RequestSellerAccessView(views.APIView):
                 'fssai_number': fssai_number,
                 'phone': phone,
                 'message': message,
+                'bank_account_holder': bank_account_holder,
+                'bank_account_number': bank_account_number,
+                'bank_ifsc_code': bank_ifsc_code,
+                'bank_name': bank_name,
                 'type': 'Seller Authorization Request'
             })
             # 2. Confirmation email dispatched directly to the applicant's entered email
@@ -434,6 +446,10 @@ class RequestSellerAccessView(views.APIView):
                     'location_district': location_district,
                     'fssai_number': fssai_number,
                     'phone': phone,
+                    'bank_account_holder': bank_account_holder,
+                    'bank_account_number': bank_account_number,
+                    'bank_ifsc_code': bank_ifsc_code,
+                    'bank_name': bank_name,
                 },
                 request=request
             )
@@ -2176,6 +2192,10 @@ class AdminSellerRequestView(views.APIView):
                 'location_district': details.get('location_district', ''),
                 'fssai_number': details.get('fssai_number', ''),
                 'message': details.get('message', ''),
+                'bank_account_holder': details.get('bank_account_holder', ''),
+                'bank_account_number': details.get('bank_account_number', ''),
+                'bank_ifsc_code': details.get('bank_ifsc_code', ''),
+                'bank_name': details.get('bank_name', ''),
                 'user_id': user_match.id if user_match else None,
                 'is_authorized': is_approved,
             })
@@ -2234,13 +2254,24 @@ class AdminSellerRequestView(views.APIView):
                 business_address=details.get('business_address', '') or details.get('location_district', '') or 'Artisan Workshop',
                 postal_code=details.get('postal_code', '') or '797001',
                 fssai_license_number=details.get('fssai_number', '') or '',
+                bank_account_holder=details.get('bank_account_holder', '') or '',
+                bank_account_number=details.get('bank_account_number', '') or '',
+                bank_ifsc_code=details.get('bank_ifsc_code', '') or '',
+                bank_name=details.get('bank_name', '') or '',
                 is_verified_producer=True,
                 status=ManufacturerProfile.Status.APPROVED
             )
         else:
             mfg.status = ManufacturerProfile.Status.APPROVED
             mfg.is_verified_producer = True
-            mfg.save(update_fields=['status', 'is_verified_producer'])
+            update_fields = ['status', 'is_verified_producer']
+            if details.get('bank_account_number') and not mfg.bank_account_number:
+                mfg.bank_account_holder = details.get('bank_account_holder', '') or mfg.bank_account_holder
+                mfg.bank_account_number = details.get('bank_account_number', '') or mfg.bank_account_number
+                mfg.bank_ifsc_code = details.get('bank_ifsc_code', '') or mfg.bank_ifsc_code
+                mfg.bank_name = details.get('bank_name', '') or mfg.bank_name
+                update_fields.extend(['bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name'])
+            mfg.save(update_fields=update_fields)
 
         # Automatically approve any products for this seller so they can sell immediately
         Product.objects.filter(manufacturer=mfg).update(status=Product.Status.APPROVED, is_active=True)

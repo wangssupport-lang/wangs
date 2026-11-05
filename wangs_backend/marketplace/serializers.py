@@ -21,9 +21,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'phone_number', 'is_staff', 'can_sell', 'is_authorized_to_sell',
-            'is_active', 'is_banned', 'ban_reason', 'banned_at'
+            'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined'
         ]
-        read_only_fields = ['id', 'role', 'is_staff', 'can_sell', 'is_authorized_to_sell', 'is_active', 'is_banned', 'ban_reason', 'banned_at']
+        read_only_fields = ['id', 'role', 'is_staff', 'can_sell', 'is_authorized_to_sell', 'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined']
 
     def get_is_authorized_to_sell(self, obj):
         return obj.is_authorized_to_sell()

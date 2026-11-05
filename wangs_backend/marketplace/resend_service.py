@@ -696,6 +696,10 @@ def send_admin_new_seller_registration_email(applicant_data: dict):
     phone = applicant_data.get('phone', 'Not provided')
     location_district = applicant_data.get('location_district', 'Not provided')
     fssai_number = applicant_data.get('fssai_number', 'Not provided')
+    bank_account_holder = applicant_data.get('bank_account_holder', '')
+    bank_account_number = applicant_data.get('bank_account_number', '')
+    bank_ifsc_code = applicant_data.get('bank_ifsc_code', '')
+    bank_name = applicant_data.get('bank_name', '')
     message = applicant_data.get('message', 'None provided')
     app_type = applicant_data.get('type', 'Seller Authorization Request')
 
@@ -703,6 +707,17 @@ def send_admin_new_seller_registration_email(applicant_data: dict):
     admin_space_url = f"{base_url}/wangadminspace"
 
     subject = f"New Seller Registration Request: {business_name} ({applicant_email}) - Wangs"
+
+    bank_row = f"""
+    <tr>
+      <td style="padding:6px 0;color:#78716c;font-weight:600;">Payout Settlement Bank:</td>
+      <td style="padding:6px 0;color:#1c1917;">
+        <strong>{bank_name}</strong><br>
+        <span style="font-family:monospace;font-size:12px;color:#0e3820;">A/C: {bank_account_number} | IFSC: {bank_ifsc_code}</span><br>
+        <span style="font-size:11px;color:#57534e;">Holder: {bank_account_holder}</span>
+      </td>
+    </tr>
+    """ if bank_account_number else ""
 
     msg_row = f"""
     <tr>
@@ -775,6 +790,7 @@ def send_admin_new_seller_registration_email(applicant_data: dict):
                         <td style="padding:6px 0;color:#78716c;font-weight:600;">Registration Mode:</td>
                         <td style="padding:6px 0;color:#1c1917;">{app_type}</td>
                       </tr>
+                      {bank_row}
                       {msg_row}
                     </table>
                   </div>
@@ -838,6 +854,17 @@ def send_seller_application_received_email(to_email: str, business_name: str, ap
     business_name = (business_name or 'Artisan Producer Partner').strip()
     district = applicant_data.get('location_district', 'Nagaland')
     fssai = applicant_data.get('fssai_number', 'Pending verification')
+    bank_name = applicant_data.get('bank_name', '')
+    bank_acct = applicant_data.get('bank_account_number', '')
+    bank_ifsc = applicant_data.get('bank_ifsc_code', '')
+    masked_acct = f"••••{bank_acct[-4:]}" if len(bank_acct) >= 4 else bank_acct
+
+    bank_summary_row = f"""
+    <tr>
+      <td style="color:#78716c;font-weight:600;">Payout Settlement Bank:</td>
+      <td style="color:#1c1917;font-weight:600;">{bank_name} (<span style="font-family:monospace;">{masked_acct}</span>, IFSC: <span style="font-family:monospace;">{bank_ifsc}</span>)</td>
+    </tr>
+    """ if bank_acct else ""
 
     base_url = (site_url or get_site_url(request)).rstrip('/')
     support_email = "wangssupport@gmail.com"
@@ -904,6 +931,7 @@ def send_seller_application_received_email(to_email: str, business_name: str, ap
                         <td style="color:#78716c;font-weight:600;">FSSAI Registration:</td>
                         <td style="font-family:monospace;font-weight:700;color:#0e3820;">{fssai}</td>
                       </tr>
+                      {bank_summary_row}
                     </table>
                   </div>
 

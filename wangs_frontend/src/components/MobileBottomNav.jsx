@@ -59,7 +59,7 @@ export default function MobileBottomNav({ onOpenCart }) {
         )}
       </NavLink>
 
-      {/* 3. Sell (Controlled by Admin "Sell with Us" visibility toggle) */}
+      {/* 3. Sell with Us (Controlled by Admin "Sell with Us" visibility toggle) */}
       {(allowSellerRegistration || isAuthorizedToSell) && (
         <NavLink
           to="/manufacturer/register"
@@ -77,7 +77,7 @@ export default function MobileBottomNav({ onOpenCart }) {
               >
                 storefront
               </span>
-              <span className="text-[10px] tracking-tight">Sell</span>
+              <span className="text-[10px] tracking-tight whitespace-nowrap">Sell with Us</span>
             </>
           )}
         </NavLink>
@@ -105,7 +105,29 @@ export default function MobileBottomNav({ onOpenCart }) {
         )}
       </NavLink>
 
-      {/* 5. Cart Bag */}
+      {/* 5. Account / Profile */}
+      <NavLink
+        to={user ? "/account" : "/login"}
+        className={({ isActive }) =>
+          `flex flex-col items-center gap-0.5 transition-colors ${
+            isActive ? 'text-primary font-bold' : 'hover:text-primary'
+          }`
+        }
+      >
+        {({ isActive }) => (
+          <>
+            <span
+              className="material-symbols-outlined text-[22px]"
+              style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
+            >
+              person
+            </span>
+            <span className="text-[10px] tracking-tight">Account</span>
+          </>
+        )}
+      </NavLink>
+
+      {/* 6. Cart Bag */}
       <button
         type="button"
         onClick={onOpenCart}

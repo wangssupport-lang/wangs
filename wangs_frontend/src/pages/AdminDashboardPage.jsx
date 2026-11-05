@@ -5,7 +5,7 @@ import {
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
-  Home, LogOut, Download, Copy, Check,
+  Home, LogOut, Download, Copy, Check, Landmark,
   Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -4586,6 +4586,36 @@ export default function AdminDashboardPage() {
                   {inspectingRequest.fssai_number || 'Pending verification'}
                 </span>
               </div>
+            </div>
+
+            {/* Payout Banking Details */}
+            <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/90 space-y-2">
+              <div className="flex items-center gap-1.5 text-stone-900 font-bold text-xs">
+                <Landmark size={14} className="text-amber-800" />
+                <span>Payout Settlement Bank Account</span>
+              </div>
+              {inspectingRequest.bank_account_number ? (
+                <div className="grid grid-cols-2 gap-2 text-[11px] pt-1">
+                  <div>
+                    <span className="text-stone-400 block text-[10px] uppercase font-bold">Bank Name</span>
+                    <span className="font-semibold text-stone-900">{inspectingRequest.bank_name || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px] uppercase font-bold">Account Holder</span>
+                    <span className="font-semibold text-stone-900">{inspectingRequest.bank_account_holder || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px] uppercase font-bold">Account Number</span>
+                    <span className="font-mono font-bold text-forest-950 select-all">{inspectingRequest.bank_account_number}</span>
+                  </div>
+                  <div>
+                    <span className="text-stone-400 block text-[10px] uppercase font-bold">IFSC Code</span>
+                    <span className="font-mono font-bold text-forest-950 select-all">{inspectingRequest.bank_ifsc_code || '—'}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-stone-500 italic">No bank account details recorded for this request.</p>
+              )}
             </div>
 
             {/* Pitch / Message */}

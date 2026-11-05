@@ -4,7 +4,7 @@ import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
   Plus, Edit, Eye, EyeOff, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
   Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download,
-  Lock, Mail, KeyRound, ArrowRight, Trash2, Edit3, Boxes, AlertTriangle
+  Lock, Mail, KeyRound, ArrowRight, Trash2, Edit3, Boxes, AlertTriangle, Landmark
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -25,6 +25,16 @@ export default function ManufacturerPortalPage() {
   const [loading, setLoading] = useState(true);
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
   const [showSellerRulesModal, setShowSellerRulesModal] = useState(false);
+
+  // Bank account management state
+  const [editingBank, setEditingBank] = useState(false);
+  const [bankForm, setBankForm] = useState({
+    bank_account_holder: '',
+    bank_account_number: '',
+    bank_ifsc_code: '',
+    bank_name: '',
+  });
+  const [savingBank, setSavingBank] = useState(false);
 
   // Dedicated Seller Login Space State (Username/Email & Password only)
   const [sellerPasswordIdentifier, setSellerPasswordIdentifier] = useState('');
@@ -134,6 +144,49 @@ export default function ManufacturerPortalPage() {
     }
     loadData();
   }, [user]);
+
+  useEffect(() => {
+    if (profile) {
+      setBankForm({
+        bank_account_holder: profile.bank_account_holder || '',
+        bank_account_number: profile.bank_account_number || '',
+        bank_ifsc_code: profile.bank_ifsc_code || '',
+        bank_name: profile.bank_name || '',
+      });
+    }
+  }, [profile]);
+
+  const handleSaveBankDetails = async (e) => {
+    e.preventDefault();
+    const acct = (bankForm.bank_account_number || '').trim();
+    const ifsc = (bankForm.bank_ifsc_code || '').trim().toUpperCase();
+
+    if (!acct || acct.length < 6) {
+      toast.error('Please enter a valid bank account number (minimum 6 digits).');
+      return;
+    }
+    if (!ifsc || ifsc.length !== 11) {
+      toast.error('A valid 11-character IFSC code is required (e.g. SBIN0000214).');
+      return;
+    }
+
+    setSavingBank(true);
+    try {
+      const updated = await api.updateManufacturerProfile({
+        bank_account_holder: (bankForm.bank_account_holder || '').trim(),
+        bank_account_number: acct,
+        bank_ifsc_code: ifsc,
+        bank_name: (bankForm.bank_name || '').trim(),
+      });
+      setProfile((prev) => ({ ...prev, ...updated }));
+      setEditingBank(false);
+      toast.success('Payout settlement bank details saved successfully!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update bank details.');
+    } finally {
+      setSavingBank(false);
+    }
+  };
 
   const handleSellerPasswordLogin = async (e) => {
     e.preventDefault();
@@ -1170,6 +1223,136 @@ export default function ManufacturerPortalPage() {
                 <span className="font-serif font-bold text-2xl text-forest-900">₹{financials?.net_earnings || '0.00'}</span>
               </div>
             </div>
+          </div>
+
+          {/* Payout Settlement Bank Account Card */}
+          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+                  <Landmark size={18} className="text-amber-800" />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base text-stone-900">Payout Settlement Bank Account</h3>
+                  <p className="text-[11px] text-stone-500">
+                    Weekly sales disbursements are transferred directly to this account via NEFT/RTGS
+                  </p>
+                </div>
+              </div>
+              {!editingBank ? (
+                <button
+                  type="button"
+                  onClick={() => setEditingBank(true)}
+                  className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+                >
+                  <Edit3 size={13} />
+                  <span>Update Bank Details</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEditingBank(false)}
+                  className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+                >
+                  <X size={13} />
+                  <span>Cancel</span>
+                </button>
+              )}
+            </div>
+
+            {!editingBank ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-stone-50/70 p-4 rounded-xl border border-stone-200/80">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Holder Name</span>
+                  <span className="font-semibold text-stone-900 block mt-0.5">{profile?.bank_account_holder || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Bank Name</span>
+                  <span className="font-semibold text-stone-900 block mt-0.5">{profile?.bank_name || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Number</span>
+                  <span className="font-mono font-bold text-stone-900 block mt-0.5">
+                    {profile?.bank_account_number ? `••••${profile.bank_account_number.slice(-4)}` : <span className="text-stone-400 italic font-normal">Not provided</span>}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">IFSC Code</span>
+                  <span className="font-mono font-bold text-forest-950 block mt-0.5">{profile?.bank_ifsc_code || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSaveBankDetails} className="space-y-4 bg-stone-50/80 p-4 rounded-xl border border-stone-200/90">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Account Holder Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={bankForm.bank_account_holder}
+                      onChange={(e) => setBankForm({ ...bankForm, bank_account_holder: e.target.value })}
+                      placeholder="As per bank passbook"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Bank Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={bankForm.bank_name}
+                      onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })}
+                      placeholder="e.g. State Bank of India, HDFC"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Bank Account Number *</label>
+                    <input
+                      type="text"
+                      required
+                      value={bankForm.bank_account_number}
+                      onChange={(e) => setBankForm({ ...bankForm, bank_account_number: e.target.value.replace(/\s+/g, '') })}
+                      placeholder="Enter account number"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">IFSC Code (11 Chars) *</label>
+                    <input
+                      type="text"
+                      required
+                      maxLength={11}
+                      value={bankForm.bank_ifsc_code}
+                      onChange={(e) => setBankForm({ ...bankForm, bank_ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })}
+                      placeholder="e.g. SBIN0000214"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono uppercase text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setEditingBank(false)}
+                    className="px-3.5 py-2 bg-white border border-stone-300 text-stone-700 font-bold rounded-xl text-xs hover:bg-stone-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingBank}
+                    className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <CheckCircle size={13} />
+                    <span>{savingBank ? 'Saving Details...' : 'Save Bank Details'}</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-3">

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles, Eye, EyeOff, FileText } from 'lucide-react';
+import { Store, ShieldCheck, CheckCircle, AlertCircle, ArrowRight, Lock, Mail, Clock, Sparkles, Eye, EyeOff, FileText, Landmark } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 
@@ -69,6 +69,10 @@ export default function ManufacturerRegisterPage() {
     phone: user?.phone_number || '',
     location_district: 'Kohima',
     fssai_number: '',
+    bank_account_holder: '',
+    bank_account_number: '',
+    bank_ifsc_code: '',
+    bank_name: '',
     message: '',
   });
 
@@ -263,6 +267,28 @@ export default function ManufacturerRegisterPage() {
     const fssai = (requestData.fssai_number || '').trim();
     if (!fssai || fssai.length !== 14 || !/^\d{14}$/.test(fssai)) {
       setErrorMsg('A valid 14-digit FSSAI Food Business License / Registration Number is mandatory. Please enter exactly 14 numeric digits.');
+      return;
+    }
+
+    if (!requestData.bank_account_holder?.trim()) {
+      setErrorMsg('Account holder name is required for payout settlement banking.');
+      return;
+    }
+
+    if (!requestData.bank_name?.trim()) {
+      setErrorMsg('Bank name is required for payout settlement banking.');
+      return;
+    }
+
+    const acctNum = (requestData.bank_account_number || '').trim();
+    if (!acctNum || acctNum.length < 6) {
+      setErrorMsg('Please enter a valid bank account number (minimum 6 digits).');
+      return;
+    }
+
+    const ifsc = (requestData.bank_ifsc_code || '').trim().toUpperCase();
+    if (!ifsc || ifsc.length !== 11) {
+      setErrorMsg('A valid 11-character Indian Financial System Code (IFSC) is mandatory (e.g. SBIN0000214).');
       return;
     }
 
@@ -674,6 +700,89 @@ export default function ManufacturerRegisterPage() {
                 <p className="text-[11px] text-stone-500 mt-1">
                   Mandatory 14-digit Food Safety and Standards Authority of India (FSSAI) license number.
                 </p>
+              </div>
+
+              {/* Payout Settlement Banking Details */}
+              <div className="p-4 bg-stone-50/90 rounded-2xl border border-stone-200/90 space-y-3.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-100/90 border border-amber-200 text-amber-900 flex items-center justify-center shrink-0">
+                    <Landmark size={14} className="text-amber-800" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-stone-900 text-xs">
+                      Payout Settlement Bank Account *
+                    </h4>
+                    <p className="text-[10.5px] text-stone-500">
+                      Disbursements for sold pickle jars are transferred weekly via direct NEFT/RTGS
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">
+                      Account Holder Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={requestData.bank_account_holder}
+                      onChange={(e) => setRequestData({ ...requestData, bank_account_holder: e.target.value })}
+                      placeholder="As per bank passbook"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">
+                      Bank Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={requestData.bank_name}
+                      onChange={(e) => setRequestData({ ...requestData, bank_name: e.target.value })}
+                      placeholder="e.g. State Bank of India, HDFC"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">
+                      Bank Account Number *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={requestData.bank_account_number}
+                      onChange={(e) => setRequestData({ ...requestData, bank_account_number: e.target.value.replace(/\s+/g, '') })}
+                      placeholder="Enter bank account number"
+                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-stone-700 font-semibold">
+                        IFSC Code (11 Chars) *
+                      </label>
+                      <span className={`text-[10px] font-mono font-bold ${requestData.bank_ifsc_code?.length === 11 ? 'text-emerald-700' : 'text-stone-400'}`}>
+                        {requestData.bank_ifsc_code?.length || 0}/11
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      maxLength={11}
+                      value={requestData.bank_ifsc_code}
+                      onChange={(e) => setRequestData({ ...requestData, bank_ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })}
+                      placeholder="e.g. SBIN0000214"
+                      className={`w-full px-3 py-2 bg-white border rounded-xl font-mono uppercase text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600 ${
+                        requestData.bank_ifsc_code?.length === 11 ? 'border-emerald-400 bg-emerald-50/20' : 'border-stone-200'
+                      }`}
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
