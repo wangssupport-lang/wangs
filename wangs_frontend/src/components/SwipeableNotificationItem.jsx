@@ -12,8 +12,13 @@ export default function SwipeableNotificationItem({
   onDelete,
 }) {
   const [translateX, setTranslateX] = useState(0);
-  const [isSwiping, setIsSwiping] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const cardRef = useRef(null);
+  const currentXRef = useRef(0);
+  const rafIdRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const initialOffsetRef = useRef(0);
 
   const startXRef = useRef(0);
   const startYRef = useRef(0);
@@ -25,14 +30,24 @@ export default function SwipeableNotificationItem({
   useEffect(() => {
     return () => {
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     };
   }, []);
 
-  // When entering select mode, reset any swipe offset
+  const snapTo = (val) => {
+    currentXRef.current = val;
+    setTranslateX(val);
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.transform = `translate3d(${val}px, 0, 0)`;
+      cardRef.current.style.webkitTransform = `translate3d(${val}px, 0, 0)`;
+    }
+  };
+
+  // When entering select mode, reset any swipe offset smoothly
   useEffect(() => {
     if (isSelectMode) {
-      setTranslateX(0);
-      setIsSwiping(false);
+      snapTo(0);
     }
   }, [isSelectMode]);
 
@@ -41,8 +56,10 @@ export default function SwipeableNotificationItem({
 
     startXRef.current = clientX;
     startYRef.current = clientY;
+    initialOffsetRef.current = currentXRef.current;
     isHorizontalSwipeRef.current = null;
     isLongPressTriggeredRef.current = false;
+    isDraggingRef.current = false;
 
     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     longPressTimerRef.current = setTimeout(() => {
@@ -50,8 +67,7 @@ export default function SwipeableNotificationItem({
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         try { navigator.vibrate(40); } catch {}
       }
-      setTranslateX(0);
-      setIsSwiping(false);
+      snapTo(0);
       onLongPress(notif.id);
     }, 450);
   };
@@ -80,15 +96,27 @@ export default function SwipeableNotificationItem({
     }
 
     if (isHorizontalSwipeRef.current) {
-      setIsSwiping(true);
-      if (deltaX < 0) {
-        // Swiping left to reveal delete
-        const newX = Math.max(-180, Math.min(0, deltaX));
-        setTranslateX(newX);
-      } else if (translateX < 0) {
-        // Swiping right to close
-        const newX = Math.min(0, -80 + deltaX);
-        setTranslateX(newX);
+      isDraggingRef.current = true;
+      let newX = 0;
+      if (initialOffsetRef.current < 0) {
+        newX = Math.min(0, Math.max(-180, initialOffsetRef.current + deltaX));
+      } else {
+        newX = Math.max(-180, Math.min(0, deltaX));
+      }
+
+      currentXRef.current = newX;
+
+      // 120Hz high refresh rate animation frame: direct GPU transform, 0 React re-renders!
+      if (!rafIdRef.current) {
+        rafIdRef.current = requestAnimationFrame(() => {
+          if (cardRef.current) {
+            cardRef.current.style.transition = 'none';
+            cardRef.current.style.willChange = 'transform';
+            cardRef.current.style.transform = `translate3d(${currentXRef.current}px, 0, 0)`;
+            cardRef.current.style.webkitTransform = `translate3d(${currentXRef.current}px, 0, 0)`;
+          }
+          rafIdRef.current = null;
+        });
       }
     }
   };
@@ -99,30 +127,46 @@ export default function SwipeableNotificationItem({
       longPressTimerRef.current = null;
     }
 
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+
+    if (cardRef.current) {
+      cardRef.current.style.willChange = 'auto';
+    }
+
     if (isSelectMode || isDeleting) return;
 
     if (isLongPressTriggeredRef.current) {
       return;
     }
 
-    if (isSwiping) {
-      setIsSwiping(false);
-      if (translateX <= -130) {
+    if (isDraggingRef.current) {
+      isDraggingRef.current = false;
+      const finalX = currentXRef.current;
+      if (finalX <= -130) {
         // Swiped far left: auto-delete with full exit slide
         triggerDelete();
-      } else if (translateX <= -45) {
+      } else if (finalX <= -45) {
         // Swiped moderately: snap open to reveal delete button (-80px)
-        setTranslateX(-80);
+        snapTo(-80);
       } else {
         // Snap back closed
-        setTranslateX(0);
+        snapTo(0);
       }
     }
   };
 
   const triggerDelete = () => {
     setIsDeleting(true);
+    currentXRef.current = -360;
     setTranslateX(-360);
+    if (cardRef.current) {
+      cardRef.current.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
+      cardRef.current.style.transform = 'translate3d(-360px, 0, 0)';
+      cardRef.current.style.webkitTransform = 'translate3d(-360px, 0, 0)';
+    }
     setTimeout(() => {
       onDelete(notif.id);
     }, 220);
@@ -142,9 +186,9 @@ export default function SwipeableNotificationItem({
     }
 
     // If card was swiped open, a tap simply snaps it closed
-    if (translateX < 0) {
+    if (currentXRef.current < -5) {
       e.stopPropagation();
-      setTranslateX(0);
+      snapTo(0);
       return;
     }
 
@@ -172,8 +216,9 @@ export default function SwipeableNotificationItem({
         </div>
       </div>
 
-      {/* Foreground Content Card */}
+      {/* Foreground Content Card - GPU accelerated with translate3d and hardware compositing */}
       <div
+        ref={cardRef}
         onClick={handleCardClick}
         onTouchStart={(e) => {
           const t = e.touches[0];
@@ -206,8 +251,11 @@ export default function SwipeableNotificationItem({
           }
         }}
         style={{
-          transform: `translateX(${translateX}px)`,
-          transition: isSwiping ? 'none' : 'transform 0.22s cubic-bezier(0.2, 0.8, 0.2, 1)',
+          transform: `translate3d(${translateX}px, 0, 0)`,
+          WebkitTransform: `translate3d(${translateX}px, 0, 0)`,
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          transition: 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
         className={`relative z-10 p-3 rounded-xl border transition-colors cursor-pointer flex items-start gap-3 touch-pan-y ${
           isSelected

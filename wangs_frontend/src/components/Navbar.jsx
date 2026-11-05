@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag, Search, User, ChevronDown, ShieldCheck, Store,
@@ -41,6 +41,12 @@ export default function Navbar() {
     }
   });
 
+  // Keep ref synchronized to avoid tearing down poll interval on every read/delete
+  const readNotifIdsRef = useRef(readNotifIds);
+  readNotifIdsRef.current = readNotifIds;
+  const deletedNotifIdsRef = useRef(deletedNotifIds);
+  deletedNotifIdsRef.current = deletedNotifIds;
+
   // Multi-select mode state (triggered by long-press on any notification or select button)
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [selectedNotifIds, setSelectedNotifIds] = useState([]);
@@ -52,11 +58,23 @@ export default function Navbar() {
       try {
         const notifs = await api.getPublicNotifications();
         if (cancelled || !Array.isArray(notifs)) return;
-        setNotifications(notifs);
+
+        // Fast-path equality check to eliminate unnecessary re-renders
+        setNotifications((prev) => {
+          if (
+            prev.length === notifs.length &&
+            prev.every((item, idx) => item.id === notifs[idx]?.id && item.updated_at === notifs[idx]?.updated_at)
+          ) {
+            return prev;
+          }
+          return notifs;
+        });
 
         // If there is an unread new seller notification, notify user once per session
+        const curRead = readNotifIdsRef.current;
+        const curDeleted = deletedNotifIdsRef.current;
         const unreadSellerNotifs = notifs.filter(
-          (n) => n.type === 'NEW_SELLER' && !readNotifIds.includes(n.id) && !deletedNotifIds.includes(n.id)
+          (n) => n.type === 'NEW_SELLER' && !curRead.includes(n.id) && !curDeleted.includes(n.id)
         );
 
         if (unreadSellerNotifs.length > 0) {
@@ -77,8 +95,8 @@ export default function Navbar() {
 
     loadNotifications();
 
-    // 15-second background refresh rate for real-time notification updates
-    const pollInterval = setInterval(loadNotifications, 15000);
+    // 30-second background refresh rate for smooth real-time notification updates
+    const pollInterval = setInterval(loadNotifications, 30000);
 
     // Refresh immediately on tab focus
     const handleVisibilityChange = () => {
@@ -93,7 +111,7 @@ export default function Navbar() {
       clearInterval(pollInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [readNotifIds, deletedNotifIds]);
+  }, []);
 
   // Notifications visible after excluding deleted ones
   const visibleNotifications = notifications.filter((n) => !deletedNotifIds.includes(n.id));
@@ -748,8 +766,8 @@ export default function Navbar() {
               </div>
             )}
 
-            {/* List of Notifications */}
-            <div className="overflow-y-auto flex-1 p-2 max-h-[60vh]">
+            {/* List of Notifications - GPU accelerated 120Hz momentum scrolling */}
+            <div className="overflow-y-auto flex-1 p-2 max-h-[60vh] overscroll-contain gpu-accelerated" style={{ WebkitOverflowScrolling: 'touch' }}>
               {visibleNotifications.length === 0 ? (
                 <div className="py-12 text-center text-xs text-stone-400">
                   <Bell size={26} className="mx-auto text-stone-300 mb-2" />

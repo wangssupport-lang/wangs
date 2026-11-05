@@ -13,7 +13,7 @@ export default function MobileBottomNav({ onOpenCart }) {
   return (
     <nav
       aria-label="Mobile Navigation"
-      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-outline-variant/30 flex items-center justify-around py-2 px-2 text-on-surface-variant font-label-sm shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[calc(env(safe-area-inset-bottom,0px)+6px)]"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-outline-variant/30 flex items-center justify-around py-2 px-2 text-on-surface-variant font-label-sm shadow-[0_-2px_10px_rgba(0,0,0,0.05)] pb-[calc(env(safe-area-inset-bottom,0px)+6px)] transform-gpu backface-hidden"
     >
       {/* 1. Home */}
       <NavLink
