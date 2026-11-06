@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Plus, Minus, Check, ShoppingBag, Flame } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 function ProductCard({ product }) {
   const { cart, addToCart, updateQuantity } = useCart();
+  const { user, requireAuth } = useAuth();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
@@ -23,6 +25,23 @@ function ProductCard({ product }) {
     e.stopPropagation();
     if (!inStock || adding) return;
 
+    if (!user) {
+      requireAuth(async () => {
+        setAdding(true);
+        try {
+          await addToCart(product.id, 1);
+          setAdded(true);
+          toast.success(`Added ${product.title} to Jar Bag`);
+          setTimeout(() => setAdded(false), 1500);
+        } catch (err) {
+          toast.error(err.message || 'Could not add to cart');
+        } finally {
+          setAdding(false);
+        }
+      }, 'keep items in your cart');
+      return;
+    }
+
     setAdding(true);
     try {
       await addToCart(product.id, 1);
@@ -39,6 +58,10 @@ function ProductCard({ product }) {
   const handleIncrement = async (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) {
+      requireAuth(null, 'keep items in your cart');
+      return;
+    }
     if (cartItem && cartItem.quantity < (product.stock_quantity || 99)) {
       try {
         await updateQuantity(product.id, cartItem.quantity + 1);
@@ -63,6 +86,13 @@ function ProductCard({ product }) {
   const toggleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) {
+      requireAuth(() => {
+        setIsWishlisted(true);
+        toast.success('Saved to your spice cellar');
+      }, 'save items to your wishlist');
+      return;
+    }
     setIsWishlisted(!isWishlisted);
     toast.success(isWishlisted ? 'Removed from saved batches' : 'Saved to your spice cellar');
   };

@@ -12,7 +12,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function Navbar() {
-  const { user, isManufacturer, isAuthorizedToSell, allowSellerRegistration, logout } = useAuth();
+  const { user, requireAuth, isManufacturer, isAuthorizedToSell, allowSellerRegistration, logout } = useAuth();
   const { itemsCount, setIsDrawerOpen } = useCart();
   const toast = useToast();
   const navigate = useNavigate();
@@ -636,13 +636,20 @@ export default function Navbar() {
               )}
 
               {/* Wishlist Icon */}
-              <Link
-                to="/brands"
-                className="relative p-2 rounded-full text-[#574238] hover:text-[#9b4100] hover:bg-[#faf2ed] transition-colors"
+              <button
+                type="button"
+                onClick={() => {
+                  if (!user) {
+                    requireAuth(() => navigate('/brands'), 'save items to your wishlist');
+                    return;
+                  }
+                  navigate('/brands');
+                }}
+                className="relative p-2 rounded-full text-[#574238] hover:text-[#9b4100] hover:bg-[#faf2ed] transition-colors cursor-pointer"
                 title="Wishlist / Makers"
               >
                 <Heart size={21} className="text-[#1e1b18]" />
-              </Link>
+              </button>
 
               {/* Notifications Bell (Desktop) */}
               <button

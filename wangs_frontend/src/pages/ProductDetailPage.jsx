@@ -8,12 +8,14 @@ import {
 } from 'lucide-react';
 import { api } from '../api';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
   const { addToCart, cart } = useCart();
+  const { user, requireAuth } = useAuth();
   const toast = useToast();
 
   const [product, setProduct] = useState(null);
@@ -191,8 +193,26 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!product || !isInStock || adding) return;
-    setAdding(true);
     const totalJars = currentBundle.quantity * quantity;
+
+    if (!user) {
+      requireAuth(async () => {
+        setAdding(true);
+        try {
+          await addToCart(product.id, totalJars);
+          setAdded(true);
+          toast.success(`Added ${currentBundle.name} (${totalJars} jars) of ${product.title} to your basket!`);
+          setTimeout(() => setAdded(false), 2000);
+        } catch (err) {
+          toast.error(err.message || 'Could not add to cart');
+        } finally {
+          setAdding(false);
+        }
+      }, 'keep items in your cart');
+      return;
+    }
+
+    setAdding(true);
     try {
       await addToCart(product.id, totalJars);
       setAdded(true);
@@ -208,6 +228,19 @@ export default function ProductDetailPage() {
   const handleBuyNow = async () => {
     if (!product || !isInStock) return;
     const totalJars = currentBundle.quantity * quantity;
+
+    if (!user) {
+      requireAuth(async () => {
+        try {
+          await addToCart(product.id, totalJars);
+          navigate('/checkout');
+        } catch (err) {
+          toast.error(err.message || 'Could not proceed to checkout');
+        }
+      }, 'proceed to direct checkout');
+      return;
+    }
+
     try {
       await addToCart(product.id, totalJars);
       navigate('/checkout');
@@ -243,6 +276,10 @@ export default function ProductDetailPage() {
 
   const handleAddFlexibleBundle = async () => {
     if (!product || bundleItems.length < 2 || bundleItems.length > 4 || addingBrandBundle) return;
+    if (!user) {
+      requireAuth(null, 'keep items in your cart');
+      return;
+    }
     setAddingBrandBundle(true);
     try {
       // Group items by product ID

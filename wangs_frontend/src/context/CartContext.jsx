@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 const CartContext = createContext();
 
 export function CartProvider({ children }) {
-  const { user } = useAuth();
+  const { user, requireAuth } = useAuth();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -26,6 +26,19 @@ export function CartProvider({ children }) {
   }, [user]);
 
   const addToCart = async (productId, quantity = 1) => {
+    if (!user) {
+      requireAuth(async () => {
+        try {
+          const data = await api.addToCart(productId, quantity);
+          setCart(data);
+          setIsDrawerOpen(true);
+        } catch (err) {
+          console.error('Failed adding to cart after authentication', err);
+        }
+      }, 'keep items in your cart');
+      return null;
+    }
+
     try {
       const data = await api.addToCart(productId, quantity);
       setCart(data);

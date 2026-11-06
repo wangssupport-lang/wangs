@@ -10,7 +10,7 @@ import { api } from '../api';
 
 export default function CheckoutPage() {
   const { cart, refreshCart } = useCart();
-  const { user } = useAuth();
+  const { user, requireAuth } = useAuth();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -58,6 +58,12 @@ export default function CheckoutPage() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user) {
+      requireAuth(() => {}, 'proceed with your order');
+    }
+  }, [user]);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -78,6 +84,11 @@ export default function CheckoutPage() {
   const handleCreateOrder = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+
+    if (!user) {
+      requireAuth(() => {}, 'proceed with your order');
+      return;
+    }
 
     if (!cart?.items?.length) {
       setErrorMessage('Your basket is empty.');
@@ -235,6 +246,27 @@ export default function CheckoutPage() {
           </div>
 
           <form onSubmit={handleCreateOrder} className="space-y-6">
+            {!user && (
+              <div className="bg-amber-50 border border-amber-300 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-amber-200/70 text-amber-900 flex items-center justify-center shrink-0">
+                    <ShieldCheck size={22} className="text-amber-800" />
+                  </div>
+                  <div>
+                    <h4 className="font-serif font-bold text-sm text-stone-900">Sign In Required to Place Order</h4>
+                    <p className="text-xs text-stone-600">Please sign in or create an account to verify your delivery address and proceed with payment.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => requireAuth(() => {}, 'proceed with your order')}
+                  className="px-5 py-2.5 bg-[#9b4100] text-white text-xs font-bold rounded-xl shadow-xs hover:bg-[#803500] shrink-0 active:scale-95 transition-all cursor-pointer"
+                >
+                  Sign In / Sign Up
+                </button>
+              </div>
+            )}
+
             {/* 1. Customer Details */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <h2 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-3 flex items-center gap-2">

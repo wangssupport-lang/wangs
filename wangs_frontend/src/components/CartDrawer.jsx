@@ -2,10 +2,12 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck, ShieldCheck, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function CartDrawer() {
   const { cart, isDrawerOpen, setIsDrawerOpen, updateQuantity, removeFromCart, itemsCount } = useCart();
+  const { user, requireAuth } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [updatingProductId, setUpdatingProductId] = React.useState(null);
@@ -246,14 +248,24 @@ export default function CartDrawer() {
                 >
                   View Cart
                 </Link>
-                <Link
-                  to="/checkout"
-                  onClick={() => setIsDrawerOpen(false)}
-                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-on-primary bg-primary hover:bg-primary-container rounded-xl shadow-md transition-all active:scale-95"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!user) {
+                      requireAuth(() => {
+                        setIsDrawerOpen(false);
+                        navigate('/checkout');
+                      }, 'proceed with your order');
+                      return;
+                    }
+                    setIsDrawerOpen(false);
+                    navigate('/checkout');
+                  }}
+                  className="flex-[2] py-3 flex items-center justify-center gap-1.5 text-xs font-bold text-on-primary bg-primary hover:bg-primary-container rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   <span>Proceed to Checkout</span>
                   <ArrowRight size={15} />
-                </Link>
+                </button>
               </div>
 
               <p className="text-[10px] text-stone-400 text-center flex items-center justify-center gap-1 pb-[calc(env(safe-area-inset-bottom,0px)+4px)]">

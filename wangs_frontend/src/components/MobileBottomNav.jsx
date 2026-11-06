@@ -1,11 +1,13 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
 export default function MobileBottomNav({ onOpenCart }) {
   const { itemsCount, isDrawerOpen } = useCart();
-  const { user } = useAuth();
+  const { user, requireAuth } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Hide bottom nav when cart drawer is active
   if (isDrawerOpen) return null;
@@ -60,26 +62,27 @@ export default function MobileBottomNav({ onOpenCart }) {
       </NavLink>
 
       {/* 3. Wishlist */}
-      <NavLink
-        to="/brands"
-        className={({ isActive }) =>
-          `flex flex-col items-center gap-0.5 transition-colors ${
-            isActive ? 'text-primary font-bold' : 'hover:text-primary'
-          }`
-        }
+      <button
+        type="button"
+        onClick={() => {
+          if (!user) {
+            requireAuth(() => navigate('/brands'), 'save items to your wishlist');
+            return;
+          }
+          navigate('/brands');
+        }}
+        className={`flex flex-col items-center gap-0.5 transition-colors cursor-pointer ${
+          location.pathname === '/brands' ? 'text-primary font-bold' : 'hover:text-primary'
+        }`}
       >
-        {({ isActive }) => (
-          <>
-            <span
-              className="material-symbols-outlined text-[22px]"
-              style={{ fontVariationSettings: isActive ? "'FILL' 1" : "'FILL' 0" }}
-            >
-              favorite
-            </span>
-            <span className="text-[10px] tracking-tight">Wishlist</span>
-          </>
-        )}
-      </NavLink>
+        <span
+          className="material-symbols-outlined text-[22px]"
+          style={{ fontVariationSettings: location.pathname === '/brands' ? "'FILL' 1" : "'FILL' 0" }}
+        >
+          favorite
+        </span>
+        <span className="text-[10px] tracking-tight">Wishlist</span>
+      </button>
 
       {/* 4. Account / Profile */}
       <NavLink

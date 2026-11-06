@@ -34,7 +34,7 @@ const FlashDealCountdown = React.memo(function FlashDealCountdown() {
 export default function HomePage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
-  const { allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
+  const { user, requireAuth, allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
   const toast = useToast();
   const [bestsellers, setBestsellers] = useState(() => {
     try {
@@ -359,6 +359,15 @@ export default function HomePage() {
   const handleQuickAdd = async (e, title, id = null) => {
     e.preventDefault();
     e.stopPropagation();
+    if (!user) {
+      requireAuth(async () => {
+        if (id && typeof id === 'number') {
+          await addToCart(id, 1);
+        }
+        toast.success(`Added ${title} to Jar Bag`);
+      }, 'keep items in your cart');
+      return;
+    }
     try {
       if (id && typeof id === 'number') {
         await addToCart(id, 1);
@@ -1515,9 +1524,15 @@ export default function HomePage() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          if (!user) {
+                            requireAuth(() => {
+                              toast.success('Saved to your spice cellar');
+                            }, 'save items to your wishlist');
+                            return;
+                          }
                           toast.success('Saved to your spice cellar');
                         }}
-                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform"
+                        className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform cursor-pointer"
                       >
                         <span className="material-symbols-outlined text-[15px]">favorite</span>
                       </button>

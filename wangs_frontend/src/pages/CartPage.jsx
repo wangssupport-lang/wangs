@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Tag, ShieldCheck, Truck, Sparkles } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { useToast } from '../context/ToastContext';
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, itemsCount } = useCart();
+  const { user, requireAuth } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 
@@ -303,8 +305,14 @@ export default function CartPage() {
             </div>
 
             <button
-              onClick={() => navigate('/checkout')}
-              className="w-full py-4 bg-primary hover:bg-primary-container text-on-primary font-bold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
+              onClick={() => {
+                if (!user) {
+                  requireAuth(() => navigate('/checkout'), 'proceed with your order');
+                  return;
+                }
+                navigate('/checkout');
+              }}
+              className="w-full py-4 bg-primary hover:bg-primary-container text-on-primary font-bold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
               <span>Proceed to Delivery &amp; Checkout</span>
               <ArrowRight size={15} />

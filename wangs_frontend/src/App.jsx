@@ -7,6 +7,7 @@ import { ToastProvider } from './context/ToastContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
+import AuthModal from './components/AuthModal';
 import LiveSocialProof from './components/LiveSocialProof';
 
 import HomePage from './pages/HomePage';
@@ -67,6 +68,7 @@ function AppLayout() {
       <ScrollToTop />
       {!isAdminRoute && !isDeliveryRoute && <Navbar />}
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
+      <AuthModal />
 
       <main className="flex-1">
         <ErrorBoundary>

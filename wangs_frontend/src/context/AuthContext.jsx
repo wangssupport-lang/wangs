@@ -127,6 +127,34 @@ export function AuthProvider({ children }) {
     setMfgProfile(null);
   };
 
+  const [authModalConfig, setAuthModalConfig] = useState(null);
+
+  const openAuthModal = ({ actionText = 'proceed', initialTab = 'login', onAuthenticated = null } = {}) => {
+    setAuthModalConfig({
+      actionText,
+      initialTab,
+      onAuthenticated,
+    });
+  };
+
+  const closeAuthModal = () => {
+    setAuthModalConfig(null);
+  };
+
+  const requireAuth = (callback, actionText = 'proceed') => {
+    if (user) {
+      if (typeof callback === 'function') callback(user);
+      return true;
+    }
+    openAuthModal({
+      actionText,
+      onAuthenticated: (loggedInUser) => {
+        if (typeof callback === 'function') callback(loggedInUser);
+      },
+    });
+    return false;
+  };
+
   const isAdmin = Boolean(user && (user.role === 'ADMIN' || user.is_staff === true || user.is_superuser === true));
   const isManufacturer = user && user.role === 'MANUFACTURER';
   const isAuthorizedToSell = Boolean(
@@ -146,6 +174,10 @@ export function AuthProvider({ children }) {
       isAdmin,
       isManufacturer,
       isAuthorizedToSell,
+      authModalConfig,
+      openAuthModal,
+      closeAuthModal,
+      requireAuth,
       allowSellerRegistration: Boolean(platformSettings?.allow_seller_registration),
       isMaintenanceMode: Boolean(platformSettings?.is_maintenance_mode),
       maintenanceMessage: platformSettings?.maintenance_message || "We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!",
