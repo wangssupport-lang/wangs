@@ -101,8 +101,8 @@ export default function Footer() {
             <div className="pt-2 space-y-2 border-t border-stone-800 text-xs text-stone-400">
               <div className="flex items-center gap-2 text-stone-300">
                 <Mail size={14} className="text-[#ffb691]" />
-                <a href="mailto:support@wangspickle.com" className="hover:text-amber-400 transition-colors">
-                  support@wangspickle.com
+                <a href="mailto:wangssupport@gmail.com" className="hover:text-amber-400 transition-colors">
+                  wangssupport@gmail.com
                 </a>
               </div>
               <div className="flex items-center gap-2 text-stone-300">
