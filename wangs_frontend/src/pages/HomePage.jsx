@@ -85,7 +85,7 @@ export default function HomePage() {
           badge_text: "FRESH BATCH LIVE",
           coupon_code: "ACHAR15",
           cta_text: "Shop Now",
-          cta_link: "/products?category=andhra-gongura",
+          cta_link: "/products",
           bg_color: "#9b4100",
         }
       ];

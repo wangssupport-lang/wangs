@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, Search, X, ShieldCheck } from 'lucide-react';
+import { Filter, Search, X, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
 
@@ -16,6 +16,7 @@ export default function ProductListPage() {
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [mobileFilterOpen, setMobileFilterOpen] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [featuredFallback, setFeaturedFallback] = useState([]);
 
   // Filter states
   const categoryParam = searchParams.get('category') || '';
@@ -69,6 +70,17 @@ export default function ProductListPage() {
         setTotalCount(Array.isArray(data) ? data.length : data?.count || 0);
         setHasNextPage(Boolean(data?.next));
         setHasPreviousPage(Boolean(data?.previous));
+
+        if (results.length === 0 && (categoryParam || searchParam || brandParam || spiceParam || dietaryParam)) {
+          api.getProducts().then((fallbackData) => {
+            if (!cancelled) {
+              const fList = Array.isArray(fallbackData) ? fallbackData : fallbackData?.results || [];
+              setFeaturedFallback(fList.slice(0, 6));
+            }
+          }).catch(() => {});
+        } else {
+          setFeaturedFallback([]);
+        }
       } catch (err) {
         if (cancelled) return;
         console.error('Failed to load products', err);
@@ -379,20 +391,48 @@ export default function ProductListPage() {
               </button>
             </div>
           ) : products.length === 0 ? (
-            <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 p-14 text-center space-y-4 shadow-xs">
-              <div className="w-16 h-16 rounded-2xl bg-surface-container mx-auto flex items-center justify-center text-outline">
-                <Search size={28} />
+            <div className="space-y-6">
+              <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 p-8 sm:p-12 text-center space-y-4 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-800 mx-auto flex items-center justify-center border border-amber-200 shadow-2xs">
+                  <Sparkles size={24} />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="font-serif font-bold text-lg sm:text-xl text-on-surface">
+                    {categoryParam
+                      ? 'Fresh Batches Curing in Earthenware Jars'
+                      : 'No matching pickles found'}
+                  </h3>
+                  <p className="text-xs text-on-surface-variant max-w-md mx-auto leading-relaxed">
+                    {categoryParam
+                      ? 'Our artisan kitchens are currently curing small-batches for this collection. In the meantime, discover all available heirloom jars ready for dispatch across India below!'
+                      : 'Try clearing selected spice or dietary filters to view all handcrafted items.'}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="px-5 py-2.5 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs hover:bg-primary-container transition-colors inline-flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Browse All Handcrafted Pickles</span>
+                  <ArrowRight size={14} />
+                </button>
               </div>
-              <h3 className="font-serif font-bold text-xl text-on-surface">No matching pickles found</h3>
-              <p className="text-xs text-on-surface-variant max-w-sm mx-auto leading-relaxed">
-                Try clearing selected spice or dietary filters to view all handcrafted items.
-              </p>
-              <button
-                onClick={clearAllFilters}
-                className="px-5 py-2.5 bg-primary text-on-primary text-xs font-bold rounded-xl shadow-xs hover:bg-primary-container transition-colors"
-              >
-                Reset All Filters
-              </button>
+
+              {featuredFallback.length > 0 && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center justify-between border-b border-outline-variant/20 pb-2">
+                    <h4 className="font-serif font-bold text-base text-stone-900">
+                      Popular Heirloom Pickles Available Now
+                    </h4>
+                    <span className="text-xs text-stone-500 font-medium">In stock &amp; ready to ship</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+                    {featuredFallback.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">

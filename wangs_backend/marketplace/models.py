@@ -651,7 +651,7 @@ class HeroBanner(models.Model):
     badge_text = models.CharField(max_length=100, blank=True, default="FRESH BATCH LIVE")
     coupon_code = models.CharField(max_length=50, blank=True, default="ACHAR15")
     cta_text = models.CharField(max_length=100, blank=True, default="Shop Now")
-    cta_link = models.CharField(max_length=255, default="/products?category=andhra-gongura")
+    cta_link = models.CharField(max_length=255, default="/products")
     image = models.ImageField(upload_to='banners/', blank=True, null=True)
     image_url = models.TextField(blank=True, default="")
     bg_color = models.CharField(max_length=50, blank=True, default="#9b4100")
