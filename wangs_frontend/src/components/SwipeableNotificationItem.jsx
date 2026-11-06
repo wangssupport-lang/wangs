@@ -33,6 +33,7 @@ export default function SwipeableNotificationItem({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const cardRef = useRef(null);
+  const deleteBgRef = useRef(null);
   const currentXRef = useRef(0);
   const rafIdRef = useRef(null);
   const isDraggingRef = useRef(false);
@@ -59,6 +60,10 @@ export default function SwipeableNotificationItem({
       cardRef.current.style.transition = 'transform 0.24s cubic-bezier(0.16, 1, 0.3, 1)';
       cardRef.current.style.transform = `translate3d(${val}px, 0, 0)`;
       cardRef.current.style.webkitTransform = `translate3d(${val}px, 0, 0)`;
+    }
+    if (deleteBgRef.current) {
+      deleteBgRef.current.style.opacity = val < -2 ? '1' : '0';
+      deleteBgRef.current.style.pointerEvents = val < -2 ? 'auto' : 'none';
     }
   };
 
@@ -133,6 +138,10 @@ export default function SwipeableNotificationItem({
             cardRef.current.style.transform = `translate3d(${currentXRef.current}px, 0, 0)`;
             cardRef.current.style.webkitTransform = `translate3d(${currentXRef.current}px, 0, 0)`;
           }
+          if (deleteBgRef.current) {
+            deleteBgRef.current.style.opacity = currentXRef.current < -2 ? '1' : '0';
+            deleteBgRef.current.style.pointerEvents = currentXRef.current < -2 ? 'auto' : 'none';
+          }
           rafIdRef.current = null;
         });
       }
@@ -180,6 +189,10 @@ export default function SwipeableNotificationItem({
     setIsDeleting(true);
     currentXRef.current = -360;
     setTranslateX(-360);
+    if (deleteBgRef.current) {
+      deleteBgRef.current.style.opacity = '1';
+      deleteBgRef.current.style.pointerEvents = 'auto';
+    }
     if (cardRef.current) {
       cardRef.current.style.transition = 'transform 0.22s cubic-bezier(0.16, 1, 0.3, 1)';
       cardRef.current.style.transform = 'translate3d(-360px, 0, 0)';
@@ -219,9 +232,11 @@ export default function SwipeableNotificationItem({
         isDeleting ? 'max-h-0 opacity-0 mb-0 py-0 scale-95' : 'max-h-48 mb-1.5'
       }`}
     >
-      {/* Background Action: Delete Button revealed on left swipe */}
+      {/* Background Action: Delete Button revealed only on left swipe */}
       <div
-        className="absolute inset-0 bg-red-600 rounded-xl flex items-center justify-end pr-5 text-white cursor-pointer active:bg-red-700 transition-colors z-0"
+        ref={deleteBgRef}
+        style={{ opacity: 0, pointerEvents: 'none' }}
+        className="absolute inset-0 bg-red-600 rounded-xl flex items-center justify-end pr-5 text-white cursor-pointer active:bg-red-700 transition-opacity duration-150 z-0"
         onClick={(e) => {
           e.stopPropagation();
           triggerDelete();
@@ -234,7 +249,7 @@ export default function SwipeableNotificationItem({
         </div>
       </div>
 
-      {/* Foreground Content Card - GPU accelerated with translate3d and hardware compositing */}
+      {/* Foreground Content Card - 100% solid opaque background, GPU accelerated */}
       <div
         ref={cardRef}
         onClick={handleCardClick}
@@ -277,10 +292,10 @@ export default function SwipeableNotificationItem({
         }}
         className={`relative z-10 p-3 rounded-xl border transition-colors cursor-pointer flex items-start gap-3 touch-pan-y ${
           isSelected
-            ? 'bg-amber-100/90 border-amber-400 shadow-xs'
+            ? 'bg-[#fef3c7] border-amber-400 shadow-xs'
             : isRead
-            ? 'bg-white hover:bg-stone-50/80 border-stone-200/70'
-            : 'bg-amber-50/60 hover:bg-amber-50 border-amber-200/70 shadow-2xs'
+            ? 'bg-white hover:bg-stone-50 border-stone-200/80 shadow-2xs'
+            : 'bg-[#fffaf5] hover:bg-[#fcf4ec] border-[#edd6c8] shadow-2xs'
         }`}
       >
         {/* Selection Checkbox (Active in Select Mode) */}
