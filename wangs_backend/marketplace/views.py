@@ -558,7 +558,7 @@ class PublicNotificationView(views.APIView):
                 'tagline': s.tagline or (s.brand_story[:120] + '...' if s.brand_story else 'Handcrafted small-batch regional recipes.'),
                 'logo_image': s.logo_image or '',
                 'created_at': s.created_at.isoformat() if s.created_at else None,
-                'link': '/brands',
+                'link': f'/products?brand={s.slug}' if s.slug else '/brands',
             })
 
         active_banners = HeroBanner.objects.filter(is_active=True).order_by('display_order', '-created_at')[:2]

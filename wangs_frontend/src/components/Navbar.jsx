@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
-  ShoppingBag, Search, User, ChevronDown, ShieldCheck, Store,
+  ShoppingBag, Search, User, ChevronDown, ChevronLeft, ChevronRight, ShieldCheck, Store,
   Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight,
   Trash2, Check, CheckSquare, Square
 } from 'lucide-react';
@@ -280,38 +280,133 @@ export default function Navbar() {
   const isBrowsePage = location.pathname === '/' || location.pathname === '/products';
 
   const [ribbonIndex, setRibbonIndex] = useState(0);
+  const [isRibbonPaused, setIsRibbonPaused] = useState(false);
+
   const RIBBON_MESSAGES = [
-    { text: "Complimentary Express Delivery on Sun-Cured Heritage Pickles above ₹499 Across India", highlight: "100% Free" },
-    { text: "Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days", highlight: "Express Local" },
-    { text: "Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!", highlight: "Free Gift" },
-    { text: "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week", highlight: "High Demand" }
+    {
+      id: 'express-free',
+      text: "Complimentary Express Delivery on Sun-Cured Heritage Pickles above ₹499 Across India",
+      highlight: "100% Free",
+      badgeColor: "bg-emerald-600 text-white",
+      link: "/products"
+    },
+    {
+      id: 'kohima-local',
+      text: "Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days",
+      highlight: "Express Local",
+      badgeColor: "bg-amber-400 text-stone-900 font-bold",
+      link: "/delivery"
+    },
+    {
+      id: 'free-spoon',
+      text: "Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!",
+      highlight: "Free Gift",
+      badgeColor: "bg-amber-300 text-stone-900 font-bold",
+      link: "/products?bestsellers=true"
+    },
+    {
+      id: 'heritage-demand',
+      text: "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week",
+      highlight: "High Demand",
+      badgeColor: "bg-white/20 text-white border border-white/30",
+      link: "/products"
+    }
   ];
 
+  const handlePrevNotice = (e) => {
+    e?.stopPropagation?.();
+    setRibbonIndex((prev) => (prev - 1 + RIBBON_MESSAGES.length) % RIBBON_MESSAGES.length);
+  };
+
+  const handleNextNotice = (e) => {
+    e?.stopPropagation?.();
+    setRibbonIndex((prev) => (prev + 1) % RIBBON_MESSAGES.length);
+  };
+
   useEffect(() => {
+    if (isRibbonPaused) return;
     const timer = setInterval(() => {
-      setRibbonIndex((prev) => (prev + 1) % 4);
-    }, 4500);
+      setRibbonIndex((prev) => (prev + 1) % RIBBON_MESSAGES.length);
+    }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isRibbonPaused, RIBBON_MESSAGES.length]);
 
   return (
     <header className="sticky top-0 z-40 bg-[#fff8f4] shadow-xs w-full select-none">
       {/* ========================================================
-          1. TOP ANNOUNCEMENT RIBBON (Psychological Social Proof & Trust)
+          1. TOP ANNOUNCEMENT NOTICE RIBBON (Interactive, Smooth Carousel & Social Proof)
           ======================================================== */}
-      <div className="bg-[#9b4100] text-white border-b border-[#bf550d] text-[10.5px] sm:text-[11px] font-medium py-1 px-3 sm:px-4 transition-all duration-300">
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md">
-          <div className="flex items-center gap-2 overflow-hidden truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
-            <span className="truncate">{RIBBON_MESSAGES[ribbonIndex].text}</span>
+      <div
+        className="bg-gradient-to-r from-[#863700] via-[#9b4100] to-[#863700] text-white border-b border-[#bf550d] text-[10.5px] sm:text-[11.5px] font-medium py-1.5 px-2 sm:px-4 transition-all duration-300 select-none"
+        onMouseEnter={() => setIsRibbonPaused(true)}
+        onMouseLeave={() => setIsRibbonPaused(false)}
+        onTouchStart={() => setIsRibbonPaused(true)}
+        onTouchEnd={() => setIsRibbonPaused(false)}
+      >
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md gap-2">
+          {/* Left Arrow */}
+          <button
+            type="button"
+            onClick={handlePrevNotice}
+            className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
+            aria-label="Previous Notice"
+            title="Previous Notice"
+          >
+            <ChevronLeft size={14} />
+          </button>
+
+          {/* Center Notice Content with Keyed Smooth Fade/Slide */}
+          <Link
+            to={RIBBON_MESSAGES[ribbonIndex].link}
+            key={ribbonIndex}
+            className="flex-1 min-w-0 flex items-center justify-center gap-2 overflow-hidden text-center hover:opacity-95 transition-opacity cursor-pointer animate-in fade-in duration-300"
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
+            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 shadow-2xs ${RIBBON_MESSAGES[ribbonIndex].badgeColor}`}>
+              {RIBBON_MESSAGES[ribbonIndex].highlight}
+            </span>
+            <span className="truncate max-w-[260px] xs:max-w-[340px] sm:max-w-none font-medium">
+              {RIBBON_MESSAGES[ribbonIndex].text}
+            </span>
+          </Link>
+
+          {/* Right Arrow */}
+          <button
+            type="button"
+            onClick={handleNextNotice}
+            className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
+            aria-label="Next Notice"
+            title="Next Notice"
+          >
+            <ChevronRight size={14} />
+          </button>
+
+          {/* Indicator Dots */}
+          <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
+            {RIBBON_MESSAGES.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setRibbonIndex(idx);
+                }}
+                aria-label={`Go to notice ${idx + 1}`}
+                className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
+                  idx === ribbonIndex ? 'w-4 bg-white' : 'w-1 bg-white/40 hover:bg-white/70'
+                }`}
+              />
+            ))}
           </div>
-          <div className="hidden md:flex items-center gap-4 text-[#ffdbcb] shrink-0">
-            <span className="flex items-center gap-1">
-              <ShieldCheck size={13} /> FSSAI Certified Purity
+
+          {/* Trust Seals (Desktop Only) */}
+          <div className="hidden lg:flex items-center gap-3 text-[#ffdbcb] shrink-0 border-l border-white/20 pl-3 ml-1 text-[11px]">
+            <span className="flex items-center gap-1 font-semibold">
+              <ShieldCheck size={13} className="text-emerald-300" /> FSSAI Certified Purity
             </span>
             <span className="opacity-40">|</span>
-            <span className="flex items-center gap-1">
-              <Sparkles size={13} /> 100% Sun-Matured Batches
+            <span className="flex items-center gap-1 font-semibold">
+              <Sparkles size={13} className="text-amber-300" /> 100% Sun-Matured Batches
             </span>
           </div>
         </div>
@@ -656,7 +751,10 @@ export default function Navbar() {
             onClick={handleCloseNotifications}
           />
 
-          <div className="fixed md:absolute top-14 md:top-full right-2 md:right-8 z-50 w-[calc(100vw-16px)] md:w-[390px] max-h-[82vh] bg-white rounded-2xl shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in slide-in-from-top-2 duration-200">
+          {/* Modal Container: Mobile bottom-sheet with drag pill, desktop dropdown anchored under bell */}
+          <div className="fixed inset-x-0 bottom-0 md:bottom-auto md:inset-x-auto md:absolute md:top-full md:right-4 lg:md:right-8 z-50 w-full md:w-[420px] max-h-[85vh] md:max-h-[80vh] bg-white rounded-t-3xl md:rounded-2xl shadow-2xl border-t md:border border-stone-200 overflow-hidden flex flex-col animate-in slide-in-from-bottom md:slide-in-from-top-2 duration-200 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] md:pb-0">
+            {/* Mobile Drag Handle */}
+            <div className="md:hidden w-12 h-1.5 bg-stone-300 rounded-full mx-auto my-2.5 shrink-0" />
             {/* Header: Normal Mode vs Multi-Select Mode */}
             {isSelectMode ? (
               <div className="p-3 bg-[#241f1a] text-white flex items-center justify-between border-b border-stone-800">

@@ -1,5 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Store, Sparkles, ArrowRight, Trash2, Check } from 'lucide-react';
+import { Store, Sparkles, ArrowRight, Trash2, Check, Tag, Clock } from 'lucide-react';
+
+function formatRelativeTime(isoString) {
+  if (!isoString) return '';
+  try {
+    const diffMs = Date.now() - new Date(isoString).getTime();
+    if (diffMs < 0 || isNaN(diffMs)) return 'Recently';
+    const mins = Math.floor(diffMs / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return new Date(isoString).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } catch {
+    return '';
+  }
+}
 
 export default function SwipeableNotificationItem({
   notif,
@@ -296,15 +314,23 @@ export default function SwipeableNotificationItem({
         {/* Text & Metadata */}
         <div className="flex-1 min-w-0 space-y-1">
           <div className="flex items-center justify-between gap-1">
-            <span
-              className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                notif.type === 'NEW_SELLER'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-800'
-              }`}
-            >
-              {notif.type === 'NEW_SELLER' ? 'New Artisan Seller' : 'Batch Release'}
-            </span>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span
+                className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  notif.type === 'NEW_SELLER'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}
+              >
+                {notif.type === 'NEW_SELLER' ? 'New Artisan Seller' : 'Batch Release'}
+              </span>
+              {notif.created_at && (
+                <span className="text-[9.5px] text-stone-400 font-medium">
+                  {formatRelativeTime(notif.created_at)}
+                </span>
+              )}
+            </div>
+
             <div className="flex items-center gap-1.5">
               {!isRead && !isSelectMode && (
                 <span className="w-2 h-2 rounded-full bg-[#9b4100] shrink-0" />
@@ -333,9 +359,19 @@ export default function SwipeableNotificationItem({
             {notif.message}
           </p>
 
+          {/* Coupon Code Pill if provided */}
+          {notif.coupon_code && (
+            <div className="pt-0.5">
+              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-amber-100/80 text-amber-900 border border-amber-300/80 px-2 py-0.5 rounded-md">
+                <Tag size={10} className="text-amber-800" />
+                <span>Use Code: {notif.coupon_code}</span>
+              </span>
+            </div>
+          )}
+
           {!isSelectMode && (
             <div className="flex items-center gap-1 pt-1 text-[11px] font-bold text-[#9b4100] hover:text-[#783000]">
-              <span>Explore Kitchen Storefront</span>
+              <span>{notif.type === 'NEW_SELLER' ? 'Explore Kitchen Storefront' : (notif.cta_text || 'Shop Batch Collection')}</span>
               <ArrowRight size={12} />
             </div>
           )}
