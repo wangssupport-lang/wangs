@@ -282,54 +282,93 @@ export default function Navbar() {
   const [ribbonIndex, setRibbonIndex] = useState(0);
   const [isRibbonPaused, setIsRibbonPaused] = useState(false);
 
-  const RIBBON_MESSAGES = [
+  const DEFAULT_RIBBON_MESSAGES = [
     {
       id: 'express-free',
       text: "Complimentary Express Delivery on Sun-Cured Heritage Pickles above ₹499 Across India",
       highlight: "100% Free",
-      badgeColor: "bg-emerald-600 text-white",
+      badge_color: "bg-emerald-600 text-white",
       link: "/products"
     },
     {
       id: 'kohima-local',
       text: "Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days",
       highlight: "Express Local",
-      badgeColor: "bg-amber-400 text-stone-900 font-bold",
+      badge_color: "bg-amber-400 text-stone-900 font-bold",
       link: "/delivery"
     },
     {
       id: 'free-spoon',
       text: "Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!",
       highlight: "Free Gift",
-      badgeColor: "bg-amber-300 text-stone-900 font-bold",
+      badge_color: "bg-amber-300 text-stone-900 font-bold",
       link: "/products?bestsellers=true"
     },
     {
       id: 'heritage-demand',
       text: "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week",
       highlight: "High Demand",
-      badgeColor: "bg-white/20 text-white border border-white/30",
+      badge_color: "bg-white/20 text-white border border-white/30",
       link: "/products"
     }
   ];
 
+  const [notices, setNotices] = useState(() => {
+    try {
+      const cached = sessionStorage.getItem('wangs_storefront_notices_cache');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+    return DEFAULT_RIBBON_MESSAGES;
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadStorefrontNotices() {
+      try {
+        const res = await api.getPublicStorefrontNotices();
+        const list = Array.isArray(res) ? res : res?.results || [];
+        if (!cancelled && list.length > 0) {
+          setNotices(list);
+          try {
+            sessionStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(list));
+          } catch {}
+        }
+      } catch (err) {
+        console.warn('Could not load dynamic storefront notices', err);
+      }
+    }
+
+    loadStorefrontNotices();
+
+    const handleNoticesChanged = () => loadStorefrontNotices();
+    window.addEventListener('wangs_notices_changed', handleNoticesChanged);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('wangs_notices_changed', handleNoticesChanged);
+    };
+  }, []);
+
+  const activeNotices = notices.length > 0 ? notices : DEFAULT_RIBBON_MESSAGES;
+
   const handlePrevNotice = (e) => {
     e?.stopPropagation?.();
-    setRibbonIndex((prev) => (prev - 1 + RIBBON_MESSAGES.length) % RIBBON_MESSAGES.length);
+    setRibbonIndex((prev) => (prev - 1 + activeNotices.length) % activeNotices.length);
   };
 
   const handleNextNotice = (e) => {
     e?.stopPropagation?.();
-    setRibbonIndex((prev) => (prev + 1) % RIBBON_MESSAGES.length);
+    setRibbonIndex((prev) => (prev + 1) % activeNotices.length);
   };
 
   useEffect(() => {
     if (isRibbonPaused) return;
     const timer = setInterval(() => {
-      setRibbonIndex((prev) => (prev + 1) % RIBBON_MESSAGES.length);
+      setRibbonIndex((prev) => (prev + 1) % activeNotices.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [isRibbonPaused, RIBBON_MESSAGES.length]);
+  }, [isRibbonPaused, activeNotices.length]);
+
+  const currentNotice = activeNotices[ribbonIndex % activeNotices.length] || DEFAULT_RIBBON_MESSAGES[0];
 
   return (
     <header className="sticky top-0 z-40 bg-[#fff8f4] shadow-xs w-full select-none">
@@ -357,16 +396,18 @@ export default function Navbar() {
 
           {/* Center Notice Content with Keyed Smooth Fade/Slide */}
           <Link
-            to={RIBBON_MESSAGES[ribbonIndex].link}
+            to={currentNotice.link || '/products'}
             key={ribbonIndex}
             className="flex-1 min-w-0 flex items-center justify-center gap-2 overflow-hidden text-center hover:opacity-95 transition-opacity cursor-pointer animate-in fade-in duration-300"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
-            <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 shadow-2xs ${RIBBON_MESSAGES[ribbonIndex].badgeColor}`}>
-              {RIBBON_MESSAGES[ribbonIndex].highlight}
-            </span>
+            {currentNotice.highlight && (
+              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 shadow-2xs ${currentNotice.badge_color || currentNotice.badgeColor || 'bg-emerald-600 text-white'}`}>
+                {currentNotice.highlight}
+              </span>
+            )}
             <span className="truncate max-w-[260px] xs:max-w-[340px] sm:max-w-none font-medium">
-              {RIBBON_MESSAGES[ribbonIndex].text}
+              {currentNotice.text}
             </span>
           </Link>
 
@@ -383,7 +424,7 @@ export default function Navbar() {
 
           {/* Indicator Dots */}
           <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
-            {RIBBON_MESSAGES.map((_, idx) => (
+            {activeNotices.map((_, idx) => (
               <button
                 key={idx}
                 type="button"
@@ -393,7 +434,7 @@ export default function Navbar() {
                 }}
                 aria-label={`Go to notice ${idx + 1}`}
                 className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
-                  idx === ribbonIndex ? 'w-4 bg-white' : 'w-1 bg-white/40 hover:bg-white/70'
+                  idx === (ribbonIndex % activeNotices.length) ? 'w-4 bg-white' : 'w-1 bg-white/40 hover:bg-white/70'
                 }`}
               />
             ))}

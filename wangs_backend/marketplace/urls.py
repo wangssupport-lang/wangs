@@ -15,7 +15,8 @@ from .views import (
     AdminUserViewSet, AdminSellerRequestView, PlatformSettingsView, AdminToggleSellerRegistrationView,
     AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
     AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet,
-    AdminCategoryViewSet, PublicNotificationView
+    AdminCategoryViewSet, PublicNotificationView,
+    PublicStorefrontNoticeView, AdminStorefrontNoticeViewSet
 )
 
 router = DefaultRouter()
@@ -30,6 +31,7 @@ router.register(r'admin/products', AdminProductViewSet, basename='admin-product'
 router.register(r'admin/orders', AdminOrderViewSet, basename='admin-order')
 router.register(r'admin/hero-banners', AdminHeroBannerViewSet, basename='admin-hero-banner')
 router.register(r'admin/categories', AdminCategoryViewSet, basename='admin-category')
+router.register(r'admin/storefront-notices', AdminStorefrontNoticeViewSet, basename='admin-storefront-notice')
 
 urlpatterns = [
     # Auth & Resend Email OTP
@@ -43,6 +45,7 @@ urlpatterns = [
     
     # Storefront & Brands (Amazon-style Brand Spotlight)
     path('notifications/', PublicNotificationView.as_view(), name='public-notifications'),
+    path('storefront-notices/', PublicStorefrontNoticeView.as_view(), name='public-storefront-notices'),
     path('brands/', BrandListView.as_view(), name='brands-list'),
     path('brands/<slug:slug>/', BrandDetailView.as_view(), name='brand-detail'),
     path('pincode/check/', check_pincode_serviceability, name='pincode-check'),

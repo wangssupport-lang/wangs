@@ -6,7 +6,8 @@ import {
   FileText, ArrowRight, RefreshCw, Star, Sparkles, Store, Eye, EyeOff, Wrench,
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
   Home, LogOut, Download, Copy, Check, Landmark,
-  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags
+  Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags,
+  Megaphone, Bell
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -141,6 +142,19 @@ export default function AdminDashboardPage() {
     is_active: true,
   });
 
+  // Storefront Notice Ribbon & Announcements State (Top Notification Ribbon Synchronizer)
+  const [storefrontNotices, setStorefrontNotices] = useState(() => cachedData?.storefrontNotices || []);
+  const [noticeSaving, setNoticeSaving] = useState(false);
+  const [editingNoticeId, setEditingNoticeId] = useState(null);
+  const [noticeForm, setNoticeForm] = useState({
+    text: '',
+    highlight: '',
+    badge_color: 'bg-emerald-600 text-white',
+    link: '/products',
+    is_active: true,
+    display_order: 0,
+  });
+
   const checkIsAuthError = (err) => {
     const msg = (err?.message || '').toLowerCase();
     return msg.includes('permission') || msg.includes('403') || msg.includes('401') || msg.includes('forbidden') || msg.includes('unauthorized') || msg.includes('not authenticated');
@@ -183,7 +197,7 @@ export default function AdminDashboardPage() {
 
       // PHASE 2: Secondary Tab Data loaded smoothly in background with Promise.allSettled
       setSecondaryLoading(true);
-      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes] = await Promise.allSettled([
+      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes, noticesRes] = await Promise.allSettled([
         api.getAdminProducts(),
         api.getAdminOrders(),
         api.getCommissionSettings(),
@@ -193,6 +207,7 @@ export default function AdminDashboardPage() {
         api.getMaintenanceSubscribers(),
         api.getAdminHeroBanners(),
         api.getAdminCategories(),
+        api.getAdminStorefrontNotices(),
       ]);
 
       const parsedProds = prodsRes.status === 'fulfilled' ? extractList(prodsRes.value) : (cachedData?.products || []);
@@ -204,6 +219,7 @@ export default function AdminDashboardPage() {
       const parsedSubs = subsRes.status === 'fulfilled' ? extractList(subsRes.value) : (cachedData?.subscribers || []);
       const parsedBanners = bannersRes.status === 'fulfilled' ? extractList(bannersRes.value) : (cachedData?.heroBanners || []);
       const parsedCats = catsRes.status === 'fulfilled' ? extractList(catsRes.value) : (cachedData?.categoriesList || []);
+      const parsedNotices = noticesRes.status === 'fulfilled' ? extractList(noticesRes.value) : (cachedData?.storefrontNotices || []);
 
       setProducts(parsedProds);
       setOrders(parsedOrds);
@@ -214,6 +230,7 @@ export default function AdminDashboardPage() {
       setSubscribers(parsedSubs);
       setHeroBanners(parsedBanners);
       setCategoriesList(parsedCats);
+      setStorefrontNotices(parsedNotices);
 
       if (parsedComm?.current) {
         setCommForm({
@@ -239,6 +256,7 @@ export default function AdminDashboardPage() {
         subscribers: parsedSubs,
         heroBanners: parsedBanners,
         categoriesList: parsedCats,
+        storefrontNotices: parsedNotices,
       });
 
     } catch (err) {
@@ -846,6 +864,95 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleSaveNotice = async (e) => {
+    e.preventDefault();
+    if (!noticeForm.text.trim()) {
+      toast.error('Notice announcement text is required');
+      return;
+    }
+
+    setNoticeSaving(true);
+    try {
+      const payload = {
+        text: noticeForm.text.trim(),
+        highlight: noticeForm.highlight.trim(),
+        badge_color: noticeForm.badge_color || 'bg-emerald-600 text-white',
+        link: noticeForm.link.trim() || '/products',
+        is_active: Boolean(noticeForm.is_active),
+        display_order: parseInt(noticeForm.display_order, 10) || 0,
+      };
+
+      if (editingNoticeId) {
+        await api.updateAdminStorefrontNotice(editingNoticeId, payload);
+        toast.success('Storefront notice updated successfully');
+      } else {
+        await api.createAdminStorefrontNotice(payload);
+        toast.success('New notice published to storefront ribbon');
+      }
+
+      handleResetNoticeForm();
+      const updated = await api.getAdminStorefrontNotices();
+      setStorefrontNotices(extractList(updated));
+      window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
+    } catch (err) {
+      toast.error(err.message || 'Failed to save storefront notice');
+    } finally {
+      setNoticeSaving(false);
+    }
+  };
+
+  const handleToggleNotice = async (noticeId) => {
+    try {
+      const res = await api.toggleAdminStorefrontNotice(noticeId);
+      setStorefrontNotices((prev) =>
+        prev.map((n) => (n.id === noticeId ? { ...n, is_active: res.is_active } : n))
+      );
+      toast.success(res.is_active ? 'Notice activated on storefront' : 'Notice hidden from storefront');
+      window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
+    } catch (err) {
+      toast.error(err.message || 'Failed to toggle notice');
+    }
+  };
+
+  const handleDeleteNotice = async (noticeId) => {
+    if (!window.confirm('Delete this notice from the storefront ribbon?')) return;
+    try {
+      await api.deleteAdminStorefrontNotice(noticeId);
+      setStorefrontNotices((prev) => prev.filter((n) => n.id !== noticeId));
+      if (editingNoticeId === noticeId) {
+        handleResetNoticeForm();
+      }
+      toast.success('Notice removed from storefront');
+      window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete notice');
+    }
+  };
+
+  const handleStartEditNotice = (n) => {
+    setEditingNoticeId(n.id);
+    setNoticeForm({
+      text: n.text || '',
+      highlight: n.highlight || '',
+      badge_color: n.badge_color || 'bg-emerald-600 text-white',
+      link: n.link || '/products',
+      is_active: n.is_active ?? true,
+      display_order: n.display_order ?? 0,
+    });
+  };
+
+  const handleResetNoticeForm = () => {
+    setEditingNoticeId(null);
+    setNoticeForm({
+      text: '',
+      highlight: '',
+      badge_color: 'bg-emerald-600 text-white',
+      link: '/products',
+      is_active: true,
+      display_order: 0,
+    });
+  };
+
   if (authLoading) {
     return (
       <div className="max-w-7xl mx-auto py-24 px-4 text-center">
@@ -1253,6 +1360,7 @@ export default function AdminDashboardPage() {
       <div className="border-b border-stone-200 mb-8 flex flex-wrap gap-3 sm:gap-4 text-xs font-bold text-stone-600">
         {[
           { id: 'metrics', label: 'Marketplace Metrics' },
+          { id: 'notices', label: `Notice Ribbon (${storefrontNotices.length})` },
           { id: 'banners', label: `Hero Promo Banners (${heroBanners.length})` },
           { id: 'categories', label: `Categories (${categoriesList.length})` },
           {
@@ -1452,10 +1560,15 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Custom Maintenance Notice Input */}
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-semibold text-stone-400 block">
-                Public Notice Message shown to visitors during maintenance:
-              </label>
+            <div className="space-y-1.5 pt-1 border-t border-stone-800">
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-semibold text-stone-300 block">
+                  Maintenance Lock Screen Message (Displayed to visitors ONLY when Maintenance Mode is ON):
+                </label>
+                <span className="text-[10px] text-amber-400 font-mono">
+                  {(metrics?.is_maintenance_mode ?? isMaintenanceMode) ? '● Active on Storefront' : '○ Inactive (Website is live)'}
+                </span>
+              </div>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
@@ -1469,12 +1582,140 @@ export default function AdminDashboardPage() {
                   onClick={handleSaveMaintenanceMessage}
                   className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-cream-100 rounded-xl text-xs font-semibold border border-stone-700 transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  Save Notice Text
+                  Save Maintenance Text
                 </button>
               </div>
               <span className="text-[10px] text-stone-400">
-                Current active message: &ldquo;{metrics?.maintenance_message || maintenanceMessage}&rdquo;
+                Current active maintenance text: &ldquo;{metrics?.maintenance_message || maintenanceMessage}&rdquo;
               </span>
+            </div>
+          </div>
+
+          {/* Storefront Top Notice Ribbon & Announcements Manager Card (Synchronized with live header ribbon) */}
+          <div className="bg-gradient-to-r from-amber-950/80 via-[#26150a] to-[#1c0f07] text-cream-50 p-6 rounded-3xl border border-amber-900/60 shadow-xl space-y-5">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-amber-900/40 pb-4">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 rounded-2xl bg-amber-500 text-stone-950 shadow-sm">
+                  <Megaphone size={22} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-lg text-white">
+                      Storefront Top Notice Ribbon (Public Announcements)
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 uppercase tracking-wider font-mono">
+                      {storefrontNotices.filter((n) => n.is_active).length} Active on Live Site
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-400">
+                    Synchronized with the orange rotating ribbon at the very top of Wangs storefront. Shows offers, express delivery timelines, and special announcements.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('notices')}
+                  className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>Manage / Add Notices</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Synchronized Notice List Table */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-200/80 block">
+                  Synchronized Notice List ({storefrontNotices.length})
+                </span>
+                <span className="text-[10px] text-stone-400">
+                  Changes save directly to database and sync live
+                </span>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-amber-900/40 bg-stone-950/60">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-amber-950/40 text-stone-400 uppercase text-[10px] tracking-wider border-b border-amber-900/40">
+                    <tr>
+                      <th className="py-2.5 px-3">Order</th>
+                      <th className="py-2.5 px-3">Highlight Badge</th>
+                      <th className="py-2.5 px-3">Notice Announcement Text</th>
+                      <th className="py-2.5 px-3">Link Destination</th>
+                      <th className="py-2.5 px-3 text-center">Status</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-amber-900/20 font-medium">
+                    {storefrontNotices.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-8 text-center text-stone-500">
+                          No storefront notices created yet. Click &ldquo;Manage / Add Notices&rdquo; to create your first notice.
+                        </td>
+                      </tr>
+                    ) : (
+                      storefrontNotices.map((notice) => (
+                        <tr key={notice.id} className="hover:bg-amber-950/20 transition-colors">
+                          <td className="py-3 px-3 font-mono text-stone-400">#{notice.display_order}</td>
+                          <td className="py-3 px-3">
+                            {notice.highlight ? (
+                              <span className={`px-2 py-0.5 rounded text-[9.5px] font-black uppercase tracking-wider shadow-xs ${notice.badge_color || 'bg-emerald-600 text-white'}`}>
+                                {notice.highlight}
+                              </span>
+                            ) : (
+                              <span className="text-stone-500 italic text-[11px]">None</span>
+                            )}
+                          </td>
+                          <td className="py-3 px-3 text-white max-w-[340px] font-sans">
+                            <span className="line-clamp-2">{notice.text}</span>
+                          </td>
+                          <td className="py-3 px-3 font-mono text-[11px] text-amber-200/80">
+                            {notice.link || '/products'}
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleNotice(notice.id)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                                notice.is_active
+                                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30'
+                                  : 'bg-stone-800 text-stone-400 border border-stone-700 hover:bg-stone-700'
+                              }`}
+                            >
+                              {notice.is_active ? 'Active (Live)' : 'Disabled'}
+                            </button>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleStartEditNotice(notice);
+                                  setActiveTab('notices');
+                                }}
+                                className="p-1.5 text-stone-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+                                title="Edit notice"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteNotice(notice.id)}
+                                className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-colors cursor-pointer"
+                                title="Delete notice"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -2620,6 +2861,347 @@ export default function AdminDashboardPage() {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Storefront Top Notice Ribbon & Broadcast Announcements (Synchronized Header Ribbon) */}
+      {activeTab === 'notices' && (
+        <div className="space-y-6 text-xs">
+          {/* Header Card */}
+          <div className="bg-gradient-to-r from-[#26150a] via-[#3d1a08] to-[#26150a] text-cream-50 p-6 sm:p-7 rounded-3xl border border-amber-900/60 shadow-xl space-y-4">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <span className="p-3 bg-amber-400 text-stone-950 rounded-2xl shadow-sm shrink-0">
+                  <Megaphone size={26} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-serif font-bold text-cream-50">
+                      Storefront Top Notice Ribbon &amp; Live Announcements
+                    </h2>
+                    <span className="px-2 py-0.5 bg-amber-400/20 text-amber-300 font-bold text-[10px] rounded-full uppercase tracking-wider font-mono">
+                      {storefrontNotices.filter((n) => n.is_active).length} Active Live on Website
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-300 mt-1 max-w-2xl">
+                    Manage the rotating promotional announcement messages and delivery notices in the header ribbon at the very top of Wangs website. Synchronized live in real-time across desktop and mobile storefronts.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[11px] border border-emerald-500/40 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Real-Time Storefront Sync Active</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Create / Edit Notice Form (5 Cols) */}
+            <form
+              onSubmit={handleSaveNotice}
+              className="lg:col-span-5 bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-2">
+                  <span className="w-8 h-8 rounded-lg bg-amber-50 text-amber-800 flex items-center justify-center font-bold">
+                    <Megaphone size={16} />
+                  </span>
+                  <div>
+                    <h3 className="font-serif font-bold text-sm text-stone-900">
+                      {editingNoticeId ? `Edit Notice #${editingNoticeId}` : 'Add New Notice to Ribbon'}
+                    </h3>
+                    <p className="text-[11px] text-stone-500">
+                      Controls text, highlight badge, and click link
+                    </p>
+                  </div>
+                </div>
+
+                {editingNoticeId && (
+                  <button
+                    type="button"
+                    onClick={handleResetNoticeForm}
+                    className="text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                  >
+                    Cancel Edit
+                  </button>
+                )}
+              </div>
+
+              {/* Announcement Message Text */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Notice Announcement Text <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="e.g. Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!"
+                  value={noticeForm.text}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, text: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-amber-800 font-sans"
+                />
+                <span className="text-[10px] text-stone-400">
+                  Main text message displayed in the top ribbon ticker.
+                </span>
+              </div>
+
+              {/* Highlight Tag / Badge */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Highlight Badge Tag <span className="text-stone-400 font-normal">(Optional, e.g. Free Gift, 100% Free, Express Local)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Free Gift, 100% Free, High Demand, Flash Batch"
+                  value={noticeForm.highlight}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, highlight: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-semibold focus:ring-1 focus:ring-amber-800"
+                />
+              </div>
+
+              {/* Badge Color Style Picker */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Badge Color Style Preset
+                </label>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    { label: 'Emerald Green', class: 'bg-emerald-600 text-white' },
+                    { label: 'Amber Gold', class: 'bg-amber-400 text-stone-900 font-bold' },
+                    { label: 'Warm Honey', class: 'bg-amber-300 text-stone-900 font-bold' },
+                    { label: 'Crimson Red', class: 'bg-red-600 text-white' },
+                    { label: 'Frosted Border', class: 'bg-white/20 text-white border border-white/30' },
+                  ].map((style) => (
+                    <button
+                      key={style.label}
+                      type="button"
+                      onClick={() => setNoticeForm({ ...noticeForm, badge_color: style.class })}
+                      className={`p-2 rounded-lg border text-left flex items-center justify-between transition-all cursor-pointer ${
+                        noticeForm.badge_color === style.class
+                          ? 'border-amber-600 bg-amber-50/60 ring-1 ring-amber-600'
+                          : 'border-stone-200 hover:bg-stone-50'
+                      }`}
+                    >
+                      <span className="text-[11px] font-medium text-stone-700">{style.label}</span>
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono shadow-2xs ${style.class}`}>
+                        Tag
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Destination URL */}
+              <div className="space-y-1">
+                <label className="block font-bold text-stone-700">
+                  Click Destination Link <span className="text-stone-400 font-normal">(Where users go when tapping notice)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. /products, /delivery, /products?bestsellers=true, /brands"
+                  value={noticeForm.link}
+                  onChange={(e) => setNoticeForm({ ...noticeForm, link: e.target.value })}
+                  className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-mono focus:ring-1 focus:ring-amber-800"
+                />
+              </div>
+
+              {/* Display Order & Active Checkbox */}
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">
+                    Rotation Sequence
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={noticeForm.display_order}
+                    onChange={(e) => setNoticeForm({ ...noticeForm, display_order: e.target.value })}
+                    className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs font-bold focus:ring-1 focus:ring-amber-800"
+                  />
+                  <span className="text-[10px] text-stone-400">Lower numbers rotate first</span>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block font-bold text-stone-700">
+                    Storefront Visibility
+                  </label>
+                  <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={noticeForm.is_active}
+                      onChange={(e) => setNoticeForm({ ...noticeForm, is_active: e.target.checked })}
+                      className="w-4 h-4 text-amber-600 rounded border-stone-300 focus:ring-amber-500"
+                    />
+                    <span className="text-xs font-semibold text-stone-800">
+                      Active (Show Live)
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={noticeSaving}
+                  className="flex-1 py-2.5 px-4 bg-[#9b4100] hover:bg-[#803500] text-white font-bold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Megaphone size={14} />
+                  <span>
+                    {noticeSaving
+                      ? 'Saving...'
+                      : editingNoticeId
+                      ? 'Update Storefront Notice'
+                      : 'Publish to Storefront Ribbon'}
+                  </span>
+                </button>
+                {editingNoticeId && (
+                  <button
+                    type="button"
+                    onClick={handleResetNoticeForm}
+                    className="py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {/* Right: Live Preview & Synchronized Notice List (7 Cols) */}
+            <div className="lg:col-span-7 space-y-5">
+              {/* Live Ribbon Preview */}
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <Eye size={14} className="text-amber-700" />
+                    <span>Live Storefront Header Ribbon Preview</span>
+                  </span>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    Matches actual customer view
+                  </span>
+                </div>
+
+                {/* Render Mockup Ribbon */}
+                <div className="bg-gradient-to-r from-[#863700] via-[#9b4100] to-[#863700] text-white border-b border-[#bf550d] text-[11px] font-medium py-2 px-3 rounded-xl shadow-inner flex items-center justify-between">
+                  <div className="flex items-center gap-2 overflow-hidden truncate">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+                    {noticeForm.highlight && (
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-black uppercase tracking-wider shrink-0 ${noticeForm.badge_color || 'bg-emerald-600 text-white'}`}>
+                        {noticeForm.highlight}
+                      </span>
+                    )}
+                    <span className="truncate">
+                      {noticeForm.text || 'Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!'}
+                    </span>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-3 text-[#ffdbcb] shrink-0 text-[10px] opacity-80 pl-2">
+                    <span>FSSAI Certified</span>
+                    <span>|</span>
+                    <span>100% Sun-Matured</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Synchronized Notice List Table */}
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+                <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-sm text-stone-900">
+                      Synchronized Notice List ({storefrontNotices.length})
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      {storefrontNotices.filter((n) => n.is_active).length} Active Live
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-stone-400 font-mono">
+                    Saved in Wangs database
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-stone-50 text-stone-500 uppercase text-[10px] tracking-wider border-b border-stone-200">
+                      <tr>
+                        <th className="py-2.5 px-3">Seq</th>
+                        <th className="py-2.5 px-3">Badge</th>
+                        <th className="py-2.5 px-3">Notice Message</th>
+                        <th className="py-2.5 px-3">Link</th>
+                        <th className="py-2.5 px-3 text-center">Status</th>
+                        <th className="py-2.5 px-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100 font-medium">
+                      {storefrontNotices.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-stone-400">
+                            No storefront notices found. Use the form to publish your first announcement.
+                          </td>
+                        </tr>
+                      ) : (
+                        storefrontNotices.map((notice) => (
+                          <tr key={notice.id} className="hover:bg-amber-50/40 transition-colors">
+                            <td className="py-3 px-3 font-mono text-stone-500">#{notice.display_order}</td>
+                            <td className="py-3 px-3">
+                              {notice.highlight ? (
+                                <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shadow-2xs ${notice.badge_color || 'bg-emerald-600 text-white'}`}>
+                                  {notice.highlight}
+                                </span>
+                              ) : (
+                                <span className="text-stone-400 italic text-[10px]">None</span>
+                              )}
+                            </td>
+                            <td className="py-3 px-3 text-stone-900 max-w-[240px] font-sans">
+                              <span className="line-clamp-2">{notice.text}</span>
+                            </td>
+                            <td className="py-3 px-3 font-mono text-[10.5px] text-stone-500 max-w-[120px] truncate">
+                              {notice.link || '/products'}
+                            </td>
+                            <td className="py-3 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleToggleNotice(notice.id)}
+                                className={`px-2.5 py-1 rounded-full text-[9.5px] font-bold uppercase tracking-wider transition-colors cursor-pointer ${
+                                  notice.is_active
+                                    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300 hover:bg-emerald-200'
+                                    : 'bg-stone-100 text-stone-500 border border-stone-200 hover:bg-stone-200'
+                                }`}
+                              >
+                                {notice.is_active ? 'Active' : 'Disabled'}
+                              </button>
+                            </td>
+                            <td className="py-3 px-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleStartEditNotice(notice)}
+                                  className="p-1.5 text-stone-500 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Edit notice"
+                                >
+                                  <Edit3 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteNotice(notice.id)}
+                                  className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Delete notice"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

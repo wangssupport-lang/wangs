@@ -667,3 +667,20 @@ class HeroBanner(models.Model):
     def __str__(self):
         return self.title
 
+
+class StorefrontNotice(models.Model):
+    text = models.CharField(max_length=300, help_text="Announcement message text")
+    highlight = models.CharField(max_length=60, blank=True, default="", help_text="Short highlight badge tag (e.g. 100% Free, Express Local, Free Gift, High Demand)")
+    badge_color = models.CharField(max_length=100, blank=True, default="bg-emerald-600 text-white", help_text="Badge color styling class or hex")
+    link = models.CharField(max_length=255, blank=True, default="/products", help_text="Destination URL when notice is clicked")
+    is_active = models.BooleanField(default=True, help_text="Whether this notice is active on the storefront")
+    display_order = models.PositiveIntegerField(default=0, help_text="Sequence order in notice ribbon")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', '-created_at']
+
+    def __str__(self):
+        return f"{self.highlight}: {self.text[:40]}" if self.highlight else self.text[:40]
+

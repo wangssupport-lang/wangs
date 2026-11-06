@@ -9,7 +9,7 @@ from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog, HeroBanner
+    ManufacturerSettlement, Coupon, AuditLog, HeroBanner, StorefrontNotice
 )
 
 
@@ -657,4 +657,13 @@ class HeroBannerSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return obj.image_url or ''
+
+
+class StorefrontNoticeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StorefrontNotice
+        fields = [
+            'id', 'text', 'highlight', 'badge_color', 'link',
+            'is_active', 'display_order', 'created_at', 'updated_at'
+        ]
 

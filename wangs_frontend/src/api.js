@@ -247,4 +247,18 @@ export const api = {
   }),
   deleteAdminCategory: (id) => apiRequest(`/admin/categories/${id}/`, { method: 'DELETE' }),
   toggleAdminCategory: (id) => apiRequest(`/admin/categories/${id}/toggle_active/`, { method: 'POST' }),
+
+  // Storefront Notice Ribbon & Announcements Management
+  getPublicStorefrontNotices: () => apiRequest('/storefront-notices/'),
+  getAdminStorefrontNotices: () => apiRequest('/admin/storefront-notices/'),
+  createAdminStorefrontNotice: (body) => apiRequest('/admin/storefront-notices/', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  }),
+  updateAdminStorefrontNotice: (id, body) => apiRequest(`/admin/storefront-notices/${id}/`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }),
+  deleteAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/`, { method: 'DELETE' }),
+  toggleAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/toggle_active/`, { method: 'POST' }),
 };

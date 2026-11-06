@@ -26,7 +26,7 @@ from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner
+    ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner, StorefrontNotice
 )
 from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, AddressSerializer, CustomerProfileSerializer,
@@ -35,7 +35,7 @@ from .serializers import (
     OrderSerializer, OrderCreateSerializer, PaymentVerifySerializer,
     CommissionSettingSerializer, CommissionUpdateSerializer,
     ManufacturerSettlementSerializer, RefundSerializer, AuditLogSerializer,
-    BrandSerializer, HeroBannerSerializer
+    BrandSerializer, HeroBannerSerializer, StorefrontNoticeSerializer
 )
 from .permissions import IsAdminUserRole, IsManufacturerUser, IsApprovedManufacturer
 from .services import FinancialCalculator, OrderService, PaymentService, SettlementService
@@ -2661,5 +2661,80 @@ class AdminCategoryViewSet(viewsets.ModelViewSet):
             details={'name': cat.name, 'is_active': cat.is_active}
         )
         return Response({'status': 'success', 'is_active': cat.is_active})
+
+
+DEFAULT_STOREFRONT_NOTICES = [
+    {
+        "text": "Complimentary Express Delivery on Sun-Cured Heritage Pickles above ₹499 Across India",
+        "highlight": "100% Free",
+        "badge_color": "bg-emerald-600 text-white",
+        "link": "/products",
+        "display_order": 1,
+        "is_active": True,
+    },
+    {
+        "text": "Kohima Delivery: Delivered within 12 hrs (30m–1h best case) • Nagaland: 1–2 days",
+        "highlight": "Express Local",
+        "badge_color": "bg-amber-400 text-stone-900 font-bold",
+        "link": "/delivery",
+        "display_order": 2,
+        "is_active": True,
+    },
+    {
+        "text": "Orders above ₹699 receive a Free Handcrafted Neem Wood Tasting Spoon!",
+        "highlight": "Free Gift",
+        "badge_color": "bg-amber-300 text-stone-900 font-bold",
+        "link": "/products?bestsellers=true",
+        "display_order": 3,
+        "is_active": True,
+    },
+    {
+        "text": "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week",
+        "highlight": "High Demand",
+        "badge_color": "bg-white/20 text-white border border-white/30",
+        "link": "/products",
+        "display_order": 4,
+        "is_active": True,
+    },
+]
+
+
+class PublicStorefrontNoticeView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
+        if not qs.exists() and StorefrontNotice.objects.count() == 0:
+            for item in DEFAULT_STOREFRONT_NOTICES:
+                StorefrontNotice.objects.create(**item)
+            qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
+        return Response(StorefrontNoticeSerializer(qs, many=True).data)
+
+
+class AdminStorefrontNoticeViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAdminUserRole]
+    serializer_class = StorefrontNoticeSerializer
+    queryset = StorefrontNotice.objects.all().order_by('display_order', '-created_at')
+    pagination_class = None
+
+    def get_queryset(self):
+        if StorefrontNotice.objects.count() == 0:
+            for item in DEFAULT_STOREFRONT_NOTICES:
+                StorefrontNotice.objects.create(**item)
+        return StorefrontNotice.objects.all().order_by('display_order', '-created_at')
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        notice = self.get_object()
+        notice.is_active = not notice.is_active
+        notice.save(update_fields=['is_active', 'updated_at'])
+        AuditLog.objects.create(
+            user=request.user,
+            action='STOREFRONT_NOTICE_TOGGLED',
+            target_model='StorefrontNotice',
+            target_id=str(notice.id),
+            details={'text': notice.text, 'highlight': notice.highlight, 'is_active': notice.is_active}
+        )
+        return Response({'status': 'success', 'is_active': notice.is_active})
 
 
