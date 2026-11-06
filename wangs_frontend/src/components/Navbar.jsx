@@ -601,7 +601,7 @@ export default function Navbar() {
               </Link>
             </div>
 
-            {/* Middle: Global Search Bar with All Regions filter */}
+            {/* Middle: Global Search Bar */}
             <div className="flex-1 max-w-xl mx-2">
               <form onSubmit={handleSearch} className="w-full flex items-center bg-[#faf2ed] rounded-full pl-4 pr-1.5 py-1.5 border border-[#dec0b3]/40 focus-within:bg-white focus-within:shadow-[0_0_0_1.5px_#9b4100] transition-all">
                 <Search size={17} className="text-[#8a7267] mr-2 shrink-0" />
@@ -612,15 +612,6 @@ export default function Navbar() {
                   placeholder="Search 500+ handmade mango, garlic, gongura..."
                   className="w-full bg-transparent text-xs text-[#1e1b18] placeholder:text-[#8a7267] focus:outline-none"
                 />
-                
-                {/* All Regions selector trigger */}
-                <Link
-                  to="/brands"
-                  className="hidden sm:flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-[#574238] hover:text-[#9b4100] border-l border-[#dec0b3]/40 shrink-0 select-none transition-colors"
-                >
-                  <span>All Regions</span>
-                  <ChevronDown size={12} className="text-[#8a7267]" />
-                </Link>
 
                 <button
                   type="submit"
