@@ -3,7 +3,8 @@ import { useSearchParams, useParams, useNavigate, Link } from 'react-router-dom'
 import {
   Package, MapPin, Navigation, QrCode, Phone, ExternalLink,
   CheckCircle2, Clock, AlertTriangle, Search, ArrowLeft, Camera,
-  Check, Truck, Copy, MessageSquare, Compass, ShieldCheck, RefreshCw, X
+  Check, Truck, Copy, MessageSquare, Compass, ShieldCheck, RefreshCw, X,
+  Sparkles, CheckCircle
 } from 'lucide-react';
 import { api } from '../api';
 import { useToast } from '../context/ToastContext';
@@ -107,7 +108,9 @@ export default function DeliveryPage() {
     if (!order) return;
     setIsMarkingDelivered(true);
     try {
-      const res = await api.markDeliveryOrderDelivered(order.order_number, deliveryNotes);
+      const res = await api.markDeliveryOrderDelivered(order.order_number, {
+        notes: deliveryNotes,
+      });
       toast.success(`Order ${order.order_number} marked as Delivered!`);
       setShowDeliveredModal(false);
       setDeliveryNotes('');
@@ -115,6 +118,23 @@ export default function DeliveryPage() {
       await loadOrder(order.order_number);
     } catch (err) {
       toast.error(err.message || 'Failed to update delivery status.');
+    } finally {
+      setIsMarkingDelivered(false);
+    }
+  };
+
+  const handleConfirmSingleUnit = async (unitId) => {
+    if (!order) return;
+    setIsMarkingDelivered(true);
+    try {
+      await api.markDeliveryOrderDelivered(order.order_number, {
+        notes: deliveryNotes || 'Courier confirmed individual unit delivery',
+        unit_ids: [unitId],
+      });
+      toast.success('Product unit delivery confirmed and credit awarded!');
+      await loadOrder(order.order_number);
+    } catch (err) {
+      toast.error(err.message || 'Failed to update unit delivery status.');
     } finally {
       setIsMarkingDelivered(false);
     }
@@ -552,6 +572,82 @@ export default function DeliveryPage() {
                 </div>
               </div>
             </div>
+
+            {/* Individual Product Units & Wangs Rewards Confirmation */}
+            {order.units && order.units.length > 0 && (
+              <div className="bg-white rounded-2xl p-4 sm:p-5 border border-stone-200/90 shadow-xs space-y-4">
+                <div className="flex items-center justify-between gap-2 pb-3 border-b border-stone-100">
+                  <div className="flex items-center gap-2">
+                    <Sparkles size={18} className="text-amber-500" />
+                    <h3 className="font-bold text-sm text-stone-900 uppercase tracking-wide">
+                      Individual Product Units &amp; Wangs Rewards Confirmation ({order.units.length} Units)
+                    </h3>
+                  </div>
+                  <span className="text-[11px] text-stone-500 font-semibold bg-stone-100 px-2.5 py-1 rounded-full">
+                    Dual Confirmation Supported
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {order.units.map((u) => {
+                    const source = u.confirmation_source;
+                    const sourceLabel = u.confirmation_source_display || (source === 'CUSTOMER_QR' ? 'Customer QR Scan' : source === 'COURIER' ? 'Courier Confirmation' : source === 'BOTH' ? 'Both Confirmed' : 'Pending');
+
+                    return (
+                      <div key={u.id} className="p-3 bg-stone-50/80 rounded-xl border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-stone-900">{u.product_title}</span>
+                            <span className="font-mono text-[10px] text-stone-500 bg-stone-200/60 px-1.5 py-0.5 rounded">
+                              Unit #{u.unit_index} · {u.unit_uid}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-stone-500">
+                            {u.is_delivered ? (
+                              <span className="text-emerald-700 font-semibold">
+                                ✓ Confirmed Delivered {u.delivered_at ? new Date(u.delivered_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                              </span>
+                            ) : (
+                              <span className="text-amber-700 font-semibold">Pending Delivery</span>
+                            )}
+                            {u.reward_awarded && (
+                              <span className="ml-2 text-stone-600">· 1 Wangs Credit Awarded</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {/* Confirmation Source Badge */}
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                            source === 'BOTH'
+                              ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                              : source === 'CUSTOMER_QR'
+                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                              : source === 'COURIER'
+                              ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                              : 'bg-stone-200 text-stone-600'
+                          }`}>
+                            {u.is_delivered && <CheckCircle size={11} />}
+                            <span>{sourceLabel}</span>
+                          </span>
+
+                          {!u.is_delivered && (
+                            <button
+                              type="button"
+                              disabled={isMarkingDelivered}
+                              onClick={() => handleConfirmSingleUnit(u.id)}
+                              className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors cursor-pointer"
+                            >
+                              Mark Delivered
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           /* Empty or Fleet Overview: Recent Active Dispatches */

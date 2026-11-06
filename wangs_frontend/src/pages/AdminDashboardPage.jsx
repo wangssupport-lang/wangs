@@ -12,6 +12,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
+import AdminRewardsTab from '../components/AdminRewardsTab';
 
 const extractList = (data) => {
   if (!data) return [];
@@ -1378,6 +1379,7 @@ export default function AdminDashboardPage() {
             isNotice: activeProductNotifications.length > 0,
           },
           { id: 'orders', label: `Orders (${ordersList.length})` },
+          { id: 'rewards', label: 'Wangs Rewards' },
           { id: 'commission', label: 'Commission & Fees' },
           { id: 'settlements', label: 'Payout Settlements' },
           { id: 'research', label: 'Research & Study Records (PDF/CSV)' },
@@ -4454,6 +4456,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Tab: Wangs Rewards Management */}
+      {activeTab === 'rewards' && <AdminRewardsTab />}
 
       {/* Tab 5: Commission & Fee Management */}
       {activeTab === 'commission' && (

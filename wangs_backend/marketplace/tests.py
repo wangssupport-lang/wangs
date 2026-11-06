@@ -10,9 +10,11 @@ from rest_framework import status
 from .models import (
     User, CustomerProfile, ManufacturerProfile, Category, Product,
     CommissionSetting, Cart, CartItem, Order, OrderItem, PaymentTransaction, Coupon,
-    EmailOTP, MaintenanceSubscriber, AuditLog
+    EmailOTP, MaintenanceSubscriber, AuditLog,
+    RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
+    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog
 )
-from .services import FinancialCalculator, OrderService, PaymentService
+from .services import FinancialCalculator, OrderService, PaymentService, RewardService
 
 
 class WangsFinancialAndOrderTests(TestCase):
@@ -1384,3 +1386,316 @@ class WangsFinancialAndOrderTests(TestCase):
                 os.environ['DJANGO_ADMIN_PASSWORD'] = old_pass
             else:
                 os.environ.pop('DJANGO_ADMIN_PASSWORD', None)
+
+
+class WangsRewardsSystemTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.comm_setting = CommissionSetting.objects.create(
+            default_commission_rate=Decimal('10.00'),
+            customer_platform_fee=Decimal('5.00'),
+            default_delivery_fee=Decimal('50.00'),
+            free_delivery_threshold=Decimal('999.00')
+        )
+        self.reward_settings = RewardSettings.get_settings()
+        self.reward_settings.is_enabled = True
+        self.reward_settings.credit_value_rupees = Decimal('1.00')
+        self.reward_settings.credits_per_unit = 1
+        self.reward_settings.save()
+
+        # Users
+        self.customer1 = User.objects.create_user(
+            username='shopper1', email='shopper1@wangs.in', password='password123',
+            role=User.Role.CUSTOMER, first_name='Shopper', last_name='One'
+        )
+        self.customer2 = User.objects.create_user(
+            username='shopper2', email='shopper2@wangs.in', password='password123',
+            role=User.Role.CUSTOMER, first_name='Shopper', last_name='Two'
+        )
+        self.courier1 = User.objects.create_user(
+            username='courier_john', email='courier_john@wangs.in', password='password123',
+            role=User.Role.COURIER, first_name='John', last_name='Delivery'
+        )
+        self.courier2 = User.objects.create_user(
+            username='courier_dave', email='courier_dave@wangs.in', password='password123',
+            role=User.Role.COURIER, first_name='Dave', last_name='Fleet'
+        )
+        self.admin_user = User.objects.create_user(
+            username='rewards_admin', email='rewards_admin@wangs.in', password='password123',
+            role=User.Role.ADMIN, is_staff=True, is_superuser=True
+        )
+
+        # Manufacturer & Products
+        self.mfg_user = User.objects.create_user(
+            username='artisan_mfg', email='artisan_mfg@wangs.in', password='password123',
+            role=User.Role.MANUFACTURER
+        )
+        self.mfg = ManufacturerProfile.objects.create(
+            user=self.mfg_user, business_name="Nagaland Heritage Pickles",
+            slug='nagaland-heritage-pickles', location_district='Mokokchung',
+            contact_email='artisan_mfg@wangs.in', contact_phone='9436099999',
+            business_address='Mokokchung', postal_code='798601',
+            fssai_license_number='10023064000999', status=ManufacturerProfile.Status.APPROVED
+        )
+        self.cat = Category.objects.create(name='Achar', slug='achar')
+        self.product1 = Product.objects.create(
+            manufacturer=self.mfg, category=self.cat, title="Ghost Pepper Pickle",
+            slug='ghost-pepper-pickle', price=Decimal('250.00'), weight_grams=250,
+            stock_quantity=100, is_active=True, status=Product.Status.APPROVED
+        )
+        self.product2 = Product.objects.create(
+            manufacturer=self.mfg, category=self.cat, title="Bamboo Shoot Pickle",
+            slug='bamboo-shoot-pickle', price=Decimal('180.00'), weight_grams=250,
+            stock_quantity=100, is_active=True, status=Product.Status.APPROVED
+        )
+
+    def _create_test_order(self, customer, items_spec, assigned_courier=None):
+        """Helper to create an order with specified quantities of products"""
+        cart_items = []
+        for p, qty in items_spec:
+            cart = Cart.objects.create(user=customer)
+            item = CartItem.objects.create(cart=cart, product=p, quantity=qty)
+            cart_items.append(item)
+
+        order = OrderService.create_order_from_cart(
+            user=customer,
+            customer_details={'name': customer.get_full_name(), 'email': customer.email, 'phone': '9876543210'},
+            shipping_details={'address_line1': 'Pantry Road', 'city': 'Dimapur', 'state': 'Nagaland', 'postal_code': '797112'},
+            cart_items=cart_items,
+            payment_method='RAZORPAY_TEST'
+        )
+        order.payment_status = Order.PaymentStatus.PAID
+        order.status = Order.Status.CONFIRMED
+        if assigned_courier:
+            order.assigned_courier = assigned_courier
+        order.save()
+        return order
+
+    def test_unique_qr_generation_per_unit(self):
+        """Order with 3 units of product 1 and 2 units of product 2 must generate 5 unique OrderUnits and 5 unique QR tokens"""
+        order = self._create_test_order(self.customer1, [(self.product1, 3), (self.product2, 2)])
+        units = OrderUnit.objects.filter(order=order)
+        self.assertEqual(units.count(), 5)
+
+        # Check unique tokens
+        tokens = [u.qr_code.token for u in units]
+        self.assertEqual(len(tokens), 5)
+        self.assertEqual(len(set(tokens)), 5)
+
+        for token in tokens:
+            self.assertTrue(token.startswith('WNG-QR-'))
+            self.assertGreaterEqual(len(token), 20)
+
+    def test_successful_customer_qr_scan(self):
+        """Customer scans valid QR code -> delivery confirmed, 1 credit awarded, wallet updated"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)])
+        unit = order.units.first()
+        token = unit.qr_code.token
+
+        self.client.force_authenticate(user=self.customer1)
+        resp = self.client.post('/api/rewards/scan/', {'token': token}, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data['success'])
+        self.assertFalse(resp.data['already_claimed'])
+        self.assertTrue(resp.data['reward_awarded'])
+        self.assertEqual(resp.data['credits_awarded'], 1)
+        self.assertEqual(resp.data['current_balance'], 1)
+        self.assertIn("Congratulations! Your product delivery is confirmed.", resp.data['message'])
+        self.assertIn("You earned 1 Wangs Credit!", resp.data['message'])
+
+        # Verify DB state
+        unit.refresh_from_db()
+        self.assertTrue(unit.is_delivered)
+        self.assertTrue(unit.reward_awarded)
+        self.assertTrue(unit.qr_code.is_claimed)
+        self.assertEqual(unit.qr_code.claimed_by, self.customer1)
+
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 1)
+        self.assertEqual(wallet.total_earned, 1)
+
+        # Transaction record
+        tx = RewardTransaction.objects.filter(user=self.customer1, transaction_type='EARN').first()
+        self.assertIsNotNone(tx)
+        self.assertEqual(tx.credits, 1)
+        self.assertEqual(tx.balance_after, 1)
+
+    def test_successful_courier_confirmation(self):
+        """Courier marks unit as delivered -> awards 1 credit to customer and updates delivery source"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)], assigned_courier=self.courier1)
+        unit = order.units.first()
+
+        self.client.force_authenticate(user=self.courier1)
+        resp = self.client.post(f'/api/delivery/order/{order.order_number}/mark-delivered/', {
+            'notes': 'Delivered to customer doorstep'
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data['success'])
+
+        unit.refresh_from_db()
+        self.assertTrue(unit.is_delivered)
+        self.assertTrue(unit.reward_awarded)
+        self.assertEqual(unit.get_confirmation_source_display(), 'Courier Confirmation')
+
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 1)
+
+    def test_customer_and_courier_confirmation_of_same_product(self):
+        """Customer scans first (awards 1 credit), then courier confirms later (records courier confirmation, 0 extra credits, displays Both Confirmed)"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)], assigned_courier=self.courier1)
+        unit = order.units.first()
+        token = unit.qr_code.token
+
+        # 1. Customer scans first
+        self.client.force_authenticate(user=self.customer1)
+        scan_resp = self.client.post('/api/rewards/scan/', {'token': token}, format='json')
+        self.assertEqual(scan_resp.data['credits_awarded'], 1)
+
+        # 2. Courier confirms afterwards
+        self.client.force_authenticate(user=self.courier1)
+        courier_resp = self.client.post(f'/api/delivery/order/{order.order_number}/mark-delivered/', {}, format='json')
+        self.assertEqual(courier_resp.status_code, status.HTTP_200_OK)
+
+        # 3. Wallet must still have exactly 1 credit, not 2
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 1)
+
+        # 4. Confirmation source must show 'Both Confirmed'
+        unit.refresh_from_db()
+        self.assertEqual(unit.get_confirmation_source_display(), 'Both Confirmed')
+        self.assertEqual(unit.confirmations.count(), 2)
+
+    def test_duplicate_qr_scanning(self):
+        """Scanning an already claimed QR code must not award another credit and return exact warning message"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)])
+        unit = order.units.first()
+        token = unit.qr_code.token
+
+        self.client.force_authenticate(user=self.customer1)
+        # Scan 1: awards 1 credit
+        self.client.post('/api/rewards/scan/', {'token': token}, format='json')
+
+        # Scan 2: already claimed
+        resp2 = self.client.post('/api/rewards/scan/', {'token': token}, format='json')
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp2.data['already_claimed'])
+        self.assertFalse(resp2.data['reward_awarded'])
+        self.assertEqual(resp2.data['credits_awarded'], 0)
+        self.assertEqual(resp2.data['message'], "This QR code has already been used. Rewards have already been claimed.")
+
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 1)
+
+    def test_unauthorized_customer_scanning(self):
+        """Customer B scanning a QR code from Customer A's order must be blocked with 403 Forbidden and logged"""
+        order_cust1 = self._create_test_order(self.customer1, [(self.product1, 1)])
+        token = order_cust1.units.first().qr_code.token
+
+        # Customer 2 attempts to scan Customer 1's QR
+        self.client.force_authenticate(user=self.customer2)
+        resp = self.client.post('/api/rewards/scan/', {'token': token}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("purchased by another customer", resp.data['detail'])
+
+        # Check suspicious log created
+        log = SuspiciousScanLog.objects.filter(user=self.customer2).first()
+        self.assertIsNotNone(log)
+        self.assertIn("Unauthorized scan", log.reason)
+
+    def test_unauthorized_courier_confirmation(self):
+        """Courier B cannot confirm delivery for an order assigned to Courier A without admin authorization"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)], assigned_courier=self.courier1)
+
+        # Courier 2 attempts to confirm Courier 1's assigned parcel
+        self.client.force_authenticate(user=self.courier2)
+        resp = self.client.post(f'/api/delivery/order/{order.order_number}/mark-delivered/', {}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertIn("assigned to another delivery agent", resp.data['detail'])
+
+    def test_multiple_products_award_multiple_credits(self):
+        """A customer purchasing 5 units earns exactly 5 credits when all 5 are confirmed delivered"""
+        order = self._create_test_order(self.customer1, [(self.product1, 3), (self.product2, 2)])
+        self.assertEqual(order.units.count(), 5)
+
+        self.client.force_authenticate(user=self.customer1)
+        for unit in order.units.all():
+            resp = self.client.post('/api/rewards/scan/', {'token': unit.qr_code.token}, format='json')
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertEqual(resp.data['credits_awarded'], 1)
+
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 5)
+        self.assertEqual(wallet.total_earned, 5)
+
+    def test_checkout_credit_redemption(self):
+        """Customer with 5 credits redeems 3 credits at checkout -> ₹3 discount applied and 3 credits deducted"""
+        wallet = CustomerRewardWallet.objects.create(
+            user=self.customer1, balance=5, total_earned=5, total_redeemed=0
+        )
+
+        cart = Cart.objects.create(user=self.customer1)
+        item = CartItem.objects.create(cart=cart, product=self.product1, quantity=1)
+
+        order = OrderService.create_order_from_cart(
+            user=self.customer1,
+            customer_details={'name': 'Shopper One', 'email': self.customer1.email, 'phone': '9876543210'},
+            shipping_details={'address_line1': 'Pantry Road', 'city': 'Dimapur', 'state': 'Nagaland', 'postal_code': '797112'},
+            cart_items=[item],
+            credits_to_redeem=3
+        )
+
+        self.assertEqual(order.credits_redeemed, 3)
+        self.assertEqual(order.credit_discount_amount, Decimal('3.00'))
+
+        # Expected total: items_subtotal (250) + platform_fee (5) + delivery (0 free) - credit_discount (3) = 252.00
+        expected_total = Decimal('250.00') + Decimal('5.00') - Decimal('3.00')
+        self.assertEqual(order.total_amount, expected_total)
+
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.balance, 2)
+        self.assertEqual(wallet.total_redeemed, 3)
+
+        redeem_tx = RewardTransaction.objects.filter(user=self.customer1, transaction_type='REDEEM').first()
+        self.assertIsNotNone(redeem_tx)
+        self.assertEqual(redeem_tx.credits, -3)
+
+    def test_admin_manual_balance_adjustment(self):
+        """Admin can manually adjust wallet balance with audit reason"""
+        self.client.force_authenticate(user=self.admin_user)
+        resp = self.client.post('/api/admin/rewards/adjust-balance/', {
+            'username': self.customer1.username,
+            'delta': 10,
+            'reason': 'Customer loyalty bonus approved by management'
+        }, format='json')
+
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data['success'])
+        self.assertEqual(resp.data['new_balance'], 10)
+
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 10)
+
+        tx = RewardTransaction.objects.filter(user=self.customer1, transaction_type='ADMIN_ADJUSTMENT').first()
+        self.assertIsNotNone(tx)
+        self.assertEqual(tx.audit_reason, 'Customer loyalty bonus approved by management')
+
+    def test_admin_revoke_qr_code(self):
+        """Admin can revoke an unused QR code, preventing future scans"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)])
+        unit = order.units.first()
+        qr = unit.qr_code
+
+        self.client.force_authenticate(user=self.admin_user)
+        resp = self.client.post(f'/api/admin/rewards/revoke/{qr.id}/', {
+            'reason': 'Packaging damaged prior to dispatch'
+        }, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data['is_revoked'])
+
+        # Customer attempts to scan revoked QR
+        self.client.force_authenticate(user=self.customer1)
+        scan_resp = self.client.post('/api/rewards/scan/', {'token': qr.token}, format='json')
+        self.assertEqual(scan_resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("revoked", scan_resp.data['detail'])

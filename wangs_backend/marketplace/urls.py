@@ -16,7 +16,11 @@ from .views import (
     AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
     AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet,
     AdminCategoryViewSet, PublicNotificationView,
-    PublicStorefrontNoticeView, AdminStorefrontNoticeViewSet
+    PublicStorefrontNoticeView, AdminStorefrontNoticeViewSet,
+    CustomerRewardWalletView, CustomerRewardScanView, CustomerRewardVerifyTokenView,
+    AdminRewardOverviewView, AdminRewardQRListView, AdminRewardPrintLabelsView,
+    AdminRewardSettingsView, AdminRewardRevokeQRView, AdminRewardAdjustBalanceView,
+    AdminRewardSuspiciousLogsView, AdminRewardExportTransactionsView
 )
 
 router = DefaultRouter()
@@ -70,9 +74,24 @@ urlpatterns = [
     path('manufacturer/financials/', ManufacturerFinancialsView.as_view(), name='mfg-financials'),
     path('seller/rules-pdf/', SellerRulesPDFView.as_view(), name='seller-rules-pdf'),
     
-    # Public platform configuration
+    # Platform Settings & Maintenance
     path('platform-settings/', PlatformSettingsView.as_view(), name='platform-settings'),
     path('maintenance/notify/', MaintenanceNotifyView.as_view(), name='maintenance-notify'),
+
+    # Wangs Rewards (Customer QR Loyalty & Delivery Confirmation)
+    path('rewards/wallet/', CustomerRewardWalletView.as_view(), name='rewards-wallet'),
+    path('rewards/scan/', CustomerRewardScanView.as_view(), name='rewards-scan'),
+    path('rewards/verify/<str:token>/', CustomerRewardVerifyTokenView.as_view(), name='rewards-verify-token'),
+
+    # Admin Portal Rewards Management
+    path('admin/rewards/overview/', AdminRewardOverviewView.as_view(), name='admin-rewards-overview'),
+    path('admin/rewards/qrcodes/', AdminRewardQRListView.as_view(), name='admin-rewards-qrcodes'),
+    path('admin/rewards/print-labels/<str:order_number>/', AdminRewardPrintLabelsView.as_view(), name='admin-rewards-print-labels'),
+    path('admin/rewards/settings/', AdminRewardSettingsView.as_view(), name='admin-rewards-settings'),
+    path('admin/rewards/revoke/<int:pk>/', AdminRewardRevokeQRView.as_view(), name='admin-rewards-revoke-qr'),
+    path('admin/rewards/adjust-balance/', AdminRewardAdjustBalanceView.as_view(), name='admin-rewards-adjust-balance'),
+    path('admin/rewards/suspicious-logs/', AdminRewardSuspiciousLogsView.as_view(), name='admin-rewards-suspicious-logs'),
+    path('admin/rewards/export-transactions/', AdminRewardExportTransactionsView.as_view(), name='admin-rewards-export-transactions'),
 
     # Admin Portal
     path('admin/metrics/', AdminMetricsView.as_view(), name='admin-metrics'),

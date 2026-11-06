@@ -24,6 +24,7 @@ import AdminDashboardPage from './pages/AdminDashboardPage';
 import AuthPage from './pages/AuthPages';
 import MaintenancePage from './pages/MaintenancePage';
 import DeliveryPage from './pages/DeliveryPage';
+import RewardsScanPage from './pages/RewardsScanPage';
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -82,6 +83,11 @@ function AppLayout() {
             <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
             <Route path="/account" element={<CustomerAccountPage />} />
             <Route path="/login" element={<AuthPage />} />
+
+            {/* Wangs Rewards - QR-Based Delivery Confirmation */}
+            <Route path="/rewards" element={<RewardsScanPage />} />
+            <Route path="/rewards/scan" element={<RewardsScanPage />} />
+            <Route path="/rewards/verify/:token" element={<RewardsScanPage />} />
 
             {/* Delivery Courier Portal - Accessible EXCLUSIVELY via /delivery */}
             <Route path="/delivery" element={<DeliveryPage />} />

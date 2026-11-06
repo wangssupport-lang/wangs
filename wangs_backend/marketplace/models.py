@@ -1,6 +1,7 @@
 import uuid
 from decimal import Decimal
 from django.db import models
+from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -10,6 +11,7 @@ class User(AbstractUser):
         CUSTOMER = 'CUSTOMER', 'Customer'
         MANUFACTURER = 'MANUFACTURER', 'Manufacturer'
         ADMIN = 'ADMIN', 'Admin'
+        COURIER = 'COURIER', 'Courier'
 
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.CUSTOMER)
     phone_number = models.CharField(max_length=20, blank=True, null=True)
@@ -502,6 +504,11 @@ class Order(models.Model):
     
     coupon_code = models.CharField(max_length=30, blank=True, default='')
 
+    # Rewards and credits redemption
+    credits_redeemed = models.PositiveIntegerField(default=0, help_text="Wangs Credits redeemed at checkout")
+    credit_discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'), help_text="Monetary discount in ₹ from Wangs Credits")
+    assigned_courier = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='assigned_deliveries')
+
     # Statuses
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
     payment_status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
@@ -683,4 +690,194 @@ class StorefrontNotice(models.Model):
 
     def __str__(self):
         return f"{self.highlight}: {self.text[:40]}" if self.highlight else self.text[:40]
+
+
+# -------------------------------------------------------------
+# WANGS REWARDS: QR-BASED DELIVERY CONFIRMATION & LOYALTY SYSTEM
+# -------------------------------------------------------------
+
+class RewardSettings(models.Model):
+    is_enabled = models.BooleanField(default=True, help_text="Master switch for the Wangs Rewards loyalty program")
+    credit_value_rupees = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal('1.00'),
+        help_text="Monetary value in ₹ per 1 Wangs Credit (default ₹1.00)"
+    )
+    credits_per_unit = models.PositiveIntegerField(
+        default=1,
+        help_text="Credits awarded per delivered product unit (default 1)"
+    )
+    max_redemption_percentage = models.PositiveIntegerField(
+        default=100,
+        help_text="Maximum percentage of order total that can be discounted using credits (1-100%)"
+    )
+    max_credits_per_order = models.PositiveIntegerField(
+        default=1000,
+        help_text="Cap on credits redeemable in a single order"
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Reward Setting'
+        verbose_name_plural = 'Reward Settings'
+
+    @classmethod
+    def get_settings(cls):
+        setting = cls.objects.first()
+        if not setting:
+            setting = cls.objects.create()
+        return setting
+
+    def __str__(self):
+        return f"Reward Settings (1 Credit = ₹{self.credit_value_rupees}, Enabled: {self.is_enabled})"
+
+
+class CustomerRewardWallet(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='reward_wallet')
+    balance = models.PositiveIntegerField(default=0, help_text="Current available Wangs Credits (Integer)")
+    total_earned = models.PositiveIntegerField(default=0, help_text="Lifetime Wangs Credits earned")
+    total_redeemed = models.PositiveIntegerField(default=0, help_text="Lifetime Wangs Credits redeemed")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-balance']
+
+    def __str__(self):
+        return f"{self.user.username}'s Wallet ({self.balance} Credits)"
+
+
+class OrderUnit(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Dispatch'
+        DISPATCHED = 'DISPATCHED', 'Dispatched'
+        DELIVERED = 'DELIVERED', 'Delivered'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+        REFUNDED = 'REFUNDED', 'Refunded'
+
+    unit_uid = models.CharField(max_length=64, unique=True, db_index=True, help_text="Unique unit identifier (e.g. WNG-U-...)")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='units')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.CASCADE, related_name='units')
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_units')
+    customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='purchased_units')
+    unit_index = models.PositiveIntegerField(default=1, help_text="Index of this unit within the line item (e.g. 1 of 3)")
+    product_title = models.CharField(max_length=255)
+    weight_grams = models.PositiveIntegerField(default=250)
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    is_delivered = models.BooleanField(default=False, db_index=True)
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    reward_awarded = models.BooleanField(default=False, db_index=True, help_text="True if 1 Wangs Credit has been awarded for this unit")
+    reward_awarded_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'order_item', 'unit_index']
+        unique_together = ('order_item', 'unit_index')
+
+    def __str__(self):
+        return f"Unit #{self.unit_uid} - {self.product_title} (#{self.order.order_number})"
+
+    def get_confirmation_source_display(self):
+        sources = set(self.confirmations.values_list('confirmation_source', flat=True))
+        if 'CUSTOMER_QR' in sources and 'COURIER' in sources:
+            return 'Both Confirmed'
+        elif 'CUSTOMER_QR' in sources:
+            return 'Customer QR Scan'
+        elif 'COURIER' in sources:
+            return 'Courier Confirmation'
+        elif 'ADMIN' in sources:
+            return 'Admin Confirmation'
+        return 'Pending'
+
+
+class ProductQRCode(models.Model):
+    unit = models.OneToOneField(OrderUnit, on_delete=models.CASCADE, related_name='qr_code')
+    token = models.CharField(
+        max_length=64,
+        unique=True,
+        db_index=True,
+        help_text="Cryptographically secure, unpredictable token printed on packaging"
+    )
+    is_claimed = models.BooleanField(default=False, db_index=True, help_text="True if claimed via customer QR scan")
+    claimed_at = models.DateTimeField(null=True, blank=True)
+    claimed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='claimed_qrs')
+
+    is_revoked = models.BooleanField(default=False)
+    revoked_reason = models.CharField(max_length=255, blank=True, default='')
+    revoked_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"QR {self.token} for Unit {self.unit.unit_uid}"
+
+
+class DeliveryConfirmation(models.Model):
+    class Source(models.TextChoices):
+        CUSTOMER_QR = 'CUSTOMER_QR', 'Customer QR Scan'
+        COURIER = 'COURIER', 'Courier Confirmation'
+        ADMIN = 'ADMIN', 'Admin Confirmation'
+
+    unit = models.ForeignKey(OrderUnit, on_delete=models.CASCADE, related_name='confirmations')
+    confirmation_source = models.CharField(max_length=20, choices=Source.choices)
+    confirmed_by_user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='delivery_confirmations')
+    confirmed_by_courier_name = models.CharField(max_length=150, blank=True, default='')
+    timestamp = models.DateTimeField(default=timezone.now)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.get_confirmation_source_display()} for Unit #{self.unit.unit_uid} at {self.timestamp}"
+
+
+class RewardTransaction(models.Model):
+    class Type(models.TextChoices):
+        EARN = 'EARN', 'Earned via Delivery Confirmation'
+        REDEEM = 'REDEEM', 'Redeemed at Checkout'
+        REVERSAL = 'REVERSAL', 'Refund / Cancellation Reversal'
+        ADMIN_ADJUSTMENT = 'ADMIN_ADJUSTMENT', 'Admin Manual Correction'
+
+    wallet = models.ForeignKey(CustomerRewardWallet, on_delete=models.CASCADE, related_name='transactions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reward_transactions')
+    transaction_type = models.CharField(max_length=20, choices=Type.choices)
+    credits = models.IntegerField(help_text="Positive for additions, negative for deductions")
+    balance_after = models.PositiveIntegerField()
+    unit = models.ForeignKey(OrderUnit, null=True, blank=True, on_delete=models.SET_NULL, related_name='reward_transactions')
+    order = models.ForeignKey(Order, null=True, blank=True, on_delete=models.SET_NULL, related_name='reward_transactions')
+    description = models.CharField(max_length=255)
+    performed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='authorized_reward_actions')
+    audit_reason = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} {self.credits:+d} ({self.transaction_type})"
+
+
+class SuspiciousScanLog(models.Model):
+    token_attempted = models.CharField(max_length=100)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='suspicious_scans')
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+    reason = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Suspicious Scan: {self.token_attempted} - {self.reason}"
+
 

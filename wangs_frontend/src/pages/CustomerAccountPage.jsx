@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
+import ScanAndEarnModal from '../components/ScanAndEarnModal';
 
 const TRACKING_STEPS = [
   {
@@ -118,6 +119,8 @@ export default function CustomerAccountPage() {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders', 'addresses', 'profile'
   const [orders, setOrders] = useState([]);
   const [addresses, setAddresses] = useState([]);
+  const [rewardWallet, setRewardWallet] = useState(null);
+  const [showScanModal, setShowScanModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copiedAwb, setCopiedAwb] = useState(null);
   const [trackingModalOrder, setTrackingModalOrder] = useState(null);
@@ -143,26 +146,29 @@ export default function CustomerAccountPage() {
     setTimeout(() => setCopiedAwb(null), 2500);
   };
 
+  const loadData = async () => {
+    try {
+      const [ordData, addrData, walletData] = await Promise.all([
+        api.getMyOrders(),
+        api.getAddresses(),
+        api.getRewardWallet().catch(() => null),
+      ]);
+      setOrders(Array.isArray(ordData) ? ordData : (ordData?.results || []));
+      setAddresses(Array.isArray(addrData) ? addrData : (addrData?.results || []));
+      if (walletData) {
+        setRewardWallet(walletData);
+      }
+    } catch (err) {
+      console.error('Failed to load customer account data', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
       return;
-    }
-
-    async function loadData() {
-      try {
-        const [ordData, addrData] = await Promise.all([
-          api.getMyOrders(),
-          api.getAddresses(),
-        ]);
-        // Handle both paginated and direct list responses
-        setOrders(Array.isArray(ordData) ? ordData : (ordData?.results || []));
-        setAddresses(Array.isArray(addrData) ? addrData : (addrData?.results || []));
-      } catch (err) {
-        console.error('Failed to load customer account data', err);
-      } finally {
-        setLoading(false);
-      }
     }
     loadData();
   }, [user]);
@@ -213,6 +219,16 @@ export default function CustomerAccountPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+          {/* Scan & Earn Button */}
+          <button
+            type="button"
+            onClick={() => setShowScanModal(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs transition-all cursor-pointer active:scale-95"
+          >
+            <Sparkles size={14} className="text-amber-300" />
+            <span>Scan &amp; Earn</span>
+          </button>
+
           {/* Track Orders Button */}
           <button
             type="button"
@@ -249,6 +265,15 @@ export default function CustomerAccountPage() {
             }`}
           >
             <Package size={15} /> Track Orders ({orders.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('rewards')}
+            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
+              activeTab === 'rewards' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+            }`}
+          >
+            <Sparkles size={15} className="text-amber-500" /> Wangs Rewards {rewardWallet ? `(${rewardWallet.available_credits})` : ''}
           </button>
 
           <button
@@ -881,6 +906,214 @@ export default function CustomerAccountPage() {
                 </div>
               )}
             </div>
+          ) : activeTab === 'rewards' ? (
+            <div className="space-y-6">
+              {/* Rewards Wallet Balance & Metric Cards */}
+              <div className="bg-gradient-to-br from-stone-900 via-stone-800 to-amber-950 text-white p-6 sm:p-8 rounded-3xl border border-stone-700 shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 translate-x-12 -translate-y-8 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+                  <div className="space-y-1">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-black uppercase tracking-wider">
+                      <Sparkles size={13} className="text-amber-400" />
+                      <span>Wangs Loyalty Rewards</span>
+                    </div>
+                    <div className="pt-2">
+                      <span className="text-xs uppercase tracking-wider text-stone-300 font-bold block">Available Balance</span>
+                      <div className="flex items-baseline gap-3">
+                        <span className="font-serif font-black text-4xl sm:text-5xl text-white">
+                          {rewardWallet?.available_credits ?? 0}
+                        </span>
+                        <span className="text-lg font-bold text-amber-400">Credits</span>
+                      </div>
+                      <span className="text-xs text-stone-400 mt-1 block">
+                        Worth ₹{rewardWallet?.available_credits ?? 0}.00 instant discount on checkout (1 Credit = ₹1)
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowScanModal(true)}
+                    className="px-6 py-3.5 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-bold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2.5 shrink-0 cursor-pointer self-start sm:self-center"
+                  >
+                    <Sparkles size={16} className="text-amber-300" />
+                    <span>Scan Product QR &amp; Earn</span>
+                  </button>
+                </div>
+
+                {/* Sub-Metrics Breakdown */}
+                <div className="grid grid-cols-3 gap-3 pt-6 mt-6 border-t border-stone-700/80 text-xs">
+                  <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-700/50">
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Total Earned</span>
+                    <span className="font-bold text-emerald-400 text-base mt-0.5 block">
+                      +{rewardWallet?.total_credits_earned ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-700/50">
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Total Redeemed</span>
+                    <span className="font-bold text-amber-300 text-base mt-0.5 block">
+                      -{rewardWallet?.total_credits_redeemed ?? 0}
+                    </span>
+                  </div>
+                  <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-700/50">
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Pending Delivery</span>
+                    <span className="font-bold text-stone-200 text-base mt-0.5 block">
+                      {rewardWallet?.pending_confirmations_count ?? 0} units
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Product Units & Delivery Confirmation Method Status */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4 text-xs">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                  <div>
+                    <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                      <Package size={16} className="text-red-600" />
+                      <span>Purchased Product Units &amp; Delivery Confirmation</span>
+                    </h3>
+                    <p className="text-stone-500 text-[11px] mt-0.5">
+                      Every individual jar unit receives a unique QR code. Confirmation by customer QR scan or courier awards 1 credit.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2.5 py-1 rounded-full">
+                    {rewardWallet?.purchased_units?.length || 0} Total Units
+                  </span>
+                </div>
+
+                {!rewardWallet?.purchased_units?.length ? (
+                  <div className="py-8 text-center text-stone-400 text-xs">
+                    No purchased product units recorded yet. Order delicious artisanal pickles to earn rewards!
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-100">
+                    {rewardWallet.purchased_units.map((unit) => {
+                      const isDelivered = unit.is_delivered;
+                      const sourceDisplay = unit.confirmation_source_display || (unit.confirmation_source === 'CUSTOMER_QR' ? 'Customer QR Scan' : unit.confirmation_source === 'COURIER' ? 'Courier Confirmation' : unit.confirmation_source === 'BOTH' ? 'Both Confirmed' : 'Pending');
+
+                      return (
+                        <div key={unit.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-stone-900 text-xs sm:text-sm">
+                                {unit.product_title}
+                              </span>
+                              <span className="font-mono text-[10px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+                                Unit #{unit.unit_index} · {unit.unit_uid}
+                              </span>
+                            </div>
+                            <div className="text-[11px] text-stone-500 flex items-center gap-2">
+                              <span>Order #{unit.order_number}</span>
+                              {unit.delivered_at && (
+                                <span>· Delivered {new Date(unit.delivered_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
+                            {/* Confirmation Source Badge */}
+                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                              unit.confirmation_source === 'BOTH'
+                                ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                                : unit.confirmation_source === 'CUSTOMER_QR'
+                                ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                                : unit.confirmation_source === 'COURIER'
+                                ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                                : 'bg-stone-100 text-stone-600 border border-stone-200'
+                            }`}>
+                              {isDelivered && <CheckCircle size={11} />}
+                              <span>{sourceDisplay}</span>
+                            </span>
+
+                            {unit.reward_awarded ? (
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-200 inline-flex items-center gap-1">
+                                <Sparkles size={11} className="text-amber-600" />
+                                <span>+1 Credit Earned</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setShowScanModal(true)}
+                                className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold rounded-lg shadow-2xs transition-colors cursor-pointer"
+                              >
+                                Scan QR to Claim
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Rewards Transaction History */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4 text-xs">
+                <div className="border-b border-stone-100 pb-3">
+                  <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                    <Clock size={16} className="text-stone-700" />
+                    <span>Reward Transaction History</span>
+                  </h3>
+                  <p className="text-stone-500 text-[11px] mt-0.5">
+                    Immutable ledger of credits earned upon delivery and redeemed during checkout.
+                  </p>
+                </div>
+
+                {!rewardWallet?.transactions?.length ? (
+                  <div className="py-8 text-center text-stone-400 text-xs">
+                    No reward transactions recorded yet.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-stone-200 text-[11px] text-stone-500 font-bold uppercase tracking-wider">
+                          <th className="pb-2.5">Date &amp; Time</th>
+                          <th className="pb-2.5">Type</th>
+                          <th className="pb-2.5">Description</th>
+                          <th className="pb-2.5 text-right">Credits</th>
+                          <th className="pb-2.5 text-right">Balance After</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-100 text-stone-800">
+                        {rewardWallet.transactions.map((tx) => (
+                          <tr key={tx.id} className="py-2.5">
+                            <td className="py-3 text-stone-500 whitespace-nowrap">
+                              {new Date(tx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </td>
+                            <td className="py-3">
+                              <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] ${
+                                tx.transaction_type === 'EARN'
+                                  ? 'bg-emerald-100 text-emerald-800'
+                                  : tx.transaction_type === 'REDEEM'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : tx.transaction_type === 'REVERSAL'
+                                  ? 'bg-red-100 text-red-800'
+                                  : 'bg-purple-100 text-purple-800'
+                              }`}>
+                                {tx.transaction_type}
+                              </span>
+                            </td>
+                            <td className="py-3 max-w-xs truncate text-stone-700">
+                              {tx.description}
+                            </td>
+                            <td className={`py-3 text-right font-black ${
+                              tx.credits > 0 ? 'text-emerald-700' : 'text-amber-700'
+                            }`}>
+                              {tx.credits > 0 ? `+${tx.credits}` : tx.credits}
+                            </td>
+                            <td className="py-3 text-right font-mono font-bold text-stone-900">
+                              {tx.balance_after}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="space-y-6">
               {/* Account Section in Profile */}
@@ -1037,6 +1270,12 @@ export default function CustomerAccountPage() {
           )}
         </div>
       </div>
+
+      <ScanAndEarnModal
+        isOpen={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onSuccess={loadData}
+      />
     </div>
   );
 }

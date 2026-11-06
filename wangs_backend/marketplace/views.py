@@ -26,7 +26,9 @@ from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner, StorefrontNotice
+    ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner, StorefrontNotice,
+    RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode, DeliveryConfirmation,
+    RewardTransaction, SuspiciousScanLog
 )
 from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, AddressSerializer, CustomerProfileSerializer,
@@ -35,10 +37,13 @@ from .serializers import (
     OrderSerializer, OrderCreateSerializer, PaymentVerifySerializer,
     CommissionSettingSerializer, CommissionUpdateSerializer,
     ManufacturerSettlementSerializer, RefundSerializer, AuditLogSerializer,
-    BrandSerializer, HeroBannerSerializer, StorefrontNoticeSerializer
+    BrandSerializer, HeroBannerSerializer, StorefrontNoticeSerializer,
+    OrderUnitSerializer, ProductQRCodeSerializer, DeliveryConfirmationSerializer,
+    CustomerRewardWalletSerializer, RewardTransactionSerializer, RewardSettingsSerializer,
+    SuspiciousScanLogSerializer
 )
 from .permissions import IsAdminUserRole, IsManufacturerUser, IsApprovedManufacturer
-from .services import FinancialCalculator, OrderService, PaymentService, SettlementService
+from .services import FinancialCalculator, OrderService, PaymentService, SettlementService, RewardService
 from .resend_service import send_otp_email
 
 
@@ -970,7 +975,8 @@ class CreateOrderView(views.APIView):
                 shipping_details=shipping_details,
                 cart_items=items,
                 coupon=coupon,
-                payment_method=request.data.get('payment_method', 'RAZORPAY_TEST')
+                payment_method=request.data.get('payment_method', 'RAZORPAY_TEST'),
+                credits_to_redeem=data.get('credits_to_redeem', 0)
             )
             cart.items.all().delete()
             payment_intent = PaymentService.create_mock_or_razorpay_order(order)
@@ -1133,6 +1139,9 @@ class DeliveryOrderLookupView(views.APIView):
         ]
         full_address = ", ".join([p for p in address_parts if p and p.strip()])
 
+        RewardService.ensure_order_units_and_qrs(order)
+        units_data = OrderUnitSerializer(order.units.all(), many=True).data
+
         return Response({
             'id': order.id,
             'order_number': order.order_number,
@@ -1155,6 +1164,7 @@ class DeliveryOrderLookupView(views.APIView):
             'created_at': order.created_at.isoformat(),
             'updated_at': order.updated_at.isoformat(),
             'items': items_data,
+            'units': units_data,
             'total_items_count': sum(it['quantity'] for it in items_data),
             'coordinates': {
                 'lat': coords[0],
@@ -1175,20 +1185,39 @@ class DeliveryOrderMarkDeliveredView(views.APIView):
         if not order:
             return Response({'detail': f'Order {raw} not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-        order.status = Order.Status.DELIVERED
         notes = request.data.get('notes', '').strip()
-        if notes:
-            order.dispatch_notes = (order.dispatch_notes + f"\n[Delivered]: {notes}").strip()
-        order.save()
+        unit_ids = request.data.get('unit_ids', None)
+        courier_name = request.data.get('courier_name', '')
+        if not courier_name and request.user and request.user.is_authenticated:
+            courier_name = f"{request.user.first_name} {request.user.last_name}".strip() or request.user.username
 
-        order.items.all().update(fulfillment_status=OrderItem.FulfillmentStatus.DELIVERED)
+        try:
+            res = RewardService.confirm_courier_delivery(
+                order_identifier=order.order_number,
+                courier_user=request.user if request.user.is_authenticated else None,
+                courier_name=courier_name,
+                unit_ids=unit_ids,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                notes=notes
+            )
+            order.refresh_from_db()
+            if notes:
+                order.dispatch_notes = (order.dispatch_notes + f"\n[Delivered]: {notes}").strip()
+                order.save(update_fields=['dispatch_notes', 'updated_at'])
 
-        return Response({
-            'success': True,
-            'order_number': order.order_number,
-            'status': order.status,
-            'delivered_at': timezone.now().isoformat()
-        })
+            return Response({
+                'success': True,
+                'order_number': order.order_number,
+                'status': order.status,
+                'delivered_at': timezone.now().isoformat(),
+                'rewards_summary': res,
+                'units': OrderUnitSerializer(order.units.all(), many=True).data
+            })
+        except PermissionError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 class DeliveryActiveOrdersView(views.APIView):
@@ -2736,5 +2765,386 @@ class AdminStorefrontNoticeViewSet(viewsets.ModelViewSet):
             details={'text': notice.text, 'highlight': notice.highlight, 'is_active': notice.is_active}
         )
         return Response({'status': 'success', 'is_active': notice.is_active})
+
+
+# -------------------------------------------------------------
+# WANGS REWARDS: VIEWS & APIS
+# -------------------------------------------------------------
+
+class CustomerRewardWalletView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        wallet, _ = CustomerRewardWallet.objects.get_or_create(user=request.user)
+        settings_obj = RewardSettings.get_settings()
+
+        # Ensure all past customer orders have units and QRs
+        for order in Order.objects.filter(user=request.user):
+            RewardService.ensure_order_units_and_qrs(order)
+
+        # Purchased units
+        units_qs = OrderUnit.objects.filter(customer=request.user).select_related('order', 'qr_code').prefetch_related('confirmations').order_by('-created_at')
+        pending_count = units_qs.filter(is_delivered=False).count()
+
+        wallet_data = CustomerRewardWalletSerializer(wallet).data
+        return Response({
+            'wallet': wallet_data,
+            'settings': RewardSettingsSerializer(settings_obj).data,
+            'pending_units_count': pending_count,
+            'purchased_units': OrderUnitSerializer(units_qs[:50], many=True).data,
+        })
+
+
+class CustomerRewardScanView(views.APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        token = request.data.get('token', '').strip()
+        if not token:
+            return Response({'detail': 'QR code token or scanned link is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Anti-enumeration rate limiting: max 10 failed scans per 10 minutes
+        ten_mins_ago = timezone.now() - datetime.timedelta(minutes=10)
+        recent_failures = SuspiciousScanLog.objects.filter(
+            Q(user=request.user) | Q(ip_address=request.META.get('REMOTE_ADDR')),
+            created_at__gte=ten_mins_ago
+        ).count()
+        if recent_failures >= 10:
+            return Response({
+                'detail': 'Too many invalid QR code attempts. For security, scanning has been temporarily paused for 10 minutes. Please try again later.'
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        try:
+            res = RewardService.verify_and_claim_customer_qr(
+                token=token,
+                customer_user=request.user,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')
+            )
+            return Response(res, status=status.HTTP_200_OK)
+        except PermissionError as e:
+            SuspiciousScanLog.objects.create(
+                token_attempted=token[:100],
+                user=request.user,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', ''),
+                reason=f"Unauthorized scan: {str(e)}"
+            )
+            return Response({'detail': str(e)}, status=status.HTTP_403_FORBIDDEN)
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.exception("Error in CustomerRewardScanView")
+            return Response({'detail': f'Verification error: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CustomerRewardVerifyTokenView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, token):
+        clean_token = token.strip()
+        if 'token=' in clean_token:
+            clean_token = clean_token.split('token=')[-1].split('&')[0]
+
+        qr = ProductQRCode.objects.select_related('unit', 'unit__order').filter(token=clean_token).first()
+        if not qr:
+            return Response({'detail': 'Invalid or unrecognized QR token.'}, status=status.HTTP_404_NOT_FOUND)
+
+        unit = qr.unit
+        is_owner = False
+        if request.user and request.user.is_authenticated:
+            if unit.customer_id == request.user.id or unit.order.user_id == request.user.id:
+                is_owner = True
+            elif unit.order.customer_email and unit.order.customer_email.strip().lower() == request.user.email.strip().lower():
+                is_owner = True
+
+        return Response({
+            'valid': not qr.is_revoked,
+            'is_claimed': qr.is_claimed,
+            'is_delivered': unit.is_delivered,
+            'reward_awarded': unit.reward_awarded,
+            'is_owner': is_owner,
+            'product_title': unit.product_title,
+            'unit_index': unit.unit_index,
+            'order_number': unit.order.order_number,
+            'weight_grams': unit.weight_grams,
+            'confirmation_source': unit.get_confirmation_source_display()
+        })
+
+
+class AdminRewardOverviewView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        settings_obj = RewardSettings.get_settings()
+        total_wallets = CustomerRewardWallet.objects.count()
+        total_balance = CustomerRewardWallet.objects.aggregate(total=Coalesce(Sum('balance'), 0))['total']
+        total_earned = CustomerRewardWallet.objects.aggregate(total=Coalesce(Sum('total_earned'), 0))['total']
+        total_redeemed = CustomerRewardWallet.objects.aggregate(total=Coalesce(Sum('total_redeemed'), 0))['total']
+
+        total_units = OrderUnit.objects.count()
+        delivered_units = OrderUnit.objects.filter(is_delivered=True).count()
+        rewarded_units = OrderUnit.objects.filter(reward_awarded=True).count()
+
+        total_qrs = ProductQRCode.objects.count()
+        claimed_qrs = ProductQRCode.objects.filter(is_claimed=True).count()
+        revoked_qrs = ProductQRCode.objects.filter(is_revoked=True).count()
+
+        confirmations_customer = DeliveryConfirmation.objects.filter(confirmation_source='CUSTOMER_QR').count()
+        confirmations_courier = DeliveryConfirmation.objects.filter(confirmation_source='COURIER').count()
+        confirmations_admin = DeliveryConfirmation.objects.filter(confirmation_source='ADMIN').count()
+
+        # Both confirmed count
+        both_confirmed_count = OrderUnit.objects.filter(
+            confirmations__confirmation_source='CUSTOMER_QR'
+        ).filter(
+            confirmations__confirmation_source='COURIER'
+        ).distinct().count()
+
+        recent_txs = RewardTransaction.objects.select_related('user', 'order', 'unit').order_by('-created_at')[:15]
+        suspicious_count = SuspiciousScanLog.objects.count()
+
+        return Response({
+            'settings': RewardSettingsSerializer(settings_obj).data,
+            'metrics': {
+                'total_wallets': total_wallets,
+                'total_credits_in_circulation': total_balance,
+                'total_credits_earned': total_earned,
+                'total_credits_redeemed': total_redeemed,
+                'total_units_issued': total_units,
+                'delivered_units_count': delivered_units,
+                'rewarded_units_count': rewarded_units,
+                'total_qrs_generated': total_qrs,
+                'claimed_qrs_count': claimed_qrs,
+                'revoked_qrs_count': revoked_qrs,
+                'confirmations_breakdown': {
+                    'customer_qr': confirmations_customer,
+                    'courier': confirmations_courier,
+                    'both_confirmed': both_confirmed_count,
+                    'admin': confirmations_admin
+                },
+                'suspicious_scan_attempts_count': suspicious_count
+            },
+            'recent_transactions': RewardTransactionSerializer(recent_txs, many=True).data
+        })
+
+
+class AdminRewardQRListView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        qs = OrderUnit.objects.select_related('order', 'customer', 'qr_code').prefetch_related('confirmations').order_by('-created_at')
+
+        # Filters & Search
+        search = request.query_params.get('search', '').strip()
+        if search:
+            qs = qs.filter(
+                Q(order__order_number__icontains=search) |
+                Q(product_title__icontains=search) |
+                Q(qr_code__token__icontains=search) |
+                Q(customer__username__icontains=search) |
+                Q(customer__email__icontains=search) |
+                Q(order__customer_email__icontains=search)
+            )
+
+        status_filter = request.query_params.get('status', 'all')
+        if status_filter == 'delivered':
+            qs = qs.filter(is_delivered=True)
+        elif status_filter == 'pending':
+            qs = qs.filter(is_delivered=False)
+        elif status_filter == 'claimed':
+            qs = qs.filter(qr_code__is_claimed=True)
+        elif status_filter == 'rewarded':
+            qs = qs.filter(reward_awarded=True)
+        elif status_filter == 'revoked':
+            qs = qs.filter(qr_code__is_revoked=True)
+
+        total_count = qs.count()
+        # Pagination
+        limit = min(int(request.query_params.get('limit', 50)), 200)
+        offset = int(request.query_params.get('offset', 0))
+        paginated_qs = qs[offset:offset + limit]
+
+        return Response({
+            'total_count': total_count,
+            'limit': limit,
+            'offset': offset,
+            'units': OrderUnitSerializer(paginated_qs, many=True).data
+        })
+
+
+class AdminRewardPrintLabelsView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request, order_number):
+        order = get_object_or_404(Order, order_number__iexact=order_number)
+        RewardService.ensure_order_units_and_qrs(order)
+
+        units = order.units.select_related('qr_code', 'product', 'order').all()
+        labels = []
+        for unit in units:
+            token = unit.qr_code.token if hasattr(unit, 'qr_code') else 'N/A'
+            qr_base64 = RewardService.generate_qr_data_url(token) if token != 'N/A' else ''
+            labels.append({
+                'unit_id': unit.id,
+                'unit_uid': unit.unit_uid,
+                'order_number': order.order_number,
+                'unit_index': unit.unit_index,
+                'total_units_in_item': unit.order_item.quantity,
+                'product_title': unit.product_title,
+                'weight_grams': unit.weight_grams,
+                'token': token,
+                'verification_url': f"https://wangs.in/rewards/scan?token={token}",
+                'qr_data_url': qr_base64,
+                'customer_name': order.customer_name,
+                'customer_city': order.shipping_city,
+                'customer_state': order.shipping_state,
+                'is_claimed': unit.qr_code.is_claimed if hasattr(unit, 'qr_code') else False,
+                'is_delivered': unit.is_delivered,
+                'is_revoked': unit.qr_code.is_revoked if hasattr(unit, 'qr_code') else False,
+            })
+
+        return Response({
+            'order_number': order.order_number,
+            'customer_name': order.customer_name,
+            'total_labels': len(labels),
+            'labels': labels
+        })
+
+
+class AdminRewardSettingsView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        settings_obj = RewardSettings.get_settings()
+        return Response(RewardSettingsSerializer(settings_obj).data)
+
+    def post(self, request):
+        settings_obj = RewardSettings.get_settings()
+        serializer = RewardSettingsSerializer(settings_obj, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            AuditLog.objects.create(
+                user=request.user,
+                action='REWARD_SETTINGS_UPDATED',
+                target_model='RewardSettings',
+                target_id=str(settings_obj.id),
+                details=request.data
+            )
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminRewardRevokeQRView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request, pk):
+        reason = request.data.get('reason', 'Revoked by administrator')
+        try:
+            qr = RewardService.admin_revoke_qr(
+                admin_user=request.user,
+                qr_id=pk,
+                reason=reason
+            )
+            return Response({
+                'success': True,
+                'id': qr.id,
+                'token': qr.token,
+                'is_revoked': qr.is_revoked,
+                'revoked_reason': qr.revoked_reason
+            })
+        except ValueError as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AdminRewardAdjustBalanceView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request):
+        user_identifier = request.data.get('user_id') or request.data.get('username') or request.data.get('email')
+        delta = request.data.get('delta')
+        reason = request.data.get('reason', '').strip()
+
+        if delta is None:
+            return Response({'detail': 'Credit adjustment delta (integer) is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            delta = int(delta)
+        except (ValueError, TypeError):
+            return Response({'detail': 'Credit adjustment delta must be an integer.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not reason:
+            return Response({'detail': 'An audit reason is strictly required for manual balance adjustments.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        target_user = None
+        if user_identifier:
+            target_user = User.objects.filter(
+                Q(id__iexact=str(user_identifier)) |
+                Q(username__iexact=str(user_identifier)) |
+                Q(email__iexact=str(user_identifier))
+            ).first()
+
+        if not target_user:
+            return Response({'detail': f'User {user_identifier} not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            wallet = RewardService.admin_adjust_balance(
+                admin_user=request.user,
+                target_user=target_user,
+                delta_credits=delta,
+                audit_reason=reason
+            )
+            return Response({
+                'success': True,
+                'target_username': target_user.username,
+                'new_balance': wallet.balance,
+                'delta': delta,
+                'message': f"Balance adjusted successfully. New balance: {wallet.balance} credits."
+            })
+        except Exception as e:
+            return Response({'detail': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminRewardSuspiciousLogsView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        logs = SuspiciousScanLog.objects.select_related('user').order_by('-created_at')[:100]
+        return Response(SuspiciousScanLogSerializer(logs, many=True).data)
+
+
+class AdminRewardExportTransactionsView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        import csv
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="wangs_rewards_transactions_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+
+        writer = csv.writer(response)
+        writer.writerow([
+            'Transaction ID', 'Timestamp', 'Customer Username', 'Customer Email',
+            'Type', 'Credits', 'Balance After', 'Order Number', 'Product Unit',
+            'Description', 'Performed By', 'Audit Reason'
+        ])
+
+        txs = RewardTransaction.objects.select_related('user', 'order', 'unit', 'performed_by').order_by('-created_at')
+        for t in txs:
+            writer.writerow([
+                t.id,
+                t.created_at.isoformat(),
+                t.user.username if t.user else '',
+                t.user.email if t.user else '',
+                t.get_transaction_type_display(),
+                t.credits,
+                t.balance_after,
+                t.order.order_number if t.order else '',
+                t.unit.unit_uid if t.unit else '',
+                t.description,
+                t.performed_by.username if t.performed_by else '',
+                t.audit_reason
+            ])
+        return response
 
 

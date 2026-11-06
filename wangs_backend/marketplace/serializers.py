@@ -9,7 +9,9 @@ from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog, HeroBanner, StorefrontNotice
+    ManufacturerSettlement, Coupon, AuditLog, HeroBanner, StorefrontNotice,
+    RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
+    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog
 )
 
 
@@ -550,8 +552,55 @@ class OrderItemSerializer(serializers.ModelSerializer):
         ]
 
 
+class DeliveryConfirmationSerializer(serializers.ModelSerializer):
+    confirmed_by_username = serializers.CharField(source='confirmed_by_user.username', read_only=True)
+
+    class Meta:
+        model = DeliveryConfirmation
+        fields = [
+            'id', 'unit', 'confirmation_source', 'confirmed_by_user',
+            'confirmed_by_username', 'confirmed_by_courier_name',
+            'timestamp', 'notes'
+        ]
+
+
+class ProductQRCodeSerializer(serializers.ModelSerializer):
+    claimed_by_username = serializers.CharField(source='claimed_by.username', read_only=True)
+    verification_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductQRCode
+        fields = [
+            'id', 'token', 'is_claimed', 'claimed_at', 'claimed_by',
+            'claimed_by_username', 'is_revoked', 'revoked_reason',
+            'revoked_at', 'verification_url', 'created_at'
+        ]
+
+    def get_verification_url(self, obj):
+        return f"https://wangs.in/rewards/scan?token={obj.token}"
+
+
+class OrderUnitSerializer(serializers.ModelSerializer):
+    qr_code = ProductQRCodeSerializer(read_only=True)
+    confirmations = DeliveryConfirmationSerializer(many=True, read_only=True)
+    confirmation_source = serializers.CharField(source='get_confirmation_source_display', read_only=True)
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    customer_email = serializers.CharField(source='customer.email', read_only=True)
+
+    class Meta:
+        model = OrderUnit
+        fields = [
+            'id', 'unit_uid', 'order', 'order_number', 'order_item', 'product',
+            'customer', 'customer_email', 'unit_index', 'product_title',
+            'weight_grams', 'status', 'is_delivered', 'delivered_at',
+            'reward_awarded', 'reward_awarded_at', 'confirmation_source',
+            'qr_code', 'confirmations', 'created_at'
+        ]
+
+
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    units = OrderUnitSerializer(many=True, read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
 
     class Meta:
@@ -562,15 +611,16 @@ class OrderSerializer(serializers.ModelSerializer):
             'shipping_address_line1', 'shipping_address_line2',
             'shipping_city', 'shipping_state', 'shipping_postal_code',
             'items_subtotal', 'customer_platform_fee', 'delivery_fee',
-            'discount_amount', 'total_amount', 'platform_commission_total',
+            'discount_amount', 'credits_redeemed', 'credit_discount_amount',
+            'total_amount', 'platform_commission_total',
             'manufacturer_payout_total', 'coupon_code', 'status',
             'payment_status', 'payment_method', 'tracking_number', 'courier_partner', 'dispatch_notes',
-            'items', 'created_at', 'updated_at'
+            'items', 'units', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'order_number', 'items_subtotal', 'customer_platform_fee',
-            'delivery_fee', 'discount_amount', 'total_amount',
-            'platform_commission_total', 'manufacturer_payout_total',
+            'delivery_fee', 'discount_amount', 'credits_redeemed', 'credit_discount_amount',
+            'total_amount', 'platform_commission_total', 'manufacturer_payout_total',
             'created_at', 'updated_at'
         ]
 
@@ -585,6 +635,7 @@ class OrderCreateSerializer(serializers.Serializer):
     shipping_state = serializers.CharField(max_length=100)
     shipping_postal_code = serializers.CharField(max_length=10)
     coupon_code = serializers.CharField(max_length=30, required=False, allow_blank=True)
+    credits_to_redeem = serializers.IntegerField(required=False, default=0, min_value=0)
     session_key = serializers.CharField(max_length=64, required=False, allow_blank=True)
 
 
@@ -665,5 +716,66 @@ class StorefrontNoticeSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'text', 'highlight', 'badge_color', 'link',
             'is_active', 'display_order', 'created_at', 'updated_at'
+        ]
+
+
+class RewardSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RewardSettings
+        fields = [
+            'id', 'is_enabled', 'credit_value_rupees', 'credits_per_unit',
+            'max_redemption_percentage', 'max_credits_per_order', 'updated_at'
+        ]
+
+
+class RewardTransactionSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    performed_by_username = serializers.CharField(source='performed_by.username', read_only=True)
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+
+    class Meta:
+        model = RewardTransaction
+        fields = [
+            'id', 'user', 'username', 'transaction_type', 'credits',
+            'balance_after', 'unit', 'order', 'order_number', 'description',
+            'performed_by', 'performed_by_username', 'audit_reason', 'created_at'
+        ]
+
+
+class CustomerRewardWalletSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.CharField(source='user.email', read_only=True)
+    credit_value_rupees = serializers.SerializerMethodField()
+    monetary_value = serializers.SerializerMethodField()
+    recent_transactions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CustomerRewardWallet
+        fields = [
+            'id', 'user', 'username', 'email', 'balance', 'total_earned',
+            'total_redeemed', 'credit_value_rupees', 'monetary_value',
+            'recent_transactions', 'updated_at'
+        ]
+
+    def get_credit_value_rupees(self, obj):
+        return RewardSettings.get_settings().credit_value_rupees
+
+    def get_monetary_value(self, obj):
+        rate = RewardSettings.get_settings().credit_value_rupees
+        return Decimal(str(obj.balance)) * rate
+
+    def get_recent_transactions(self, obj):
+        txs = obj.transactions.all()[:20]
+        return RewardTransactionSerializer(txs, many=True).data
+
+
+class SuspiciousScanLogSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = SuspiciousScanLog
+        fields = [
+            'id', 'token_attempted', 'user', 'username',
+            'ip_address', 'user_agent', 'reason', 'created_at'
         ]
 

@@ -1,12 +1,18 @@
 import hmac
 import hashlib
 import uuid
+import secrets
+import io
+import base64
+import qrcode
 from decimal import Decimal, ROUND_HALF_UP
 from django.db import transaction
 from django.utils import timezone
 from .models import (
     CommissionSetting, Order, OrderItem, PaymentTransaction,
-    Product, Cart, CartItem, AuditLog, ManufacturerSettlement
+    Product, Cart, CartItem, AuditLog, ManufacturerSettlement,
+    RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
+    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog
 )
 
 
@@ -108,10 +114,11 @@ class FinancialCalculator:
 class OrderService:
     @staticmethod
     @transaction.atomic
-    def create_order_from_cart(user, customer_details, shipping_details, cart_items, coupon=None, payment_method='RAZORPAY_TEST'):
+    def create_order_from_cart(user, customer_details, shipping_details, cart_items, coupon=None, payment_method='RAZORPAY_TEST', credits_to_redeem=0):
         """
-        Atomically validates stock, computes financials, deducts stock,
-        and saves immutable snapshots of Order and OrderItems.
+        Atomically validates stock, computes financials, applies Wangs Rewards credits,
+        deducts stock, saves immutable snapshots of Order and OrderItems, and generates
+        unique OrderUnits and ProductQRCodes for every individual item unit.
         """
         # Validate stock availability
         for item in cart_items:
@@ -124,8 +131,34 @@ class OrderService:
         commission_setting = CommissionSetting.get_current()
         calc = FinancialCalculator.calculate_order_financials(cart_items, coupon, commission_setting)
 
+        # Wangs Rewards: Credit Redemption at checkout
+        credit_discount = Decimal('0.00')
+        actual_credits_redeemed = 0
+        wallet = None
+        if credits_to_redeem and int(credits_to_redeem) > 0 and user and user.is_authenticated:
+            reward_settings = RewardSettings.get_settings()
+            if reward_settings.is_enabled:
+                wallet, _ = CustomerRewardWallet.objects.select_for_update().get_or_create(user=user)
+                # Maximum credits redeemable cannot exceed:
+                # 1. user's current wallet balance
+                # 2. configured max_credits_per_order
+                # 3. max order value allowed by max_redemption_percentage
+                max_rupees_discount = (calc['total_amount'] * Decimal(str(reward_settings.max_redemption_percentage))) / Decimal('100.00')
+                max_credits_from_total = int(max_rupees_discount / reward_settings.credit_value_rupees)
+
+                max_redeemable = max(0, min(wallet.balance, reward_settings.max_credits_per_order, max_credits_from_total))
+                actual_credits_redeemed = min(int(credits_to_redeem), max_redeemable)
+
+                if actual_credits_redeemed > 0:
+                    credit_discount = quantize_amount(Decimal(str(actual_credits_redeemed)) * reward_settings.credit_value_rupees)
+                    wallet.balance -= actual_credits_redeemed
+                    wallet.total_redeemed += actual_credits_redeemed
+                    wallet.save(update_fields=['balance', 'total_redeemed', 'updated_at'])
+
         # Generate unique human-readable order number
         order_number = f"WNG-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+
+        final_total = max(Decimal('0.00'), calc['total_amount'] - credit_discount)
 
         order = Order.objects.create(
             order_number=order_number,
@@ -142,7 +175,9 @@ class OrderService:
             customer_platform_fee=calc['customer_platform_fee'],
             delivery_fee=calc['delivery_fee'],
             discount_amount=calc['discount_amount'],
-            total_amount=calc['total_amount'],
+            credits_redeemed=actual_credits_redeemed,
+            credit_discount_amount=credit_discount,
+            total_amount=final_total,
             platform_commission_total=calc['platform_commission_total'],
             manufacturer_payout_total=calc['manufacturer_payout_total'],
             coupon_code=coupon.code if coupon else '',
@@ -171,14 +206,35 @@ class OrderService:
             product.stock_quantity -= line['quantity']
             product.save(update_fields=['stock_quantity', 'updated_at'])
 
+        # Record reward redemption transaction
+        if actual_credits_redeemed > 0 and wallet:
+            RewardTransaction.objects.create(
+                wallet=wallet,
+                user=user,
+                transaction_type=RewardTransaction.Type.REDEEM,
+                credits=-actual_credits_redeemed,
+                balance_after=wallet.balance,
+                order=order,
+                description=f"Redeemed {actual_credits_redeemed} Wangs Credits at checkout (Saved ₹{credit_discount})",
+                performed_by=user
+            )
+
         # Audit record
         AuditLog.objects.create(
             user=user if (user and user.is_authenticated) else None,
             action='ORDER_CREATED',
             target_model='Order',
             target_id=str(order.id),
-            details={'order_number': order.order_number, 'total_amount': str(order.total_amount)}
+            details={
+                'order_number': order.order_number,
+                'total_amount': str(order.total_amount),
+                'credits_redeemed': actual_credits_redeemed,
+                'credit_discount': str(credit_discount)
+            }
         )
+
+        # Automatically generate OrderUnits and cryptographically secure ProductQRCodes for every unit
+        RewardService.ensure_order_units_and_qrs(order)
 
         return order
 
@@ -297,3 +353,391 @@ class SettlementService:
                 'net_payable': quantize_amount(stats.get('net_payout') or Decimal('0.00')),
             })
         return results
+
+
+# -------------------------------------------------------------
+# WANGS REWARDS SERVICE: QR DELIVERY CONFIRMATION & WALLET ENGINE
+# -------------------------------------------------------------
+
+class RewardService:
+    @staticmethod
+    def ensure_order_units_and_qrs(order):
+        """
+        Idempotently generates unique OrderUnits and ProductQRCodes for every unit
+        in the order.
+        """
+        units_created = []
+        for item in order.items.all():
+            for idx in range(1, item.quantity + 1):
+                clean_order_suffix = order.order_number.replace('-', '')[-6:]
+                unit_uid = f"WNG-U-{clean_order_suffix}-{item.id}-{idx}"
+                unit, created = OrderUnit.objects.get_or_create(
+                    order_item=item,
+                    unit_index=idx,
+                    defaults={
+                        'unit_uid': unit_uid,
+                        'order': order,
+                        'product': item.product,
+                        'customer': order.user,
+                        'product_title': item.product_title,
+                        'weight_grams': item.weight_grams,
+                        'status': OrderUnit.Status.PENDING,
+                        'is_delivered': False,
+                        'reward_awarded': False,
+                    }
+                )
+                if not hasattr(unit, 'qr_code') or not ProductQRCode.objects.filter(unit=unit).exists():
+                    token = f"WNG-QR-{secrets.token_urlsafe(16)}"
+                    while ProductQRCode.objects.filter(token=token).exists():
+                        token = f"WNG-QR-{secrets.token_urlsafe(16)}"
+                    ProductQRCode.objects.create(
+                        unit=unit,
+                        token=token
+                    )
+                units_created.append(unit)
+        return units_created
+
+    @staticmethod
+    def generate_qr_data_url(token):
+        """
+        Generates a standalone base64 PNG data URL for packaging QR label printing.
+        """
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_M,
+            box_size=10,
+            border=2,
+        )
+        qr.add_data(f"https://wangs.in/rewards/scan?token={token}")
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="#1e1b18", back_color="#ffffff")
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        return f"data:image/png;base64,{img_str}"
+
+    @staticmethod
+    @transaction.atomic
+    def confirm_delivery_and_award_reward(unit_id_or_instance, source, confirmed_by_user=None, courier_name='', ip_address=None, user_agent='', notes=''):
+        """
+        Two independent delivery confirmation methods:
+        A. Customer QR scan
+        B. Courier confirmation
+        Delivery confirmation by either method is sufficient to award 1 Wangs Credit.
+        If both happen, maintains both confirmation records without double-awarding credits.
+        Uses select_for_update() row-level locking for strict concurrency protection.
+        """
+        unit_id = unit_id_or_instance.id if hasattr(unit_id_or_instance, 'id') else unit_id_or_instance
+        unit = OrderUnit.objects.select_for_update().get(id=unit_id)
+        order = unit.order
+
+        # 1. Record DeliveryConfirmation
+        DeliveryConfirmation.objects.create(
+            unit=unit,
+            confirmation_source=source,
+            confirmed_by_user=confirmed_by_user if (confirmed_by_user and confirmed_by_user.is_authenticated) else None,
+            confirmed_by_courier_name=courier_name or getattr(confirmed_by_user, 'first_name', '') or str(confirmed_by_user or ''),
+            ip_address=ip_address,
+            user_agent=user_agent,
+            notes=notes
+        )
+
+        # 2. Mark Unit as Delivered
+        unit.is_delivered = True
+        unit.status = OrderUnit.Status.DELIVERED
+        if not unit.delivered_at:
+            unit.delivered_at = timezone.now()
+
+        # Update order item and order fulfillment if all units delivered
+        all_units = order.units.all()
+        if all_units.exists() and all(u.is_delivered for u in all_units):
+            order.status = Order.Status.DELIVERED
+            order.save(update_fields=['status', 'updated_at'])
+            order.items.all().update(fulfillment_status=OrderItem.FulfillmentStatus.DELIVERED)
+
+        # 3. If Customer QR Scan, update ProductQRCode claimed status
+        if source == DeliveryConfirmation.Source.CUSTOMER_QR and hasattr(unit, 'qr_code'):
+            qr = unit.qr_code
+            if not qr.is_claimed:
+                qr.is_claimed = True
+                qr.claimed_at = timezone.now()
+                qr.claimed_by = confirmed_by_user if (confirmed_by_user and confirmed_by_user.is_authenticated) else None
+                qr.save(update_fields=['is_claimed', 'claimed_at', 'claimed_by'])
+
+        # 4. Check if reward was already awarded
+        if unit.reward_awarded:
+            unit.save(update_fields=['is_delivered', 'status', 'delivered_at'])
+            wallet = None
+            if order.user:
+                wallet, _ = CustomerRewardWallet.objects.get_or_create(user=order.user)
+            return {
+                'success': True,
+                'already_claimed': True,
+                'reward_awarded': False,
+                'credits_awarded': 0,
+                'current_balance': wallet.balance if wallet else 0,
+                'message': 'This QR code has already been used. Rewards have already been claimed.',
+                'product_name': unit.product_title,
+                'order_number': order.order_number,
+                'unit_uid': unit.unit_uid,
+                'confirmation_source': unit.get_confirmation_source_display()
+            }
+
+        # 5. Check order payment status & cancellation rules
+        # "Do not award credits for cancelled, unpaid, or failed orders."
+        if order.status in [Order.Status.CANCELLED, Order.Status.REFUNDED] or order.payment_status in [Order.PaymentStatus.FAILED, Order.PaymentStatus.REFUNDED]:
+            unit.save(update_fields=['is_delivered', 'status', 'delivered_at'])
+            return {
+                'success': True,
+                'already_claimed': False,
+                'reward_awarded': False,
+                'credits_awarded': 0,
+                'current_balance': 0,
+                'message': 'Delivery confirmed, but rewards cannot be awarded for cancelled or refunded orders.',
+                'product_name': unit.product_title,
+                'order_number': order.order_number,
+                'unit_uid': unit.unit_uid,
+                'confirmation_source': unit.get_confirmation_source_display()
+            }
+
+        # 6. Check Rewards Program settings
+        reward_settings = RewardSettings.get_settings()
+        if not reward_settings.is_enabled:
+            unit.save(update_fields=['is_delivered', 'status', 'delivered_at'])
+            return {
+                'success': True,
+                'already_claimed': False,
+                'reward_awarded': False,
+                'credits_awarded': 0,
+                'current_balance': 0,
+                'message': 'Delivery confirmed. The rewards program is currently inactive.',
+                'product_name': unit.product_title,
+                'order_number': order.order_number,
+                'unit_uid': unit.unit_uid,
+                'confirmation_source': unit.get_confirmation_source_display()
+            }
+
+        # 7. Award 1 Wangs Credit to Customer Wallet
+        credits_to_award = reward_settings.credits_per_unit or 1
+        customer_user = order.user
+        new_balance = 0
+
+        if customer_user:
+            wallet, _ = CustomerRewardWallet.objects.select_for_update().get_or_create(user=customer_user)
+            wallet.balance += credits_to_award
+            wallet.total_earned += credits_to_award
+            wallet.save(update_fields=['balance', 'total_earned', 'updated_at'])
+            new_balance = wallet.balance
+
+            # Maintain immutable transaction history
+            RewardTransaction.objects.create(
+                wallet=wallet,
+                user=customer_user,
+                transaction_type=RewardTransaction.Type.EARN,
+                credits=credits_to_award,
+                balance_after=new_balance,
+                unit=unit,
+                order=order,
+                description=f"Earned {credits_to_award} Wangs Credit for delivered {unit.product_title} (Unit #{unit.unit_index})",
+                performed_by=confirmed_by_user
+            )
+
+        unit.reward_awarded = True
+        unit.reward_awarded_at = timezone.now()
+        unit.save(update_fields=['is_delivered', 'status', 'delivered_at', 'reward_awarded', 'reward_awarded_at'])
+
+        # If all units in this order are delivered, set order status to DELIVERED
+        if not order.units.exclude(id=unit.id).filter(is_delivered=False).exists():
+            if order.status != Order.Status.DELIVERED:
+                order.status = Order.Status.DELIVERED
+                order.save(update_fields=['status', 'updated_at'])
+
+        return {
+            'success': True,
+            'already_claimed': False,
+            'reward_awarded': True,
+            'credits_awarded': credits_to_award,
+            'current_balance': new_balance,
+            'message': f"Congratulations! Your product delivery is confirmed. You earned {credits_to_award} Wangs Credit!",
+            'product_name': unit.product_title,
+            'order_number': order.order_number,
+            'unit_uid': unit.unit_uid,
+            'confirmation_source': unit.get_confirmation_source_display()
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def verify_and_claim_customer_qr(token, customer_user, ip_address=None, user_agent=''):
+        """
+        Validates token format, checks if revoked, verifies ownership against the logged-in customer,
+        and triggers delivery confirmation and reward awarding.
+        """
+        clean_token = token.strip()
+        if 'token=' in clean_token:
+            clean_token = clean_token.split('token=')[-1].split('&')[0]
+
+        qr = ProductQRCode.objects.select_related('unit', 'unit__order', 'unit__customer').filter(token=clean_token).first()
+        if not qr:
+            SuspiciousScanLog.objects.create(
+                token_attempted=clean_token[:100],
+                user=customer_user if (customer_user and customer_user.is_authenticated) else None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                reason="Non-existent QR token scanned"
+            )
+            raise ValueError("Invalid QR code. This token does not match any product unit in the Wangs registry.")
+
+        if qr.is_revoked:
+            SuspiciousScanLog.objects.create(
+                token_attempted=clean_token[:100],
+                user=customer_user if (customer_user and customer_user.is_authenticated) else None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                reason=f"Revoked QR token scanned: {qr.revoked_reason}"
+            )
+            raise ValueError(f"This QR code has been revoked. Reason: {qr.revoked_reason or 'Invalidated by administration'}.")
+
+        unit = qr.unit
+        order = unit.order
+
+        # Ownership verification:
+        # "Verify that the QR code belongs to a product unit purchased by the logged-in customer."
+        is_owner = False
+        if customer_user and customer_user.is_authenticated:
+            if unit.customer_id == customer_user.id or order.user_id == customer_user.id:
+                is_owner = True
+            elif order.customer_email and order.customer_email.strip().lower() == customer_user.email.strip().lower():
+                is_owner = True
+
+        if not is_owner:
+            SuspiciousScanLog.objects.create(
+                token_attempted=clean_token[:100],
+                user=customer_user if (customer_user and customer_user.is_authenticated) else None,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                reason=f"Unauthorized scan: User #{customer_user.id} ({customer_user.email}) attempted to claim unit #{unit.id} owned by User #{order.user_id} ({order.customer_email})"
+            )
+            raise PermissionError("This QR code belongs to a product purchased by another customer. Rewards can only be claimed by the purchasing account.")
+
+        return RewardService.confirm_delivery_and_award_reward(
+            unit_id_or_instance=unit,
+            source=DeliveryConfirmation.Source.CUSTOMER_QR,
+            confirmed_by_user=customer_user,
+            ip_address=ip_address,
+            user_agent=user_agent
+        )
+
+    @staticmethod
+    @transaction.atomic
+    def confirm_courier_delivery(order_identifier, courier_user=None, courier_name='', unit_ids=None, ip_address=None, user_agent='', notes=''):
+        """
+        Courier marks delivery for an entire order or specific product units.
+        Enforces courier assignment check:
+        'Do not allow couriers to confirm deliveries for orders that are not assigned to them
+        unless an authorized administrator permits it.'
+        """
+        order = Order.objects.filter(order_number__iexact=order_identifier).first()
+        if not order:
+            order = Order.objects.filter(tracking_number__iexact=order_identifier).first()
+        if not order:
+            raise ValueError(f"Order '{order_identifier}' not found.")
+
+        # Courier assignment check
+        is_admin = courier_user and (courier_user.is_staff or getattr(courier_user, 'role', '') == 'ADMIN')
+        if not is_admin and courier_user and getattr(courier_user, 'role', '') == 'COURIER':
+            if order.assigned_courier_id and order.assigned_courier_id != courier_user.id:
+                raise PermissionError("This parcel is assigned to another delivery agent. You cannot confirm this delivery.")
+
+        # Ensure units exist
+        RewardService.ensure_order_units_and_qrs(order)
+
+        target_units = order.units.all()
+        if unit_ids:
+            target_units = target_units.filter(id__in=unit_ids)
+
+        results = []
+        for unit in target_units:
+            res = RewardService.confirm_delivery_and_award_reward(
+                unit_id_or_instance=unit,
+                source=DeliveryConfirmation.Source.COURIER,
+                confirmed_by_user=courier_user,
+                courier_name=courier_name or getattr(courier_user, 'first_name', '') or 'Courier Fleet',
+                ip_address=ip_address,
+                user_agent=user_agent,
+                notes=notes
+            )
+            results.append(res)
+
+        return {
+            'order_number': order.order_number,
+            'total_units_confirmed': len(results),
+            'units': results
+        }
+
+    @staticmethod
+    @transaction.atomic
+    def admin_adjust_balance(admin_user, target_user, delta_credits, audit_reason):
+        """
+        Allows administrator to manually correct rewards balance with required audit reason.
+        """
+        if not audit_reason or not audit_reason.strip():
+            raise ValueError("An audit reason is strictly required for manual balance adjustments.")
+
+        wallet, _ = CustomerRewardWallet.objects.select_for_update().get_or_create(user=target_user)
+        new_balance = max(0, wallet.balance + delta_credits)
+        actual_delta = new_balance - wallet.balance
+
+        wallet.balance = new_balance
+        if actual_delta > 0:
+            wallet.total_earned += actual_delta
+        wallet.save(update_fields=['balance', 'total_earned', 'updated_at'])
+
+        RewardTransaction.objects.create(
+            wallet=wallet,
+            user=target_user,
+            transaction_type=RewardTransaction.Type.ADMIN_ADJUSTMENT,
+            credits=actual_delta,
+            balance_after=new_balance,
+            description=f"Manual Admin Adjustment: {actual_delta:+d} credits",
+            performed_by=admin_user,
+            audit_reason=audit_reason.strip()
+        )
+
+        AuditLog.objects.create(
+            user=admin_user,
+            action='REWARDS_BALANCE_ADJUSTMENT',
+            target_model='CustomerRewardWallet',
+            target_id=str(wallet.id),
+            details={
+                'target_user': target_user.username,
+                'delta': actual_delta,
+                'new_balance': new_balance,
+                'reason': audit_reason.strip()
+            }
+        )
+
+        return wallet
+
+    @staticmethod
+    @transaction.atomic
+    def admin_revoke_qr(admin_user, qr_id, reason):
+        """
+        Revokes an unused QR code.
+        """
+        qr = ProductQRCode.objects.select_for_update().get(id=qr_id)
+        if qr.is_claimed:
+            raise ValueError("Cannot revoke a QR code that has already been claimed by a customer.")
+
+        qr.is_revoked = True
+        qr.revoked_reason = reason.strip() or 'Revoked by administrator'
+        qr.revoked_at = timezone.now()
+        qr.save(update_fields=['is_revoked', 'revoked_reason', 'revoked_at'])
+
+        AuditLog.objects.create(
+            user=admin_user,
+            action='QR_REVOKED',
+            target_model='ProductQRCode',
+            target_id=str(qr.id),
+            details={'token': qr.token, 'reason': qr.revoked_reason}
+        )
+        return qr

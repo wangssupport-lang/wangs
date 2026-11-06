@@ -142,8 +142,56 @@ export const api = {
 
   // Delivery Portal (Direct link /delivery & QR scan)
   getDeliveryOrder: (identifier) => apiRequest(`/delivery/order/${encodeURIComponent(identifier)}/`),
-  markDeliveryOrderDelivered: (identifier, notes = '') => apiRequest(`/delivery/order/${encodeURIComponent(identifier)}/mark-delivered/`, { method: 'POST', body: JSON.stringify({ notes }) }),
+  markDeliveryOrderDelivered: (identifier, payload = {}) => apiRequest(`/delivery/order/${encodeURIComponent(identifier)}/mark-delivered/`, {
+    method: 'POST',
+    body: JSON.stringify(typeof payload === 'string' ? { notes: payload } : payload),
+  }),
   getActiveDeliveryOrders: () => apiRequest('/delivery/active/'),
+
+  // Customer Wangs Rewards & QR Scanning
+  getRewardWallet: () => apiRequest('/rewards/wallet/'),
+  scanRewardQR: (token) => apiRequest('/rewards/scan/', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  }),
+  verifyRewardToken: (token) => apiRequest(`/rewards/verify/${encodeURIComponent(token)}/`),
+
+  // Admin Wangs Rewards Management
+  getAdminRewardOverview: () => apiRequest('/admin/rewards/overview/'),
+  getAdminRewardQRs: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/rewards/qrcodes/${query ? `?${query}` : ''}`);
+  },
+  getAdminRewardPrintLabels: (orderNumber) => apiRequest(`/admin/rewards/print-labels/${encodeURIComponent(orderNumber)}/`),
+  updateAdminRewardSettings: (payload) => apiRequest('/admin/rewards/settings/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  revokeAdminRewardQR: (id, reason) => apiRequest(`/admin/rewards/revoke/${id}/`, {
+    method: 'POST',
+    body: JSON.stringify({ reason }),
+  }),
+  adjustAdminRewardBalance: (payload) => apiRequest('/admin/rewards/adjust-balance/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getAdminRewardSuspiciousLogs: () => apiRequest('/admin/rewards/suspicious-logs/'),
+  exportAdminRewardTransactions: async () => {
+    const token = localStorage.getItem('wangs_token');
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetch(`${DIRECT_BACKEND}/admin/rewards/export-transactions/`, { headers });
+    if (!res.ok) {
+      throw new Error(`Failed to export transactions: ${res.statusText}`);
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wangs_rewards_transactions_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  },
 
   // Manufacturer
   registerManufacturer: (payload) => apiRequest('/manufacturer/register/', { method: 'POST', body: JSON.stringify(payload) }),

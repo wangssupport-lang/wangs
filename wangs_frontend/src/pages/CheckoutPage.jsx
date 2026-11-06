@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   ShieldCheck, Lock, CreditCard, CheckCircle, AlertCircle,
-  ArrowRight, Truck, Smartphone, Building, RefreshCw, ChevronDown, ShoppingBag
+  ArrowRight, Truck, Smartphone, Building, RefreshCw, ChevronDown, ShoppingBag,
+  Sparkles
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +28,8 @@ export default function CheckoutPage() {
 
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('RAZORPAY_TEST');
+  const [rewardWallet, setRewardWallet] = useState(null);
+  const [creditsToRedeem, setCreditsToRedeem] = useState(0);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [showMobileSummary, setShowMobileSummary] = useState(false);
@@ -54,6 +57,10 @@ export default function CheckoutPage() {
             shipping_postal_code: def.postal_code,
           }));
         }
+      }).catch(console.error);
+
+      api.getRewardWallet().then((w) => {
+        setRewardWallet(w);
       }).catch(console.error);
     }
   }, [user]);
@@ -105,6 +112,7 @@ export default function CheckoutPage() {
       const orderPayload = {
         ...formData,
         payment_method: selectedPaymentMethod,
+        credits_to_redeem: safeCreditsToRedeem,
       };
 
       const res = await api.createOrder(orderPayload);
@@ -151,6 +159,13 @@ export default function CheckoutPage() {
     delivery_fee: '0.00',
     total_amount: '0.00',
   };
+
+  const rawTotal = parseFloat(summary.total_amount) || 0;
+  const availableCredits = rewardWallet?.available_credits || 0;
+  const maxRedeemableCredits = Math.min(availableCredits, Math.floor(rawTotal));
+  const safeCreditsToRedeem = Math.min(Math.max(0, parseInt(creditsToRedeem, 10) || 0), maxRedeemableCredits);
+  const creditDiscount = safeCreditsToRedeem * 1;
+  const finalPayableAmount = Math.max(0, rawTotal - creditDiscount);
 
   if (!items.length && !pendingOrder) {
     return (
@@ -199,7 +214,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-serif font-black text-sm text-red-600">
-                  ₹{parseFloat(summary.total_amount).toFixed(0)}
+                  ₹{finalPayableAmount.toFixed(0)}
                 </span>
                 <ChevronDown size={14} className={`text-stone-500 transition-transform ${showMobileSummary ? 'rotate-180' : ''}`} />
               </div>
@@ -239,6 +254,18 @@ export default function CheckoutPage() {
                   <div className="flex justify-between">
                     <span>Platform Fee</span>
                     <span>₹{parseFloat(summary.customer_platform_fee).toFixed(2)}</span>
+                  </div>
+                  {safeCreditsToRedeem > 0 && (
+                    <div className="flex justify-between text-emerald-700 font-bold">
+                      <span className="flex items-center gap-1">
+                        <Sparkles size={11} /> Wangs Credits Discount
+                      </span>
+                      <span>-₹{creditDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-1 border-t border-stone-200 font-bold text-stone-900">
+                    <span>Total Amount</span>
+                    <span className="text-red-600 font-serif">₹{finalPayableAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -415,6 +442,80 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Wangs Rewards Credits Redemption */}
+            {user && availableCredits > 0 && (
+              <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-red-50/70 p-6 sm:p-7 rounded-3xl border border-amber-200/80 shadow-artisan space-y-4">
+                <div className="flex items-center justify-between border-b border-amber-200/60 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+                      <Sparkles size={16} />
+                    </span>
+                    <div>
+                      <h3 className="font-serif font-bold text-sm text-stone-900">
+                        Redeem Wangs Rewards Credits
+                      </h3>
+                      <p className="text-[11px] text-stone-500">
+                        Use your earned credits for an instant discount (1 Credit = ₹1).
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Available</span>
+                    <span className="font-serif font-black text-amber-700 text-sm sm:text-base">
+                      {availableCredits} Credits
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-1">
+                      <input
+                        type="number"
+                        min={0}
+                        max={maxRedeemableCredits}
+                        value={safeCreditsToRedeem || ''}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (isNaN(val)) setCreditsToRedeem(0);
+                          else setCreditsToRedeem(Math.min(maxRedeemableCredits, Math.max(0, val)));
+                        }}
+                        placeholder="0"
+                        className="w-full px-4 py-2.5 bg-white border border-amber-200 rounded-xl text-sm font-bold text-stone-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <span className="absolute right-3 top-2.5 text-xs text-stone-400 font-bold">Credits</span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setCreditsToRedeem(maxRedeemableCredits)}
+                      className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      Redeem Max ({maxRedeemableCredits})
+                    </button>
+                    {safeCreditsToRedeem > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setCreditsToRedeem(0)}
+                        className="px-3 py-2.5 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-stone-600 bg-white/70 p-3 rounded-xl border border-amber-100">
+                    <span>Maximum redeemable: <strong>{maxRedeemableCredits} Credits</strong></span>
+                    {safeCreditsToRedeem > 0 && (
+                      <span className="font-bold text-emerald-700">
+                        Discount Applied: -₹{creditDiscount.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 3. Payment Method */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <h2 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-3 flex items-center justify-between">
@@ -456,7 +557,7 @@ export default function CheckoutPage() {
                 <span>Calculating order and locking inventory...</span>
               ) : (
                 <>
-                  <span>Place Order & Pay ₹{parseFloat(summary.total_amount).toFixed(0)}</span>
+                  <span>Place Order & Pay ₹{finalPayableAmount.toFixed(0)}</span>
                   <ArrowRight size={16} />
                 </>
               )}
@@ -515,9 +616,18 @@ export default function CheckoutPage() {
                   )}
                 </span>
               </div>
+              {safeCreditsToRedeem > 0 && (
+                <div className="flex justify-between text-emerald-700 font-bold bg-emerald-50/70 p-2 rounded-lg">
+                  <span className="flex items-center gap-1">
+                    <Sparkles size={13} className="text-emerald-600" />
+                    Wangs Credits Discount ({safeCreditsToRedeem} Credits)
+                  </span>
+                  <span>-₹{creditDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t border-stone-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-950">
                 <span>Total Amount Payable</span>
-                <span className="text-2xl font-serif font-black text-red-600">₹{parseFloat(summary.total_amount).toFixed(2)}</span>
+                <span className="text-2xl font-serif font-black text-red-600">₹{finalPayableAmount.toFixed(2)}</span>
               </div>
             </div>
 
@@ -554,7 +664,7 @@ export default function CheckoutPage() {
               </div>
               <div className="text-right">
                 <span className="text-[11px] text-red-100 block">Total Due</span>
-                <span className="font-serif font-black text-xl text-white">₹{parseFloat(pendingOrder?.total_amount || summary.total_amount).toFixed(2)}</span>
+                <span className="font-serif font-black text-xl text-white">₹{parseFloat(pendingOrder?.total_amount || finalPayableAmount).toFixed(2)}</span>
               </div>
             </div>
 
