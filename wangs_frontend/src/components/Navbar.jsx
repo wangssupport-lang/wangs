@@ -376,37 +376,37 @@ export default function Navbar() {
           1. TOP ANNOUNCEMENT NOTICE RIBBON (Interactive, Smooth Carousel & Social Proof)
           ======================================================== */}
       <div
-        className="bg-gradient-to-r from-[#863700] via-[#9b4100] to-[#863700] text-white border-b border-[#bf550d] text-[10.5px] sm:text-[11.5px] font-medium py-1.5 px-2 sm:px-4 transition-all duration-300 select-none"
+        className="bg-gradient-to-r from-[#863700] via-[#9b4100] to-[#863700] text-white border-b border-[#bf550d] text-[9px] sm:text-[10.5px] font-medium py-1 px-1.5 sm:px-4 transition-all duration-300 select-none"
         onMouseEnter={() => setIsRibbonPaused(true)}
         onMouseLeave={() => setIsRibbonPaused(false)}
         onTouchStart={() => setIsRibbonPaused(true)}
         onTouchEnd={() => setIsRibbonPaused(false)}
       >
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md gap-2">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md gap-1.5">
           {/* Left Arrow */}
           <button
             type="button"
             onClick={handlePrevNotice}
-            className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
+            className="p-0.5 rounded text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
             aria-label="Previous Notice"
             title="Previous Notice"
           >
-            <ChevronLeft size={14} />
+            <ChevronLeft size={12} />
           </button>
 
           {/* Center Notice Content with Keyed Smooth Fade/Slide */}
           <Link
             to={currentNotice.link || '/products'}
             key={ribbonIndex}
-            className="flex-1 min-w-0 flex items-center justify-center gap-2 overflow-hidden text-center hover:opacity-95 transition-opacity cursor-pointer animate-in fade-in duration-300"
+            className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-hidden text-center hover:opacity-95 transition-opacity cursor-pointer animate-in fade-in duration-300"
           >
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
+            <span className="w-1 h-1 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
             {currentNotice.highlight && (
-              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider shrink-0 shadow-2xs ${currentNotice.badge_color || currentNotice.badgeColor || 'bg-emerald-600 text-white'}`}>
+              <span className={`px-1.5 py-0.2 rounded text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wide shrink-0 shadow-2xs ${currentNotice.badge_color || currentNotice.badgeColor || 'bg-emerald-600 text-white'}`}>
                 {currentNotice.highlight}
               </span>
             )}
-            <span className="truncate max-w-[260px] xs:max-w-[340px] sm:max-w-none font-medium">
+            <span className="truncate text-[9px] sm:text-[10.5px] font-normal tracking-tight">
               {currentNotice.text}
             </span>
           </Link>
@@ -415,11 +415,11 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handleNextNotice}
-            className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
+            className="p-0.5 rounded text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
             aria-label="Next Notice"
             title="Next Notice"
           >
-            <ChevronRight size={14} />
+            <ChevronRight size={12} />
           </button>
 
           {/* Indicator Dots */}
@@ -433,21 +433,21 @@ export default function Navbar() {
                   setRibbonIndex(idx);
                 }}
                 aria-label={`Go to notice ${idx + 1}`}
-                className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
-                  idx === (ribbonIndex % activeNotices.length) ? 'w-4 bg-white' : 'w-1 bg-white/40 hover:bg-white/70'
+                className={`h-0.5 rounded-full transition-all duration-300 cursor-pointer ${
+                  idx === (ribbonIndex % activeNotices.length) ? 'w-3 bg-white' : 'w-1 bg-white/40 hover:bg-white/70'
                 }`}
               />
             ))}
           </div>
 
           {/* Trust Seals (Desktop Only) */}
-          <div className="hidden lg:flex items-center gap-3 text-[#ffdbcb] shrink-0 border-l border-white/20 pl-3 ml-1 text-[11px]">
-            <span className="flex items-center gap-1 font-semibold">
-              <ShieldCheck size={13} className="text-emerald-300" /> FSSAI Certified Purity
+          <div className="hidden lg:flex items-center gap-3 text-[#ffdbcb] shrink-0 border-l border-white/20 pl-3 ml-1 text-[10px]">
+            <span className="flex items-center gap-1 font-medium">
+              <ShieldCheck size={11} className="text-emerald-300" /> FSSAI Certified Purity
             </span>
             <span className="opacity-40">|</span>
-            <span className="flex items-center gap-1 font-semibold">
-              <Sparkles size={13} className="text-amber-300" /> 100% Sun-Matured Batches
+            <span className="flex items-center gap-1 font-medium">
+              <Sparkles size={11} className="text-amber-300" /> 100% Sun-Matured Batches
             </span>
           </div>
         </div>
