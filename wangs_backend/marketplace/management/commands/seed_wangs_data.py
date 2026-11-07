@@ -23,6 +23,14 @@ class Command(BaseCommand):
                 'free_delivery_threshold': Decimal('999.00'),
             }
         )
+        if comm and ('cgtuk' in (comm.maintenance_message or '') or len((comm.maintenance_message or '').split()) <= 1):
+            comm.maintenance_message = "We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!"
+            comm.save(update_fields=['maintenance_message'])
+
+        # Storefront notices clean-up
+        from marketplace.models import StorefrontNotice
+        StorefrontNotice.objects.filter(text__icontains='wem hfkjwf').delete()
+        StorefrontNotice.objects.filter(text__icontains='clksck').delete()
 
         # 2. Coupons
         Coupon.objects.get_or_create(

@@ -925,6 +925,10 @@ export default function AdminDashboardPage() {
       }
       toast.success('Notice removed from storefront');
       window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
+      // Reload admin notice list from backend to maintain absolute parity
+      api.getAdminStorefrontNotices().then((list) => {
+        if (Array.isArray(list)) setStorefrontNotices(list);
+      }).catch(console.error);
     } catch (err) {
       toast.error(err.message || 'Failed to delete notice');
     }
@@ -1585,6 +1589,28 @@ export default function AdminDashboardPage() {
                   className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-cream-100 rounded-xl text-xs font-semibold border border-stone-700 transition-colors whitespace-nowrap cursor-pointer"
                 >
                   Save Maintenance Text
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const defaultMsg = "We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!";
+                    setCustomMaintenanceMsg('');
+                    try {
+                      await api.toggleAdminMaintenanceMode({
+                        toggle: false,
+                        maintenance_message: defaultMsg
+                      });
+                      if (refreshPlatformSettings) await refreshPlatformSettings();
+                      toast.success('Maintenance message restored to default');
+                      loadAdminData();
+                    } catch (err) {
+                      toast.error(err.message || 'Failed to reset notice message');
+                    }
+                  }}
+                  className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold border border-amber-500/40 transition-colors whitespace-nowrap cursor-pointer"
+                  title="Reset to default professional maintenance message"
+                >
+                  Reset Default
                 </button>
               </div>
               <span className="text-[10px] text-stone-400">
