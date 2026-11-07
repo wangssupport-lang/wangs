@@ -112,7 +112,7 @@ const getShipmentMilestones = (order) => {
 };
 
 export default function CustomerAccountPage() {
-  const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout } = useAuth();
+  const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout, allowSellerRegistration } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -1234,37 +1234,91 @@ export default function CustomerAccountPage() {
                 </div>
               </div>
 
-              {/* Artisan Partnership Section - ONLY "Sell with Us" button */}
+              {/* Artisan Partnership Section - Dynamic Seller Hub / Onboarding */}
               <div className="bg-gradient-to-br from-[#faf2ed] via-white to-[#fff8f4] p-5 sm:p-6 rounded-2xl border border-[#dec0b3]/60 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
-                  <div className="w-10 h-10 rounded-2xl bg-[#9b4100] text-white flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-sm ${
+                    isManufacturer
+                      ? "bg-emerald-700 text-white"
+                      : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                      ? "bg-amber-600 text-white"
+                      : "bg-[#9b4100] text-white"
+                  }`}>
                     <Store size={20} />
                   </div>
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-serif font-bold text-base text-[#1e1b18]">
-                        {isManufacturer ? "Artisan Producer Workspace" : "Sell on Wangs Marketplace"}
+                        {isManufacturer
+                          ? "Artisan Producer Workspace"
+                          : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                          ? "Seller Application Under Review"
+                          : allowSellerRegistration
+                          ? "Sell on Wangs Marketplace"
+                          : "Artisan Producer Collective"}
                       </h4>
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#dec0b3]/30 text-[#9b4100]">
-                        {isManufacturer ? "Approved Seller" : "Artisan Partners"}
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        isManufacturer
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                          : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                          ? "bg-amber-100 text-amber-800 border border-amber-300"
+                          : allowSellerRegistration
+                          ? "bg-[#dec0b3]/30 text-[#9b4100]"
+                          : "bg-stone-200 text-stone-600 border border-stone-300"
+                      }`}>
+                        {isManufacturer
+                          ? "Approved Seller"
+                          : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                          ? "Application Under Review"
+                          : allowSellerRegistration
+                          ? "Artisan Partners"
+                          : "Onboarding Paused"}
                       </span>
                     </div>
                     <p className="text-xs text-[#574238] max-w-lg leading-relaxed">
                       {isManufacturer
                         ? "Access your artisanal pickle catalog, manage inventory stock, monitor customer orders, and review weekly NEFT/RTGS bank payouts."
-                        : "Showcase your family heritage recipes, pure Raja Mircha, and fermented bamboo shoot pickles to customers nationwide with 0% listing fee."}
+                        : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                        ? `Your application to sell on Wangs${user?.seller_request_details?.business_name ? ` for "${user.seller_request_details.business_name}"` : ''} has been received and is currently under review by our curation team. You will be notified via email once authorized.`
+                        : allowSellerRegistration
+                        ? "Showcase your family heritage recipes, pure Raja Mircha, and fermented bamboo shoot pickles to customers nationwide with 0% listing fee."
+                        : "New artisan producer applications are temporarily paused while our culinary curation team processes active batch reviews."}
                     </p>
                   </div>
                 </div>
 
-                <Link
-                  to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#9b4100] hover:bg-[#803300] text-white font-bold text-xs shadow-md transition-all active:scale-95 whitespace-nowrap self-start sm:self-center cursor-pointer"
-                >
-                  <Store size={15} />
-                  <span>Sell with Us</span>
-                  <ArrowRight size={14} />
-                </Link>
+                {isManufacturer ? (
+                  <Link
+                    to="/manufacturer"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs shadow-md transition-all active:scale-95 whitespace-nowrap self-start sm:self-center cursor-pointer"
+                  >
+                    <Store size={15} />
+                    <span>Open Seller Portal</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                ) : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING') ? (
+                  <Link
+                    to="/manufacturer/register"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs shadow-md transition-all active:scale-95 whitespace-nowrap self-start sm:self-center cursor-pointer"
+                  >
+                    <Clock size={15} />
+                    <span>Check Application Status</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                ) : allowSellerRegistration ? (
+                  <Link
+                    to="/manufacturer/register"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#9b4100] hover:bg-[#803300] text-white font-bold text-xs shadow-md transition-all active:scale-95 whitespace-nowrap self-start sm:self-center cursor-pointer"
+                  >
+                    <Store size={15} />
+                    <span>Sell with Us</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-stone-100 text-stone-500 font-bold text-xs border border-stone-200 self-start sm:self-center cursor-default">
+                    <span>Onboarding Paused</span>
+                  </span>
+                )}
               </div>
             </div>
           )}

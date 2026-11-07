@@ -369,13 +369,14 @@ class RequestSellerAccessView(views.APIView):
 
         # Ensure contact email has been verified via OTP
         is_admin = bool(request.user and request.user.is_authenticated and getattr(request.user, 'role', None) == User.Role.ADMIN)
+        is_current_auth_user = bool(request.user and request.user.is_authenticated and request.user.email and request.user.email.strip().lower() == email)
         has_verified_otp = EmailOTP.objects.filter(
             email=email,
             is_used=True,
             created_at__gte=timezone.now() - datetime.timedelta(minutes=60)
         ).exists()
 
-        if not has_verified_otp and not is_admin:
+        if not has_verified_otp and not is_admin and not is_current_auth_user:
             return Response({
                 'detail': 'Email verification is mandatory. Please click "Send OTP" and enter the 6-digit verification code sent to your email.'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -2192,9 +2193,14 @@ class AdminSellerRequestView(views.APIView):
         ) if emails else set()
 
         requests_list = []
+        seen_emails = set()
         for l in logs:
             details = l.details or {}
             email = (details.get('email') or '').strip().lower()
+            if not email or email in seen_emails:
+                continue
+            seen_emails.add(email)
+
             status_val = details.get('status')
 
             user_match = user_map.get(email)
@@ -2204,7 +2210,7 @@ class AdminSellerRequestView(views.APIView):
                 status_val == 'APPROVED' or
                 details.get('is_authorized') is True or
                 has_approval_log or
-                (user_match and user_match.can_sell)
+                (user_match and user_match.is_authorized_to_sell())
             )
 
             # If user was approved and then deleted by admin, or request was dismissed/deleted:

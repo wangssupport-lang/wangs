@@ -38,7 +38,7 @@ class User(AbstractUser):
         return self.role == self.Role.ADMIN or self.is_superuser
 
     def is_authorized_to_sell(self):
-        return self.can_sell or self.role == self.Role.ADMIN or self.is_superuser
+        return self.can_sell or self.role == self.Role.MANUFACTURER or self.role == self.Role.ADMIN or self.is_superuser
 
 
 class CustomerProfile(models.Model):

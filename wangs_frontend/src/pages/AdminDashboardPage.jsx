@@ -322,9 +322,10 @@ export default function AdminDashboardPage() {
     setTogglingSellerReg(true);
     try {
       const res = await api.toggleAdminSellerRegistration();
+      setMetrics((prev) => prev ? { ...prev, allow_seller_registration: res.allow_seller_registration } : { allow_seller_registration: res.allow_seller_registration });
       if (refreshPlatformSettings) await refreshPlatformSettings();
       toast.success(res.message || 'Updated "Sell with Us" visibility');
-      loadAdminData();
+      await loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Failed to toggle visibility');
     } finally {
@@ -561,6 +562,9 @@ export default function AdminDashboardPage() {
     try {
       const res = await api.approveAdminSellerRequest(email);
       toast.success(res?.message || `Seller authorization approved! Onboarding email sent to ${email}`);
+      setSellerRequests((prev) =>
+        prev.map((r) => ((r.email || '').toLowerCase() === email.toLowerCase() ? { ...r, is_authorized: true } : r))
+      );
       await loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Approval failed');

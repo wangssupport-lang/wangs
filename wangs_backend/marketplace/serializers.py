@@ -17,18 +17,76 @@ from .models import (
 
 class UserSerializer(serializers.ModelSerializer):
     is_authorized_to_sell = serializers.SerializerMethodField()
+    has_pending_seller_request = serializers.SerializerMethodField()
+    seller_request_status = serializers.SerializerMethodField()
+    seller_request_details = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'phone_number', 'is_staff', 'can_sell', 'is_authorized_to_sell',
+            'has_pending_seller_request', 'seller_request_status', 'seller_request_details',
             'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined'
         ]
-        read_only_fields = ['id', 'role', 'is_staff', 'can_sell', 'is_authorized_to_sell', 'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined']
+        read_only_fields = [
+            'id', 'role', 'is_staff', 'can_sell', 'is_authorized_to_sell',
+            'has_pending_seller_request', 'seller_request_status', 'seller_request_details',
+            'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined'
+        ]
 
     def get_is_authorized_to_sell(self, obj):
         return obj.is_authorized_to_sell()
+
+    def get_has_pending_seller_request(self, obj):
+        if obj.is_authorized_to_sell():
+            return False
+        email = (obj.email or '').strip().lower()
+        if not email:
+            return False
+        return AuditLog.objects.filter(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            details__email__iexact=email
+        ).exclude(
+            details__status__in=['APPROVED', 'DISMISSED', 'DELETED']
+        ).exists()
+
+    def get_seller_request_status(self, obj):
+        if obj.is_authorized_to_sell():
+            return 'APPROVED'
+        email = (obj.email or '').strip().lower()
+        if not email:
+            return 'NONE'
+        log = AuditLog.objects.filter(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            details__email__iexact=email
+        ).order_by('-created_at').first()
+        if not log:
+            return 'NONE'
+        status_val = (log.details or {}).get('status')
+        if status_val in ['DISMISSED', 'DELETED']:
+            return 'NONE'
+        if status_val == 'APPROVED' or (log.details or {}).get('is_authorized') is True:
+            return 'APPROVED'
+        return 'PENDING'
+
+    def get_seller_request_details(self, obj):
+        email = (obj.email or '').strip().lower()
+        if not email:
+            return None
+        log = AuditLog.objects.filter(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            details__email__iexact=email
+        ).order_by('-created_at').first()
+        if not log or not isinstance(log.details, dict):
+            return None
+        return {
+            'business_name': log.details.get('business_name', ''),
+            'location_district': log.details.get('location_district', ''),
+            'fssai_number': log.details.get('fssai_number', ''),
+            'created_at': log.created_at.isoformat() if log.created_at else None,
+            'phone': log.details.get('phone', ''),
+        }
 
 
 class AdminUserSerializer(serializers.ModelSerializer):

@@ -35,7 +35,7 @@ function formatCountdown(totalSeconds) {
 
 export default function ManufacturerRegisterPage() {
   const navigate = useNavigate();
-  const { user, isAuthorizedToSell, isManufacturer, allowSellerRegistration } = useAuth();
+  const { user, isAuthorizedToSell, isManufacturer, allowSellerRegistration, refreshUser } = useAuth();
 
   // Full onboarding form data (for authorized users)
   const [formData, setFormData] = useState({
@@ -145,6 +145,35 @@ export default function ManufacturerRegisterPage() {
     }
     return () => clearInterval(interval);
   }, [reqOtpExpiryTimer]);
+
+  // Sync user details when authenticated
+  useEffect(() => {
+    if (user && user.role !== 'ADMIN') {
+      const email = user.email || '';
+      const phone = user.phone_number || '';
+      const fullName = (user.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '');
+
+      setRequestData((prev) => ({
+        ...prev,
+        email: prev.email || email,
+        phone: prev.phone || phone,
+        business_name: prev.business_name || fullName,
+      }));
+
+      setFormData((prev) => ({
+        ...prev,
+        username: prev.username || user.username || '',
+        email: prev.email || email,
+        contact_email: prev.contact_email || email,
+        contact_phone: prev.contact_phone || phone,
+        full_name: prev.full_name || fullName,
+      }));
+
+      if (email) {
+        setReqOtpVerified(true);
+      }
+    }
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -300,6 +329,7 @@ export default function ManufacturerRegisterPage() {
         window.dispatchEvent(new Event('wangs_seller_status_changed'));
       } catch {}
       setRequestSuccess(true);
+      if (refreshUser) refreshUser();
     } catch (err) {
       setErrorMsg(err.message || 'Failed to submit seller access request.');
     } finally {
@@ -371,6 +401,72 @@ export default function ManufacturerRegisterPage() {
             <span>Open Manufacturer Dashboard</span>
             <ArrowRight size={15} />
           </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // IF USER ALREADY SUBMITTED AN APPLICATION THAT IS CURRENTLY UNDER REVIEW:
+  if (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING') {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-12 sm:py-16">
+        <div className="bg-white p-7 sm:p-10 rounded-3xl border border-amber-200/90 shadow-xl space-y-6 text-center">
+          <div className="w-16 h-16 bg-amber-50 text-amber-700 border border-amber-200 rounded-3xl flex items-center justify-center mx-auto shadow-xs">
+            <Clock size={28} className="animate-pulse" />
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-800 bg-amber-100/80 px-3 py-1 rounded-full">
+            Application Received · Under Administrator Review
+          </span>
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 mt-2">
+            Your Seller Application is Being Processed
+          </h1>
+          <p className="text-xs text-stone-600 max-w-lg mx-auto leading-relaxed">
+            Thank you for applying to sell on Wangs! Our culinary curation and compliance team is reviewing your brand information and FSSAI credentials. Once authorized, you will receive an invitation email and direct access to your Seller Portal.
+          </p>
+
+          <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200/80 text-left max-w-md mx-auto space-y-2 text-xs">
+            <div className="flex justify-between py-1 border-b border-stone-200/60">
+              <span className="text-stone-500">Applicant / Brand:</span>
+              <span className="font-bold text-stone-800">{user?.seller_request_details?.business_name || user?.first_name || 'Artisan Producer'}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-stone-200/60">
+              <span className="text-stone-500">Contact Email:</span>
+              <span className="font-mono text-stone-800">{user?.email}</span>
+            </div>
+            {user?.seller_request_details?.location_district && (
+              <div className="flex justify-between py-1 border-b border-stone-200/60">
+                <span className="text-stone-500">District:</span>
+                <span className="font-medium text-stone-800">{user.seller_request_details.location_district}</span>
+              </div>
+            )}
+            {user?.seller_request_details?.fssai_number && (
+              <div className="flex justify-between py-1 border-b border-stone-200/60">
+                <span className="text-stone-500">FSSAI Number:</span>
+                <span className="font-mono text-stone-800">{user.seller_request_details.fssai_number}</span>
+              </div>
+            )}
+            <div className="flex justify-between py-1">
+              <span className="text-stone-500">Application Status:</span>
+              <span className="font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full text-[11px] border border-amber-300">
+                Awaiting Administrator Review
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              to="/customer/account"
+              className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors"
+            >
+              Go to Account
+            </Link>
+            <Link
+              to="/"
+              className="px-6 py-2.5 bg-[#9b4100] hover:bg-[#803300] text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
+            >
+              Return to Storefront
+            </Link>
+          </div>
         </div>
       </div>
     );

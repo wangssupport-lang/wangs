@@ -624,14 +624,20 @@ export default function Navbar() {
 
             {/* Right: Actions Cluster */}
             <div className="flex items-center gap-3 shrink-0">
-              {/* Sell with Us CTA Button */}
-              {(allowSellerRegistration || isAuthorizedToSell) && (
+              {/* Sell with Us / Seller Portal CTA Button */}
+              {(allowSellerRegistration || isAuthorizedToSell || isManufacturer) && (
                 <Link
                   to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                   className="inline-flex items-center gap-1.5 bg-[#526048] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#3f4a36] transition-all shadow-xs active:scale-95"
                 >
                   <Store size={15} />
-                  <span>Sell with Us</span>
+                  <span>
+                    {isManufacturer
+                      ? "Seller Portal"
+                      : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                      ? "Seller Status"
+                      : "Sell with Us"}
+                  </span>
                 </Link>
               )}
 
@@ -715,7 +721,14 @@ export default function Navbar() {
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center gap-2.5 px-4 py-2.5 text-[#904d00] font-bold hover:bg-[#faf2ed] transition-colors"
                         >
-                          <Store size={15} className="text-[#904d00]" /> Sell with Us
+                          <Store size={15} className="text-[#904d00]" />
+                          <span>
+                            {isManufacturer
+                              ? "Seller Portal"
+                              : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
+                              ? "Seller Application Status"
+                              : "Sell with Us"}
+                          </span>
                         </Link>
                       )}
 
