@@ -1642,6 +1642,49 @@ class AdminMetricsView(views.APIView):
         total_subscribers = MaintenanceSubscriber.objects.count()
         low_stock_products = Product.objects.filter(stock_quantity__lte=5, is_active=True).count()
 
+        # Real historical time series across 8 uniform weekly periods
+        now = timezone.now()
+        bucket_days = 7
+        num_buckets = 8
+        start_date = now - datetime.timedelta(days=bucket_days * num_buckets)
+        timeline = []
+        for i in range(num_buckets):
+            b_start = start_date + datetime.timedelta(days=i * bucket_days)
+            b_end = b_start + datetime.timedelta(days=bucket_days)
+            label = b_start.strftime("%b %d")
+
+            b_orders = Order.objects.filter(created_at__gte=b_start, created_at__lt=b_end)
+            b_paid_orders = b_orders.filter(payment_status=Order.PaymentStatus.PAID)
+            b_delivered_orders = b_orders.filter(status=Order.Status.DELIVERED)
+
+            b_jars_sum = OrderItem.objects.filter(order__in=b_orders).aggregate(s=Sum('quantity'))['s'] or 0
+            b_delivered_jars = OrderItem.objects.filter(order__in=b_delivered_orders).aggregate(s=Sum('quantity'))['s'] or 0
+            b_gmv = b_paid_orders.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
+            b_comm = b_paid_orders.aggregate(
+                c=Sum('platform_commission_total'),
+                f=Sum('customer_platform_fee')
+            )
+            b_rev_total = (b_comm['c'] or Decimal('0.00')) + (b_comm['f'] or Decimal('0.00'))
+
+            b_producers = ManufacturerProfile.objects.filter(created_at__gte=b_start, created_at__lt=b_end).count()
+            b_users = User.objects.filter(date_joined__gte=b_start, date_joined__lt=b_end).count()
+
+            timeline.append({
+                'label': label,
+                'week_number': f'W{i+1}',
+                'start_date': b_start.isoformat(),
+                'end_date': b_end.isoformat(),
+                'orders_count': b_orders.count(),
+                'paid_orders_count': b_paid_orders.count(),
+                'delivered_orders_count': b_delivered_orders.count(),
+                'total_jars': int(b_jars_sum),
+                'delivered_jars': int(b_delivered_jars),
+                'gmv': float(b_gmv),
+                'platform_revenue': float(b_rev_total),
+                'producer_inflow': b_producers,
+                'user_signups': b_users,
+            })
+
         return Response({
             'gmv': str(gmv),
             'total_orders': total_orders,
@@ -1670,6 +1713,7 @@ class AdminMetricsView(views.APIView):
             'allow_seller_registration': comm_setting.allow_seller_registration,
             'is_maintenance_mode': comm_setting.is_maintenance_mode,
             'maintenance_message': comm_setting.maintenance_message,
+            'timeline': timeline,
         })
 
 

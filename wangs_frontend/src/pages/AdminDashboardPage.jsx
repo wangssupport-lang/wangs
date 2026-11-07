@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Shield, Users, Package, DollarSign, Settings,
@@ -35,6 +35,88 @@ const saveAdminCache = (data) => {
   try {
     sessionStorage.setItem(ADMIN_CACHE_KEY, JSON.stringify(data));
   } catch {}
+};
+
+// Real Data Spline Chart Interpolators
+const getSmoothSplinePath = (coords) => {
+  if (!coords || coords.length === 0) return '';
+  if (coords.length === 1) return `M ${coords[0].x} ${coords[0].y}`;
+
+  let d = `M ${coords[0].x} ${coords[0].y}`;
+  for (let i = 0; i < coords.length - 1; i++) {
+    const p0 = coords[Math.max(0, i - 1)];
+    const p1 = coords[i];
+    const p2 = coords[i + 1];
+    const p3 = coords[Math.min(coords.length - 1, i + 2)];
+
+    const cp1x = Math.round(p1.x + (p2.x - p0.x) / 6);
+    const cp1y = Math.round(p1.y + (p2.y - p0.y) / 6);
+    const cp2x = Math.round(p2.x - (p3.x - p1.x) / 6);
+    const cp2y = Math.round(p2.y - (p3.y - p1.y) / 6);
+
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`;
+  }
+  return d;
+};
+
+const getAreaPath = (coords, baselineY = 180) => {
+  if (!coords || coords.length === 0) return '';
+  const strokePath = getSmoothSplinePath(coords);
+  const lastX = coords[coords.length - 1].x;
+  const firstX = coords[0].x;
+  return `${strokePath} L ${lastX} ${baselineY} L ${firstX} ${baselineY} Z`;
+};
+
+const formatChartTick = (val, isCurrency = false) => {
+  if (val === 0) return isCurrency ? '₹0' : '0';
+  if (val >= 100000) return `${isCurrency ? '₹' : ''}${(val / 100000).toFixed(1).replace(/\.0$/, '')}L`;
+  if (val >= 1000) return `${isCurrency ? '₹' : ''}${(val / 1000).toFixed(1).replace(/\.0$/, '')}k`;
+  return `${isCurrency ? '₹' : ''}${val}`;
+};
+
+const computeChartScale = (maxVal, isCurrency = false) => {
+  if (maxVal <= 0) {
+    return {
+      max: isCurrency ? 1000 : 4,
+      ticks: isCurrency ? [1000, 660, 330, 0] : [4, 3, 2, 0],
+    };
+  }
+  if (maxVal <= 4) {
+    return { max: 4, ticks: [4, 3, 2, 0] };
+  }
+  if (maxVal <= 10) {
+    return { max: 10, ticks: [10, 7, 3, 0] };
+  }
+  if (maxVal <= 25) {
+    return { max: 25, ticks: [25, 15, 8, 0] };
+  }
+  if (maxVal <= 50) {
+    return { max: 50, ticks: [50, 35, 15, 0] };
+  }
+  if (maxVal <= 100) {
+    return { max: 100, ticks: [100, 66, 33, 0] };
+  }
+
+  const power = Math.pow(10, Math.floor(Math.log10(maxVal)));
+  const normalized = maxVal / power;
+  let factor = 10;
+  if (normalized <= 1.5) factor = 1.5;
+  else if (normalized <= 2) factor = 2;
+  else if (normalized <= 3) factor = 3;
+  else if (normalized <= 5) factor = 5;
+  else if (normalized <= 7.5) factor = 7.5;
+  else factor = 10;
+
+  const niceMax = Math.ceil(factor * power);
+  return {
+    max: niceMax,
+    ticks: [
+      niceMax,
+      Math.round(niceMax * 0.66),
+      Math.round(niceMax * 0.33),
+      0
+    ]
+  };
 };
 
 const tabTitles = {
@@ -74,6 +156,8 @@ export default function AdminDashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [topbarSearch, setTopbarSearch] = useState('');
   const [chartMetric, setChartMetric] = useState('orders'); // 'orders', 'revenue', 'inflow'
+  const [chartTimeRange, setChartTimeRange] = useState('8_weeks'); // '8_weeks', 'this_month', '30_days', 'all_time'
+  const [hoveredPointIdx, setHoveredPointIdx] = useState(null);
 
   const [activeTab, setActiveTab] = useState('metrics'); // 'metrics', 'users', 'manufacturers', 'products', 'orders', 'commission', 'settlements', 'logs'
   const [metrics, setMetrics] = useState(() => cachedData?.metrics || null);
@@ -1180,7 +1264,132 @@ export default function AdminDashboardPage() {
   });
   const adminBundlePercentage = ordersList.length > 0 ? Math.round((adminBundleOrders.length / ordersList.length) * 100) : 0;
   const adminTotalJars = ordersList.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.quantity || 1), 0), 0);
-  const adminAvgBasketSize = ordersList.length > 0 && adminTotalJars > 0 ? (adminTotalJars / ordersList.length).toFixed(1) : '2.2';
+  const adminAvgBasketSize = ordersList.length > 0 && adminTotalJars > 0 ? (adminTotalJars / ordersList.length).toFixed(1) : '0.0';
+  const totalOrdersCount = Number(metrics?.total_orders ?? ordersList.length);
+  const deliveredOrdersCount = Number(metrics?.delivered_orders ?? ordersList.filter((o) => o.status === 'DELIVERED').length);
+  const adminDeliveryRate = totalOrdersCount > 0
+    ? ((deliveredOrdersCount / totalOrdersCount) * 100).toFixed(1)
+    : '0.0';
+  const deliveryPct = Math.min(100, Math.max(0, parseFloat(adminDeliveryRate) || 0));
+  const deliveryGaugeOffset = Math.round(264 * (1 - deliveryPct / 100));
+
+  // Dynamic Real Data Time Series for Marketplace Volume Stats Spline Chart
+  const realChartData = useMemo(() => {
+    const now = new Date();
+    let numBuckets = 8;
+    let bucketMs = 7 * 24 * 60 * 60 * 1000;
+    let startDate = new Date(now.getTime() - numBuckets * bucketMs);
+
+    if (chartTimeRange === 'this_month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const daysSoFar = Math.max(7, Math.ceil((now - startOfMonth) / (24 * 60 * 60 * 1000)));
+      numBuckets = Math.min(8, Math.max(4, Math.ceil(daysSoFar / 4)));
+      bucketMs = (now - startOfMonth) / numBuckets;
+      startDate = startOfMonth;
+    } else if (chartTimeRange === '30_days') {
+      numBuckets = 6;
+      bucketMs = (30 * 24 * 60 * 60 * 1000) / numBuckets;
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (chartTimeRange === 'all_time') {
+      numBuckets = 8;
+      let earliest = now.getTime();
+      ordersList.forEach((o) => {
+        if (o.created_at) earliest = Math.min(earliest, new Date(o.created_at).getTime());
+      });
+      manufacturersList.forEach((m) => {
+        if (m.created_at) earliest = Math.min(earliest, new Date(m.created_at).getTime());
+      });
+      if (earliest === now.getTime()) earliest = now.getTime() - 60 * 24 * 60 * 60 * 1000;
+      bucketMs = Math.max(24 * 60 * 60 * 1000, (now.getTime() - earliest) / numBuckets);
+      startDate = new Date(earliest);
+    }
+
+    const points = [];
+    for (let i = 0; i < numBuckets; i++) {
+      const bStart = new Date(startDate.getTime() + i * bucketMs);
+      const bEnd = new Date(startDate.getTime() + (i + 1) * bucketMs);
+      const label = bStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+      const fullRange = `${bStart.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })} – ${bEnd.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}`;
+
+      // Aggregate from real ordersList
+      const bOrders = ordersList.filter((o) => {
+        if (!o.created_at) return false;
+        const d = new Date(o.created_at);
+        return d >= bStart && d < bEnd;
+      });
+
+      const bPaidOrders = bOrders.filter((o) => o.payment_status === 'PAID');
+      const bDeliveredOrders = bOrders.filter((o) => o.status === 'DELIVERED');
+
+      const jarsInOrders = bOrders.reduce((sum, o) => {
+        return sum + (o.items || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0);
+      }, 0);
+
+      const deliveredJars = bDeliveredOrders.reduce((sum, o) => {
+        return sum + (o.items || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0);
+      }, 0);
+
+      const gmv = bPaidOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+      const platformRev = bPaidOrders.reduce((sum, o) => {
+        const comm = parseFloat(o.platform_commission_total) || 0;
+        const fee = parseFloat(o.customer_platform_fee) || 0;
+        return sum + comm + fee;
+      }, 0);
+
+      // Aggregate from manufacturersList and sellerRequestsList
+      const bMfgs = manufacturersList.filter((m) => {
+        if (!m.created_at) return false;
+        const d = new Date(m.created_at);
+        return d >= bStart && d < bEnd;
+      }).length + sellerRequestsList.filter((r) => {
+        if (!r.created_at) return false;
+        const d = new Date(r.created_at);
+        return d >= bStart && d < bEnd;
+      }).length;
+
+      // Aggregate from usersList
+      const bUsers = usersList.filter((u) => {
+        const dStr = u.date_joined || u.created_at;
+        if (!dStr) return false;
+        const d = new Date(dStr);
+        return d >= bStart && d < bEnd;
+      }).length;
+
+      points.push({
+        label,
+        fullRange,
+        ordersCount: bOrders.length,
+        paidOrdersCount: bPaidOrders.length,
+        deliveredOrdersCount: bDeliveredOrders.length,
+        jarsCount: jarsInOrders,
+        deliveredJarsCount: deliveredJars,
+        gmv: Math.round(gmv * 100) / 100,
+        platformRev: Math.round(platformRev * 100) / 100,
+        inflowCount: bMfgs,
+        userSignupsCount: bUsers,
+      });
+    }
+
+    // Fallback to backend metrics.timeline if frontend lists are empty but timeline is present
+    const totalActivity = points.reduce((s, p) => s + p.ordersCount + p.gmv + p.inflowCount, 0);
+    if (totalActivity === 0 && Array.isArray(metrics?.timeline) && metrics.timeline.length > 0) {
+      return metrics.timeline.map((item) => ({
+        label: item.label,
+        fullRange: item.label,
+        ordersCount: item.orders_count || 0,
+        paidOrdersCount: item.paid_orders_count || 0,
+        deliveredOrdersCount: item.delivered_orders_count || 0,
+        jarsCount: item.total_jars || 0,
+        deliveredJarsCount: item.delivered_jars || 0,
+        gmv: item.gmv || 0,
+        platformRev: item.platform_revenue || 0,
+        inflowCount: item.producer_inflow || 0,
+        userSignupsCount: item.user_signups || 0,
+      }));
+    }
+
+    return points;
+  }, [ordersList, manufacturersList, sellerRequestsList, usersList, chartTimeRange, metrics]);
 
   const navGroups = [
     {
@@ -1566,7 +1775,7 @@ export default function AdminDashboardPage() {
                   <DollarSign size={24} />
                 </span>
                 <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/15 text-purple-100">
-                  +14.2% MoM
+                  {metrics?.total_platform_revenue ? `₹${metrics.total_platform_revenue} Net Fees` : 'Active Marketplace'}
                 </span>
               </div>
               <p className="text-xs font-semibold text-purple-200 uppercase tracking-wider">Gross GMV</p>
@@ -1678,7 +1887,7 @@ export default function AdminDashboardPage() {
                       stroke="url(#purpleGauge)"
                       strokeWidth="7"
                       strokeDasharray="264"
-                      strokeDashoffset="35"
+                      strokeDashoffset={deliveryGaugeOffset}
                       strokeLinecap="round"
                       fill="transparent"
                     />
@@ -1698,17 +1907,19 @@ export default function AdminDashboardPage() {
                   {user?.username || 'Admin Operator'}
                 </h3>
                 <p className="text-xs font-semibold text-purple-700 bg-purple-50 inline-block px-3 py-0.5 rounded-full mt-1 border border-purple-200/60">
-                  Super Administrator
+                  {user?.is_superuser ? 'Super Administrator' : 'Platform Administrator'}
                 </p>
                 <p className="text-[11px] text-slate-500 mt-1">
-                  Full platform oversight · Hyderabad Marketplace HQ
+                  Full platform oversight · Wangs Artisan Pantry HQ
                 </p>
               </div>
 
-              {/* 3 Mini Circular / Radial Performance Indicators */}
+              {/* 3 Mini Circular / Radial Performance Indicators (100% Real Data) */}
               <div className="grid grid-cols-3 gap-2 py-3 px-2 bg-slate-50/80 rounded-2xl border border-slate-100 text-center">
                 <div>
-                  <div className="text-sm font-black text-emerald-600">96.4%</div>
+                  <div className="text-sm font-black text-emerald-600">
+                    {adminDeliveryRate}%
+                  </div>
                   <div className="text-[10px] font-semibold text-slate-500">Delivery</div>
                 </div>
                 <div className="border-x border-slate-200/80">
@@ -1764,150 +1975,310 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Right Column: Wavy Spline Analytics Chart */}
-            <div className="lg:col-span-8 bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
-                <div>
-                  <h3 className="text-lg font-bold font-serif text-slate-900">
-                    Marketplace Volume Stats
-                  </h3>
-                  <p className="text-xs text-slate-500">
-                    Bi-weekly trends across customer orders, recipe deliveries, and producer inflow
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
-                    <button
-                      type="button"
-                      onClick={() => setChartMetric('orders')}
-                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                        chartMetric === 'orders' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
-                      }`}
-                    >
-                      Orders
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setChartMetric('revenue')}
-                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                        chartMetric === 'revenue' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
-                      }`}
-                    >
-                      Gross Revenue
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setChartMetric('inflow')}
-                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                        chartMetric === 'inflow' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
-                      }`}
-                    >
-                      Inflow
-                    </button>
+            {/* Right Column: Wavy Spline Analytics Chart (100% Real Dynamic Data) */}
+            {(() => {
+              // Determine active metric series
+              let series1Label = 'Delivered / Ordered Jars';
+              let series2Label = 'Paid Orders';
+              let getSeries1Val = (p) => p.jarsCount;
+              let getSeries2Val = (p) => p.paidOrdersCount;
+              let isCurrency = false;
+
+              if (chartMetric === 'orders') {
+                series1Label = 'Ordered Jars';
+                series2Label = 'Paid Orders';
+                getSeries1Val = (p) => p.jarsCount;
+                getSeries2Val = (p) => p.paidOrdersCount;
+                isCurrency = false;
+              } else if (chartMetric === 'revenue') {
+                series1Label = 'Gross GMV';
+                series2Label = 'Platform Revenue';
+                getSeries1Val = (p) => p.gmv;
+                getSeries2Val = (p) => p.platformRev;
+                isCurrency = true;
+              } else if (chartMetric === 'inflow') {
+                series1Label = 'Producer Inbound';
+                series2Label = 'User Registrations';
+                getSeries1Val = (p) => p.inflowCount;
+                getSeries2Val = (p) => p.userSignupsCount;
+                isCurrency = false;
+              }
+
+              const maxSeries1 = Math.max(0, ...realChartData.map((p) => getSeries1Val(p)));
+              const maxSeries2 = Math.max(0, ...realChartData.map((p) => getSeries2Val(p)));
+              const overallMax = Math.max(maxSeries1, maxSeries2);
+              const chartScale = computeChartScale(overallMax, isCurrency);
+
+              const svgXMin = 50;
+              const svgXMax = 570;
+              const svgYMin = 30;
+              const svgYMax = 180;
+              const svgWidth = svgXMax - svgXMin;
+              const svgHeight = svgYMax - svgYMin;
+
+              const N = realChartData.length;
+              const coords1 = realChartData.map((p, idx) => {
+                const x = N > 1 ? svgXMin + (idx / (N - 1)) * svgWidth : (svgXMin + svgXMax) / 2;
+                const val = getSeries1Val(p);
+                const y = chartScale.max > 0 ? svgYMax - (val / chartScale.max) * svgHeight : svgYMax;
+                return { x: Math.round(x), y: Math.round(y), val, point: p };
+              });
+
+              const coords2 = realChartData.map((p, idx) => {
+                const x = N > 1 ? svgXMin + (idx / (N - 1)) * svgWidth : (svgXMin + svgXMax) / 2;
+                const val = getSeries2Val(p);
+                const y = chartScale.max > 0 ? svgYMax - (val / chartScale.max) * svgHeight : svgYMax;
+                return { x: Math.round(x), y: Math.round(y), val, point: p };
+              });
+
+              const path1 = getSmoothSplinePath(coords1);
+              const area1 = getAreaPath(coords1, svgYMax);
+              const path2 = getSmoothSplinePath(coords2);
+              const area2 = getAreaPath(coords2, svgYMax);
+
+              // Default spotlight index: pick highest value or latest active point
+              let bestIdx = N - 1;
+              let highestCombined = -1;
+              coords1.forEach((c, idx) => {
+                const combined = c.val + coords2[idx].val;
+                if (combined > highestCombined) {
+                  highestCombined = combined;
+                  bestIdx = idx;
+                }
+              });
+
+              const activeIdx = hoveredPointIdx !== null ? hoveredPointIdx : bestIdx;
+              const activeCoord1 = coords1[activeIdx] || coords1[0] || { x: 420, y: 180, val: 0 };
+              const activeCoord2 = coords2[activeIdx] || coords2[0] || { x: 420, y: 180, val: 0 };
+              const activePoint = realChartData[activeIdx] || realChartData[0] || {};
+
+              const tooltipText = chartMetric === 'orders'
+                ? `${activePoint.paidOrdersCount || 0} Orders | ${activePoint.jarsCount || 0} Jars`
+                : chartMetric === 'revenue'
+                ? `₹${(activePoint.gmv || 0).toLocaleString('en-IN')} GMV | ₹${(activePoint.platformRev || 0).toLocaleString('en-IN')} Fee`
+                : `${activePoint.inflowCount || 0} Producers | ${activePoint.userSignupsCount || 0} Users`;
+
+              const pillWidth = Math.max(124, tooltipText.length * 7.5 + 24);
+              const pillX = Math.max(svgXMin, Math.min(svgXMax - pillWidth, activeCoord1.x - pillWidth / 2));
+              const pillY = Math.max(6, Math.min(svgYMax - 32, Math.min(activeCoord1.y, activeCoord2.y) - 34));
+
+              return (
+                <div className="lg:col-span-8 bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                    <div>
+                      <h3 className="text-lg font-bold font-serif text-slate-900">
+                        Marketplace Volume Stats
+                      </h3>
+                      <p className="text-xs text-slate-500">
+                        {chartMetric === 'orders' && 'Real-time order volume and jars fulfilled across all brand sellers'}
+                        {chartMetric === 'revenue' && 'Real transaction gross merchandise value and net platform fees'}
+                        {chartMetric === 'inflow' && 'Real producer onboarding velocity and customer registration inflow'}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+                        <button
+                          type="button"
+                          onClick={() => setChartMetric('orders')}
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                            chartMetric === 'orders' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+                          }`}
+                        >
+                          Orders
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChartMetric('revenue')}
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                            chartMetric === 'revenue' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+                          }`}
+                        >
+                          Gross Revenue
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setChartMetric('inflow')}
+                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                            chartMetric === 'inflow' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+                          }`}
+                        >
+                          Inflow
+                        </button>
+                      </div>
+
+                      <select
+                        value={chartTimeRange}
+                        onChange={(e) => {
+                          setChartTimeRange(e.target.value);
+                          setHoveredPointIdx(null);
+                        }}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/60 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+                      >
+                        <option value="this_month">This Month</option>
+                        <option value="30_days">Last 30 Days</option>
+                        <option value="8_weeks">Last 8 Weeks</option>
+                        <option value="all_time">All Time</option>
+                      </select>
+                    </div>
                   </div>
-                  <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/60">
-                    This Month ▾
-                  </span>
+
+                  {/* The Wavy Spline SVG Chart (Real Data Coordinates) */}
+                  <div className="relative w-full h-64 sm:h-72 pt-4">
+                    {/* Chart Legend */}
+                    <div className="absolute top-0 right-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
+                        <span>{series1Label}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="w-3 h-3 rounded-full bg-[#10b981]"></span>
+                        <span>{series2Label}</span>
+                      </span>
+                    </div>
+
+                    <svg className="w-full h-full overflow-visible" viewBox="0 0 600 220" preserveAspectRatio="none">
+                      <defs>
+                        <linearGradient id="purpleSplineGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
+                          <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
+                        </linearGradient>
+                        <linearGradient id="emeraldSplineGrad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                        </linearGradient>
+                      </defs>
+
+                      {/* Dynamic Horizontal Gridlines & Y-Axis Labels */}
+                      {chartScale.ticks.map((tick, idx) => {
+                        const yPos = chartScale.max > 0 ? svgYMax - (tick / chartScale.max) * svgHeight : svgYMax;
+                        return (
+                          <g key={idx}>
+                            <line x1={svgXMin - 10} y1={yPos} x2={svgXMax + 10} y2={yPos} stroke="#f1f5f9" strokeWidth="1" />
+                            <text x={svgXMin - 42} y={yPos + 4} fill="#94a3b8" fontSize="10" fontFamily="sans-serif">
+                              {formatChartTick(tick, isCurrency)}
+                            </text>
+                          </g>
+                        );
+                      })}
+
+                      {/* Vertical guide line for active point */}
+                      {activeCoord1 && (
+                        <line
+                          x1={activeCoord1.x}
+                          y1={svgYMin - 10}
+                          x2={activeCoord1.x}
+                          y2={svgYMax}
+                          stroke="#8b5cf6"
+                          strokeWidth="1.5"
+                          strokeDasharray="4 4"
+                          opacity="0.6"
+                        />
+                      )}
+
+                      {/* Spline Area 1 (Purple - Real Data) */}
+                      {area1 && <path d={area1} fill="url(#purpleSplineGrad)" />}
+                      {/* Spline Stroke 1 (Purple - Real Data) */}
+                      {path1 && (
+                        <path
+                          d={path1}
+                          fill="none"
+                          stroke="#8b5cf6"
+                          strokeWidth="3.5"
+                          strokeLinecap="round"
+                        />
+                      )}
+
+                      {/* Spline Area 2 (Emerald - Real Data) */}
+                      {area2 && <path d={area2} fill="url(#emeraldSplineGrad)" />}
+                      {/* Spline Stroke 2 (Emerald - Real Data) */}
+                      {path2 && (
+                        <path
+                          d={path2}
+                          fill="none"
+                          stroke="#10b981"
+                          strokeWidth="3"
+                          strokeLinecap="round"
+                        />
+                      )}
+
+                      {/* Spotlight Dots on Active Point */}
+                      {activeCoord1 && (
+                        <>
+                          <circle cx={activeCoord1.x} cy={activeCoord1.y} r="7" fill="#8b5cf6" />
+                          <circle cx={activeCoord1.x} cy={activeCoord1.y} r="3.5" fill="#ffffff" />
+                        </>
+                      )}
+                      {activeCoord2 && (
+                        <>
+                          <circle cx={activeCoord2.x} cy={activeCoord2.y} r="5" fill="#10b981" />
+                          <circle cx={activeCoord2.x} cy={activeCoord2.y} r="2.5" fill="#ffffff" />
+                        </>
+                      )}
+
+                      {/* Floating Tooltip Pill (100% Real Data Content) */}
+                      {activePoint && (
+                        <g transform={`translate(${pillX}, ${pillY})`}>
+                          <rect
+                            width={pillWidth}
+                            height="26"
+                            rx="8"
+                            fill="#1e1b4b"
+                            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
+                          />
+                          <text
+                            x={pillWidth / 2}
+                            y="17"
+                            fill="#ffffff"
+                            fontSize="9.5"
+                            fontWeight="bold"
+                            textAnchor="middle"
+                            fontFamily="sans-serif"
+                          >
+                            {tooltipText}
+                          </text>
+                        </g>
+                      )}
+
+                      {/* Interactive Column Hover Zones */}
+                      {coords1.map((c, idx) => {
+                        const colWidth = N > 1 ? svgWidth / (N - 1) : svgWidth;
+                        const colX = c.x - colWidth / 2;
+                        return (
+                          <rect
+                            key={idx}
+                            x={Math.max(0, colX)}
+                            y={svgYMin - 20}
+                            width={colWidth}
+                            height={svgHeight + 40}
+                            fill="transparent"
+                            className="cursor-pointer"
+                            onMouseEnter={() => setHoveredPointIdx(idx)}
+                            onClick={() => setHoveredPointIdx(idx)}
+                          />
+                        );
+                      })}
+                    </svg>
+
+                    {/* X Axis Real Date Labels */}
+                    <div className="flex justify-between px-6 pt-2 text-[10px] font-semibold text-slate-400">
+                      {realChartData.map((p, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setHoveredPointIdx(idx)}
+                          onMouseEnter={() => setHoveredPointIdx(idx)}
+                          className={`cursor-pointer transition-colors ${
+                            idx === activeIdx ? 'text-purple-700 font-bold scale-105' : 'hover:text-slate-600'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </div>
-
-              {/* The Wavy Spline SVG Chart */}
-              <div className="relative w-full h-64 sm:h-72 pt-4">
-                {/* Chart Legend */}
-                <div className="absolute top-0 right-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
-                    <span>Delivered Jars</span>
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-full bg-[#10b981]"></span>
-                    <span>Paid Orders</span>
-                  </span>
-                </div>
-
-                <svg className="w-full h-full overflow-visible" viewBox="0 0 600 220" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="purpleSplineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
-                    </linearGradient>
-                    <linearGradient id="emeraldSplineGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                    </linearGradient>
-                  </defs>
-
-                  {/* Horizontal gridlines */}
-                  <line x1="40" y1="30" x2="580" y2="30" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="40" y1="80" x2="580" y2="80" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="40" y1="130" x2="580" y2="130" stroke="#f1f5f9" strokeWidth="1" />
-                  <line x1="40" y1="180" x2="580" y2="180" stroke="#f1f5f9" strokeWidth="1" />
-
-                  {/* Y Axis Labels */}
-                  <text x="15" y="34" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">60k</text>
-                  <text x="15" y="84" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">40k</text>
-                  <text x="15" y="134" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">20k</text>
-                  <text x="25" y="184" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">0</text>
-
-                  {/* Vertical guide line for spotlight week */}
-                  <line x1="420" y1="20" x2="420" y2="180" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
-
-                  {/* Spline Area 1 (Purple) */}
-                  <path
-                    d="M 50 160 C 110 140, 160 70, 220 90 C 280 110, 340 50, 420 40 C 480 32, 530 65, 570 50 L 570 180 L 50 180 Z"
-                    fill="url(#purpleSplineGrad)"
-                  />
-                  {/* Spline Stroke 1 (Purple) */}
-                  <path
-                    d="M 50 160 C 110 140, 160 70, 220 90 C 280 110, 340 50, 420 40 C 480 32, 530 65, 570 50"
-                    fill="none"
-                    stroke="#8b5cf6"
-                    strokeWidth="3.5"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Spline Area 2 (Emerald) */}
-                  <path
-                    d="M 50 170 C 110 160, 170 120, 230 130 C 290 140, 350 95, 420 75 C 480 60, 520 85, 570 70 L 570 180 L 50 180 Z"
-                    fill="url(#emeraldSplineGrad)"
-                  />
-                  {/* Spline Stroke 2 (Emerald) */}
-                  <path
-                    d="M 50 170 C 110 160, 170 120, 230 130 C 290 140, 350 95, 420 75 C 480 60, 520 85, 570 70"
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                  />
-
-                  {/* Highlighted Tooltip Dot at Week 6 */}
-                  <circle cx="420" cy="40" r="7" fill="#8b5cf6" />
-                  <circle cx="420" cy="40" r="3.5" fill="#ffffff" />
-                  <circle cx="420" cy="75" r="5" fill="#10b981" />
-                  <circle cx="420" cy="75" r="2.5" fill="#ffffff" />
-
-                  {/* Floating Tooltip Pill */}
-                  <g transform="translate(365, 2)">
-                    <rect width="110" height="26" rx="8" fill="#1e1b4b" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))" />
-                    <text x="55" y="17" fill="#ffffff" fontSize="9.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
-                      ₹68,450 GMV | 38 Jars
-                    </text>
-                  </g>
-                </svg>
-
-                {/* X Axis Week Labels */}
-                <div className="flex justify-between px-6 pt-2 text-[10px] font-semibold text-slate-400">
-                  <span>Week 01</span>
-                  <span>Week 02</span>
-                  <span>Week 03</span>
-                  <span>Week 04</span>
-                  <span>Week 05</span>
-                  <span className="text-purple-700 font-bold">Week 06</span>
-                  <span>Week 07</span>
-                  <span>Week 08</span>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           {/* Producer Inflow & "Sell with Us" Public Visibility Monitor Card */}
