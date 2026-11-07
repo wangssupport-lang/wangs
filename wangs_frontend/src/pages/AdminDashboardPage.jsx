@@ -202,12 +202,15 @@ export default function AdminDashboardPage() {
         api.getAdminManufacturers().catch((err) => {
           if (checkIsAuthError(err)) throw err;
           console.warn('Manufacturers failed', err);
-          return [];
+          return cachedData?.manufacturers || [];
         }),
-        api.getAdminSellerRequests().catch(() => []),
+        api.getAdminSellerRequests().catch(() => cachedData?.sellerRequests || []),
       ]);
 
-      const parsedMfgs = extractList(mfgs);
+      let parsedMfgs = extractList(mfgs);
+      if (parsedMfgs.length === 0 && (cachedData?.manufacturers?.length || 0) > 0) {
+        parsedMfgs = cachedData.manufacturers;
+      }
       const parsedReqs = extractList(reqs);
 
       setMetrics(met || null);
@@ -1383,11 +1386,11 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <button
               type="button"
               onClick={() => setActiveTab(totalYetToApprove > 0 ? 'yet_to_approve' : 'products')}
-              className="relative p-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-600 shadow-xs border border-slate-200/80 transition-colors cursor-pointer"
+              className="relative p-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-600 shadow-xs border border-slate-200/80 transition-colors cursor-pointer shrink-0"
               title={`${totalYetToApprove + activeProductNotifications.length} notifications`}
             >
               <Bell size={18} />
@@ -1398,17 +1401,17 @@ export default function AdminDashboardPage() {
               )}
             </button>
 
-            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
-              <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400">
+            <div className="flex items-center gap-2.5 pl-3 border-l border-slate-200 shrink-0">
+              <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400 shrink-0">
                 <div className="w-full h-full rounded-full bg-purple-900 text-white font-bold flex items-center justify-center text-sm shadow-inner">
                   {(user?.username || 'A')[0].toUpperCase()}
                 </div>
               </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-bold text-slate-900 leading-tight">
+              <div className="hidden sm:block text-left shrink-0">
+                <p className="text-xs font-bold text-slate-900 leading-tight whitespace-nowrap">
                   {user?.username || 'Admin Operator'}
                 </p>
-                <p className="text-[10px] font-semibold text-purple-700 leading-tight">
+                <p className="text-[10px] font-semibold text-purple-700 leading-tight whitespace-nowrap">
                   Super Admin
                 </p>
               </div>
@@ -4631,9 +4634,9 @@ export default function AdminDashboardPage() {
                   key={st}
                   type="button"
                   onClick={() => setSellerStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
                     sellerStatusFilter === st
-                      ? 'bg-forest-900 text-white shadow-2xs'
+                      ? 'bg-purple-900 text-white shadow-xs'
                       : 'bg-stone-100 text-stone-700 hover:bg-stone-200'
                   }`}
                 >
@@ -4644,7 +4647,7 @@ export default function AdminDashboardPage() {
                 type="button"
                 disabled={downloadingResearch === 'sellers'}
                 onClick={() => handleDownloadResearch('csv', 'sellers')}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-stone-100 hover:bg-forest-900 text-stone-800 hover:text-white border border-stone-200 flex items-center gap-1.5 shadow-2xs active:scale-95"
+                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-stone-100 hover:bg-purple-900 text-stone-800 hover:text-white border border-stone-200 flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0"
                 title="Export complete manufacturer directory and bank details to CSV"
               >
                 <Download size={12} />
@@ -4653,7 +4656,7 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={() => setActiveTab('yet_to_approve')}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-2xs hover:scale-105 active:scale-95"
+                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-2xs hover:scale-105 active:scale-95 shrink-0"
               >
                 <span>Inbound Requests ({totalYetToApprove})</span>
                 <ArrowRight size={11} />
@@ -4661,139 +4664,180 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left">
-              <thead className="bg-cream-100 border-b border-stone-200 text-stone-700">
-                <tr>
-                  <th className="p-3">Manufacturer Business</th>
-                  <th className="p-3">Location & Contact</th>
-                  <th className="p-3">FSSAI / GST</th>
-                  <th className="p-3">Products Listed</th>
-                  <th className="p-3">Items Sold</th>
-                  <th className="p-3">Seller Sales</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Display Priority</th>
-                  <th className="p-3">Commission Rate</th>
-                  <th className="p-3">Actions & Portfolio</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {manufacturersList
-                  .filter((m) => {
-                    const matchesSearch = !sellerSearch || (
-                      (m.business_name || '').toLowerCase().includes(sellerSearch.toLowerCase()) ||
-                      (m.location_district || '').toLowerCase().includes(sellerSearch.toLowerCase()) ||
-                      (m.fssai_license_number || '').includes(sellerSearch) ||
-                      (m.contact_email || '').toLowerCase().includes(sellerSearch.toLowerCase()) ||
-                      (m.contact_phone || '').includes(sellerSearch)
-                    );
-                    const matchesStatus = sellerStatusFilter === 'ALL' || m.status === sellerStatusFilter;
-                    return matchesSearch && matchesStatus;
-                  })
-                  .map((m) => (
-                  <tr key={m.id} className="hover:bg-cream-50/50">
-                    <td className="p-3">
-                      <p className="font-bold text-stone-900 text-sm">{m.business_name}</p>
-                      <p className="text-[11px] text-stone-500">{m.brand_story?.substring(0, 80)}...</p>
-                    </td>
-                    <td className="p-3">
-                      <p className="font-semibold text-stone-800">{m.location_district}</p>
-                      <p className="text-stone-500 text-[11px]">{m.contact_email} · {m.contact_phone}</p>
-                    </td>
-                    <td className="p-3">
-                      <p className="font-mono">{m.fssai_license_number || 'None'}</p>
-                      <p className="text-stone-400 text-[10px]">{m.gst_number || 'No GST'}</p>
-                    </td>
-                    <td className="p-3">
-                      <span className="font-bold text-stone-900 block">{m.products_count || 0} products</span>
-                      <span className="text-[10px] text-emerald-700 font-semibold">{m.active_products_count || 0} active in catalog</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="font-bold text-forest-950 block">{m.total_items_sold || 0} jars</span>
-                      <span className="text-[10px] text-stone-500">items sold</span>
-                    </td>
-                    <td className="p-3">
-                      <span className="font-serif font-bold text-stone-900 block">₹{parseFloat(m.total_sales_revenue || 0).toLocaleString('en-IN')}</span>
-                      <span className="text-[10px] text-stone-500">seller volume</span>
-                    </td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        m.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                        m.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {m.status}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => handleSetPriority(m.id, m.display_priority ?? 0)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 font-bold text-amber-900 transition-colors shadow-2xs group cursor-pointer"
-                          title="Click to change brand display priority (higher numbers appear first on homepage and store)"
-                        >
-                          <span className="text-[10px] uppercase font-semibold text-amber-700">Rank:</span>
-                          <span className="font-mono text-xs font-bold text-stone-900">#{m.display_priority ?? 0}</span>
-                          <Edit3 size={11} className="text-amber-600 group-hover:scale-110 transition-transform" />
-                        </button>
-                        <button
-                          onClick={() => handleToggleBrandFeatured(m.id)}
-                          className={`p-1 rounded-md transition-colors ${m.is_featured ? 'text-amber-500 hover:text-amber-600 bg-amber-50' : 'text-stone-300 hover:text-stone-400'}`}
-                          title={m.is_featured ? 'Featured Brand Spotlight (Click to remove)' : 'Promote to Featured Brand Spotlight'}
-                        >
-                          <Star size={15} fill={m.is_featured ? 'currentColor' : 'none'} />
-                        </button>
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <button
-                        onClick={() => handleSetCommissionOverride(m.id)}
-                        className="font-bold text-forest-800 hover:underline flex items-center gap-1"
-                        title="Click to edit seller commission override"
-                      >
-                        {m.commission_rate_override ? `${m.commission_rate_override}% (Custom)` : '10.00% (Default)'}
-                      </button>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedSeller(m)}
-                          className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-700 font-semibold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
-                          title="Inspect comprehensive seller portfolio & products"
-                        >
-                          <Eye size={12} />
-                          <span>Inspect</span>
-                        </button>
-                        {m.status !== 'APPROVED' && (
-                          <button
-                            onClick={() => handleApproveManufacturer(m.id, 'APPROVED')}
-                            className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {m.status !== 'REJECTED' && (
-                          <button
-                            onClick={() => handleApproveManufacturer(m.id, 'REJECTED')}
-                            className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded"
-                          >
-                            Reject
-                          </button>
-                        )}
-                        {m.status === 'APPROVED' && (
-                          <button
-                            onClick={() => handleApproveManufacturer(m.id, 'SUSPENDED')}
-                            className="px-2 py-1 bg-stone-200 hover:bg-stone-300 text-stone-700 rounded"
-                          >
-                            Suspend
-                          </button>
-                        )}
-                      </div>
-                    </td>
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-xs overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 border-b border-stone-200 text-slate-700 font-bold">
+                  <tr>
+                    <th className="p-3.5">Manufacturer Business</th>
+                    <th className="p-3.5">Location & Contact</th>
+                    <th className="p-3.5">FSSAI / GST</th>
+                    <th className="p-3.5">Products Listed</th>
+                    <th className="p-3.5">Items Sold</th>
+                    <th className="p-3.5">Seller Sales</th>
+                    <th className="p-3.5">Status</th>
+                    <th className="p-3.5">Display Priority</th>
+                    <th className="p-3.5">Commission Rate</th>
+                    <th className="p-3.5">Actions & Portfolio</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {(() => {
+                    const filtered = manufacturersList.filter((m) => {
+                      const matchesSearch = !sellerSearch || (
+                        (m.business_name || '').toLowerCase().includes(sellerSearch.toLowerCase()) ||
+                        (m.location_district || '').toLowerCase().includes(sellerSearch.toLowerCase()) ||
+                        (m.fssai_license_number || '').includes(sellerSearch) ||
+                        (m.contact_email || '').toLowerCase().includes(sellerSearch.toLowerCase()) ||
+                        (m.contact_phone || '').includes(sellerSearch)
+                      );
+                      const matchesStatus = sellerStatusFilter === 'ALL' || m.status === sellerStatusFilter;
+                      return matchesSearch && matchesStatus;
+                    });
+
+                    if (filtered.length === 0) {
+                      return (
+                        <tr>
+                          <td colSpan={10} className="py-12 px-4 text-center text-slate-500">
+                            <Store size={36} className="mx-auto text-slate-300 mb-2.5" />
+                            <p className="font-bold text-slate-800 text-sm">No brand sellers found</p>
+                            <p className="text-slate-400 mt-1 text-xs">
+                              {sellerSearch
+                                ? `No producer matching "${sellerSearch}"`
+                                : sellerStatusFilter !== 'ALL'
+                                ? `No sellers currently have status "${sellerStatusFilter}" (${manufacturersList.length} total registered)`
+                                : 'No brand sellers currently registered on the platform.'}
+                            </p>
+                            <div className="flex items-center justify-center gap-2 mt-3.5">
+                              {sellerStatusFilter !== 'ALL' && (
+                                <button
+                                  type="button"
+                                  onClick={() => setSellerStatusFilter('ALL')}
+                                  className="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                                >
+                                  Show All Statuses ({manufacturersList.length})
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => loadAdminData(true)}
+                                className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                              >
+                                <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+                                <span>Sync Server Data</span>
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+
+                    return filtered.map((m) => (
+                      <tr key={m.id} className="hover:bg-slate-50/70 transition-colors">
+                        <td className="p-3.5">
+                          <p className="font-bold text-slate-900 text-sm">{m.business_name}</p>
+                          <p className="text-[11px] text-slate-500">{m.brand_story?.substring(0, 80)}...</p>
+                        </td>
+                        <td className="p-3.5">
+                          <p className="font-semibold text-slate-800">{m.location_district}</p>
+                          <p className="text-slate-500 text-[11px]">{m.contact_email} · {m.contact_phone}</p>
+                        </td>
+                        <td className="p-3.5">
+                          <p className="font-mono text-slate-800">{m.fssai_license_number || 'None'}</p>
+                          <p className="text-slate-400 text-[10px]">{m.gst_number || 'No GST'}</p>
+                        </td>
+                        <td className="p-3.5">
+                          <span className="font-bold text-slate-900 block">{m.products_count || 0} products</span>
+                          <span className="text-[10px] text-emerald-700 font-semibold">{m.active_products_count || 0} active in catalog</span>
+                        </td>
+                        <td className="p-3.5">
+                          <span className="font-bold text-purple-950 block">{m.total_items_sold || 0} jars</span>
+                          <span className="text-[10px] text-slate-500">items sold</span>
+                        </td>
+                        <td className="p-3.5">
+                          <span className="font-serif font-bold text-slate-900 block">₹{parseFloat(m.total_sales_revenue || 0).toLocaleString('en-IN')}</span>
+                          <span className="text-[10px] text-slate-500">seller volume</span>
+                        </td>
+                        <td className="p-3.5">
+                          <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                            m.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
+                            m.status === 'PENDING' ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-red-100 text-red-800 border border-red-200'
+                          }`}>
+                            {m.status}
+                          </span>
+                        </td>
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleSetPriority(m.id, m.display_priority ?? 0)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 bg-amber-50 hover:bg-amber-100 font-bold text-amber-900 transition-colors shadow-2xs group cursor-pointer"
+                              title="Click to change brand display priority (higher numbers appear first on homepage and store)"
+                            >
+                              <span className="text-[10px] uppercase font-semibold text-amber-700">Rank:</span>
+                              <span className="font-mono text-xs font-bold text-slate-900">#{m.display_priority ?? 0}</span>
+                              <Edit3 size={11} className="text-amber-600 group-hover:scale-110 transition-transform" />
+                            </button>
+                            <button
+                              onClick={() => handleToggleBrandFeatured(m.id)}
+                              className={`p-1 rounded-md transition-colors ${m.is_featured ? 'text-amber-500 hover:text-amber-600 bg-amber-50' : 'text-slate-300 hover:text-slate-400'}`}
+                              title={m.is_featured ? 'Featured Brand Spotlight (Click to remove)' : 'Promote to Featured Brand Spotlight'}
+                            >
+                              <Star size={15} fill={m.is_featured ? 'currentColor' : 'none'} />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="p-3.5">
+                          <button
+                            onClick={() => handleSetCommissionOverride(m.id)}
+                            className="font-bold text-purple-800 hover:underline flex items-center gap-1 cursor-pointer"
+                            title="Click to edit seller commission override"
+                          >
+                            {m.commission_rate_override ? `${m.commission_rate_override}% (Custom)` : '10.00% (Default)'}
+                          </button>
+                        </td>
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedSeller(m)}
+                              className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-purple-900 hover:text-white text-slate-700 font-semibold text-[11px] flex items-center gap-1 transition-all cursor-pointer shadow-2xs"
+                              title="Inspect comprehensive seller portfolio & products"
+                            >
+                              <Eye size={12} />
+                              <span>Inspect</span>
+                            </button>
+                            {m.status !== 'APPROVED' && (
+                              <button
+                                onClick={() => handleApproveManufacturer(m.id, 'APPROVED')}
+                                className="px-2 py-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded cursor-pointer"
+                              >
+                                Approve
+                              </button>
+                            )}
+                            {m.status !== 'REJECTED' && (
+                              <button
+                                onClick={() => handleApproveManufacturer(m.id, 'REJECTED')}
+                                className="px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-semibold rounded cursor-pointer"
+                              >
+                                Reject
+                              </button>
+                            )}
+                            {m.status === 'APPROVED' && (
+                              <button
+                                onClick={() => handleApproveManufacturer(m.id, 'SUSPENDED')}
+                                className="px-2 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded cursor-pointer"
+                              >
+                                Suspend
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

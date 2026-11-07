@@ -65,7 +65,7 @@ function AppLayout() {
   const isDeliveryRoute = location.pathname.startsWith('/delivery');
 
   return (
-    <div className={`min-h-screen flex flex-col bg-background text-on-surface selection:bg-primary selection:text-white ${isAdminRoute || isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
+    <div className={`min-h-screen flex flex-col bg-background text-on-surface selection:bg-primary selection:text-white ${isAdminRoute ? 'pb-0' : isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
       <ScrollToTop />
       {!isAdminRoute && !isDeliveryRoute && <Navbar />}
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}

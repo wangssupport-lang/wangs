@@ -44,12 +44,18 @@ class UserSerializer(serializers.ModelSerializer):
         email = (obj.email or '').strip().lower()
         if not email:
             return False
-        return AuditLog.objects.filter(
-            action='SELLER_AUTHORIZATION_REQUESTED',
-            details__email__iexact=email
-        ).exclude(
-            details__status__in=['APPROVED', 'DISMISSED', 'DELETED']
-        ).exists()
+        try:
+            logs = AuditLog.objects.filter(action='SELLER_AUTHORIZATION_REQUESTED').order_by('-created_at')
+            for log in logs:
+                d = log.details or {}
+                if isinstance(d, dict) and (d.get('email') or '').strip().lower() == email:
+                    st = str(d.get('status', 'PENDING')).upper()
+                    if st not in ['APPROVED', 'DISMISSED', 'DELETED'] and not d.get('is_authorized'):
+                        return True
+                    return False
+            return False
+        except Exception:
+            return False
 
     def get_seller_request_status(self, obj):
         if obj.is_authorized_to_sell():
@@ -57,36 +63,40 @@ class UserSerializer(serializers.ModelSerializer):
         email = (obj.email or '').strip().lower()
         if not email:
             return 'NONE'
-        log = AuditLog.objects.filter(
-            action='SELLER_AUTHORIZATION_REQUESTED',
-            details__email__iexact=email
-        ).order_by('-created_at').first()
-        if not log:
+        try:
+            logs = AuditLog.objects.filter(action='SELLER_AUTHORIZATION_REQUESTED').order_by('-created_at')
+            for log in logs:
+                d = log.details or {}
+                if isinstance(d, dict) and (d.get('email') or '').strip().lower() == email:
+                    status_val = d.get('status')
+                    if status_val in ['DISMISSED', 'DELETED']:
+                        return 'NONE'
+                    if status_val == 'APPROVED' or d.get('is_authorized') is True:
+                        return 'APPROVED'
+                    return 'PENDING'
             return 'NONE'
-        status_val = (log.details or {}).get('status')
-        if status_val in ['DISMISSED', 'DELETED']:
+        except Exception:
             return 'NONE'
-        if status_val == 'APPROVED' or (log.details or {}).get('is_authorized') is True:
-            return 'APPROVED'
-        return 'PENDING'
 
     def get_seller_request_details(self, obj):
         email = (obj.email or '').strip().lower()
         if not email:
             return None
-        log = AuditLog.objects.filter(
-            action='SELLER_AUTHORIZATION_REQUESTED',
-            details__email__iexact=email
-        ).order_by('-created_at').first()
-        if not log or not isinstance(log.details, dict):
+        try:
+            logs = AuditLog.objects.filter(action='SELLER_AUTHORIZATION_REQUESTED').order_by('-created_at')
+            for log in logs:
+                d = log.details or {}
+                if isinstance(d, dict) and (d.get('email') or '').strip().lower() == email:
+                    return {
+                        'business_name': d.get('business_name', ''),
+                        'location_district': d.get('location_district', ''),
+                        'fssai_number': d.get('fssai_number', ''),
+                        'created_at': log.created_at.isoformat() if log.created_at else None,
+                        'phone': d.get('phone', ''),
+                    }
             return None
-        return {
-            'business_name': log.details.get('business_name', ''),
-            'location_district': log.details.get('location_district', ''),
-            'fssai_number': log.details.get('fssai_number', ''),
-            'created_at': log.created_at.isoformat() if log.created_at else None,
-            'phone': log.details.get('phone', ''),
-        }
+        except Exception:
+            return None
 
 
 class AddressSerializer(serializers.ModelSerializer):
@@ -185,25 +195,27 @@ class AdminUserSerializer(serializers.ModelSerializer):
         email = (obj.email or '').strip().lower()
         if not email:
             return None
-        log = AuditLog.objects.filter(
-            action='SELLER_AUTHORIZATION_REQUESTED',
-            details__email__iexact=email
-        ).order_by('-created_at').first()
-        if not log or not isinstance(log.details, dict):
+        try:
+            logs = AuditLog.objects.filter(action='SELLER_AUTHORIZATION_REQUESTED').order_by('-created_at')
+            for log in logs:
+                d = log.details or {}
+                if isinstance(d, dict) and (d.get('email') or '').strip().lower() == email:
+                    return {
+                        'business_name': d.get('business_name', ''),
+                        'location_district': d.get('location_district', ''),
+                        'fssai_number': d.get('fssai_number', ''),
+                        'phone': d.get('phone', ''),
+                        'bank_account_holder': d.get('bank_account_holder', ''),
+                        'bank_account_number': d.get('bank_account_number', ''),
+                        'bank_ifsc_code': d.get('bank_ifsc_code', ''),
+                        'bank_name': d.get('bank_name', ''),
+                        'message': d.get('message', ''),
+                        'created_at': log.created_at.isoformat() if log.created_at else None,
+                        'status': d.get('status', 'PENDING'),
+                    }
             return None
-        return {
-            'business_name': log.details.get('business_name', ''),
-            'location_district': log.details.get('location_district', ''),
-            'fssai_number': log.details.get('fssai_number', ''),
-            'phone': log.details.get('phone', ''),
-            'bank_account_holder': log.details.get('bank_account_holder', ''),
-            'bank_account_number': log.details.get('bank_account_number', ''),
-            'bank_ifsc_code': log.details.get('bank_ifsc_code', ''),
-            'bank_name': log.details.get('bank_name', ''),
-            'message': log.details.get('message', ''),
-            'created_at': log.created_at.isoformat() if log.created_at else None,
-            'status': log.details.get('status', 'PENDING'),
-        }
+        except Exception:
+            return None
 
     def get_rewards_balance(self, obj):
         wallet = getattr(obj, 'reward_wallet', None)
@@ -335,30 +347,42 @@ class ManufacturerProfileSerializer(serializers.ModelSerializer):
         raise serializers.ValidationError('FSSAI license number is mandatory for all sellers.')
 
     def get_products_count(self, obj):
-        return obj.products.count()
+        try:
+            return obj.products.count()
+        except Exception:
+            return 0
 
     def get_active_products_count(self, obj):
-        return obj.products.filter(is_active=True, status=Product.Status.APPROVED).count()
+        try:
+            return obj.products.filter(is_active=True, status=Product.Status.APPROVED).count()
+        except Exception:
+            return 0
 
     def get_total_items_sold(self, obj):
-        paid_items = OrderItem.objects.filter(
-            manufacturer=obj,
-            order__payment_status=Order.PaymentStatus.PAID
-        ).aggregate(sum=Sum('quantity'))['sum']
-        if paid_items is not None and paid_items > 0:
-            return paid_items
-        all_items = OrderItem.objects.filter(manufacturer=obj).aggregate(sum=Sum('quantity'))['sum']
-        return all_items or 0
+        try:
+            paid_items = OrderItem.objects.filter(
+                manufacturer=obj,
+                order__payment_status=Order.PaymentStatus.PAID
+            ).aggregate(sum=Sum('quantity'))['sum']
+            if paid_items is not None and paid_items > 0:
+                return paid_items
+            all_items = OrderItem.objects.filter(manufacturer=obj).aggregate(sum=Sum('quantity'))['sum']
+            return all_items or 0
+        except Exception:
+            return 0
 
     def get_total_sales_revenue(self, obj):
-        paid_rev = OrderItem.objects.filter(
-            manufacturer=obj,
-            order__payment_status=Order.PaymentStatus.PAID
-        ).aggregate(sum=Sum('subtotal'))['sum']
-        if paid_rev is not None and paid_rev > 0:
-            return str(paid_rev)
-        all_rev = OrderItem.objects.filter(manufacturer=obj).aggregate(sum=Sum('subtotal'))['sum']
-        return str(all_rev or Decimal('0.00'))
+        try:
+            paid_rev = OrderItem.objects.filter(
+                manufacturer=obj,
+                order__payment_status=Order.PaymentStatus.PAID
+            ).aggregate(sum=Sum('subtotal'))['sum']
+            if paid_rev is not None and paid_rev > 0:
+                return str(paid_rev)
+            all_rev = OrderItem.objects.filter(manufacturer=obj).aggregate(sum=Sum('subtotal'))['sum']
+            return str(all_rev or Decimal('0.00'))
+        except Exception:
+            return '0.00'
 
 
 class BrandSerializer(serializers.ModelSerializer):
