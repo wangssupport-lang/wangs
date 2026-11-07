@@ -186,6 +186,12 @@ def get_research_data():
         aov = (spend / orders_cnt) if orders_cnt > 0 else Decimal('0.00')
         addr = u.addresses.filter(is_default=True).first() or u.addresses.first()
         district = getattr(addr, 'city_district', '') or getattr(addr, 'state', '') or 'Not Recorded'
+        addr_line = f"{addr.address_line1} {addr.address_line2}".strip() if addr else 'Not recorded'
+        city = addr.city if addr else 'N/A'
+        state = addr.state if addr else 'N/A'
+        pincode = addr.postal_code if addr else 'N/A'
+        wallet = getattr(u, 'reward_wallet', None)
+        rewards_bal = wallet.balance if wallet else 0
 
         customers_data.append({
             'id': u.id,
@@ -201,7 +207,12 @@ def get_research_data():
             'orders_count': orders_cnt,
             'total_spent': float(spend),
             'aov': float(aov),
-            'district': district
+            'district': district,
+            'address': addr_line,
+            'city': city,
+            'state': state,
+            'pincode': pincode,
+            'rewards_balance': rewards_bal,
         })
 
     # 2. Artisan Seller Research Data
@@ -225,10 +236,18 @@ def get_research_data():
             'id': m.id,
             'business_name': m.business_name,
             'slug': m.slug,
+            'applicant_name': f"{m.user.first_name} {m.user.last_name}".strip() if m.user else 'N/A',
             'contact_email': m.contact_email,
             'contact_phone': m.contact_phone,
             'district': m.location_district,
+            'business_address': m.business_address,
+            'postal_code': m.postal_code,
             'fssai_license': m.fssai_license_number or 'Pending/Exempt',
+            'gst_number': m.gst_number or 'Unregistered',
+            'bank_account_holder': m.bank_account_holder or 'Not Provided',
+            'bank_name': m.bank_name or 'Not Provided',
+            'bank_account_number': m.bank_account_number or 'Not Provided',
+            'bank_ifsc_code': m.bank_ifsc_code or 'Not Provided',
             'has_fssai': bool(m.fssai_license_number),
             'status': m.status,
             'is_verified_producer': m.is_verified_producer,
@@ -237,7 +256,7 @@ def get_research_data():
             'units_sold': units_sold,
             'revenue': float(revenue),
             'commission_rate': f"{m.commission_rate_override}%" if m.commission_rate_override is not None else "10.0% (Default)",
-            'created_at': m.created_at.strftime('%Y-%m-%d') if m.created_at else 'N/A'
+            'created_at': m.created_at.strftime('%Y-%m-%d %H:%M') if m.created_at else 'N/A'
         })
 
     # 3. Product Research & Performance Data
@@ -317,16 +336,16 @@ def generate_research_csv(dataset_type='all'):
     writer = csv.writer(output)
 
     if dataset_type == 'customers':
-        writer.writerow(['Customer ID', 'Username', 'Full Name', 'Email', 'Phone', 'Role', 'Status', 'Date Joined', 'Orders Placed', 'Total Spend (INR)', 'AOV (INR)', 'Primary District'])
+        writer.writerow(['Customer ID', 'Username', 'Full Name', 'Email', 'Phone', 'Role', 'Status', 'Date Joined', 'Primary Address', 'City', 'State', 'Pincode', 'Orders Placed', 'Total Spend (INR)', 'AOV (INR)', 'Rewards Balance'])
         for c in data['customers']:
             full_name = f"{c['first_name']} {c['last_name']}".strip() or c['username']
             acc_status = 'BANNED' if c['is_banned'] else ('Active' if c['is_active'] else 'Inactive')
-            writer.writerow([c['id'], c['username'], full_name, c['email'], c['phone'], c['role'], acc_status, c['date_joined'], c['orders_count'], c['total_spent'], c['aov'], c['district']])
+            writer.writerow([c['id'], c['username'], full_name, c['email'], c['phone'], c['role'], acc_status, c['date_joined'], c.get('address', 'N/A'), c.get('city', 'N/A'), c.get('state', 'N/A'), c.get('pincode', 'N/A'), c['orders_count'], c['total_spent'], c['aov'], c.get('rewards_balance', 0)])
 
     elif dataset_type == 'sellers':
-        writer.writerow(['Seller ID', 'Brand Name', 'Contact Email', 'Contact Phone', 'District', 'FSSAI License', 'Status', 'Verified Producer', 'Total Products', 'Active Products', 'Units Sold', 'Gross Revenue (INR)', 'Commission Rate', 'Registered Date'])
+        writer.writerow(['Seller ID', 'Brand Name', 'Applicant / User', 'Contact Email', 'Contact Phone', 'District', 'Physical Address', 'Postal Code', 'FSSAI License', 'GST Number', 'Bank Account Holder', 'Bank Name', 'Account Number', 'IFSC Code', 'Status', 'Verified Producer', 'Total Products', 'Active Products', 'Units Sold', 'Gross Revenue (INR)', 'Commission Rate', 'Registered Date'])
         for s in data['sellers']:
-            writer.writerow([s['id'], s['business_name'], s['contact_email'], s['contact_phone'], s['district'], s['fssai_license'], s['status'], 'Yes' if s['is_verified_producer'] else 'No', s['products_count'], s['active_products_count'], s['units_sold'], s['revenue'], s['commission_rate'], s['created_at']])
+            writer.writerow([s['id'], s['business_name'], s.get('applicant_name', 'N/A'), s['contact_email'], s['contact_phone'], s['district'], s.get('business_address', 'N/A'), s.get('postal_code', 'N/A'), s['fssai_license'], s.get('gst_number', 'N/A'), s.get('bank_account_holder', 'N/A'), s.get('bank_name', 'N/A'), s.get('bank_account_number', 'N/A'), s.get('bank_ifsc_code', 'N/A'), s['status'], 'Yes' if s['is_verified_producer'] else 'No', s['products_count'], s['active_products_count'], s['units_sold'], s['revenue'], s['commission_rate'], s['created_at']])
 
     elif dataset_type == 'products':
         writer.writerow(['Product ID', 'Product Title', 'Brand', 'Category', 'Dietary Type', 'Spice Level', 'Net Weight (g)', 'Price (INR)', 'Base Earnings (INR)', 'Stock Quantity', 'Status', 'Is Active', 'Units Sold', 'Total Revenue (INR)', 'Reviews Count', 'Average Rating', 'Created Date'])

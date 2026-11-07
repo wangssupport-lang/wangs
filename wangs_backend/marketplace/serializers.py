@@ -89,12 +89,23 @@ class UserSerializer(serializers.ModelSerializer):
         }
 
 
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = '__all__'
+        read_only_fields = ['user', 'created_at']
+
+
 class AdminUserSerializer(serializers.ModelSerializer):
     is_authorized_to_sell = serializers.SerializerMethodField()
     orders_count = serializers.SerializerMethodField()
     total_spent = serializers.SerializerMethodField()
     manufacturer_business_name = serializers.SerializerMethodField()
     manufacturer_status = serializers.SerializerMethodField()
+    manufacturer_details = serializers.SerializerMethodField()
+    seller_request_details = serializers.SerializerMethodField()
+    rewards_balance = serializers.SerializerMethodField()
+    addresses = AddressSerializer(many=True, read_only=True)
 
     class Meta:
         model = User
@@ -103,9 +114,14 @@ class AdminUserSerializer(serializers.ModelSerializer):
             'role', 'phone_number', 'is_staff', 'can_sell', 'is_authorized_to_sell',
             'is_active', 'is_banned', 'ban_reason', 'banned_at',
             'date_joined', 'last_login', 'orders_count', 'total_spent',
-            'manufacturer_business_name', 'manufacturer_status'
+            'manufacturer_business_name', 'manufacturer_status',
+            'manufacturer_details', 'seller_request_details', 'rewards_balance',
+            'addresses'
         ]
-        read_only_fields = ['id', 'is_staff', 'is_authorized_to_sell', 'date_joined', 'last_login']
+        read_only_fields = [
+            'id', 'is_staff', 'is_authorized_to_sell', 'date_joined', 'last_login',
+            'manufacturer_details', 'seller_request_details', 'rewards_balance', 'addresses'
+        ]
 
     def get_is_authorized_to_sell(self, obj):
         return obj.is_authorized_to_sell()
@@ -137,6 +153,61 @@ class AdminUserSerializer(serializers.ModelSerializer):
     def get_manufacturer_status(self, obj):
         mfg = getattr(obj, 'manufacturer_profile', None)
         return mfg.status if mfg else None
+
+    def get_manufacturer_details(self, obj):
+        mfg = getattr(obj, 'manufacturer_profile', None)
+        if not mfg:
+            return None
+        return {
+            'id': mfg.id,
+            'business_name': mfg.business_name,
+            'slug': mfg.slug,
+            'brand_story': mfg.brand_story,
+            'location_district': mfg.location_district,
+            'contact_email': mfg.contact_email,
+            'contact_phone': mfg.contact_phone,
+            'business_address': mfg.business_address,
+            'postal_code': mfg.postal_code,
+            'fssai_license_number': mfg.fssai_license_number,
+            'gst_number': mfg.gst_number,
+            'compliance_notes': mfg.compliance_notes,
+            'bank_account_holder': mfg.bank_account_holder,
+            'bank_account_number': mfg.bank_account_number,
+            'bank_ifsc_code': mfg.bank_ifsc_code,
+            'bank_name': mfg.bank_name,
+            'status': mfg.status,
+            'is_verified_producer': mfg.is_verified_producer,
+            'commission_rate_override': str(mfg.commission_rate_override) if mfg.commission_rate_override else None,
+            'created_at': mfg.created_at.isoformat() if mfg.created_at else None,
+        }
+
+    def get_seller_request_details(self, obj):
+        email = (obj.email or '').strip().lower()
+        if not email:
+            return None
+        log = AuditLog.objects.filter(
+            action='SELLER_AUTHORIZATION_REQUESTED',
+            details__email__iexact=email
+        ).order_by('-created_at').first()
+        if not log or not isinstance(log.details, dict):
+            return None
+        return {
+            'business_name': log.details.get('business_name', ''),
+            'location_district': log.details.get('location_district', ''),
+            'fssai_number': log.details.get('fssai_number', ''),
+            'phone': log.details.get('phone', ''),
+            'bank_account_holder': log.details.get('bank_account_holder', ''),
+            'bank_account_number': log.details.get('bank_account_number', ''),
+            'bank_ifsc_code': log.details.get('bank_ifsc_code', ''),
+            'bank_name': log.details.get('bank_name', ''),
+            'message': log.details.get('message', ''),
+            'created_at': log.created_at.isoformat() if log.created_at else None,
+            'status': log.details.get('status', 'PENDING'),
+        }
+
+    def get_rewards_balance(self, obj):
+        wallet = getattr(obj, 'reward_wallet', None)
+        return wallet.balance if wallet else 0
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -215,13 +286,6 @@ class RegisterSerializer(serializers.ModelSerializer):
                     is_default=True,
                 )
         return user
-
-
-class AddressSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Address
-        fields = '__all__'
-        read_only_fields = ['user', 'created_at']
 
 
 class CustomerProfileSerializer(serializers.ModelSerializer):

@@ -3792,24 +3792,38 @@ export default function AdminDashboardPage() {
 
           {/* Users Table */}
           <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-stone-100 flex items-center justify-between">
-              <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
+            <div className="p-4 border-b border-stone-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
                 <Users size={16} className="text-forest-800" />
-                <span>Platform User Directory & Role Governance</span>
-              </h3>
-              <span className="text-[11px] text-stone-400">
-                Showing {usersList.filter((u) => {
-                  const matchesSearch = !userSearch || (
-                    (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-                    (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-                    (u.phone_number || '').includes(userSearch) ||
-                    (`${u.first_name || ''} ${u.last_name || ''}`).toLowerCase().includes(userSearch.toLowerCase())
-                  );
-                  const matchesRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
-                  const matchesStatus = userStatusFilter === 'ALL' || (userStatusFilter === 'BANNED' ? u.is_banned : !u.is_banned);
-                  return matchesSearch && matchesRole && matchesStatus;
-                }).length} user accounts
-              </span>
+                <h3 className="font-serif font-bold text-sm text-stone-900">
+                  Platform User Directory & Role Governance
+                </h3>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  disabled={downloadingResearch === 'customers'}
+                  onClick={() => handleDownloadResearch('csv', 'customers')}
+                  className="px-3 py-1.5 bg-stone-100 hover:bg-forest-900 text-stone-800 hover:text-white rounded-xl text-xs font-bold transition-all border border-stone-200 flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+                  title="Export complete customer and user sign-up records with addresses into CSV"
+                >
+                  <Download size={13} />
+                  <span>{downloadingResearch === 'customers' ? 'Exporting...' : 'Export Customer CSV'}</span>
+                </button>
+                <span className="text-[11px] text-stone-400">
+                  Showing {usersList.filter((u) => {
+                    const matchesSearch = !userSearch || (
+                      (u.username || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                      (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                      (u.phone_number || '').includes(userSearch) ||
+                      (`${u.first_name || ''} ${u.last_name || ''}`).toLowerCase().includes(userSearch.toLowerCase())
+                    );
+                    const matchesRole = userRoleFilter === 'ALL' || u.role === userRoleFilter;
+                    const matchesStatus = userStatusFilter === 'ALL' || (userStatusFilter === 'BANNED' ? u.is_banned : !u.is_banned);
+                    return matchesSearch && matchesRole && matchesStatus;
+                  }).length} user accounts
+                </span>
+              </div>
             </div>
 
             <table className="w-full text-left">
@@ -3976,19 +3990,30 @@ export default function AdminDashboardPage() {
                         {u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '—'}
                       </td>
                       <td className="p-3 text-right whitespace-nowrap">
-                        {u.id === user?.id ? (
-                          <span className="text-[10px] text-stone-400 font-medium italic">Current Admin</span>
-                        ) : (
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleDeleteUser(u)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-600 text-red-700 hover:text-white font-bold text-[11px] border border-red-200 transition-all cursor-pointer shadow-2xs group"
-                            title={`Delete user account ${u.username}`}
+                            onClick={() => setSelectedUser(u)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-700 font-bold text-[11px] border border-stone-200 transition-all cursor-pointer shadow-2xs"
+                            title="Inspect complete signup details, addresses & profile"
                           >
-                            <Trash2 size={12} className="group-hover:scale-110 transition-transform" />
-                            <span>Delete</span>
+                            <Eye size={12} />
+                            <span>Inspect</span>
                           </button>
-                        )}
+                          {u.id === user?.id ? (
+                            <span className="text-[10px] text-stone-400 font-medium italic">Current Admin</span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(u)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-red-50 hover:bg-red-600 text-red-700 hover:text-white font-bold text-[11px] border border-red-200 transition-all cursor-pointer shadow-2xs group"
+                              title={`Delete user account ${u.username}`}
+                            >
+                              <Trash2 size={12} className="group-hover:scale-110 transition-transform" />
+                              <span>Delete</span>
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -4177,6 +4202,16 @@ export default function AdminDashboardPage() {
                   {st === 'ALL' ? 'All Statuses' : st}
                 </button>
               ))}
+              <button
+                type="button"
+                disabled={downloadingResearch === 'sellers'}
+                onClick={() => handleDownloadResearch('csv', 'sellers')}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-stone-100 hover:bg-forest-900 text-stone-800 hover:text-white border border-stone-200 flex items-center gap-1.5 shadow-2xs active:scale-95"
+                title="Export complete manufacturer directory and bank details to CSV"
+              >
+                <Download size={12} />
+                <span>{downloadingResearch === 'sellers' ? 'Exporting...' : 'Export Sellers CSV'}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('yet_to_approve')}
@@ -5020,6 +5055,35 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* Payout Settlement Banking Details & User Account */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200/80 space-y-1.5">
+                <span className="font-bold text-amber-900 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                  <Landmark size={12} />
+                  <span>Settlement Banking (Payout Details)</span>
+                </span>
+                <p className="text-stone-900 font-bold">{selectedSeller.bank_account_holder || 'Not provided'}</p>
+                <p className="text-stone-700">Bank: <strong className="font-semibold">{selectedSeller.bank_name || 'Not provided'}</strong></p>
+                <p className="text-stone-700">A/C: <span className="font-mono font-bold text-stone-900">{selectedSeller.bank_account_number || 'Not provided'}</span></p>
+                <p className="text-stone-700">IFSC: <span className="font-mono font-bold text-emerald-900">{selectedSeller.bank_ifsc_code || 'Not provided'}</span></p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200/80 space-y-1.5">
+                <span className="font-bold text-stone-700 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                  <Users size={12} />
+                  <span>Sign-up Account & Credentials</span>
+                </span>
+                <p className="text-stone-900 font-semibold">
+                  Account Name: {selectedSeller.user ? `${selectedSeller.user.first_name || ''} ${selectedSeller.user.last_name || ''}`.trim() || selectedSeller.user.username : 'Artisan Account'}
+                </p>
+                <p className="text-stone-600 font-mono text-[11px]">Email: {selectedSeller.user?.email || selectedSeller.contact_email}</p>
+                <p className="text-stone-600">Phone: {selectedSeller.user?.phone_number || selectedSeller.contact_phone || '—'}</p>
+                <p className="text-stone-500 text-[10px]">
+                  Registered On: {selectedSeller.created_at ? new Date(selectedSeller.created_at).toLocaleString('en-IN') : 'N/A'}
+                </p>
+              </div>
+            </div>
+
             {/* Brand Story */}
             {selectedSeller.brand_story && (
               <div className="p-3.5 rounded-xl bg-cream-50/70 border border-stone-200/70 space-y-1">
@@ -5123,6 +5187,290 @@ export default function AdminDashboardPage() {
                     <span>Ban Seller</span>
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comprehensive Customer / User Account Details Inspection Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-stone-200 p-6 space-y-5 text-xs animate-in fade-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-stone-100 pb-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-serif font-bold text-xl text-stone-900">
+                    {selectedUser.first_name || selectedUser.last_name
+                      ? `${selectedUser.first_name || ''} ${selectedUser.last_name || ''}`.trim()
+                      : selectedUser.username}
+                  </h2>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    selectedUser.role === 'ADMIN'
+                      ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                      : selectedUser.role === 'MANUFACTURER' || selectedUser.can_sell
+                      ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                      : 'bg-blue-100 text-blue-800 border border-blue-200'
+                  }`}>
+                    {selectedUser.role === 'CUSTOMER' ? 'Customer / Shopper' : selectedUser.role === 'MANUFACTURER' ? 'Artisan Seller' : 'Superadmin'}
+                  </span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    selectedUser.is_banned
+                      ? 'bg-red-100 text-red-800 border border-red-200'
+                      : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  }`}>
+                    {selectedUser.is_banned ? 'Suspended / Banned' : 'Active Account'}
+                  </span>
+                </div>
+                <p className="text-stone-500 text-xs">
+                  User ID: <strong className="font-mono text-stone-800">#{selectedUser.id}</strong> · Username: <span className="font-mono font-medium">{selectedUser.username}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedUser(null)}
+                className="p-1.5 rounded-xl hover:bg-stone-100 text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+                title="Close modal"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            {/* Primary Sign Up & Contact Information */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200/80 space-y-1.5">
+                <span className="font-bold text-stone-700 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <Mail size={12} className="text-forest-800" />
+                  <span>Contact Information</span>
+                </span>
+                <p className="text-stone-900 font-semibold flex items-center gap-1.5">
+                  <span>Email:</span>
+                  <a href={`mailto:${selectedUser.email}`} className="text-forest-900 hover:underline font-mono text-[11px] font-bold">
+                    {selectedUser.email || 'None'}
+                  </a>
+                </p>
+                <p className="text-stone-700 flex items-center gap-1.5">
+                  <span>Phone:</span>
+                  {selectedUser.phone_number ? (
+                    <a href={`tel:${selectedUser.phone_number}`} className="font-mono font-semibold text-stone-900 hover:underline">
+                      {selectedUser.phone_number}
+                    </a>
+                  ) : (
+                    <span className="text-stone-400 italic">Not provided during sign up</span>
+                  )}
+                </p>
+                <p className="text-stone-600">
+                  Seller Authorization: <strong className={selectedUser.can_sell || selectedUser.is_authorized_to_sell ? 'text-emerald-700' : 'text-stone-500'}>
+                    {selectedUser.can_sell || selectedUser.is_authorized_to_sell ? 'Authorized to Sell' : 'Shopper Only'}
+                  </strong>
+                </p>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200/80 space-y-1.5">
+                <span className="font-bold text-stone-700 uppercase tracking-wider text-[10px] flex items-center gap-1.5">
+                  <Clock size={12} className="text-forest-800" />
+                  <span>Timestamps & Account Status</span>
+                </span>
+                <p className="text-stone-700">
+                  Registered On: <strong className="text-stone-900 font-medium">
+                    {selectedUser.date_joined ? new Date(selectedUser.date_joined).toLocaleString('en-IN') : 'N/A'}
+                  </strong>
+                </p>
+                <p className="text-stone-700">
+                  Last Login: <span className="text-stone-900">
+                    {selectedUser.last_login ? new Date(selectedUser.last_login).toLocaleString('en-IN') : 'Never'}
+                  </span>
+                </p>
+                {selectedUser.is_banned && selectedUser.ban_reason && (
+                  <div className="p-2 rounded bg-red-50 text-red-800 border border-red-200 text-[11px]">
+                    <strong>Suspension Reason:</strong> {selectedUser.ban_reason}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Delivery Addresses Entered During Signup / Checkout */}
+            <div className="space-y-2">
+              <span className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
+                <MapPin size={14} className="text-amber-600" />
+                <span>Customer Delivery Addresses ({selectedUser.addresses?.length || 0})</span>
+              </span>
+
+              {selectedUser.addresses && selectedUser.addresses.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {selectedUser.addresses.map((addr) => (
+                    <div key={addr.id} className="p-3 rounded-xl bg-cream-50/60 border border-stone-200 space-y-1 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-stone-900">{addr.full_name || selectedUser.first_name || 'Delivery Recipient'}</span>
+                        {addr.is_default && (
+                          <span className="px-2 py-0.2 rounded-full bg-emerald-100 text-emerald-800 text-[9px] font-bold">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-stone-700 font-medium">{addr.address_line1}</p>
+                      {addr.address_line2 && <p className="text-stone-600">{addr.address_line2}</p>}
+                      <p className="text-stone-800 font-semibold">
+                        {addr.city}, {addr.state} - <span className="font-mono text-forest-900 font-bold">{addr.postal_code}</span>
+                      </p>
+                      {addr.landmark && <p className="text-stone-500 text-[11px]">Landmark: {addr.landmark}</p>}
+                      <p className="text-stone-600 text-[11px]">Phone: {addr.phone || selectedUser.phone_number || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200/70 text-stone-400 text-center text-xs">
+                  No delivery address saved yet by this customer.
+                </div>
+              )}
+            </div>
+
+            {/* Artisan Seller / Manufacturer Sign-up Details (If registered as producer) */}
+            {(selectedUser.manufacturer_details || selectedUser.seller_request_details) && (
+              <div className="space-y-2 pt-2 border-t border-stone-100">
+                <span className="font-bold text-stone-900 text-xs flex items-center gap-1.5">
+                  <Store size={14} className="text-emerald-700" />
+                  <span>Artisan Producer Registration Details</span>
+                </span>
+
+                {selectedUser.manufacturer_details && (
+                  <div className="p-4 rounded-2xl bg-emerald-50/40 border border-emerald-200/80 space-y-3">
+                    <div className="flex items-center justify-between border-b border-emerald-200/60 pb-2">
+                      <div>
+                        <h4 className="font-bold text-emerald-950 text-sm">
+                          {selectedUser.manufacturer_details.business_name}
+                        </h4>
+                        <span className="text-[11px] text-emerald-700">
+                          {selectedUser.manufacturer_details.location_district} · Brand Slug: /brands/{selectedUser.manufacturer_details.slug}
+                        </span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200 text-emerald-900">
+                        {selectedUser.manufacturer_details.status}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-stone-500 text-[11px] block">Workshop Address:</span>
+                        <p className="font-semibold text-stone-900">{selectedUser.manufacturer_details.business_address || '—'}</p>
+                        <p className="text-stone-600">PIN: {selectedUser.manufacturer_details.postal_code || '—'}</p>
+                        <p className="text-stone-600">Contact Phone: {selectedUser.manufacturer_details.contact_phone || selectedUser.phone_number}</p>
+                      </div>
+                      <div>
+                        <span className="text-stone-500 text-[11px] block">Licenses & Compliance:</span>
+                        <p className="text-stone-900">FSSAI License: <strong className="font-mono text-emerald-900">{selectedUser.manufacturer_details.fssai_license_number || 'None'}</strong></p>
+                        <p className="text-stone-600">GSTIN: <span className="font-mono">{selectedUser.manufacturer_details.gst_number || 'Unregistered'}</span></p>
+                        <p className="text-stone-600">Commission Rate: <strong>{selectedUser.manufacturer_details.commission_rate_override ? `${selectedUser.manufacturer_details.commission_rate_override}%` : '10.00% (Default)'}</strong></p>
+                      </div>
+                    </div>
+
+                    {/* Settlement Bank Details */}
+                    <div className="p-3 bg-white rounded-xl border border-emerald-200/80 space-y-1">
+                      <span className="font-bold text-stone-800 text-[11px] flex items-center gap-1 text-emerald-800">
+                        <Landmark size={12} />
+                        <span>Payout Settlement Bank Details</span>
+                      </span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1 text-[11px]">
+                        <div>
+                          <span className="text-stone-400 block text-[10px]">Account Holder</span>
+                          <span className="font-bold text-stone-800">{selectedUser.manufacturer_details.bank_account_holder || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-stone-400 block text-[10px]">Bank Name</span>
+                          <span className="font-semibold text-stone-800">{selectedUser.manufacturer_details.bank_name || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-stone-400 block text-[10px]">Account Number</span>
+                          <span className="font-mono font-bold text-stone-900">{selectedUser.manufacturer_details.bank_account_number || '—'}</span>
+                        </div>
+                        <div>
+                          <span className="text-stone-400 block text-[10px]">IFSC Code</span>
+                          <span className="font-mono font-bold text-emerald-900">{selectedUser.manufacturer_details.bank_ifsc_code || '—'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {selectedUser.manufacturer_details.brand_story && (
+                      <p className="text-stone-600 italic text-[11px] bg-white p-2.5 rounded-xl border border-emerald-100">
+                        "{selectedUser.manufacturer_details.brand_story}"
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* If applicant submitted via "Sell with Us" form */}
+                {!selectedUser.manufacturer_details && selectedUser.seller_request_details && (
+                  <div className="p-3.5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-amber-900">
+                        Application for: {selectedUser.seller_request_details.business_name}
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                        {selectedUser.seller_request_details.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-[11px] text-stone-700">
+                      <div>District: <strong>{selectedUser.seller_request_details.location_district || 'Not specified'}</strong></div>
+                      <div>FSSAI: <strong className="font-mono">{selectedUser.seller_request_details.fssai_number || 'Pending'}</strong></div>
+                      <div>Bank: <strong>{selectedUser.seller_request_details.bank_name || '—'}</strong></div>
+                      <div>A/C: <span className="font-mono">{selectedUser.seller_request_details.bank_account_number || '—'}</span></div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Shopping & Rewards Activity Summary */}
+            <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
+              <span className="font-bold text-stone-800 text-[11px] block">Shopping Activity & Loyalty Wallet</span>
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div className="p-2 bg-white rounded-xl border border-stone-200/80">
+                  <span className="text-stone-400 text-[10px] block">Total Orders</span>
+                  <span className="text-base font-bold text-stone-900 mt-0.5 block">{selectedUser.orders_count || 0}</span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-stone-200/80">
+                  <span className="text-stone-400 text-[10px] block">Lifetime Spend (LTV)</span>
+                  <span className="text-base font-serif font-bold text-forest-900 mt-0.5 block">
+                    ₹{parseFloat(selectedUser.total_spent || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="p-2 bg-white rounded-xl border border-stone-200/80">
+                  <span className="text-stone-400 text-[10px] block">Wangs Rewards Credits</span>
+                  <span className="text-base font-bold text-amber-600 mt-0.5 block">
+                    {selectedUser.rewards_balance || 0} credits
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer Controls */}
+            <div className="flex items-center justify-between border-t border-stone-100 pt-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleToggleUserCanSell(selectedUser.id);
+                    setSelectedUser((prev) => prev ? { ...prev, can_sell: !prev.can_sell, is_authorized_to_sell: !prev.can_sell } : prev);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    selectedUser.can_sell || selectedUser.is_authorized_to_sell
+                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                      : 'bg-emerald-700 hover:bg-emerald-800 text-white'
+                  }`}
+                >
+                  {selectedUser.can_sell || selectedUser.is_authorized_to_sell ? 'Revoke Seller Permission' : 'Grant Seller Authorization'}
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedUser(null)}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
               </div>
             </div>
           </div>

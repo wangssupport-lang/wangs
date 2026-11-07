@@ -1932,7 +1932,7 @@ class AdminUserViewSet(mixins.DestroyModelMixin, viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
-        return User.objects.select_related('manufacturer_profile').annotate(
+        return User.objects.select_related('manufacturer_profile').prefetch_related('addresses').annotate(
             _orders_count=Count('orders', distinct=True),
             _total_spent=Coalesce(
                 Sum('orders__total_amount', filter=Q(orders__payment_status=Order.PaymentStatus.PAID)),
