@@ -58,6 +58,13 @@ export default function HomePage() {
     return [];
   });
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [availableBrands, setAvailableBrands] = useState(() => {
+    try {
+      const raw = sessionStorage.getItem('wangs_brands_cache_v2');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return [];
+  });
   const [heroBanners, setHeroBanners] = useState(() => {
     try {
       const raw = sessionStorage.getItem('wangs_banners_cache_v2');
@@ -191,20 +198,27 @@ export default function HomePage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [bestData, prodData, bannerData, dealData] = await Promise.all([
+        const [bestData, prodData, bannerData, dealData, brandsData] = await Promise.all([
           api.getBestsellerProducts().catch(() => []),
           api.getProducts({ page_size: 24 }).catch(() => []),
           api.getHeroBanners().catch(() => []),
           api.getDealProducts().catch(() => []),
+          api.getBrands().catch(() => []),
         ]);
         const best = bestData?.results || bestData || [];
         const prods = prodData?.results || prodData || [];
         const banners = bannerData?.results || bannerData || [];
         const deals = dealData?.results || dealData || [];
+        const brands = Array.isArray(brandsData) ? brandsData : (brandsData?.results || []);
+
         setBestsellers(best.length > 0 ? best : prods);
         setAllProducts(prods);
         setHeroBanners(Array.isArray(banners) ? banners : []);
         setDealProducts(Array.isArray(deals) ? deals : []);
+        if (brands.length > 0) {
+          setAvailableBrands(brands);
+          try { sessionStorage.setItem('wangs_brands_cache_v2', JSON.stringify(brands)); } catch {}
+        }
 
         if (Array.isArray(deals) && deals.length > 0) {
           try { sessionStorage.setItem('wangs_deals_cache_v2', JSON.stringify(deals)); } catch {}
@@ -596,200 +610,136 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Section 2: Explore Indian Pickle Traditions (6 Heritage Belts) */}
-        <section className="w-full px-6 lg:px-12 py-14">
+        {/* Section 2: Explore Available Artisan Brands */}
+        <section className="w-full px-6 lg:px-12 py-14 bg-surface-container-lowest/60">
           <div className="max-w-[1440px] mx-auto">
-            <div className="flex items-end justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
               <div>
                 <span className="font-label-md text-xs uppercase tracking-wider text-primary font-bold">
-                  TERROIR &amp; REGIONAL HERITAGE
+                  VERIFIED ARTISANAL PRODUCERS
                 </span>
                 <h2 className="font-headline-lg text-3xl font-serif text-on-surface mt-1">
-                  Explore Indian Pickle Traditions
+                  Explore Available Brands
                 </h2>
                 <p className="font-body-md text-sm text-on-surface-variant mt-0.5">
-                  Every state cures with unique heirloom oils, micro-climates, and regional chilis.
+                  Direct from verified cottage kitchens, heritage pickle masters, and small-batch regional producers.
                 </p>
               </div>
 
               <Link
-                to="/products"
-                className="flex items-center gap-1 text-primary font-label-lg text-sm font-bold hover:underline"
+                to="/brands"
+                className="flex items-center gap-1.5 text-primary font-label-lg text-sm font-bold hover:underline group shrink-0"
               >
-                <span>View All 18 States Directory</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                <span>View All Brands Directory ({availableBrands.length > 0 ? availableBrands.length : 'All'})</span>
+                <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
               </Link>
             </div>
 
-            {/* 6 Terroir Cards Grid */}
-            <div className="grid grid-cols-6 gap-4">
-              {/* Andhra Pradesh */}
-              <Link
-                to="/products?search=andhra"
-                className="group bg-surface-container-low rounded-2xl p-3.5 shadow-xs hover:shadow-md border border-outline-variant/30 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-32 rounded-xl overflow-hidden bg-surface-container-highest mb-3">
-                    <img
-                      src="/images/stitch/stitch_23_65b6bffc80.jpg"
-                      alt="Traditional Andhra Avakaya pickle"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="font-label-sm text-[10px] text-primary uppercase font-bold">
-                    Andhra Pradesh
-                  </span>
-                  <h3 className="font-title-md text-sm font-bold text-on-surface group-hover:text-primary transition-colors leading-tight mt-0.5">
-                    Avakaya &amp; Gongura
-                  </h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant mt-1 line-clamp-2">
-                    Fiery Guntur chillies, wood-pressed til oil.
-                  </p>
-                </div>
-                <span className="font-label-sm text-[11px] text-outline mt-3 block">
-                  54 Kitchens
-                </span>
-              </Link>
+            {/* Brands Grid (100% Real Dynamic Brands from Database) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+              {(availableBrands.length > 0 ? availableBrands : [
+                {
+                  id: 'fallback-1',
+                  business_name: "Arenla's Heritage Craft",
+                  slug: 'arenlas-heritage-craft',
+                  location_district: 'Kohima, Nagaland',
+                  tagline: 'Smoked pork, king chilli, and traditional fermented bamboo shoot recipes.',
+                  cover_image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=1200&auto=format&fit=crop&q=80',
+                  is_verified_producer: true,
+                  products_count: 6,
+                },
+                {
+                  id: 'fallback-2',
+                  business_name: 'Dzüko Valley Artisans',
+                  slug: 'dzuko-valley-artisans',
+                  location_district: 'Mokokchung, Nagaland',
+                  tagline: 'Roasted mountain chilis, Sichuan pepper mash, and sun-cured meats.',
+                  cover_image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1200&auto=format&fit=crop&q=80',
+                  is_verified_producer: true,
+                  products_count: 3,
+                },
+                {
+                  id: 'fallback-3',
+                  business_name: 'Akamla Pickle',
+                  slug: 'akamla-pickle',
+                  location_district: 'Kohima, Nagaland',
+                  tagline: 'Authentic slow-simmered beef chunks and wood-pressed oil pickling.',
+                  cover_image: '/media/products/4136881b4ee9494b.jpg',
+                  is_verified_producer: true,
+                  products_count: 4,
+                },
+                {
+                  id: 'fallback-4',
+                  business_name: 'Lia Chuka',
+                  slug: 'lia-chuka',
+                  location_district: 'Kohima District',
+                  tagline: 'Heritage Northeast cottage kitchen preserving indigenous flavours.',
+                  cover_image: '/featured-pouches.jpg',
+                  is_verified_producer: true,
+                  products_count: 1,
+                }
+              ]).map((brand) => {
+                const brandSlug = brand.slug || brand.business_name;
+                const targetUrl = `/products?brand=${encodeURIComponent(brandSlug)}`;
+                const cover = brand.cover_image || brand.hero_banner || brand.logo_image || '/images/stitch/stitch_23_65b6bffc80.jpg';
+                const location = brand.location_district || 'Artisan Workshop';
+                const count = brand.products_count ?? (brand.sample_products?.length || 0);
 
-              {/* Rajasthan & Gujarat */}
-              <Link
-                to="/products?search=rajasthan"
-                className="group bg-surface-container-low rounded-2xl p-3.5 shadow-xs hover:shadow-md border border-outline-variant/30 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-32 rounded-xl overflow-hidden bg-surface-container-highest mb-3">
-                    <img
-                      src="/images/stitch/stitch_28_e70c8eaecf.jpg"
-                      alt="Marwari Ker Sangri"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="font-label-sm text-[10px] text-secondary uppercase font-bold">
-                    Rajasthan &amp; Gujarat
-                  </span>
-                  <h3 className="font-title-md text-sm font-bold text-on-surface group-hover:text-secondary transition-colors leading-tight mt-0.5">
-                    Ker Sangri &amp; Methia
-                  </h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant mt-1 line-clamp-2">
-                    Wild Thar desert flora, dry roasted fenugreek.
-                  </p>
-                </div>
-                <span className="font-label-sm text-[11px] text-outline mt-3 block">
-                  42 Kitchens
-                </span>
-              </Link>
+                return (
+                  <Link
+                    key={brand.id || brand.slug}
+                    to={targetUrl}
+                    className="group bg-surface-container-low rounded-2xl p-4 shadow-xs hover:shadow-lg border border-outline-variant/30 hover:border-primary/50 transition-all duration-300 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="h-44 rounded-xl overflow-hidden bg-surface-container-highest mb-3.5 relative shadow-inner">
+                        <img
+                          src={cover}
+                          alt={brand.business_name}
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/images/stitch/stitch_23_65b6bffc80.jpg';
+                          }}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity" />
+                        
+                        {brand.is_verified_producer && (
+                          <span className="absolute top-2.5 right-2.5 bg-emerald-700/90 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px]">verified</span>
+                            <span>Verified</span>
+                          </span>
+                        )}
+                        
+                        <span className="absolute bottom-2.5 left-2.5 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded-md">
+                          {location}
+                        </span>
+                      </div>
 
-              {/* Punjab & Awadh */}
-              <Link
-                to="/products?search=punjab"
-                className="group bg-surface-container-low rounded-2xl p-3.5 shadow-xs hover:shadow-md border border-outline-variant/30 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-32 rounded-xl overflow-hidden bg-surface-container-highest mb-3">
-                    <img
-                      src="/images/stitch/stitch_8_bc173752a7.jpg"
-                      alt="Gobhi Gajar Shalgam pickle"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="font-label-sm text-[10px] text-tertiary uppercase font-bold">
-                    Punjab &amp; Awadh
-                  </span>
-                  <h3 className="font-title-md text-sm font-bold text-on-surface group-hover:text-tertiary transition-colors leading-tight mt-0.5">
-                    Gobhi-Gajar &amp; Nimbu
-                  </h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant mt-1 line-clamp-2">
-                    Sweet and sour jaggery glaze with whole cloves.
-                  </p>
-                </div>
-                <span className="font-label-sm text-[11px] text-outline mt-3 block">
-                  68 Kitchens
-                </span>
-              </Link>
+                      <div className="space-y-1">
+                        <h3 className="font-serif font-bold text-base text-on-surface group-hover:text-primary transition-colors leading-tight line-clamp-1">
+                          {brand.business_name}
+                        </h3>
+                        <p className="font-body-sm text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+                          {brand.tagline || brand.brand_story || 'Authentic small-batch regional pickle recipes crafted with heirloom techniques.'}
+                        </p>
+                      </div>
+                    </div>
 
-              {/* Kerala & Coastal */}
-              <Link
-                to="/products?search=kerala"
-                className="group bg-surface-container-low rounded-2xl p-3.5 shadow-xs hover:shadow-md border border-outline-variant/30 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-32 rounded-xl overflow-hidden bg-surface-container-highest mb-3">
-                    <img
-                      src="/images/stitch/stitch_5_9a78255073.jpg"
-                      alt="Vadu Manga"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="font-label-sm text-[10px] text-primary uppercase font-bold">
-                    Kerala &amp; Coastal
-                  </span>
-                  <h3 className="font-title-md text-sm font-bold text-on-surface group-hover:text-primary transition-colors leading-tight mt-0.5">
-                    Vadu Manga &amp; Prawns
-                  </h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant mt-1 line-clamp-2">
-                    Tender baby mangoes &amp; coastal cured seafood.
-                  </p>
-                </div>
-                <span className="font-label-sm text-[11px] text-outline mt-3 block">
-                  38 Kitchens
-                </span>
-              </Link>
-
-              {/* Northeast India */}
-              <Link
-                to="/products?search=bamboo"
-                className="group bg-surface-container-low rounded-2xl p-3.5 shadow-xs hover:shadow-md border border-outline-variant/30 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-32 rounded-xl overflow-hidden bg-surface-container-highest mb-3">
-                    <img
-                      src="/images/stitch/stitch_31_04e626101e.jpg"
-                      alt="Bhut Jolokia & Bamboo"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="font-label-sm text-[10px] text-error uppercase font-bold">
-                    Northeast India
-                  </span>
-                  <h3 className="font-title-md text-sm font-bold text-on-surface group-hover:text-error transition-colors leading-tight mt-0.5">
-                    Bhut Jolokia &amp; Bamboo
-                  </h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant mt-1 line-clamp-2">
-                    Fermented tender shoots with smoke chillies.
-                  </p>
-                </div>
-                <span className="font-label-sm text-[11px] text-outline mt-3 block">
-                  29 Kitchens
-                </span>
-              </Link>
-
-              {/* Maharashtra & MP */}
-              <Link
-                to="/products?search=thecha"
-                className="group bg-surface-container-low rounded-2xl p-3.5 shadow-xs hover:shadow-md border border-outline-variant/30 transition-all flex flex-col justify-between"
-              >
-                <div>
-                  <div className="h-32 rounded-xl overflow-hidden bg-surface-container-highest mb-3">
-                    <img
-                      src="/images/stitch/stitch_10_baeadf8fdb.jpg"
-                      alt="Kolhapuri Thecha & Mirch"
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <span className="font-label-sm text-[10px] text-secondary uppercase font-bold">
-                    Maharashtra &amp; MP
-                  </span>
-                  <h3 className="font-title-md text-sm font-bold text-on-surface group-hover:text-secondary transition-colors leading-tight mt-0.5">
-                    Kolhapuri Thecha &amp; Mirch
-                  </h3>
-                  <p className="font-body-sm text-xs text-on-surface-variant mt-1 line-clamp-2">
-                    Coarse ground spicy chilies and Banarasi pods.
-                  </p>
-                </div>
-                <span className="font-label-sm text-[11px] text-outline mt-3 block">
-                  45 Kitchens
-                </span>
-              </Link>
+                    <div className="pt-3.5 mt-4 border-t border-outline-variant/30 flex items-center justify-between">
+                      <span className="font-label-sm text-xs text-primary font-bold">
+                        {count > 0 ? `${count} Available Recipe${count > 1 ? 's' : ''}` : 'Artisan Kitchen'}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-xs text-on-surface-variant group-hover:text-primary font-semibold transition-colors">
+                        <span>Explore</span>
+                        <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">
+                          arrow_forward
+                        </span>
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>

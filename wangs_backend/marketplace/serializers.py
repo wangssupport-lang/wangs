@@ -388,33 +388,47 @@ class ManufacturerProfileSerializer(serializers.ModelSerializer):
 class BrandSerializer(serializers.ModelSerializer):
     products_count = serializers.SerializerMethodField()
     sample_products = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = ManufacturerProfile
         fields = [
             'id', 'business_name', 'slug', 'brand_story', 'location_district',
             'fssai_license_number', 'is_verified_producer', 'is_featured', 'display_priority',
-            'tagline', 'brand_badge', 'hero_banner', 'logo_image',
+            'tagline', 'brand_badge', 'hero_banner', 'logo_image', 'cover_image',
             'products_count', 'sample_products', 'created_at'
         ]
 
     def get_products_count(self, obj):
         return obj.products.filter(is_active=True, status=Product.Status.APPROVED).count()
 
+    def get_cover_image(self, obj):
+        if obj.hero_banner:
+            return obj.hero_banner
+        if obj.logo_image:
+            return obj.logo_image
+        first_prod = obj.products.filter(is_active=True, status=Product.Status.APPROVED).first()
+        if first_prod:
+            first_img = first_prod.images.filter(is_primary=True).first() or first_prod.images.first()
+            if first_img:
+                return first_img.image_url
+        return None
+
     def get_sample_products(self, obj):
-        prods = obj.products.filter(is_active=True, status=Product.Status.APPROVED)[:4]
-        return [
-            {
+        prods = obj.products.filter(is_active=True, status=Product.Status.APPROVED).prefetch_related('images')[:4]
+        res = []
+        for p in prods:
+            first_img = p.images.filter(is_primary=True).first() or p.images.first()
+            res.append({
                 'id': p.id,
                 'title': p.title,
                 'slug': p.slug,
                 'price': str(p.price),
                 'mrp': str(p.mrp) if p.mrp else None,
                 'weight_grams': p.weight_grams,
-                'image': p.primary_image.image_url if hasattr(p, 'primary_image') and p.primary_image else None
-            }
-            for p in prods
-        ]
+                'image': first_img.image_url if first_img else None
+            })
+        return res
 
 
 class ManufacturerApplicationSerializer(serializers.ModelSerializer):
