@@ -77,11 +77,6 @@ export default function HomePage() {
   const bannerScrollRef = useRef(null);
   const isInteractingWithBanner = useRef(false);
 
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-  const touchDeltaX = useRef(0);
-  const isSwipingHorizontal = useRef(false);
-
   const displayBanners = (heroBanners && heroBanners.length > 0)
     ? heroBanners
     : [
@@ -147,39 +142,15 @@ export default function HomePage() {
     setActiveBannerIndex(idx);
   }, []);
 
-  // Smooth finger swipe gesture handling
-  const handleTouchStart = (e) => {
+  // Smooth native touch swipe interaction (120Hz refresh rate)
+  const handleTouchStart = () => {
     isInteractingWithBanner.current = true;
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    touchDeltaX.current = 0;
-    isSwipingHorizontal.current = false;
-  };
-
-  const handleTouchMove = (e) => {
-    const deltaX = e.touches[0].clientX - touchStartX.current;
-    const deltaY = e.touches[0].clientY - touchStartY.current;
-    touchDeltaX.current = deltaX;
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 8) {
-      isSwipingHorizontal.current = true;
-    }
   };
 
   const handleTouchEnd = () => {
-    if (isSwipingHorizontal.current && Math.abs(touchDeltaX.current) > 35) {
-      if (touchDeltaX.current < 0) {
-        // Swiped left -> next slide
-        const nextIdx = (activeBannerIndexRef.current + 1) % displayBanners.length;
-        scrollToBanner(nextIdx);
-      } else {
-        // Swiped right -> prev slide
-        const prevIdx = (activeBannerIndexRef.current - 1 + displayBanners.length) % displayBanners.length;
-        scrollToBanner(prevIdx);
-      }
-    }
     setTimeout(() => {
       isInteractingWithBanner.current = false;
-    }, 2500);
+    }, 3000);
   };
 
   // Smooth, snappy 4.2s carousel auto-rotation paused during user swipe
@@ -976,7 +947,6 @@ export default function HomePage() {
               ref={bannerScrollRef}
               onScroll={handleBannerScroll}
               onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
               onMouseEnter={() => { isInteractingWithBanner.current = true; }}
               onMouseLeave={() => { isInteractingWithBanner.current = false; }}

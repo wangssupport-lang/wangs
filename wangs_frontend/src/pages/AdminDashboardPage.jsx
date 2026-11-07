@@ -119,6 +119,318 @@ const computeChartScale = (maxVal, isCurrency = false) => {
   };
 };
 
+const MarketplaceVolumeStatsChart = React.memo(function MarketplaceVolumeStatsChart({
+  chartMetric,
+  setChartMetric,
+  chartTimeRange,
+  setChartTimeRange,
+  realChartData,
+}) {
+  const [hoveredPointIdx, setHoveredPointIdx] = useState(null);
+
+  // Determine active metric series
+  let series1Label = 'Delivered / Ordered Jars';
+  let series2Label = 'Paid Orders';
+  let getSeries1Val = (p) => p.jarsCount;
+  let getSeries2Val = (p) => p.paidOrdersCount;
+  let isCurrency = false;
+
+  if (chartMetric === 'orders') {
+    series1Label = 'Ordered Jars';
+    series2Label = 'Paid Orders';
+    getSeries1Val = (p) => p.jarsCount;
+    getSeries2Val = (p) => p.paidOrdersCount;
+    isCurrency = false;
+  } else if (chartMetric === 'revenue') {
+    series1Label = 'Gross GMV';
+    series2Label = 'Platform Revenue';
+    getSeries1Val = (p) => p.gmv;
+    getSeries2Val = (p) => p.platformRev;
+    isCurrency = true;
+  } else if (chartMetric === 'inflow') {
+    series1Label = 'Producer Inbound';
+    series2Label = 'User Registrations';
+    getSeries1Val = (p) => p.inflowCount;
+    getSeries2Val = (p) => p.userSignupsCount;
+    isCurrency = false;
+  }
+
+  const maxSeries1 = Math.max(0, ...realChartData.map((p) => getSeries1Val(p)));
+  const maxSeries2 = Math.max(0, ...realChartData.map((p) => getSeries2Val(p)));
+  const overallMax = Math.max(maxSeries1, maxSeries2);
+  const chartScale = computeChartScale(overallMax, isCurrency);
+
+  const svgXMin = 50;
+  const svgXMax = 570;
+  const svgYMin = 30;
+  const svgYMax = 180;
+  const svgWidth = svgXMax - svgXMin;
+  const svgHeight = svgYMax - svgYMin;
+
+  const N = realChartData.length;
+  const coords1 = realChartData.map((p, idx) => {
+    const x = N > 1 ? svgXMin + (idx / (N - 1)) * svgWidth : (svgXMin + svgXMax) / 2;
+    const val = getSeries1Val(p);
+    const y = chartScale.max > 0 ? svgYMax - (val / chartScale.max) * svgHeight : svgYMax;
+    return { x: Math.round(x), y: Math.round(y), val, point: p };
+  });
+
+  const coords2 = realChartData.map((p, idx) => {
+    const x = N > 1 ? svgXMin + (idx / (N - 1)) * svgWidth : (svgXMin + svgXMax) / 2;
+    const val = getSeries2Val(p);
+    const y = chartScale.max > 0 ? svgYMax - (val / chartScale.max) * svgHeight : svgYMax;
+    return { x: Math.round(x), y: Math.round(y), val, point: p };
+  });
+
+  const path1 = getSmoothSplinePath(coords1);
+  const area1 = getAreaPath(coords1, svgYMax);
+  const path2 = getSmoothSplinePath(coords2);
+  const area2 = getAreaPath(coords2, svgYMax);
+
+  // Default spotlight index: pick highest value or latest active point
+  let bestIdx = N - 1;
+  let highestCombined = -1;
+  coords1.forEach((c, idx) => {
+    const combined = c.val + coords2[idx].val;
+    if (combined > highestCombined) {
+      highestCombined = combined;
+      bestIdx = idx;
+    }
+  });
+
+  const activeIdx = hoveredPointIdx !== null ? hoveredPointIdx : bestIdx;
+  const activeCoord1 = coords1[activeIdx] || coords1[0] || { x: 420, y: 180, val: 0 };
+  const activeCoord2 = coords2[activeIdx] || coords2[0] || { x: 420, y: 180, val: 0 };
+  const activePoint = realChartData[activeIdx] || realChartData[0] || {};
+
+  const tooltipText = chartMetric === 'orders'
+    ? `${activePoint.paidOrdersCount || 0} Orders | ${activePoint.jarsCount || 0} Jars`
+    : chartMetric === 'revenue'
+    ? `₹${(activePoint.gmv || 0).toLocaleString('en-IN')} GMV | ₹${(activePoint.platformRev || 0).toLocaleString('en-IN')} Fee`
+    : `${activePoint.inflowCount || 0} Producers | ${activePoint.userSignupsCount || 0} Users`;
+
+  const pillWidth = Math.max(124, tooltipText.length * 7.5 + 24);
+  const pillX = Math.max(svgXMin, Math.min(svgXMax - pillWidth, activeCoord1.x - pillWidth / 2));
+  const pillY = Math.max(6, Math.min(svgYMax - 32, Math.min(activeCoord1.y, activeCoord2.y) - 34));
+
+  return (
+    <div className="lg:col-span-8 bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+        <div>
+          <h3 className="text-lg font-bold font-serif text-slate-900">
+            Marketplace Volume Stats
+          </h3>
+          <p className="text-xs text-slate-500">
+            {chartMetric === 'orders' && 'Real-time order volume and jars fulfilled across all brand sellers'}
+            {chartMetric === 'revenue' && 'Real transaction gross merchandise value and net platform fees'}
+            {chartMetric === 'inflow' && 'Real producer onboarding velocity and customer registration inflow'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+            <button
+              type="button"
+              onClick={() => setChartMetric('orders')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                chartMetric === 'orders' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              Orders
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartMetric('revenue')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                chartMetric === 'revenue' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              Gross Revenue
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartMetric('inflow')}
+              className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                chartMetric === 'inflow' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+              }`}
+            >
+              Inflow
+            </button>
+          </div>
+
+          <select
+            value={chartTimeRange}
+            onChange={(e) => {
+              setChartTimeRange(e.target.value);
+              setHoveredPointIdx(null);
+            }}
+            className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/60 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600/30"
+          >
+            <option value="this_month">This Month</option>
+            <option value="30_days">Last 30 Days</option>
+            <option value="8_weeks">Last 8 Weeks</option>
+            <option value="all_time">All Time</option>
+          </select>
+        </div>
+      </div>
+
+      {/* The Wavy Spline SVG Chart (Real Data Coordinates) */}
+      <div className="relative w-full h-64 sm:h-72 pt-4">
+        {/* Chart Legend */}
+        <div className="absolute top-0 right-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
+            <span>{series1Label}</span>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded-full bg-[#10b981]"></span>
+            <span>{series2Label}</span>
+          </span>
+        </div>
+
+        <svg className="w-full h-full overflow-visible" viewBox="0 0 600 220" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="purpleSplineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
+            </linearGradient>
+            <linearGradient id="emeraldSplineGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+            </linearGradient>
+          </defs>
+
+          {/* Dynamic Horizontal Gridlines & Y-Axis Labels */}
+          {chartScale.ticks.map((tick, idx) => {
+            const yPos = chartScale.max > 0 ? svgYMax - (tick / chartScale.max) * svgHeight : svgYMax;
+            return (
+              <g key={idx}>
+                <line x1={svgXMin - 10} y1={yPos} x2={svgXMax + 10} y2={yPos} stroke="#f1f5f9" strokeWidth="1" />
+                <text x={svgXMin - 42} y={yPos + 4} fill="#94a3b8" fontSize="10" fontFamily="sans-serif">
+                  {formatChartTick(tick, isCurrency)}
+                </text>
+              </g>
+            );
+          })}
+
+          {/* Vertical guide line for active point */}
+          {activeCoord1 && (
+            <line
+              x1={activeCoord1.x}
+              y1={svgYMin - 10}
+              x2={activeCoord1.x}
+              y2={svgYMax}
+              stroke="#8b5cf6"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+              opacity="0.6"
+            />
+          )}
+
+          {/* Spline Area 1 (Purple - Real Data) */}
+          {area1 && <path d={area1} fill="url(#purpleSplineGrad)" />}
+          {/* Spline Stroke 1 (Purple - Real Data) */}
+          {path1 && (
+            <path
+              d={path1}
+              fill="none"
+              stroke="#8b5cf6"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+          )}
+
+          {/* Spline Area 2 (Emerald - Real Data) */}
+          {area2 && <path d={area2} fill="url(#emeraldSplineGrad)" />}
+          {/* Spline Stroke 2 (Emerald - Real Data) */}
+          {path2 && (
+            <path
+              d={path2}
+              fill="none"
+              stroke="#10b981"
+              strokeWidth="3"
+              strokeLinecap="round"
+            />
+          )}
+
+          {/* Spotlight Dots on Active Point */}
+          {activeCoord1 && (
+            <>
+              <circle cx={activeCoord1.x} cy={activeCoord1.y} r="7" fill="#8b5cf6" />
+              <circle cx={activeCoord1.x} cy={activeCoord1.y} r="3.5" fill="#ffffff" />
+            </>
+          )}
+          {activeCoord2 && (
+            <>
+              <circle cx={activeCoord2.x} cy={activeCoord2.y} r="5" fill="#10b981" />
+              <circle cx={activeCoord2.x} cy={activeCoord2.y} r="2.5" fill="#ffffff" />
+            </>
+          )}
+
+          {/* Floating Tooltip Pill (100% Real Data Content) */}
+          {activePoint && (
+            <g transform={`translate(${pillX}, ${pillY})`}>
+              <rect
+                width={pillWidth}
+                height="26"
+                rx="8"
+                fill="#1e1b4b"
+                filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
+              />
+              <text
+                x={pillWidth / 2}
+                y="17"
+                fill="#ffffff"
+                fontSize="9.5"
+                fontWeight="bold"
+                textAnchor="middle"
+                fontFamily="sans-serif"
+              >
+                {tooltipText}
+              </text>
+            </g>
+          )}
+
+          {/* Interactive Column Hover Zones */}
+          {coords1.map((c, idx) => {
+            const colWidth = N > 1 ? svgWidth / (N - 1) : svgWidth;
+            const colX = c.x - colWidth / 2;
+            return (
+              <rect
+                key={idx}
+                x={Math.max(0, colX)}
+                y={svgYMin - 20}
+                width={colWidth}
+                height={svgHeight + 40}
+                fill="transparent"
+                className="cursor-pointer"
+                onMouseEnter={() => setHoveredPointIdx(idx)}
+                onClick={() => setHoveredPointIdx(idx)}
+              />
+            );
+          })}
+        </svg>
+
+        {/* X Axis Real Date Labels */}
+        <div className="flex justify-between px-6 pt-2 text-[10px] font-semibold text-slate-400">
+          {realChartData.map((p, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setHoveredPointIdx(idx)}
+              onMouseEnter={() => setHoveredPointIdx(idx)}
+              className={`cursor-pointer transition-colors ${
+                idx === activeIdx ? 'text-purple-700 font-bold scale-105' : 'hover:text-slate-600'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+});
+
 const tabTitles = {
   metrics: 'Dashboard',
   yet_to_approve: 'Yet to be Approved',
@@ -157,7 +469,6 @@ export default function AdminDashboardPage() {
   const [topbarSearch, setTopbarSearch] = useState('');
   const [chartMetric, setChartMetric] = useState('orders'); // 'orders', 'revenue', 'inflow'
   const [chartTimeRange, setChartTimeRange] = useState('8_weeks'); // '8_weeks', 'this_month', '30_days', 'all_time'
-  const [hoveredPointIdx, setHoveredPointIdx] = useState(null);
 
   const [activeTab, setActiveTab] = useState('metrics'); // 'metrics', 'users', 'manufacturers', 'products', 'orders', 'commission', 'settlements', 'logs'
   const [metrics, setMetrics] = useState(() => cachedData?.metrics || null);
@@ -1975,310 +2286,14 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Right Column: Wavy Spline Analytics Chart (100% Real Dynamic Data) */}
-            {(() => {
-              // Determine active metric series
-              let series1Label = 'Delivered / Ordered Jars';
-              let series2Label = 'Paid Orders';
-              let getSeries1Val = (p) => p.jarsCount;
-              let getSeries2Val = (p) => p.paidOrdersCount;
-              let isCurrency = false;
-
-              if (chartMetric === 'orders') {
-                series1Label = 'Ordered Jars';
-                series2Label = 'Paid Orders';
-                getSeries1Val = (p) => p.jarsCount;
-                getSeries2Val = (p) => p.paidOrdersCount;
-                isCurrency = false;
-              } else if (chartMetric === 'revenue') {
-                series1Label = 'Gross GMV';
-                series2Label = 'Platform Revenue';
-                getSeries1Val = (p) => p.gmv;
-                getSeries2Val = (p) => p.platformRev;
-                isCurrency = true;
-              } else if (chartMetric === 'inflow') {
-                series1Label = 'Producer Inbound';
-                series2Label = 'User Registrations';
-                getSeries1Val = (p) => p.inflowCount;
-                getSeries2Val = (p) => p.userSignupsCount;
-                isCurrency = false;
-              }
-
-              const maxSeries1 = Math.max(0, ...realChartData.map((p) => getSeries1Val(p)));
-              const maxSeries2 = Math.max(0, ...realChartData.map((p) => getSeries2Val(p)));
-              const overallMax = Math.max(maxSeries1, maxSeries2);
-              const chartScale = computeChartScale(overallMax, isCurrency);
-
-              const svgXMin = 50;
-              const svgXMax = 570;
-              const svgYMin = 30;
-              const svgYMax = 180;
-              const svgWidth = svgXMax - svgXMin;
-              const svgHeight = svgYMax - svgYMin;
-
-              const N = realChartData.length;
-              const coords1 = realChartData.map((p, idx) => {
-                const x = N > 1 ? svgXMin + (idx / (N - 1)) * svgWidth : (svgXMin + svgXMax) / 2;
-                const val = getSeries1Val(p);
-                const y = chartScale.max > 0 ? svgYMax - (val / chartScale.max) * svgHeight : svgYMax;
-                return { x: Math.round(x), y: Math.round(y), val, point: p };
-              });
-
-              const coords2 = realChartData.map((p, idx) => {
-                const x = N > 1 ? svgXMin + (idx / (N - 1)) * svgWidth : (svgXMin + svgXMax) / 2;
-                const val = getSeries2Val(p);
-                const y = chartScale.max > 0 ? svgYMax - (val / chartScale.max) * svgHeight : svgYMax;
-                return { x: Math.round(x), y: Math.round(y), val, point: p };
-              });
-
-              const path1 = getSmoothSplinePath(coords1);
-              const area1 = getAreaPath(coords1, svgYMax);
-              const path2 = getSmoothSplinePath(coords2);
-              const area2 = getAreaPath(coords2, svgYMax);
-
-              // Default spotlight index: pick highest value or latest active point
-              let bestIdx = N - 1;
-              let highestCombined = -1;
-              coords1.forEach((c, idx) => {
-                const combined = c.val + coords2[idx].val;
-                if (combined > highestCombined) {
-                  highestCombined = combined;
-                  bestIdx = idx;
-                }
-              });
-
-              const activeIdx = hoveredPointIdx !== null ? hoveredPointIdx : bestIdx;
-              const activeCoord1 = coords1[activeIdx] || coords1[0] || { x: 420, y: 180, val: 0 };
-              const activeCoord2 = coords2[activeIdx] || coords2[0] || { x: 420, y: 180, val: 0 };
-              const activePoint = realChartData[activeIdx] || realChartData[0] || {};
-
-              const tooltipText = chartMetric === 'orders'
-                ? `${activePoint.paidOrdersCount || 0} Orders | ${activePoint.jarsCount || 0} Jars`
-                : chartMetric === 'revenue'
-                ? `₹${(activePoint.gmv || 0).toLocaleString('en-IN')} GMV | ₹${(activePoint.platformRev || 0).toLocaleString('en-IN')} Fee`
-                : `${activePoint.inflowCount || 0} Producers | ${activePoint.userSignupsCount || 0} Users`;
-
-              const pillWidth = Math.max(124, tooltipText.length * 7.5 + 24);
-              const pillX = Math.max(svgXMin, Math.min(svgXMax - pillWidth, activeCoord1.x - pillWidth / 2));
-              const pillY = Math.max(6, Math.min(svgYMax - 32, Math.min(activeCoord1.y, activeCoord2.y) - 34));
-
-              return (
-                <div className="lg:col-span-8 bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
-                    <div>
-                      <h3 className="text-lg font-bold font-serif text-slate-900">
-                        Marketplace Volume Stats
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        {chartMetric === 'orders' && 'Real-time order volume and jars fulfilled across all brand sellers'}
-                        {chartMetric === 'revenue' && 'Real transaction gross merchandise value and net platform fees'}
-                        {chartMetric === 'inflow' && 'Real producer onboarding velocity and customer registration inflow'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
-                        <button
-                          type="button"
-                          onClick={() => setChartMetric('orders')}
-                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                            chartMetric === 'orders' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
-                          }`}
-                        >
-                          Orders
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChartMetric('revenue')}
-                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                            chartMetric === 'revenue' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
-                          }`}
-                        >
-                          Gross Revenue
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setChartMetric('inflow')}
-                          className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-                            chartMetric === 'inflow' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
-                          }`}
-                        >
-                          Inflow
-                        </button>
-                      </div>
-
-                      <select
-                        value={chartTimeRange}
-                        onChange={(e) => {
-                          setChartTimeRange(e.target.value);
-                          setHoveredPointIdx(null);
-                        }}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/60 cursor-pointer focus:outline-none focus:ring-2 focus:ring-purple-600/30"
-                      >
-                        <option value="this_month">This Month</option>
-                        <option value="30_days">Last 30 Days</option>
-                        <option value="8_weeks">Last 8 Weeks</option>
-                        <option value="all_time">All Time</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* The Wavy Spline SVG Chart (Real Data Coordinates) */}
-                  <div className="relative w-full h-64 sm:h-72 pt-4">
-                    {/* Chart Legend */}
-                    <div className="absolute top-0 right-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
-                        <span>{series1Label}</span>
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span className="w-3 h-3 rounded-full bg-[#10b981]"></span>
-                        <span>{series2Label}</span>
-                      </span>
-                    </div>
-
-                    <svg className="w-full h-full overflow-visible" viewBox="0 0 600 220" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="purpleSplineGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
-                          <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
-                        </linearGradient>
-                        <linearGradient id="emeraldSplineGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Dynamic Horizontal Gridlines & Y-Axis Labels */}
-                      {chartScale.ticks.map((tick, idx) => {
-                        const yPos = chartScale.max > 0 ? svgYMax - (tick / chartScale.max) * svgHeight : svgYMax;
-                        return (
-                          <g key={idx}>
-                            <line x1={svgXMin - 10} y1={yPos} x2={svgXMax + 10} y2={yPos} stroke="#f1f5f9" strokeWidth="1" />
-                            <text x={svgXMin - 42} y={yPos + 4} fill="#94a3b8" fontSize="10" fontFamily="sans-serif">
-                              {formatChartTick(tick, isCurrency)}
-                            </text>
-                          </g>
-                        );
-                      })}
-
-                      {/* Vertical guide line for active point */}
-                      {activeCoord1 && (
-                        <line
-                          x1={activeCoord1.x}
-                          y1={svgYMin - 10}
-                          x2={activeCoord1.x}
-                          y2={svgYMax}
-                          stroke="#8b5cf6"
-                          strokeWidth="1.5"
-                          strokeDasharray="4 4"
-                          opacity="0.6"
-                        />
-                      )}
-
-                      {/* Spline Area 1 (Purple - Real Data) */}
-                      {area1 && <path d={area1} fill="url(#purpleSplineGrad)" />}
-                      {/* Spline Stroke 1 (Purple - Real Data) */}
-                      {path1 && (
-                        <path
-                          d={path1}
-                          fill="none"
-                          stroke="#8b5cf6"
-                          strokeWidth="3.5"
-                          strokeLinecap="round"
-                        />
-                      )}
-
-                      {/* Spline Area 2 (Emerald - Real Data) */}
-                      {area2 && <path d={area2} fill="url(#emeraldSplineGrad)" />}
-                      {/* Spline Stroke 2 (Emerald - Real Data) */}
-                      {path2 && (
-                        <path
-                          d={path2}
-                          fill="none"
-                          stroke="#10b981"
-                          strokeWidth="3"
-                          strokeLinecap="round"
-                        />
-                      )}
-
-                      {/* Spotlight Dots on Active Point */}
-                      {activeCoord1 && (
-                        <>
-                          <circle cx={activeCoord1.x} cy={activeCoord1.y} r="7" fill="#8b5cf6" />
-                          <circle cx={activeCoord1.x} cy={activeCoord1.y} r="3.5" fill="#ffffff" />
-                        </>
-                      )}
-                      {activeCoord2 && (
-                        <>
-                          <circle cx={activeCoord2.x} cy={activeCoord2.y} r="5" fill="#10b981" />
-                          <circle cx={activeCoord2.x} cy={activeCoord2.y} r="2.5" fill="#ffffff" />
-                        </>
-                      )}
-
-                      {/* Floating Tooltip Pill (100% Real Data Content) */}
-                      {activePoint && (
-                        <g transform={`translate(${pillX}, ${pillY})`}>
-                          <rect
-                            width={pillWidth}
-                            height="26"
-                            rx="8"
-                            fill="#1e1b4b"
-                            filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))"
-                          />
-                          <text
-                            x={pillWidth / 2}
-                            y="17"
-                            fill="#ffffff"
-                            fontSize="9.5"
-                            fontWeight="bold"
-                            textAnchor="middle"
-                            fontFamily="sans-serif"
-                          >
-                            {tooltipText}
-                          </text>
-                        </g>
-                      )}
-
-                      {/* Interactive Column Hover Zones */}
-                      {coords1.map((c, idx) => {
-                        const colWidth = N > 1 ? svgWidth / (N - 1) : svgWidth;
-                        const colX = c.x - colWidth / 2;
-                        return (
-                          <rect
-                            key={idx}
-                            x={Math.max(0, colX)}
-                            y={svgYMin - 20}
-                            width={colWidth}
-                            height={svgHeight + 40}
-                            fill="transparent"
-                            className="cursor-pointer"
-                            onMouseEnter={() => setHoveredPointIdx(idx)}
-                            onClick={() => setHoveredPointIdx(idx)}
-                          />
-                        );
-                      })}
-                    </svg>
-
-                    {/* X Axis Real Date Labels */}
-                    <div className="flex justify-between px-6 pt-2 text-[10px] font-semibold text-slate-400">
-                      {realChartData.map((p, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setHoveredPointIdx(idx)}
-                          onMouseEnter={() => setHoveredPointIdx(idx)}
-                          className={`cursor-pointer transition-colors ${
-                            idx === activeIdx ? 'text-purple-700 font-bold scale-105' : 'hover:text-slate-600'
-                          }`}
-                        >
-                          {p.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            {/* Right Column: Wavy Spline Analytics Chart (Isolated Memoized Component) */}
+            <MarketplaceVolumeStatsChart
+              chartMetric={chartMetric}
+              setChartMetric={setChartMetric}
+              chartTimeRange={chartTimeRange}
+              setChartTimeRange={setChartTimeRange}
+              realChartData={realChartData}
+            />
           </div>
 
           {/* Producer Inflow & "Sell with Us" Public Visibility Monitor Card */}

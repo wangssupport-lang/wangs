@@ -7,7 +7,7 @@ import urllib.parse
 from decimal import Decimal
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q, Sum, Count, ProtectedError
+from django.db.models import Q, Sum, Count, ProtectedError, Prefetch
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
@@ -501,6 +501,7 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
 class BrandListView(views.APIView):
     """
     Public listing of verified artisanal brands with Amazon-style Brand Spotlight.
+    Optimized with deep prefetching to prevent N+1 queries.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -508,6 +509,14 @@ class BrandListView(views.APIView):
         featured_only = request.query_params.get('featured') == 'true'
         qs = ManufacturerProfile.objects.filter(
             status=ManufacturerProfile.Status.APPROVED
+        ).prefetch_related(
+            Prefetch(
+                'products',
+                queryset=Product.objects.filter(
+                    is_active=True,
+                    status=Product.Status.APPROVED
+                ).prefetch_related('images')
+            )
         ).order_by('-display_priority', '-is_featured', 'business_name')
         if featured_only:
             qs = qs.filter(is_featured=True)
@@ -613,7 +622,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             is_active=True,
             status=Product.Status.APPROVED,
             manufacturer__status=ManufacturerProfile.Status.APPROVED
-        ).select_related('category', 'manufacturer').prefetch_related('images')
+        ).select_related('category', 'manufacturer').prefetch_related('images', 'reviews')
 
         category_slug = self.request.query_params.get('category')
         if category_slug:
@@ -1642,41 +1651,51 @@ class AdminMetricsView(views.APIView):
         total_subscribers = MaintenanceSubscriber.objects.count()
         low_stock_products = Product.objects.filter(stock_quantity__lte=5, is_active=True).count()
 
-        # Real historical time series across 8 uniform weekly periods
+        # Real historical time series across 8 uniform weekly periods (Optimized In-Memory Bucketing)
         now = timezone.now()
         bucket_days = 7
         num_buckets = 8
         start_date = now - datetime.timedelta(days=bucket_days * num_buckets)
+
+        recent_orders = list(Order.objects.filter(
+            created_at__gte=start_date
+        ).prefetch_related('items'))
+        recent_producers = list(ManufacturerProfile.objects.filter(
+            created_at__gte=start_date
+        ).values('created_at'))
+        recent_users = list(User.objects.filter(
+            date_joined__gte=start_date
+        ).values('date_joined'))
+
         timeline = []
         for i in range(num_buckets):
             b_start = start_date + datetime.timedelta(days=i * bucket_days)
             b_end = b_start + datetime.timedelta(days=bucket_days)
             label = b_start.strftime("%b %d")
 
-            b_orders = Order.objects.filter(created_at__gte=b_start, created_at__lt=b_end)
-            b_paid_orders = b_orders.filter(payment_status=Order.PaymentStatus.PAID)
-            b_delivered_orders = b_orders.filter(status=Order.Status.DELIVERED)
+            b_orders = [o for o in recent_orders if b_start <= o.created_at < b_end]
+            b_paid_orders = [o for o in b_orders if o.payment_status == Order.PaymentStatus.PAID]
+            b_delivered_orders = [o for o in b_orders if o.status == Order.Status.DELIVERED]
 
-            b_jars_sum = OrderItem.objects.filter(order__in=b_orders).aggregate(s=Sum('quantity'))['s'] or 0
-            b_delivered_jars = OrderItem.objects.filter(order__in=b_delivered_orders).aggregate(s=Sum('quantity'))['s'] or 0
-            b_gmv = b_paid_orders.aggregate(s=Sum('total_amount'))['s'] or Decimal('0.00')
-            b_comm = b_paid_orders.aggregate(
-                c=Sum('platform_commission_total'),
-                f=Sum('customer_platform_fee')
+            b_jars_sum = sum(sum(it.quantity for it in o.items.all()) for o in b_orders)
+            b_delivered_jars = sum(sum(it.quantity for it in o.items.all()) for o in b_delivered_orders)
+            b_gmv = sum(o.total_amount for o in b_paid_orders)
+            b_rev_total = sum(
+                (o.platform_commission_total or Decimal('0.00')) + (o.customer_platform_fee or Decimal('0.00'))
+                for o in b_paid_orders
             )
-            b_rev_total = (b_comm['c'] or Decimal('0.00')) + (b_comm['f'] or Decimal('0.00'))
 
-            b_producers = ManufacturerProfile.objects.filter(created_at__gte=b_start, created_at__lt=b_end).count()
-            b_users = User.objects.filter(date_joined__gte=b_start, date_joined__lt=b_end).count()
+            b_producers = sum(1 for p in recent_producers if b_start <= p['created_at'] < b_end)
+            b_users = sum(1 for u in recent_users if b_start <= u['date_joined'] < b_end)
 
             timeline.append({
                 'label': label,
                 'week_number': f'W{i+1}',
                 'start_date': b_start.isoformat(),
                 'end_date': b_end.isoformat(),
-                'orders_count': b_orders.count(),
-                'paid_orders_count': b_paid_orders.count(),
-                'delivered_orders_count': b_delivered_orders.count(),
+                'orders_count': len(b_orders),
+                'paid_orders_count': len(b_paid_orders),
+                'delivered_orders_count': len(b_delivered_orders),
                 'total_jars': int(b_jars_sum),
                 'delivered_jars': int(b_delivered_jars),
                 'gmv': float(b_gmv),

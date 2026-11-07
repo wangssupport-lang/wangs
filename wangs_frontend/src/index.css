@@ -12,6 +12,19 @@
     scroll-behavior: smooth;
   }
 
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html, body {
+    scroll-behavior: smooth;
+  }
+
+  img {
+    content-visibility: auto;
+  }
+
   body {
     min-width: 0;
     margin: 0;

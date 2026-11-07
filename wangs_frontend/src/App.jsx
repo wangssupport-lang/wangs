@@ -15,16 +15,17 @@ import BrandsPage from './pages/BrandsPage';
 import ProductListPage from './pages/ProductListPage';
 import ProductDetailPage from './pages/ProductDetailPage';
 import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
-import CustomerAccountPage from './pages/CustomerAccountPage';
-import ManufacturerPortalPage from './pages/ManufacturerPortalPage';
-import ManufacturerRegisterPage from './pages/ManufacturerRegisterPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
 import AuthPage from './pages/AuthPages';
 import MaintenancePage from './pages/MaintenancePage';
-import DeliveryPage from './pages/DeliveryPage';
-import RewardsScanPage from './pages/RewardsScanPage';
+
+const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
+const CustomerAccountPage = React.lazy(() => import('./pages/CustomerAccountPage'));
+const ManufacturerPortalPage = React.lazy(() => import('./pages/ManufacturerPortalPage'));
+const ManufacturerRegisterPage = React.lazy(() => import('./pages/ManufacturerRegisterPage'));
+const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage'));
+const DeliveryPage = React.lazy(() => import('./pages/DeliveryPage'));
+const RewardsScanPage = React.lazy(() => import('./pages/RewardsScanPage'));
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -32,6 +33,14 @@ import {
 } from './pages/StaticPages';
 
 import MobileBottomNav from './components/MobileBottomNav';
+
+function PageFallback() {
+  return (
+    <div className="min-h-[45vh] flex items-center justify-center p-8">
+      <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+    </div>
+  );
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -73,48 +82,50 @@ function AppLayout() {
 
       <main className="flex-1">
         <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/brands" element={<BrandsPage />} />
-            <Route path="/products" element={<ProductListPage />} />
-            <Route path="/product/:slug" element={<ProductDetailPage />} />
-            <Route path="/cart" element={<CartPage />} />
-            <Route path="/checkout" element={<CheckoutPage />} />
-            <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
-            <Route path="/account" element={<CustomerAccountPage />} />
-            <Route path="/login" element={<AuthPage />} />
+          <React.Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/brands" element={<BrandsPage />} />
+              <Route path="/products" element={<ProductListPage />} />
+              <Route path="/product/:slug" element={<ProductDetailPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/order-success/:orderNumber" element={<OrderSuccessPage />} />
+              <Route path="/account" element={<CustomerAccountPage />} />
+              <Route path="/login" element={<AuthPage />} />
 
-            {/* Wangs Rewards - QR-Based Delivery Confirmation */}
-            <Route path="/rewards" element={<RewardsScanPage />} />
-            <Route path="/rewards/scan" element={<RewardsScanPage />} />
-            <Route path="/rewards/verify/:token" element={<RewardsScanPage />} />
+              {/* Wangs Rewards - QR-Based Delivery Confirmation */}
+              <Route path="/rewards" element={<RewardsScanPage />} />
+              <Route path="/rewards/scan" element={<RewardsScanPage />} />
+              <Route path="/rewards/verify/:token" element={<RewardsScanPage />} />
 
-            {/* Delivery Courier Portal - Accessible EXCLUSIVELY via /delivery */}
-            <Route path="/delivery" element={<DeliveryPage />} />
-            <Route path="/delivery/:orderNumber" element={<DeliveryPage />} />
+              {/* Delivery Courier Portal - Accessible EXCLUSIVELY via /delivery */}
+              <Route path="/delivery" element={<DeliveryPage />} />
+              <Route path="/delivery/:orderNumber" element={<DeliveryPage />} />
 
-            {/* Manufacturer / Seller Portal */}
-            <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
-            <Route path="/manufacturer/login" element={<ManufacturerPortalPage />} />
-            <Route path="/manufacturer/register" element={<ManufacturerRegisterPage />} />
+              {/* Manufacturer / Seller Portal */}
+              <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
+              <Route path="/manufacturer/login" element={<ManufacturerPortalPage />} />
+              <Route path="/manufacturer/register" element={<ManufacturerRegisterPage />} />
 
-            {/* Admin Space - Accessible via /wangsadminspace and /wangadminspace */}
-            <Route path="/wangsadminspace" element={<AdminDashboardPage />} />
-            <Route path="/wangadminspace" element={<AdminDashboardPage />} />
-            <Route path="/adminspace" element={<Navigate to="/wangsadminspace" replace />} />
-            <Route path="/admin" element={<Navigate to="/wangsadminspace" replace />} />
+              {/* Admin Space - Accessible via /wangsadminspace and /wangadminspace */}
+              <Route path="/wangsadminspace" element={<AdminDashboardPage />} />
+              <Route path="/wangadminspace" element={<AdminDashboardPage />} />
+              <Route path="/adminspace" element={<Navigate to="/wangsadminspace" replace />} />
+              <Route path="/admin" element={<Navigate to="/wangsadminspace" replace />} />
 
-            {/* Static & Legal */}
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/shipping" element={<ShippingPage />} />
-            <Route path="/refunds" element={<RefundsPage />} />
-            <Route path="/contact" element={<ContactPage />} />
+              {/* Static & Legal */}
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/shipping" element={<ShippingPage />} />
+              <Route path="/refunds" element={<RefundsPage />} />
+              <Route path="/contact" element={<ContactPage />} />
 
-            {/* Wildcard Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              {/* Wildcard Fallback */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </React.Suspense>
         </ErrorBoundary>
       </main>
 
