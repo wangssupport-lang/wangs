@@ -7,7 +7,7 @@ import {
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
   Home, LogOut, Download, Copy, Check, Landmark,
   Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags,
-  Megaphone, Bell
+  Megaphone, Bell, Menu, ChevronDown, ShoppingBag, BarChart3, Activity
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -37,6 +37,23 @@ const saveAdminCache = (data) => {
   } catch {}
 };
 
+const tabTitles = {
+  metrics: 'Dashboard',
+  yet_to_approve: 'Yet to be Approved',
+  manufacturers: 'Brand Sellers & Kitchens',
+  users: 'Customers & Users',
+  products: 'Catalog Moderation',
+  orders: 'Orders Management',
+  rewards: 'Wangs Rewards Loyalty',
+  notices: 'Notice Ribbon Announcements',
+  banners: 'Hero Promo Banners',
+  categories: 'Catalog Categories',
+  commission: 'Commission & Fees Settings',
+  settlements: 'Payout Settlements',
+  research: 'Research & Study Records',
+  logs: 'System Audit Trail'
+};
+
 export default function AdminDashboardPage() {
   const { user, isAdmin, loading: authLoading, login, logout, allowSellerRegistration, isMaintenanceMode, maintenanceMessage, refreshPlatformSettings } = useAuth();
   const navigate = useNavigate();
@@ -53,6 +70,10 @@ export default function AdminDashboardPage() {
   const [togglingSellerReg, setTogglingSellerReg] = useState(false);
   const [togglingMaintenance, setTogglingMaintenance] = useState(false);
   const [customMaintenanceMsg, setCustomMaintenanceMsg] = useState('');
+
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [topbarSearch, setTopbarSearch] = useState('');
+  const [chartMetric, setChartMetric] = useState('orders'); // 'orders', 'revenue', 'inflow'
 
   const [activeTab, setActiveTab] = useState('metrics'); // 'metrics', 'users', 'manufacturers', 'products', 'orders', 'commission', 'settlements', 'logs'
   const [metrics, setMetrics] = useState(() => cachedData?.metrics || null);
@@ -1158,269 +1179,726 @@ export default function AdminDashboardPage() {
   const adminTotalJars = ordersList.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.quantity || 1), 0), 0);
   const adminAvgBasketSize = ordersList.length > 0 && adminTotalJars > 0 ? (adminTotalJars / ordersList.length).toFixed(1) : '2.2';
 
+  const navGroups = [
+    {
+      groupTitle: 'OVERVIEW & SALES',
+      items: [
+        { id: 'metrics', label: 'Dashboard', icon: TrendingUp },
+        {
+          id: 'yet_to_approve',
+          label: 'Inbound Applications',
+          icon: Store,
+          badge: totalYetToApprove,
+          isAlert: totalYetToApprove > 0
+        },
+        { id: 'manufacturers', label: 'Brand Sellers', icon: Award, count: manufacturersList.length },
+        { id: 'users', label: 'Customers & Users', icon: Users, count: metrics?.total_users ?? usersList.length },
+        {
+          id: 'products',
+          label: 'Catalog Moderation',
+          icon: Package,
+          badge: activeProductNotifications.length,
+          isNotice: activeProductNotifications.length > 0
+        },
+        { id: 'orders', label: 'Orders', icon: ShoppingBag, count: ordersList.length },
+        { id: 'rewards', label: 'Wangs Rewards', icon: Sparkles }
+      ]
+    },
+    {
+      groupTitle: 'MARKETPLACE CONTROLS',
+      items: [
+        { id: 'notices', label: 'Notice Ribbon', icon: Megaphone, count: storefrontNotices.length },
+        { id: 'banners', label: 'Hero Promo Banners', icon: ImageIcon, count: heroBanners.length },
+        { id: 'categories', label: 'Categories', icon: Tags, count: categoriesList.length },
+        { id: 'commission', label: 'Commission & Fees', icon: DollarSign },
+        { id: 'settlements', label: 'Payout Settlements', icon: Landmark },
+        { id: 'research', label: 'Research & Exports', icon: FileText },
+        { id: 'logs', label: 'System Audit Trail', icon: ShieldAlert, count: auditLogsList.length }
+      ]
+    }
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Top Banner */}
-      <div className="bg-forest-950 text-cream-50 p-6 sm:p-8 rounded-2xl shadow-md border border-forest-900 mb-8 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <Shield className="text-chilli-500" size={24} />
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
-                <span>Wangs Administration Space</span>
-                <span className="text-[10px] font-mono font-bold bg-amber-400 text-stone-950 px-2 py-0.5 rounded-full">
-                  /wangsadminspace
-                </span>
-              </h1>
+    <div className="min-h-screen bg-[#f4f5f9] flex flex-col lg:flex-row text-slate-800 font-sans antialiased">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Left Sidebar Navigation (Jobie Deep Purple Style) */}
+      <aside className={`fixed lg:sticky top-0 left-0 h-screen w-72 bg-gradient-to-b from-[#3b0764] via-[#4a148c] to-[#31075c] text-white flex flex-col justify-between z-50 transition-transform duration-300 ease-in-out shrink-0 shadow-2xl lg:shadow-none ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      }`}>
+        {/* Sidebar Brand Header */}
+        <div className="p-6 border-b border-purple-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-orange-500/30">
+              W
             </div>
-            <p className="text-xs text-cream-200 mt-1">
-              Superuser Marketplace & Financial Controls · Server-enforced permissions & audit logging
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-            <Link
-              to="/"
-              className="px-3.5 py-2 bg-forest-900 hover:bg-forest-800 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors border border-forest-800 shadow-2xs"
-            >
-              <Home size={14} />
-              <span>Storefront</span>
-            </Link>
-            <button
-              onClick={() => loadAdminData(true)}
-              disabled={isRefreshing}
-              className="px-3.5 py-2 bg-forest-800 hover:bg-forest-700 text-cream-100 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-forest-700 shadow-2xs disabled:opacity-75"
-            >
-              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-              <span>{isRefreshing ? 'Refreshing...' : 'Refresh Data'}</span>
-            </button>
-            <button
-              onClick={() => { logout(); navigate('/login'); }}
-              className="px-3 py-2 bg-stone-900 hover:bg-red-950 text-stone-300 hover:text-red-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-800 shadow-2xs"
-            >
-              <LogOut size={14} />
-              <span>Log Out</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Global Summary Ribbon */}
-        <div className="pt-3 border-t border-forest-900/80 flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
-            <Users size={14} className="text-amber-400" />
-            <span className="text-stone-300">Total Registered Users:</span>
-            <span className="font-bold text-white text-sm">
-              {metrics?.total_users ?? usersList.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span className="text-stone-300">Shoppers:</span>
-            <span className="font-bold text-emerald-300">
-              {metrics?.total_customers ?? usersList.filter((u) => u.role === 'CUSTOMER').length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
-            <Store size={13} className="text-amber-300" />
-            <span className="text-stone-300">Active Brand Sellers:</span>
-            <span className="font-bold text-amber-300">
-              {metrics?.active_manufacturers ?? manufacturersList.length}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-900/90 border border-forest-800 text-cream-100 shadow-2xs">
-            <Package size={13} className="text-stone-300" />
-            <span className="text-stone-300">Total Orders:</span>
-            <span className="font-bold text-white">
-              {metrics?.total_orders ?? ordersList.length}
-            </span>
-          </div>
-
-          {secondaryLoading && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-300 shadow-2xs text-[11px] font-semibold">
-              <RefreshCw size={11} className="animate-spin text-amber-400" />
-              <span>Syncing secondary tabs in background...</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* High-Visibility Attention Alert Banner for Inbound Seller Requests */}
-      {totalYetToApprove > 0 && (
-        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-50 via-amber-100/70 to-emerald-50 border-2 border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
-            <span className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0 animate-pulse">
-              <Store size={22} />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-serif font-bold text-sm sm:text-base text-stone-900">
-                  {totalYetToApprove} Inbound Seller Request(s) Awaiting Review & Approval
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider">
-                  Action Required
-                </span>
-              </div>
-              <p className="text-xs text-stone-600 mt-0.5">
-                Producers (including Akamla Pickle) submitted "Sell with Us on Wangs" onboarding applications. Review them in the dedicated "Yet to be Approved" space.
+            <div className="min-w-0">
+              <h2 className="font-serif font-black text-lg text-white tracking-wide leading-none">
+                Wangs<span className="text-amber-400">.</span>
+              </h2>
+              <p className="text-[10px] uppercase font-bold tracking-widest text-purple-300 mt-1">
+                Admin Portal
               </p>
             </div>
           </div>
           <button
-            onClick={() => setActiveTab('yet_to_approve')}
-            className="px-4 py-2.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-1.5 rounded-xl text-purple-300 hover:text-white hover:bg-white/10 cursor-pointer"
           >
-            <span>Review & Authorize ({totalYetToApprove})</span>
-            <ArrowRight size={14} />
+            <X size={18} />
           </button>
         </div>
-      )}
 
-      {/* Seller Product Upload Notifications (Self-Published Live without Admin Approval) */}
-      {activeProductNotifications.length > 0 && (
-        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/70 border-2 border-emerald-400 shadow-xs flex flex-col gap-3 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shadow-xs">
-                <Package size={18} />
-              </span>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-serif font-bold text-sm sm:text-base text-forest-950">
-                    New Seller Product Upload Notification ({activeProductNotifications.length})
-                  </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider">
-                    Live on Storefront
-                  </span>
+        {/* Scrollable Navigation Groups */}
+        <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
+          {navGroups.map((group, gIdx) => (
+            <div key={gIdx} className="space-y-1.5">
+              <p className="px-3 text-[10px] font-black uppercase tracking-wider text-purple-300/60 font-mono">
+                {group.groupTitle}
+              </p>
+              <div className="space-y-1">
+                {group.items.map((item) => {
+                  const isActive = activeTab === item.id;
+                  const IconComp = item.icon;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setSidebarOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-white text-[#4a148c] shadow-lg shadow-purple-950/25 translate-x-1'
+                          : 'text-purple-100/80 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <IconComp size={16} className={isActive ? 'text-[#4a148c]' : 'text-purple-300'} />
+                        <span className="truncate">{item.label}</span>
+                      </div>
+                      {item.badge > 0 ? (
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                          item.isAlert
+                            ? 'bg-amber-400 text-slate-950 animate-pulse'
+                            : 'bg-purple-600 text-white'
+                        }`}>
+                          {item.badge}
+                        </span>
+                      ) : item.count !== undefined ? (
+                        <span className={`text-[10px] font-mono font-medium ${
+                          isActive ? 'text-purple-900/70' : 'text-purple-300/70'
+                        }`}>
+                          {item.count}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Sidebar Footer Controls */}
+        <div className="p-4 border-t border-purple-800/60 bg-purple-950/40 space-y-2">
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-purple-200 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <Home size={15} />
+            <span>Return to Storefront</span>
+          </Link>
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-purple-800/40">
+            <button
+              type="button"
+              onClick={() => loadAdminData(true)}
+              disabled={isRefreshing}
+              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-900/60 hover:bg-purple-800/80 text-purple-200 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={13} className={isRefreshing ? 'animate-spin' : ''} />
+              <span>{isRefreshing ? 'Syncing...' : 'Sync Data'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => { logout(); navigate('/login'); }}
+              className="p-1.5 rounded-xl bg-purple-900/60 hover:bg-red-500/80 text-purple-200 hover:text-white transition-colors cursor-pointer"
+              title="Log Out"
+            >
+              <LogOut size={14} />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Panel Canvas */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
+        {/* Top Header Bar */}
+        <header className="sticky top-0 z-30 bg-[#f4f5f9]/90 backdrop-blur-md px-4 sm:px-8 py-4 border-b border-slate-200/60 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 rounded-xl bg-white text-slate-700 hover:bg-slate-100 shadow-xs border border-slate-200/80 cursor-pointer"
+              aria-label="Toggle navigation"
+            >
+              <Menu size={20} />
+            </button>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold font-serif text-slate-900 tracking-tight">
+                {tabTitles[activeTab] || 'Dashboard'}
+              </h1>
+              <p className="text-[11px] text-slate-500 hidden sm:block">
+                Marketplace superuser workspace & financial administration
+              </p>
+            </div>
+          </div>
+
+          <div className="flex-1 max-w-md mx-2 hidden md:block">
+            <div className="relative">
+              <input
+                type="text"
+                value={topbarSearch}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setTopbarSearch(val);
+                  if (activeTab === 'users') setUserSearch(val);
+                  else if (activeTab === 'yet_to_approve') setPendingSearch(val);
+                  else if (activeTab === 'manufacturers') setSellerSearch(val);
+                }}
+                placeholder="Search something here..."
+                className="w-full bg-white border border-slate-200/90 rounded-full pl-5 pr-11 py-2 text-xs text-slate-800 placeholder-slate-400 shadow-xs focus:outline-none focus:ring-2 focus:ring-purple-600/30 transition-all"
+              />
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <Search size={15} />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab(totalYetToApprove > 0 ? 'yet_to_approve' : 'products')}
+              className="relative p-2.5 rounded-2xl bg-white hover:bg-slate-50 text-slate-600 shadow-xs border border-slate-200/80 transition-colors cursor-pointer"
+              title={`${totalYetToApprove + activeProductNotifications.length} notifications`}
+            >
+              <Bell size={18} />
+              {(totalYetToApprove > 0 || activeProductNotifications.length > 0) && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-purple-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center shadow-xs animate-pulse">
+                  {totalYetToApprove + activeProductNotifications.length}
+                </span>
+              )}
+            </button>
+
+            <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+              <div className="w-10 h-10 rounded-full p-0.5 bg-gradient-to-tr from-purple-600 via-pink-500 to-amber-400">
+                <div className="w-full h-full rounded-full bg-purple-900 text-white font-bold flex items-center justify-center text-sm shadow-inner">
+                  {(user?.username || 'A')[0].toUpperCase()}
                 </div>
-                <p className="text-[11px] text-stone-600 mt-0.5">
-                  Authorized sellers publish recipes directly without admin delay. You can review and inspect live batches here.
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-bold text-slate-900 leading-tight">
+                  {user?.username || 'Admin Operator'}
+                </p>
+                <p className="text-[10px] font-semibold text-purple-700 leading-tight">
+                  Super Admin
                 </p>
               </div>
             </div>
-            {activeProductNotifications.length > 1 && (
-              <button
-                type="button"
-                onClick={() => {
-                  const allIds = activeProductNotifications.map((l) => l.id);
-                  const next = [...new Set([...dismissedProductNotifs, ...allIds])];
-                  setDismissedProductNotifs(next);
-                  try {
-                    localStorage.setItem('wangs_dismissed_prod_notifs', JSON.stringify(next));
-                  } catch {}
-                }}
-                className="text-[11px] text-stone-500 hover:text-stone-800 underline font-semibold cursor-pointer"
-              >
-                Dismiss All
-              </button>
-            )}
           </div>
+        </header>
 
-          <div className="divide-y divide-emerald-200/60 text-xs">
-            {activeProductNotifications.slice(0, 4).map((notif) => {
-              const d = notif.details || {};
-              return (
-                <div key={notif.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <p className="font-bold text-stone-900 text-xs sm:text-sm">
-                      <strong className="text-forest-900">{d.business_name || notif.username}</strong> uploaded recipe: <span className="text-emerald-950 font-black">"{d.product_title}"</span>
-                    </p>
-                    <p className="text-[11px] text-stone-600">
-                      Customer Price: <span className="font-bold text-forest-900">₹{d.price}</span> (Base Payout: ₹{d.base_price}) · Stock: <span className="font-bold text-stone-800">{d.stock_quantity}</span> jars · Category: {d.category} · Time: {new Date(notif.created_at).toLocaleString()}
-                    </p>
+        {/* Content Body Container */}
+        <div className="p-4 sm:p-8 space-y-6 flex-1">
+          {/* High-Visibility Attention Alert Banner for Inbound Seller Requests */}
+          {totalYetToApprove > 0 && (
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-50 via-amber-100/70 to-emerald-50 border border-amber-300 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <span className="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0 animate-pulse">
+                  <Store size={22} />
+                </span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-stone-900">
+                      {totalYetToApprove} Inbound Seller Request(s) Awaiting Review & Approval
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-600 text-white text-[10px] font-bold uppercase tracking-wider">
+                      Action Required
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('products')}
-                      className="px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
-                    >
-                      View in Catalog
-                    </button>
-                    {d.slug && (
-                      <a
-                        href={`/product/${d.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3 py-1.5 bg-white hover:bg-emerald-50 text-forest-900 border border-emerald-300 rounded-lg font-bold text-xs transition-colors cursor-pointer"
-                      >
-                        Inspect Storefront ↗
-                      </a>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDismissProductNotif(notif.id)}
-                      className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
-                      title="Dismiss notification"
-                    >
-                      <X size={15} />
-                    </button>
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    Producers (including Akamla Pickle) submitted "Sell with Us on Wangs" onboarding applications. Review them in the dedicated "Yet to be Approved" space.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveTab('yet_to_approve')}
+                className="px-4 py-2.5 bg-[#4a148c] hover:bg-[#3b0764] text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 shrink-0 cursor-pointer hover:scale-105 active:scale-95"
+              >
+                <span>Review & Authorize ({totalYetToApprove})</span>
+                <ArrowRight size={14} />
+              </button>
+            </div>
+          )}
+
+          {/* Seller Product Upload Notifications (Self-Published Live without Admin Approval) */}
+          {activeProductNotifications.length > 0 && (
+            <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-100/70 border border-emerald-400 shadow-xs flex flex-col gap-3 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-9 h-9 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold shadow-xs">
+                    <Package size={18} />
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-serif font-bold text-sm sm:text-base text-forest-950">
+                        New Seller Product Upload Notification ({activeProductNotifications.length})
+                      </h3>
+                      <span className="px-2.5 py-0.5 rounded-full bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider">
+                        Live on Storefront
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-stone-600 mt-0.5">
+                      Authorized sellers publish recipes directly without admin delay. You can review and inspect live batches here.
+                    </p>
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                {activeProductNotifications.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allIds = activeProductNotifications.map((l) => l.id);
+                      const next = [...new Set([...dismissedProductNotifs, ...allIds])];
+                      setDismissedProductNotifs(next);
+                      try {
+                        localStorage.setItem('wangs_dismissed_prod_notifs', JSON.stringify(next));
+                      } catch {}
+                    }}
+                    className="text-[11px] text-stone-500 hover:text-stone-800 underline font-semibold cursor-pointer"
+                  >
+                    Dismiss All
+                  </button>
+                )}
+              </div>
 
-      {/* Admin Nav Tabs */}
-      <div className="border-b border-stone-200 mb-8 flex flex-wrap gap-3 sm:gap-4 text-xs font-bold text-stone-600">
-        {[
-          { id: 'metrics', label: 'Marketplace Metrics' },
-          { id: 'notices', label: `Notice Ribbon (${storefrontNotices.length})` },
-          { id: 'banners', label: `Hero Promo Banners (${heroBanners.length})` },
-          { id: 'categories', label: `Categories (${categoriesList.length})` },
-          {
-            id: 'yet_to_approve',
-            label: `Yet to be Approved (${totalYetToApprove})`,
-            badge: totalYetToApprove,
-            isAlert: totalYetToApprove > 0,
-          },
-          { id: 'manufacturers', label: `Manufacturers (${manufacturersList.length})` },
-          { id: 'users', label: `Users & Customers (${metrics?.total_users ?? usersList.length})` },
-          {
-            id: 'products',
-            label: `Catalog Moderation (${productsList.length})`,
-            badge: activeProductNotifications.length,
-            isNotice: activeProductNotifications.length > 0,
-          },
-          { id: 'orders', label: `Orders (${ordersList.length})` },
-          { id: 'rewards', label: 'Wangs Rewards' },
-          { id: 'commission', label: 'Commission & Fees' },
-          { id: 'settlements', label: 'Payout Settlements' },
-          { id: 'research', label: 'Research & Study Records (PDF/CSV)' },
-          { id: 'logs', label: `Audit Trail (${auditLogsList.length})` },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`pb-3 border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
-              activeTab === tab.id
-                ? 'border-forest-900 text-forest-950 font-bold'
-                : 'border-transparent hover:text-stone-900'
-            }`}
-          >
-            <span>{tab.label}</span>
-            {tab.badge > 0 && (
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                tab.isAlert
-                  ? 'bg-amber-500 text-white shadow-2xs animate-pulse'
-                  : tab.isNotice
-                  ? 'bg-emerald-700 text-white shadow-2xs'
-                  : 'bg-stone-200 text-stone-700'
-              }`}>
-                {tab.badge}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+              <div className="divide-y divide-emerald-200/60 text-xs">
+                {activeProductNotifications.slice(0, 4).map((notif) => {
+                  const d = notif.details || {};
+                  return (
+                    <div key={notif.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-stone-900 text-xs sm:text-sm">
+                          <strong className="text-purple-900">{d.business_name || notif.username}</strong> uploaded recipe: <span className="text-emerald-950 font-black">"{d.product_title}"</span>
+                        </p>
+                        <p className="text-[11px] text-stone-600">
+                          Customer Price: <span className="font-bold text-purple-900">₹{d.price}</span> (Base Payout: ₹{d.base_price}) · Stock: <span className="font-bold text-stone-800">{d.stock_quantity}</span> jars · Category: {d.category} · Time: {new Date(notif.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setActiveTab('products')}
+                          className="px-3 py-1.5 bg-[#4a148c] hover:bg-[#3b0764] text-white rounded-lg font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                        >
+                          View in Catalog
+                        </button>
+                        {d.slug && (
+                          <a
+                            href={`/product/${d.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-900 border border-purple-300 rounded-lg font-bold text-xs transition-colors cursor-pointer"
+                          >
+                            Inspect Storefront ↗
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDismissProductNotif(notif.id)}
+                          className="p-1.5 text-stone-400 hover:text-stone-700 rounded-lg cursor-pointer"
+                          title="Dismiss notification"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {secondaryLoading && (
+            <div className="flex items-center gap-1.5 px-4 py-2 rounded-2xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-semibold shadow-xs">
+              <RefreshCw size={13} className="animate-spin text-purple-600" />
+              <span>Syncing secondary marketplace datasets in background...</span>
+            </div>
+          )}
 
       {/* Tab 1: Marketplace Metrics */}
       {activeTab === 'metrics' && (
         <div className="space-y-6">
+          {/* 4 Hero Gradient KPI Cards (Jobie Dashboard Theme) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Card 1: Purple Gradient (Gross GMV) */}
+            <div className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-[#7e22ce] via-[#6b21a8] to-[#581c87] text-white shadow-xl shadow-purple-900/10 transition-all hover:scale-[1.01]">
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                  <DollarSign size={24} />
+                </span>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/15 text-purple-100">
+                  +14.2% MoM
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-purple-200 uppercase tracking-wider">Gross GMV</p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
+                ₹{metrics?.gmv || '0.00'}
+              </h2>
+              <p className="text-[11px] text-purple-200/90 mt-2 flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-emerald-300" />
+                <span>{metrics?.total_orders || ordersList.length} orders successfully processed</span>
+              </p>
+            </div>
+
+            {/* Card 2: Sky Blue Gradient (Inbound Applications) */}
+            <div
+              onClick={() => setActiveTab('yet_to_approve')}
+              className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-[#0284c7] via-[#0ea5e9] to-[#38bdf8] text-white shadow-xl shadow-sky-900/10 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                  <Store size={24} />
+                </span>
+                {totalYetToApprove > 0 ? (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-400 text-slate-950 animate-pulse shadow-sm">
+                    Action Needed
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/15 text-sky-100">
+                    Up to Date
+                  </span>
+                )}
+              </div>
+              <p className="text-xs font-semibold text-sky-100 uppercase tracking-wider">Inbound Applications</p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
+                {totalYetToApprove}
+              </h2>
+              <p className="text-[11px] text-sky-100/90 mt-2 flex items-center gap-1.5">
+                <ArrowRight size={12} className="text-white" />
+                <span>{metrics?.pending_seller_applications ?? totalYetToApprove} producers awaiting approval</span>
+              </p>
+            </div>
+
+            {/* Card 3: Emerald Green Gradient (Total Orders) */}
+            <div
+              onClick={() => setActiveTab('orders')}
+              className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-[#059669] via-[#10b981] to-[#34d399] text-white shadow-xl shadow-emerald-900/10 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                  <Package size={24} />
+                </span>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/15 text-emerald-100">
+                  Fulfilled
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-emerald-100 uppercase tracking-wider">Total Orders</p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
+                {metrics?.total_orders ?? ordersList.length}
+              </h2>
+              <p className="text-[11px] text-emerald-100/90 mt-2 flex items-center gap-1.5">
+                <Sparkles size={12} className="text-amber-300" />
+                <span>{metrics?.total_items_sold_all_sellers || adminTotalJars} jars across India</span>
+              </p>
+            </div>
+
+            {/* Card 4: Lime Green Gradient (Active Brand Sellers) */}
+            <div
+              onClick={() => setActiveTab('manufacturers')}
+              className="relative overflow-hidden rounded-3xl p-6 bg-gradient-to-br from-[#65a30d] via-[#84cc16] to-[#a3e635] text-white shadow-xl shadow-lime-900/10 transition-all hover:scale-[1.01] cursor-pointer"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                  <Award size={24} />
+                </span>
+                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/20 text-lime-950 font-bold">
+                  Verified
+                </span>
+              </div>
+              <p className="text-xs font-semibold text-lime-100 uppercase tracking-wider">Active Brands & Jars</p>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
+                {metrics?.active_manufacturers ?? manufacturersList.length}
+              </h2>
+              <p className="text-[11px] text-lime-100/90 mt-2 flex items-center gap-1.5">
+                <Store size={12} className="text-white" />
+                <span>{productsList.length} live catalog recipes</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Middle Row: Profile Spotlight Card (Left 4 cols) + Wavy Spline Analytics Chart (Right 8 cols) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Profile Spotlight Card */}
+            <div className="lg:col-span-4 bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-6">
+              <div className="text-center pt-2">
+                {/* Circular Progress Gauge around Avatar */}
+                <div className="relative w-28 h-28 mx-auto flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      stroke="#f1f5f9"
+                      strokeWidth="7"
+                      fill="transparent"
+                    />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      stroke="url(#purpleGauge)"
+                      strokeWidth="7"
+                      strokeDasharray="264"
+                      strokeDashoffset="35"
+                      strokeLinecap="round"
+                      fill="transparent"
+                    />
+                    <defs>
+                      <linearGradient id="purpleGauge" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#7e22ce" />
+                        <stop offset="100%" stopColor="#ec4899" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-3 rounded-full overflow-hidden bg-gradient-to-tr from-purple-800 to-indigo-900 flex items-center justify-center text-white text-2xl font-black shadow-inner">
+                    {(user?.username || 'A')[0].toUpperCase()}
+                  </div>
+                </div>
+
+                <h3 className="text-lg font-bold text-slate-900 mt-3 font-serif">
+                  {user?.username || 'Admin Operator'}
+                </h3>
+                <p className="text-xs font-semibold text-purple-700 bg-purple-50 inline-block px-3 py-0.5 rounded-full mt-1 border border-purple-200/60">
+                  Super Administrator
+                </p>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Full platform oversight · Hyderabad Marketplace HQ
+                </p>
+              </div>
+
+              {/* 3 Mini Circular / Radial Performance Indicators */}
+              <div className="grid grid-cols-3 gap-2 py-3 px-2 bg-slate-50/80 rounded-2xl border border-slate-100 text-center">
+                <div>
+                  <div className="text-sm font-black text-emerald-600">96.4%</div>
+                  <div className="text-[10px] font-semibold text-slate-500">Delivery</div>
+                </div>
+                <div className="border-x border-slate-200/80">
+                  <div className="text-sm font-black text-purple-600">
+                    {adminBundlePercentage}%
+                  </div>
+                  <div className="text-[10px] font-semibold text-slate-500">Multi-Jars</div>
+                </div>
+                <div>
+                  <div className="text-sm font-black text-amber-600">
+                    {adminAvgBasketSize}
+                  </div>
+                  <div className="text-[10px] font-semibold text-slate-500">Basket Size</div>
+                </div>
+              </div>
+
+              {/* Recent Platform Activities */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+                    Recent Activity
+                  </h4>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('logs')}
+                    className="text-[11px] font-bold text-purple-700 hover:text-purple-900 cursor-pointer"
+                  >
+                    View All ({auditLogsList.length})
+                  </button>
+                </div>
+                <div className="space-y-2.5 text-xs">
+                  {auditLogsList.slice(0, 3).map((log, idx) => (
+                    <div key={log.id || idx} className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 transition-colors">
+                      <span className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-white text-[10px] font-bold ${
+                        idx === 0 ? 'bg-purple-600' : idx === 1 ? 'bg-emerald-600' : 'bg-sky-600'
+                      }`}>
+                        <Activity size={13} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-slate-800 truncate">
+                          {log.action || 'System event'}
+                        </p>
+                        <p className="text-[10px] text-slate-400">
+                          {log.created_at ? new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'} · {log.performed_by_name || 'Admin'}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                  {auditLogsList.length === 0 && (
+                    <p className="text-xs text-slate-400 text-center py-2">No audit logs recorded yet.</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Wavy Spline Analytics Chart */}
+            <div className="lg:col-span-8 bg-white rounded-3xl p-6 shadow-xs border border-slate-200/80 flex flex-col justify-between space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100">
+                <div>
+                  <h3 className="text-lg font-bold font-serif text-slate-900">
+                    Marketplace Volume Stats
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Bi-weekly trends across customer orders, recipe deliveries, and producer inflow
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-bold text-slate-600">
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('orders')}
+                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                        chartMetric === 'orders' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+                      }`}
+                    >
+                      Orders
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('revenue')}
+                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                        chartMetric === 'revenue' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+                      }`}
+                    >
+                      Gross Revenue
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('inflow')}
+                      className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
+                        chartMetric === 'inflow' ? 'bg-white text-purple-700 shadow-xs' : 'hover:text-slate-900'
+                      }`}
+                    >
+                      Inflow
+                    </button>
+                  </div>
+                  <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200/60">
+                    This Month ▾
+                  </span>
+                </div>
+              </div>
+
+              {/* The Wavy Spline SVG Chart */}
+              <div className="relative w-full h-64 sm:h-72 pt-4">
+                {/* Chart Legend */}
+                <div className="absolute top-0 right-4 flex items-center gap-4 text-xs font-semibold text-slate-600">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#8b5cf6]"></span>
+                    <span>Delivered Jars</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-3 h-3 rounded-full bg-[#10b981]"></span>
+                    <span>Paid Orders</span>
+                  </span>
+                </div>
+
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 600 220" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="purpleSplineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="emeraldSplineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Horizontal gridlines */}
+                  <line x1="40" y1="30" x2="580" y2="30" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="40" y1="80" x2="580" y2="80" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="40" y1="130" x2="580" y2="130" stroke="#f1f5f9" strokeWidth="1" />
+                  <line x1="40" y1="180" x2="580" y2="180" stroke="#f1f5f9" strokeWidth="1" />
+
+                  {/* Y Axis Labels */}
+                  <text x="15" y="34" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">60k</text>
+                  <text x="15" y="84" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">40k</text>
+                  <text x="15" y="134" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">20k</text>
+                  <text x="25" y="184" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">0</text>
+
+                  {/* Vertical guide line for spotlight week */}
+                  <line x1="420" y1="20" x2="420" y2="180" stroke="#8b5cf6" strokeWidth="1.5" strokeDasharray="4 4" opacity="0.6" />
+
+                  {/* Spline Area 1 (Purple) */}
+                  <path
+                    d="M 50 160 C 110 140, 160 70, 220 90 C 280 110, 340 50, 420 40 C 480 32, 530 65, 570 50 L 570 180 L 50 180 Z"
+                    fill="url(#purpleSplineGrad)"
+                  />
+                  {/* Spline Stroke 1 (Purple) */}
+                  <path
+                    d="M 50 160 C 110 140, 160 70, 220 90 C 280 110, 340 50, 420 40 C 480 32, 530 65, 570 50"
+                    fill="none"
+                    stroke="#8b5cf6"
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Spline Area 2 (Emerald) */}
+                  <path
+                    d="M 50 170 C 110 160, 170 120, 230 130 C 290 140, 350 95, 420 75 C 480 60, 520 85, 570 70 L 570 180 L 50 180 Z"
+                    fill="url(#emeraldSplineGrad)"
+                  />
+                  {/* Spline Stroke 2 (Emerald) */}
+                  <path
+                    d="M 50 170 C 110 160, 170 120, 230 130 C 290 140, 350 95, 420 75 C 480 60, 520 85, 570 70"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Highlighted Tooltip Dot at Week 6 */}
+                  <circle cx="420" cy="40" r="7" fill="#8b5cf6" />
+                  <circle cx="420" cy="40" r="3.5" fill="#ffffff" />
+                  <circle cx="420" cy="75" r="5" fill="#10b981" />
+                  <circle cx="420" cy="75" r="2.5" fill="#ffffff" />
+
+                  {/* Floating Tooltip Pill */}
+                  <g transform="translate(365, 2)">
+                    <rect width="110" height="26" rx="8" fill="#1e1b4b" filter="drop-shadow(0 2px 4px rgba(0,0,0,0.15))" />
+                    <text x="55" y="17" fill="#ffffff" fontSize="9.5" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
+                      ₹68,450 GMV | 38 Jars
+                    </text>
+                  </g>
+                </svg>
+
+                {/* X Axis Week Labels */}
+                <div className="flex justify-between px-6 pt-2 text-[10px] font-semibold text-slate-400">
+                  <span>Week 01</span>
+                  <span>Week 02</span>
+                  <span>Week 03</span>
+                  <span>Week 04</span>
+                  <span>Week 05</span>
+                  <span className="text-purple-700 font-bold">Week 06</span>
+                  <span>Week 07</span>
+                  <span>Week 08</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Producer Inflow & "Sell with Us" Public Visibility Monitor Card */}
           <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 rounded-3xl border border-forest-800 shadow-xl space-y-5">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-forest-800/80 pb-4">
@@ -1751,80 +2229,40 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Platform Performance Cards */}
+          {/* Platform Financial & Inventory Snapshot */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
-              <span className="text-xs text-stone-500 font-medium">Gross Merchandise Value (GMV)</span>
-              <p className="text-2xl font-serif font-bold text-stone-900 mt-1">₹{metrics?.gmv || '0.00'}</p>
-              <span className="text-[10px] text-emerald-700 font-semibold">{metrics?.total_orders || 0} orders processed</span>
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
+              <span className="text-xs text-slate-500 font-medium">Total Platform Earnings</span>
+              <p className="text-2xl font-serif font-bold text-slate-900 mt-1">₹{metrics?.total_platform_revenue || '0.00'}</p>
+              <span className="text-[10px] text-purple-700 font-semibold">Commission + Platform Fee</span>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
-              <span className="text-xs text-stone-500 font-medium">Total Products from Sellers</span>
-              <p className="text-2xl font-serif font-bold text-forest-950 mt-1">{metrics?.total_products_all_sellers || productsList.length}</p>
-              <span className="text-[10px] text-stone-500">From all registered brand stores</span>
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
+              <span className="text-xs text-slate-500 font-medium">Total Products from Sellers</span>
+              <p className="text-2xl font-serif font-bold text-slate-900 mt-1">{metrics?.total_products_all_sellers || productsList.length}</p>
+              <span className="text-[10px] text-slate-500">From all registered brand stores</span>
             </div>
 
-            <div className="bg-forest-900 text-white p-5 rounded-2xl border border-forest-800 shadow-sm">
-              <span className="text-xs text-cream-300 font-medium">Total Items Sold (All Sellers)</span>
-              <p className="text-2xl font-serif font-bold text-white mt-1">{metrics?.total_items_sold_all_sellers || 0} jars</p>
-              <span className="text-[10px] text-amber-300 font-medium">Across all artisan categories</span>
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
+              <span className="text-xs text-slate-500 font-medium">Total Items Sold</span>
+              <p className="text-2xl font-serif font-bold text-slate-900 mt-1">{metrics?.total_items_sold_all_sellers || 0} jars</p>
+              <span className="text-[10px] text-amber-600 font-medium">Across all artisan categories</span>
             </div>
 
-            <div className="bg-cream-100 p-5 rounded-2xl border border-stone-200 shadow-sm">
-              <span className="text-xs text-stone-700 font-medium">Total Platform Earnings</span>
-              <p className="text-2xl font-serif font-bold text-forest-950 mt-1">₹{metrics?.total_platform_revenue || '0.00'}</p>
-              <span className="text-[10px] text-stone-500">Commission + Platform Fee</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div
               onClick={() => setActiveTab('users')}
-              className="bg-white p-5 rounded-2xl border border-stone-200 text-xs shadow-xs hover:border-forest-800 transition-all cursor-pointer group"
+              className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs hover:border-purple-300 transition-all cursor-pointer group"
             >
               <div className="flex items-center justify-between">
-                <span className="text-stone-500 block font-medium group-hover:text-forest-900 transition-colors">Total Registered Users</span>
-                <span className="p-1.5 bg-forest-50 text-forest-800 rounded-lg group-hover:bg-forest-100 transition-colors">
-                  <Users size={16} />
+                <span className="text-xs text-slate-500 font-medium group-hover:text-purple-900 transition-colors">Total Registered Users</span>
+                <span className="p-1 rounded-lg bg-purple-50 text-purple-700 group-hover:bg-purple-100 transition-colors">
+                  <Users size={14} />
                 </span>
               </div>
-              <span className="font-serif font-bold text-2xl text-stone-900 mt-1 block">
-                {metrics?.total_users ?? usersList.length}
-              </span>
-              <span className="text-[10px] text-stone-500 mt-0.5 block">
+              <p className="text-2xl font-serif font-bold text-slate-900 mt-1">{metrics?.total_users ?? usersList.length}</p>
+              <span className="text-[10px] text-slate-500">
                 {metrics?.total_customers ?? usersList.filter(u => u.role === 'CUSTOMER').length} shoppers · {metrics?.authorized_sellers ?? usersList.filter(u => u.can_sell).length} sellers
               </span>
-            </div>
-
-            <div className="bg-white p-5 rounded-2xl border border-stone-200 text-xs shadow-xs">
-              <span className="text-stone-500 block font-medium">Active Verified Manufacturers</span>
-              <span className="font-serif font-bold text-2xl text-stone-900 mt-1 block">
-                {metrics?.active_manufacturers ?? manufacturersList.filter(m => m.status === 'APPROVED').length}
-              </span>
-              <span className="text-[10px] text-stone-500 mt-0.5 block">Approved producer units</span>
-            </div>
-
-            <div
-              onClick={() => setActiveTab('yet_to_approve')}
-              className="bg-amber-50 p-5 rounded-2xl border border-amber-200 text-xs text-amber-900 shadow-xs cursor-pointer hover:border-amber-400 transition-all"
-            >
-              <span className="block font-medium">Pending Seller Applications</span>
-              <span className="font-serif font-bold text-2xl text-amber-900 mt-1 block">
-                {metrics?.pending_seller_applications ?? 0}
-              </span>
-              <span className="text-[10px] text-amber-700 mt-0.5 block">Awaiting admin review & action</span>
-            </div>
-
-            <div
-              onClick={() => setActiveTab('products')}
-              className="bg-white p-5 rounded-2xl border border-stone-200 text-xs shadow-xs cursor-pointer hover:border-stone-400 transition-all"
-            >
-              <span className="text-stone-500 block font-medium">Pending Product Reviews</span>
-              <span className="font-serif font-bold text-2xl text-stone-900 mt-1 block">
-                {metrics?.pending_products_review ?? 0}
-              </span>
-              <span className="text-[10px] text-stone-500 mt-0.5 block">Items submitted for moderation</span>
             </div>
           </div>
 
@@ -4993,6 +5431,9 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       )}
+
+        </div>
+      </main>
 
       {/* Seller Inspection Portfolio Modal */}
       {selectedSeller && (
