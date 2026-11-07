@@ -1237,19 +1237,27 @@ export default function AdminDashboardPage() {
       }`}>
         {/* Sidebar Brand Header */}
         <div className="p-6 border-b border-purple-800/60 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-400 to-orange-500 flex items-center justify-center text-slate-950 font-black text-xl shadow-lg shadow-orange-500/30">
-              W
+          <Link to="/" className="flex items-center gap-3 group shrink-0" title="Return to Storefront">
+            <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15 p-1.5 flex items-center justify-center shadow-md group-hover:bg-white/15 transition-all">
+              <img
+                src="/logo.png"
+                alt="Wangs Logo"
+                className="w-full h-full object-contain drop-shadow transition-transform duration-200 group-hover:scale-105"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/logo-white.png';
+                }}
+              />
             </div>
             <div className="min-w-0">
-              <h2 className="font-serif font-black text-lg text-white tracking-wide leading-none">
+              <h2 className="font-serif font-black text-lg text-white tracking-wide leading-none group-hover:text-amber-300 transition-colors">
                 Wangs<span className="text-amber-400">.</span>
               </h2>
               <p className="text-[10px] uppercase font-bold tracking-widest text-purple-300 mt-1">
                 Admin Portal
               </p>
             </div>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={() => setSidebarOpen(false)}
