@@ -1319,6 +1319,9 @@ export default function AdminDashboardPage() {
       setStorefrontNotices(extractList(updated));
       window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
     } catch (err) {
+      if (checkIsAuthError(err)) {
+        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
+      }
       toast.error(err.message || 'Failed to save storefront notice');
     } finally {
       setNoticeSaving(false);
@@ -1334,6 +1337,9 @@ export default function AdminDashboardPage() {
       toast.success(res.is_active ? 'Notice activated on storefront' : 'Notice hidden from storefront');
       window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
     } catch (err) {
+      if (checkIsAuthError(err)) {
+        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
+      }
       toast.error(err.message || 'Failed to toggle notice');
     }
   };
@@ -1353,6 +1359,9 @@ export default function AdminDashboardPage() {
         if (Array.isArray(list)) setStorefrontNotices(list);
       }).catch(console.error);
     } catch (err) {
+      if (checkIsAuthError(err)) {
+        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
+      }
       toast.error(err.message || 'Failed to delete notice');
     }
   };

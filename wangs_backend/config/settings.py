@@ -38,6 +38,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'marketplace.middleware.ProxyAuthHeaderMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -140,6 +141,14 @@ SIMPLE_JWT = {
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'x-authorization',
+    'x-admin-token',
+    'x-session-key',
+    'x-bearer-token',
+]
 CORS_ALLOWED_ORIGINS = [
     'https://wangs.in',
     'https://www.wangs.in',

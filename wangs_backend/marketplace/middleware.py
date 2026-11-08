@@ -3,6 +3,31 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import CommissionSetting
 
 
+class ProxyAuthHeaderMiddleware:
+    """
+    Reverse proxies like Vercel rewrites occasionally strip the standard
+    'Authorization' header when proxying upstream requests to external origins.
+    This middleware checks for 'HTTP_X_AUTHORIZATION', 'HTTP_X_BEARER_TOKEN',
+    or 'HTTP_X_ADMIN_TOKEN' and restores 'HTTP_AUTHORIZATION' so DRF and SimpleJWT
+    authenticate the request seamlessly.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if not request.META.get('HTTP_AUTHORIZATION'):
+            alt = (
+                request.META.get('HTTP_X_AUTHORIZATION') or
+                request.META.get('HTTP_X_BEARER_TOKEN') or
+                request.META.get('HTTP_X_ADMIN_TOKEN')
+            )
+            if alt:
+                if not alt.startswith('Bearer '):
+                    alt = f'Bearer {alt}'
+                request.META['HTTP_AUTHORIZATION'] = alt
+        return self.get_response(request)
+
+
 class MaintenanceModeMiddleware:
     """
     Enforces strict Maintenance Mode across all public endpoints.

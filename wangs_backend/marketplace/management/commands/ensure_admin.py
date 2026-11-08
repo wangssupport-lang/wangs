@@ -7,7 +7,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         admin_username = os.environ.get('DJANGO_ADMIN_USERNAME', 'admin').strip() or 'admin'
-        admin_password = os.environ.get('DJANGO_ADMIN_PASSWORD', '')
+        admin_password = os.environ.get('DJANGO_ADMIN_PASSWORD', 'admin12345').strip() or 'admin12345'
         admin_email = os.environ.get('DJANGO_ADMIN_EMAIL', 'admin@wangs.in').strip() or 'admin@wangs.in'
 
         # Locate existing user by username, email, or existing superuser

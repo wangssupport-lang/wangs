@@ -17,12 +17,17 @@ export async function apiRequest(endpoint, options = {}) {
 
   const headers = {
     ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    ...(token ? {
+      'Authorization': `Bearer ${token}`,
+      'X-Authorization': `Bearer ${token}`,
+      'X-Admin-Token': token,
+    } : {}),
     ...(sessionKey ? { 'X-Session-Key': sessionKey } : {}),
     ...options.headers,
   };
 
   const primaryUrl = `${API_BASE}${endpoint}`;
+  const fallbackUrl = `${DIRECT_BACKEND}${endpoint}`;
   let response = null;
   let networkError = null;
 
@@ -45,34 +50,40 @@ export async function apiRequest(endpoint, options = {}) {
     clearTimeout(timeoutId);
   }
 
-  // If primaryUrl failed or returned 502/503/504 (e.g. proxy rewrite failure),
+  // If primaryUrl failed, returned 502/503/504 (proxy rewrite failure),
+  // or returned 401 despite having a token (reverse proxy stripped Authorization header),
   // immediately fallback to direct backend connection
-  if (!response || (response.status >= 502 && response.status <= 504)) {
-    const fallbackUrl = `${DIRECT_BACKEND}${endpoint}`;
-    if (primaryUrl !== fallbackUrl) {
-      const fallbackController = new AbortController();
-      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), timeoutMs);
-      try {
-        response = await fetch(fallbackUrl, {
-          ...fetchOptions,
-          signal: options.signal || fallbackController.signal,
-          headers,
-        });
-      } catch (fallbackErr) {
+  const shouldFallbackToDirect = (
+    !response ||
+    (response.status >= 502 && response.status <= 504) ||
+    (response.status === 401 && token && primaryUrl !== fallbackUrl)
+  );
+
+  if (shouldFallbackToDirect && primaryUrl !== fallbackUrl) {
+    const fallbackController = new AbortController();
+    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), timeoutMs);
+    try {
+      response = await fetch(fallbackUrl, {
+        ...fetchOptions,
+        signal: options.signal || fallbackController.signal,
+        headers,
+      });
+    } catch (fallbackErr) {
+      if (networkError && !response) {
         throw new Error(
           isProduction
             ? 'Could not connect to Wangs backend at https://wangs.onrender.com. Please try again.'
             : 'Could not connect to backend server. Please verify the backend is running at http://127.0.0.1:8000.'
         );
-      } finally {
-        clearTimeout(fallbackTimeoutId);
       }
-    } else if (networkError) {
-      if (networkError.name === 'AbortError') {
-        throw new Error('Connection timed out. Please try again.');
-      }
-      throw networkError;
+    } finally {
+      clearTimeout(fallbackTimeoutId);
     }
+  } else if (networkError && !response) {
+    if (networkError.name === 'AbortError') {
+      throw new Error('Connection timed out. Please try again.');
+    }
+    throw networkError;
   }
 
   const contentType = response?.headers?.get('content-type');
