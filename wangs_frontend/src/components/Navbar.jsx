@@ -625,7 +625,7 @@ export default function Navbar() {
             {/* Right: Actions Cluster */}
             <div className="flex items-center gap-3 shrink-0">
               {/* Sell with Us / Seller Portal CTA Button */}
-              {(allowSellerRegistration || isAuthorizedToSell || isManufacturer) && (
+              {(isManufacturer || allowSellerRegistration) && (
                 <Link
                   to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                   className="inline-flex items-center gap-1.5 bg-[#526048] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#3f4a36] transition-all shadow-xs active:scale-95"
@@ -715,7 +715,7 @@ export default function Navbar() {
                         <Package size={15} className="text-[#9b4100]" /> My Account &amp; Orders
                       </Link>
 
-                      {(allowSellerRegistration || isAuthorizedToSell || isManufacturer) && (
+                      {(isManufacturer || allowSellerRegistration) && (
                         <Link
                           to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                           onClick={() => setUserDropdownOpen(false)}

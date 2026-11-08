@@ -24,7 +24,17 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  const loadPlatformSettings = async () => {
+  const loadPlatformSettings = async (overrideSettings = null) => {
+    if (overrideSettings && typeof overrideSettings === 'object') {
+      setPlatformSettings((prev) => {
+        const next = { ...(prev || {}), ...overrideSettings };
+        try {
+          localStorage.setItem('wangs_platform_settings', JSON.stringify(next));
+        } catch {}
+        return next;
+      });
+      return;
+    }
     try {
       const s = await api.getPlatformSettings();
       if (s) {

@@ -742,7 +742,7 @@ export default function AdminDashboardPage() {
     try {
       const res = await api.toggleAdminSellerRegistration();
       setMetrics((prev) => prev ? { ...prev, allow_seller_registration: res.allow_seller_registration } : { allow_seller_registration: res.allow_seller_registration });
-      if (refreshPlatformSettings) await refreshPlatformSettings();
+      if (refreshPlatformSettings) await refreshPlatformSettings({ allow_seller_registration: res.allow_seller_registration });
       toast.success(res.message || 'Updated "Sell with Us" visibility');
       await loadAdminData();
     } catch (err) {

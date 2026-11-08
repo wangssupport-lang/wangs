@@ -7,7 +7,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 export default function Footer() {
-  const { allowSellerRegistration, isAuthorizedToSell, isManufacturer } = useAuth();
+  const { allowSellerRegistration, isManufacturer } = useAuth();
 
   return (
     <footer className="w-full bg-[#161311] text-stone-200 mt-20 border-t border-stone-800 selection:bg-[#9b4100] selection:text-white">
@@ -28,8 +28,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* 2. Heritage Producer Guild Callout (Controlled by Admin toggle) */}
-      {(allowSellerRegistration || isAuthorizedToSell) && (
+      {/* 2. Heritage Producer Guild Callout (Strictly controlled by Admin toggle) */}
+      {Boolean(allowSellerRegistration) && (
         <div className="max-w-[1440px] mx-auto px-4 sm:px-8 pt-8">
           <div className="relative overflow-hidden bg-gradient-to-r from-[#9b4100] via-[#a84705] to-[#783000] text-white p-6 sm:p-8 rounded-2xl shadow-xl border border-amber-600/30">
             {/* Background Texture Accents */}
@@ -118,7 +118,7 @@ export default function Footer() {
               Artisan Marketplace
             </h4>
             <ul className="space-y-2.5 text-xs text-stone-400 font-medium">
-              {(allowSellerRegistration || isAuthorizedToSell) && (
+              {(isManufacturer || allowSellerRegistration) && (
                 <li>
                   <Link
                     to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}

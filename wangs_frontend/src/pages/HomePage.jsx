@@ -504,7 +504,7 @@ export default function HomePage() {
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </a>
 
-                {(allowSellerRegistration || isAuthorizedToSell) && (
+                {(isManufacturer || allowSellerRegistration) && (
                   <Link
                     to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                     className="bg-surface text-on-surface font-title-md text-sm px-6 py-3.5 rounded-full shadow-xs hover:bg-surface-variant border border-outline-variant/40 transition-all flex items-center gap-2 font-semibold active:scale-95"
@@ -1504,7 +1504,7 @@ export default function HomePage() {
         </section>
 
         {/* 5. Sell Your Pickles on Wangs Banner Card (Only when registration is enabled) */}
-        {(allowSellerRegistration || isAuthorizedToSell) && (
+        {Boolean(allowSellerRegistration) && (
           <section className="relative overflow-hidden rounded-xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
