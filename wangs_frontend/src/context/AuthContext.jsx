@@ -96,6 +96,7 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await api.login({ username, password });
     localStorage.setItem('wangs_token', res.token);
+    if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
     setUser(res.user);
     setMfgProfile(res.manufacturer_profile);
     updateSellerRegistrationState(res.user, res.manufacturer_profile);
@@ -105,6 +106,7 @@ export function AuthProvider({ children }) {
   const register = async (userData) => {
     const res = await api.register(userData);
     localStorage.setItem('wangs_token', res.token);
+    if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
     setUser(res.user);
     updateSellerRegistrationState(res.user, null);
     return res.user;
@@ -114,6 +116,7 @@ export function AuthProvider({ children }) {
     const res = await api.verifyOtp(email, otpCode, 'LOGIN');
     if (res.token) {
       localStorage.setItem('wangs_token', res.token);
+      if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
       setUser(res.user);
       setMfgProfile(res.manufacturer_profile);
       updateSellerRegistrationState(res.user, res.manufacturer_profile);
@@ -125,6 +128,7 @@ export function AuthProvider({ children }) {
     const res = await api.resetPassword(payload);
     if (res.token) {
       localStorage.setItem('wangs_token', res.token);
+      if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
       setUser(res.user);
       setMfgProfile(res.manufacturer_profile);
     }
@@ -133,6 +137,8 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem('wangs_token');
+    localStorage.removeItem('wangs_refresh_token');
+    localStorage.removeItem('wangs_is_registered_seller');
     setUser(null);
     setMfgProfile(null);
   };

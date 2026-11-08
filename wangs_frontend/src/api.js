@@ -92,6 +92,45 @@ export async function apiRequest(endpoint, options = {}) {
     data = await response.json();
   }
 
+  // Auto-refresh token on 401 if refresh token is available
+  if (response && response.status === 401 && endpoint !== '/auth/token/refresh/' && endpoint !== '/auth/login/') {
+    const refreshToken = localStorage.getItem('wangs_refresh_token');
+    if (refreshToken) {
+      try {
+        const refreshResp = await fetch(`${DIRECT_BACKEND}/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: refreshToken }),
+        });
+        if (refreshResp.ok) {
+          const refreshData = await refreshResp.json();
+          if (refreshData?.access) {
+            localStorage.setItem('wangs_token', refreshData.access);
+            const retryHeaders = {
+              ...headers,
+              'Authorization': `Bearer ${refreshData.access}`,
+              'X-Authorization': `Bearer ${refreshData.access}`,
+              'X-Admin-Token': refreshData.access,
+            };
+            const retryResp = await fetch(fallbackUrl, {
+              ...fetchOptions,
+              headers: retryHeaders,
+            });
+            if (retryResp.ok) {
+              const retryContentType = retryResp.headers.get('content-type');
+              if (retryContentType && retryContentType.includes('application/json')) {
+                return await retryResp.json();
+              }
+              return null;
+            }
+          }
+        }
+      } catch {
+        // Fall through to error handler
+      }
+    }
+  }
+
   if (!response || !response.ok) {
     const errorMsg = data?.detail || data?.message || (data ? JSON.stringify(data) : response?.statusText || 'Request failed');
     throw new Error(errorMsg);
@@ -315,9 +354,10 @@ export const api = {
     body: JSON.stringify(body),
   }),
   updateAdminStorefrontNotice: (id, body) => apiRequest(`/admin/storefront-notices/${id}/`, {
-    method: 'PUT',
+    method: 'PATCH',
     body: JSON.stringify(body),
   }),
   deleteAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/`, { method: 'DELETE' }),
   toggleAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/toggle_active/`, { method: 'POST' }),
+  refreshToken: (refresh) => apiRequest('/auth/token/refresh/', { method: 'POST', body: JSON.stringify({ refresh }) }),
 };

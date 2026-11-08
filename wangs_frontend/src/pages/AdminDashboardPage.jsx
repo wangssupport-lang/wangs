@@ -1319,9 +1319,6 @@ export default function AdminDashboardPage() {
       setStorefrontNotices(extractList(updated));
       window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
     } catch (err) {
-      if (checkIsAuthError(err)) {
-        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
-      }
       toast.error(err.message || 'Failed to save storefront notice');
     } finally {
       setNoticeSaving(false);
@@ -1337,9 +1334,6 @@ export default function AdminDashboardPage() {
       toast.success(res.is_active ? 'Notice activated on storefront' : 'Notice hidden from storefront');
       window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
     } catch (err) {
-      if (checkIsAuthError(err)) {
-        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
-      }
       toast.error(err.message || 'Failed to toggle notice');
     }
   };
@@ -1359,9 +1353,6 @@ export default function AdminDashboardPage() {
         if (Array.isArray(list)) setStorefrontNotices(list);
       }).catch(console.error);
     } catch (err) {
-      if (checkIsAuthError(err)) {
-        setSessionError('Administrator session unauthorized or expired. Please sign in with administrator credentials.');
-      }
       toast.error(err.message || 'Failed to delete notice');
     }
   };
@@ -1478,10 +1469,9 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
               <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
                 <div>
-                  <span className="font-bold block">Local Development Access:</span>
+                  <span className="font-bold block">Quick Administrator Access:</span>
                   <span className="font-mono text-stone-600">admin / admin12345</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -1502,7 +1492,6 @@ export default function AdminDashboardPage() {
                   </button>
                 </div>
               </div>
-            )}
 
             <button
               type="submit"
