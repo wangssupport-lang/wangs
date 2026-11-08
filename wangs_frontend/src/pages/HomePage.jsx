@@ -503,16 +503,6 @@ export default function HomePage() {
                   <span>Shop Regional Pickles</span>
                   <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
                 </a>
-
-                {(isManufacturer || allowSellerRegistration) && (
-                  <Link
-                    to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
-                    className="bg-surface text-on-surface font-title-md text-sm px-6 py-3.5 rounded-full shadow-xs hover:bg-surface-variant border border-outline-variant/40 transition-all flex items-center gap-2 font-semibold active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-secondary text-[18px]">storefront</span>
-                    <span>{isManufacturer ? "Seller Dashboard" : "Register as a Manufacturer (0% Commission)"}</span>
-                  </Link>
-                )}
               </div>
 
               {/* 3 Metric Stat Cards */}
