@@ -1381,155 +1381,7 @@ export default function AdminDashboardPage() {
     });
   };
 
-  if (authLoading) {
-    return (
-      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
-        <div className="w-10 h-10 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying admin session...</p>
-      </div>
-    );
-  }
-
-  if (!isAdmin || sessionError) {
-    return (
-      <div className="min-h-[75vh] flex items-center justify-center px-4 py-12 bg-cream-50">
-        <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 shadow-2xl border border-stone-200/90 space-y-6">
-          <div className="text-center space-y-2">
-            <div className="inline-flex p-3 bg-forest-900 text-amber-400 rounded-2xl shadow-md mb-1">
-              <Shield size={32} />
-            </div>
-            <h1 className="font-serif text-2xl font-bold text-stone-900">
-              Wangs Administration Space
-            </h1>
-            <p className="text-xs font-mono text-emerald-800 bg-emerald-50 py-1 px-3 rounded-full inline-block border border-emerald-200">
-              /wangsadminspace · Secure Gateway
-            </p>
-            <p className="text-xs text-stone-500 mt-1">
-              Elevated access required for platform moderation, courier dispatch, and commission governance.
-            </p>
-          </div>
-
-          {sessionError && (
-            <div className="p-3.5 bg-red-50 rounded-2xl border border-red-200 text-xs text-red-900 flex items-start gap-2.5">
-              <AlertCircle size={16} className="text-red-700 shrink-0 mt-0.5" />
-              <p className="leading-relaxed">{sessionError}</p>
-            </div>
-          )}
-
-          {user && (user.role !== 'ADMIN' && !user.is_staff && !user.is_superuser) && (
-            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="font-bold flex items-center gap-1.5">
-                  <AlertCircle size={14} className="text-amber-700" />
-                  Currently signed in as:
-                </span>
-                <span className="font-mono font-bold bg-amber-200/70 text-amber-950 px-2 py-0.5 rounded text-[11px]">
-                  {user.username} ({user.role === 'MANUFACTURER' ? 'Artisan Seller' : user.role})
-                </span>
-              </div>
-              <p className="text-[11px] text-stone-600 leading-normal">
-                This account lacks Superadmin privileges. Please authenticate below with administrator credentials (or click <strong>1-Click Sign In</strong>) to enter /wangsadminspace.
-              </p>
-            </div>
-          )}
-
-          <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
-            <div>
-              <label className="block text-stone-700 font-bold mb-1">Administrator Username</label>
-              <input
-                type="text"
-                required
-                value={adminLoginForm.username}
-                onChange={(e) => setAdminLoginForm({ ...adminLoginForm, username: e.target.value })}
-                placeholder="admin"
-                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl font-mono text-xs focus:outline-none focus:ring-2 focus:ring-forest-800"
-              />
-            </div>
-
-            <div>
-              <label className="block text-stone-700 font-bold mb-1">Administrator Password</label>
-              <div className="relative">
-                <input
-                  type={showAdminPassword ? 'text' : 'password'}
-                  required
-                  value={adminLoginForm.password}
-                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, password: e.target.value })}
-                  placeholder="••••••••"
-                  className="w-full pl-4 pr-11 py-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest-800"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowAdminPassword(!showAdminPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
-                  title={showAdminPassword ? 'Hide password' : 'Show password'}
-                  tabIndex={-1}
-                >
-                  {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
-                <div>
-                  <span className="font-bold block">Quick Administrator Access:</span>
-                  <span className="font-mono text-stone-600">admin / admin12345</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
-                    className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
-                  >
-                    Auto-Fill
-                  </button>
-                  <button
-                    type="button"
-                    disabled={loggingIn}
-                    onClick={handleQuickAdminLogin}
-                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black rounded-lg shadow-xs transition-colors cursor-pointer"
-                  >
-                    1-Click Sign In
-                  </button>
-                </div>
-              </div>
-
-            <button
-              type="submit"
-              disabled={loggingIn}
-              className="w-full py-3.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs active:scale-98 cursor-pointer"
-            >
-              <Shield size={15} />
-              <span>{loggingIn ? 'Authenticating...' : 'Authenticate & Enter /wangsadminspace'}</span>
-            </button>
-          </form>
-
-          <div className="pt-2 text-center border-t border-stone-100">
-            <Link to="/" className="text-xs text-stone-500 hover:text-stone-800 font-medium">
-              ← Return to Wangs Storefront
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (loading && !metrics) {
-    return (
-      <div className="max-w-7xl mx-auto py-20 px-4 text-center">
-        <div className="w-8 h-8 border-4 border-chilli-700 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-600 font-medium mt-3">Loading admin operational controls...</p>
-        <p className="text-[11px] text-stone-400 mt-1">Connecting to marketplace administration backend...</p>
-        <button
-          onClick={() => setLoading(false)}
-          className="mt-4 px-3.5 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer border border-stone-200"
-        >
-          Skip Waiting & Enter Dashboard
-        </button>
-      </div>
-    );
-  }
-
-  // Safe Lists Extraction
+  // Safe Lists Extraction (Placed before any early returns to strictly honor React Rules of Hooks)
   const ordersList = extractList(orders);
   const productsList = extractList(products);
   const manufacturersList = extractList(manufacturers).slice().sort((a, b) => {
@@ -1699,6 +1551,154 @@ export default function AdminDashboardPage() {
 
     return points;
   }, [ordersList, manufacturersList, sellerRequestsList, usersList, chartTimeRange, metrics]);
+
+  if (authLoading) {
+    return (
+      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
+        <div className="w-10 h-10 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying admin session...</p>
+      </div>
+    );
+  }
+
+  if (!isAdmin || sessionError) {
+    return (
+      <div className="min-h-[75vh] flex items-center justify-center px-4 py-12 bg-cream-50">
+        <div className="max-w-md w-full bg-white rounded-3xl p-8 sm:p-10 shadow-2xl border border-stone-200/90 space-y-6">
+          <div className="text-center space-y-2">
+            <div className="inline-flex p-3 bg-forest-900 text-amber-400 rounded-2xl shadow-md mb-1">
+              <Shield size={32} />
+            </div>
+            <h1 className="font-serif text-2xl font-bold text-stone-900">
+              Wangs Administration Space
+            </h1>
+            <p className="text-xs font-mono text-emerald-800 bg-emerald-50 py-1 px-3 rounded-full inline-block border border-emerald-200">
+              /wangsadminspace · Secure Gateway
+            </p>
+            <p className="text-xs text-stone-500 mt-1">
+              Elevated access required for platform moderation, courier dispatch, and commission governance.
+            </p>
+          </div>
+
+          {sessionError && (
+            <div className="p-3.5 bg-red-50 rounded-2xl border border-red-200 text-xs text-red-900 flex items-start gap-2.5">
+              <AlertCircle size={16} className="text-red-700 shrink-0 mt-0.5" />
+              <p className="leading-relaxed">{sessionError}</p>
+            </div>
+          )}
+
+          {user && (user.role !== 'ADMIN' && !user.is_staff && !user.is_superuser) && (
+            <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="font-bold flex items-center gap-1.5">
+                  <AlertCircle size={14} className="text-amber-700" />
+                  Currently signed in as:
+                </span>
+                <span className="font-mono font-bold bg-amber-200/70 text-amber-950 px-2 py-0.5 rounded text-[11px]">
+                  {user.username} ({user.role === 'MANUFACTURER' ? 'Artisan Seller' : user.role})
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-normal">
+                This account lacks Superadmin privileges. Please authenticate below with administrator credentials (or click <strong>1-Click Sign In</strong>) to enter /wangsadminspace.
+              </p>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4 text-xs">
+            <div>
+              <label className="block text-stone-700 font-bold mb-1">Administrator Username</label>
+              <input
+                type="text"
+                required
+                value={adminLoginForm.username}
+                onChange={(e) => setAdminLoginForm({ ...adminLoginForm, username: e.target.value })}
+                placeholder="admin"
+                className="w-full px-4 py-3 bg-stone-50 border border-stone-200 rounded-xl font-mono text-xs focus:outline-none focus:ring-2 focus:ring-forest-800"
+              />
+            </div>
+
+            <div>
+              <label className="block text-stone-700 font-bold mb-1">Administrator Password</label>
+              <div className="relative">
+                <input
+                  type={showAdminPassword ? 'text' : 'password'}
+                  required
+                  value={adminLoginForm.password}
+                  onChange={(e) => setAdminLoginForm({ ...adminLoginForm, password: e.target.value })}
+                  placeholder="••••••••"
+                  className="w-full pl-4 pr-11 py-3 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-forest-800"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPassword(!showAdminPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 p-1 cursor-pointer transition-colors"
+                  title={showAdminPassword ? 'Hide password' : 'Show password'}
+                  tabIndex={-1}
+                >
+                  {showAdminPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
+                <div>
+                  <span className="font-bold block">Quick Administrator Access:</span>
+                  <span className="font-mono text-stone-600">admin / admin12345</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
+                    className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+                  >
+                    Auto-Fill
+                  </button>
+                  <button
+                    type="button"
+                    disabled={loggingIn}
+                    onClick={handleQuickAdminLogin}
+                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black rounded-lg shadow-xs transition-colors cursor-pointer"
+                  >
+                    1-Click Sign In
+                  </button>
+                </div>
+              </div>
+
+            <button
+              type="submit"
+              disabled={loggingIn}
+              className="w-full py-3.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 text-xs active:scale-98 cursor-pointer"
+            >
+              <Shield size={15} />
+              <span>{loggingIn ? 'Authenticating...' : 'Authenticate & Enter /wangsadminspace'}</span>
+            </button>
+          </form>
+
+          <div className="pt-2 text-center border-t border-stone-100">
+            <Link to="/" className="text-xs text-stone-500 hover:text-stone-800 font-medium">
+              ← Return to Wangs Storefront
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loading && !metrics) {
+    return (
+      <div className="max-w-7xl mx-auto py-20 px-4 text-center">
+        <div className="w-8 h-8 border-4 border-chilli-700 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-stone-600 font-medium mt-3">Loading admin operational controls...</p>
+        <p className="text-[11px] text-stone-400 mt-1">Connecting to marketplace administration backend...</p>
+        <button
+          onClick={() => setLoading(false)}
+          className="mt-4 px-3.5 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer border border-stone-200"
+        >
+          Skip Waiting & Enter Dashboard
+        </button>
+      </div>
+    );
+  }
 
   const navGroups = [
     {
