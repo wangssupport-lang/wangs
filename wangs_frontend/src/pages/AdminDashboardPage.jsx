@@ -753,21 +753,36 @@ export default function AdminDashboardPage() {
   };
 
   const handleToggleMaintenanceMode = async () => {
-    const isCurrentlyOn = metrics?.is_maintenance_mode ?? isMaintenanceMode;
-    const confirmMsg = isCurrentlyOn
-      ? 'Deactivate Maintenance Mode and restore public storefront access for all visitors?'
-      : 'Activate Maintenance Mode? Regular visitors will see the maintenance screen while you can still browse with Admin bypass.';
-    if (!window.confirm(confirmMsg)) return;
+    const isCurrentlyOn = Boolean(metrics?.is_maintenance_mode ?? isMaintenanceMode);
+    const targetState = !isCurrentlyOn;
 
     setTogglingMaintenance(true);
     try {
       const res = await api.toggleAdminMaintenanceMode({
-        toggle: true,
+        is_maintenance_mode: targetState,
         maintenance_message: customMaintenanceMsg.trim() || undefined
       });
-      if (refreshPlatformSettings) await refreshPlatformSettings();
-      toast.success(res.message || 'Storefront maintenance mode updated');
-      loadAdminData();
+      const updatedMode = res?.is_maintenance_mode ?? targetState;
+      const updatedMsg = res?.maintenance_message ?? metrics?.maintenance_message;
+
+      setMetrics((prev) => prev ? {
+        ...prev,
+        is_maintenance_mode: updatedMode,
+        maintenance_message: updatedMsg
+      } : {
+        is_maintenance_mode: updatedMode,
+        maintenance_message: updatedMsg
+      });
+
+      if (refreshPlatformSettings) {
+        await refreshPlatformSettings({
+          is_maintenance_mode: updatedMode,
+          maintenance_message: updatedMsg
+        });
+      }
+
+      toast.success(res?.message || `Storefront maintenance mode ${updatedMode ? 'activated' : 'deactivated'}`);
+      await loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Failed to toggle maintenance mode');
     } finally {
@@ -785,9 +800,19 @@ export default function AdminDashboardPage() {
         toggle: false,
         maintenance_message: customMaintenanceMsg.trim()
       });
-      if (refreshPlatformSettings) await refreshPlatformSettings();
+      setMetrics((prev) => prev ? {
+        ...prev,
+        is_maintenance_mode: res.is_maintenance_mode,
+        maintenance_message: res.maintenance_message
+      } : null);
+      if (refreshPlatformSettings) {
+        await refreshPlatformSettings({
+          is_maintenance_mode: res.is_maintenance_mode,
+          maintenance_message: res.maintenance_message
+        });
+      }
       toast.success('Maintenance notice message saved');
-      loadAdminData();
+      await loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Failed to save notice message');
     }
@@ -2424,13 +2449,13 @@ export default function AdminDashboardPage() {
                   type="button"
                   onClick={handleToggleMaintenanceMode}
                   disabled={togglingMaintenance}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer ${
+                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                     (metrics?.is_maintenance_mode ?? isMaintenanceMode)
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                       : 'bg-amber-400 hover:bg-amber-300 text-stone-950'
                   }`}
                 >
-                  <Wrench size={14} />
+                  <Wrench size={14} className={togglingMaintenance ? 'animate-spin' : ''} />
                   <span>
                     {togglingMaintenance
                       ? 'Updating...'
@@ -2463,7 +2488,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={handleSaveMaintenanceMessage}
-                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-cream-100 rounded-xl text-xs font-semibold border border-stone-700 transition-colors whitespace-nowrap cursor-pointer"
+                  className="px-4 py-2 bg-stone-800 hover:bg-stone-700 text-cream-100 rounded-xl text-xs font-semibold border border-stone-700 transition-colors whitespace-nowrap cursor-pointer active:scale-95"
                 >
                   Save Maintenance Text
                 </button>
@@ -2473,18 +2498,28 @@ export default function AdminDashboardPage() {
                     const defaultMsg = "We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!";
                     setCustomMaintenanceMsg('');
                     try {
-                      await api.toggleAdminMaintenanceMode({
+                      const res = await api.toggleAdminMaintenanceMode({
                         toggle: false,
                         maintenance_message: defaultMsg
                       });
-                      if (refreshPlatformSettings) await refreshPlatformSettings();
+                      setMetrics((prev) => prev ? {
+                        ...prev,
+                        is_maintenance_mode: res.is_maintenance_mode,
+                        maintenance_message: res.maintenance_message
+                      } : null);
+                      if (refreshPlatformSettings) {
+                        await refreshPlatformSettings({
+                          is_maintenance_mode: res.is_maintenance_mode,
+                          maintenance_message: res.maintenance_message
+                        });
+                      }
                       toast.success('Maintenance message restored to default');
-                      loadAdminData();
+                      await loadAdminData();
                     } catch (err) {
                       toast.error(err.message || 'Failed to reset notice message');
                     }
                   }}
-                  className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold border border-amber-500/40 transition-colors whitespace-nowrap cursor-pointer"
+                  className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 rounded-xl text-xs font-semibold border border-amber-500/40 transition-colors whitespace-nowrap cursor-pointer active:scale-95"
                   title="Reset to default professional maintenance message"
                 >
                   Reset Default

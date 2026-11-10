@@ -2546,11 +2546,16 @@ class AdminToggleMaintenanceModeView(views.APIView):
 
     def post(self, request):
         current = CommissionSetting.get_current()
-        toggle = request.data.get('toggle', True)
-        if toggle is True or toggle == 'true':
-            current.is_maintenance_mode = not current.is_maintenance_mode
-        elif 'is_maintenance_mode' in request.data:
-            current.is_maintenance_mode = bool(request.data['is_maintenance_mode'])
+        if 'is_maintenance_mode' in request.data:
+            val = request.data['is_maintenance_mode']
+            if isinstance(val, str):
+                current.is_maintenance_mode = val.lower() in ('true', '1', 'yes')
+            else:
+                current.is_maintenance_mode = bool(val)
+        else:
+            toggle = request.data.get('toggle', True)
+            if toggle is True or toggle == 'true':
+                current.is_maintenance_mode = not current.is_maintenance_mode
 
         custom_msg = request.data.get('maintenance_message')
         if custom_msg is not None and str(custom_msg).strip():

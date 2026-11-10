@@ -55,14 +55,14 @@ function AppLayout() {
   const { isAdmin, isMaintenanceMode, maintenanceMessage } = useAuth();
   const location = useLocation();
 
-  // When website is in maintenance mode, NO items or storefront pages are ever displayed.
-  // The storefront strictly displays the MaintenancePage to everyone.
-  // Administrative management routes (/wangsadminspace or /wangadminspace) and login (/login) remain accessible for administrators.
+  // When website is in maintenance mode, regular visitors see the MaintenancePage.
+  // Administrative management routes (/wangsadminspace or /wangadminspace), login (/login),
+  // and authenticated administrators (who have Admin bypass) remain able to access and inspect the storefront.
   const isExcludedRoute =
     location.pathname.startsWith('/wangsadminspace') ||
     location.pathname.startsWith('/wangadminspace') ||
     location.pathname === '/login';
-  const showMaintenance = isMaintenanceMode && !isExcludedRoute;
+  const showMaintenance = isMaintenanceMode && !isAdmin && !isExcludedRoute;
 
   if (showMaintenance) {
     return <MaintenancePage message={maintenanceMessage} />;
