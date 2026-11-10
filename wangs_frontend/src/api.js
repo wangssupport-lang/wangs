@@ -347,8 +347,8 @@ export const api = {
   toggleAdminCategory: (id) => apiRequest(`/admin/categories/${id}/toggle_active/`, { method: 'POST' }),
 
   // Storefront Notice Ribbon & Announcements Management
-  getPublicStorefrontNotices: () => apiRequest('/storefront-notices/'),
-  getAdminStorefrontNotices: () => apiRequest('/admin/storefront-notices/'),
+  getPublicStorefrontNotices: () => apiRequest(`/storefront-notices/?_t=${Date.now()}`),
+  getAdminStorefrontNotices: () => apiRequest(`/admin/storefront-notices/?_t=${Date.now()}`),
   createAdminStorefrontNotice: (body) => apiRequest('/admin/storefront-notices/', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -359,5 +359,6 @@ export const api = {
   }),
   deleteAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/`, { method: 'DELETE' }),
   toggleAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/toggle_active/`, { method: 'POST' }),
+  resetAdminStorefrontNotices: () => apiRequest('/admin/storefront-notices/reset_defaults/', { method: 'POST' }),
   refreshToken: (refresh) => apiRequest('/auth/token/refresh/', { method: 'POST', body: JSON.stringify({ refresh }) }),
 };

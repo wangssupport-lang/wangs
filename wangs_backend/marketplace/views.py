@@ -2818,12 +2818,21 @@ class PublicStorefrontNoticeView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
+        # Auto-clean any test gibberish (e.g. ubecujwbc) if present in live DB
+        StorefrontNotice.objects.filter(text__icontains='ubecujwbc').delete()
+        StorefrontNotice.objects.filter(text__icontains='wecwe').delete()
+
         qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
-        if not qs.exists() and StorefrontNotice.objects.count() == 0:
+        if not qs.exists() or StorefrontNotice.objects.count() == 0:
             for item in DEFAULT_STOREFRONT_NOTICES:
-                StorefrontNotice.objects.create(**item)
+                StorefrontNotice.objects.get_or_create(text=item['text'], defaults=item)
             qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
-        return Response(StorefrontNoticeSerializer(qs, many=True).data)
+
+        response = Response(StorefrontNoticeSerializer(qs, many=True).data)
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response['Pragma'] = 'no-cache'
+        response['Expires'] = '0'
+        return response
 
 
 class AdminStorefrontNoticeViewSet(viewsets.ModelViewSet):
@@ -2833,6 +2842,8 @@ class AdminStorefrontNoticeViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
     def get_queryset(self):
+        StorefrontNotice.objects.filter(text__icontains='ubecujwbc').delete()
+        StorefrontNotice.objects.filter(text__icontains='wecwe').delete()
         if StorefrontNotice.objects.count() == 0:
             for item in DEFAULT_STOREFRONT_NOTICES:
                 StorefrontNotice.objects.create(**item)
@@ -2851,6 +2862,23 @@ class AdminStorefrontNoticeViewSet(viewsets.ModelViewSet):
             details={'text': notice.text, 'highlight': notice.highlight, 'is_active': notice.is_active}
         )
         return Response({'status': 'success', 'is_active': notice.is_active})
+
+    @action(detail=False, methods=['post'])
+    def reset_defaults(self, request):
+        StorefrontNotice.objects.all().delete()
+        created = [StorefrontNotice.objects.create(**item) for item in DEFAULT_STOREFRONT_NOTICES]
+        AuditLog.objects.create(
+            user=request.user,
+            action='STOREFRONT_NOTICES_RESET_DEFAULTS',
+            target_model='StorefrontNotice',
+            target_id='all',
+            details={'count': len(created)}
+        )
+        return Response({
+            'status': 'success',
+            'message': 'All storefront notices reset and synchronized to official defaults',
+            'results': StorefrontNoticeSerializer(created, many=True).data
+        })
 
 
 # -------------------------------------------------------------

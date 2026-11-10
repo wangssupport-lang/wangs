@@ -313,10 +313,19 @@ export default function Navbar() {
     }
   ];
 
+  const cleanNoticeList = (list) => {
+    if (!Array.isArray(list)) return [];
+    return list.filter((n) => n && n.text && !n.text.toLowerCase().includes('ubecujwbc') && !n.text.toLowerCase().includes('wecwe'));
+  };
+
   const [notices, setNotices] = useState(() => {
     try {
-      const cached = sessionStorage.getItem('wangs_storefront_notices_cache');
-      if (cached) return JSON.parse(cached);
+      const cached = localStorage.getItem('wangs_storefront_notices_cache') || sessionStorage.getItem('wangs_storefront_notices_cache');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const cleaned = cleanNoticeList(parsed);
+        if (cleaned.length > 0) return cleaned;
+      }
     } catch {}
     return DEFAULT_RIBBON_MESSAGES;
   });
@@ -326,10 +335,12 @@ export default function Navbar() {
     async function loadStorefrontNotices() {
       try {
         const res = await api.getPublicStorefrontNotices();
-        const list = Array.isArray(res) ? res : res?.results || [];
+        const rawList = Array.isArray(res) ? res : res?.results || [];
+        const list = cleanNoticeList(rawList);
         if (!cancelled && list.length > 0) {
           setNotices(list);
           try {
+            localStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(list));
             sessionStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(list));
           } catch {}
         }
@@ -341,10 +352,23 @@ export default function Navbar() {
     loadStorefrontNotices();
 
     const handleNoticesChanged = () => loadStorefrontNotices();
+    const handleStorageChange = (e) => {
+      if (e.key === 'wangs_storefront_notices_cache' && e.newValue) {
+        try {
+          const updated = cleanNoticeList(JSON.parse(e.newValue));
+          if (updated.length > 0) setNotices(updated);
+        } catch {}
+      } else if (e.key === 'wangs_notices_version') {
+        loadStorefrontNotices();
+      }
+    };
+
     window.addEventListener('wangs_notices_changed', handleNoticesChanged);
+    window.addEventListener('storage', handleStorageChange);
     return () => {
       cancelled = true;
       window.removeEventListener('wangs_notices_changed', handleNoticesChanged);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 

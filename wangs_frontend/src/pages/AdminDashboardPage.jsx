@@ -1313,6 +1313,29 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const broadcastNoticesUpdate = (list) => {
+    try {
+      const activeOnly = (list || []).filter((n) => n.is_active && !n.text?.toLowerCase().includes('ubecujwbc') && !n.text?.toLowerCase().includes('wecwe'));
+      localStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(activeOnly));
+      sessionStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(activeOnly));
+      localStorage.setItem('wangs_notices_version', Date.now().toString());
+    } catch {}
+    window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
+  };
+
+  const handleResetNoticesToDefaults = async () => {
+    if (!window.confirm('Reset all storefront ribbon announcements to standard official notices and sync live?')) return;
+    try {
+      const res = await api.resetAdminStorefrontNotices();
+      const list = extractList(res?.results || res);
+      setStorefrontNotices(list);
+      broadcastNoticesUpdate(list);
+      toast.success(res?.message || 'Storefront notice ribbon reset & synchronized to defaults');
+    } catch (err) {
+      toast.error(err.message || 'Failed to reset notices');
+    }
+  };
+
   const handleSaveNotice = async (e) => {
     e.preventDefault();
     if (!noticeForm.text.trim()) {
@@ -1341,8 +1364,9 @@ export default function AdminDashboardPage() {
 
       handleResetNoticeForm();
       const updated = await api.getAdminStorefrontNotices();
-      setStorefrontNotices(extractList(updated));
-      window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
+      const list = extractList(updated);
+      setStorefrontNotices(list);
+      broadcastNoticesUpdate(list);
     } catch (err) {
       toast.error(err.message || 'Failed to save storefront notice');
     } finally {
@@ -1353,11 +1377,10 @@ export default function AdminDashboardPage() {
   const handleToggleNotice = async (noticeId) => {
     try {
       const res = await api.toggleAdminStorefrontNotice(noticeId);
-      setStorefrontNotices((prev) =>
-        prev.map((n) => (n.id === noticeId ? { ...n, is_active: res.is_active } : n))
-      );
+      const updatedList = storefrontNotices.map((n) => (n.id === noticeId ? { ...n, is_active: res.is_active } : n));
+      setStorefrontNotices(updatedList);
+      broadcastNoticesUpdate(updatedList);
       toast.success(res.is_active ? 'Notice activated on storefront' : 'Notice hidden from storefront');
-      window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
     } catch (err) {
       toast.error(err.message || 'Failed to toggle notice');
     }
@@ -1367,15 +1390,18 @@ export default function AdminDashboardPage() {
     if (!window.confirm('Delete this notice from the storefront ribbon?')) return;
     try {
       await api.deleteAdminStorefrontNotice(noticeId);
-      setStorefrontNotices((prev) => prev.filter((n) => n.id !== noticeId));
+      const updatedList = storefrontNotices.filter((n) => n.id !== noticeId);
+      setStorefrontNotices(updatedList);
+      broadcastNoticesUpdate(updatedList);
       if (editingNoticeId === noticeId) {
         handleResetNoticeForm();
       }
       toast.success('Notice removed from storefront');
-      window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
       // Reload admin notice list from backend to maintain absolute parity
       api.getAdminStorefrontNotices().then((list) => {
-        if (Array.isArray(list)) setStorefrontNotices(list);
+        const full = extractList(list);
+        setStorefrontNotices(full);
+        broadcastNoticesUpdate(full);
       }).catch(console.error);
     } catch (err) {
       toast.error(err.message || 'Failed to delete notice');
@@ -2554,6 +2580,15 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetNoticesToDefaults}
+                  className="px-3.5 py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold text-xs rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  title="Reset notices to standard official announcements and sync across live site"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset &amp; Sync Defaults</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => setActiveTab('notices')}
@@ -3793,6 +3828,15 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetNoticesToDefaults}
+                  className="px-3.5 py-1.5 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                  title="Reset notices to standard official announcements and sync across live site"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset &amp; Sync Defaults</span>
+                </button>
                 <span className="px-3 py-1.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[11px] border border-emerald-500/40 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Real-Time Storefront Sync Active</span>

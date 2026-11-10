@@ -57,6 +57,8 @@ class MaintenanceModeMiddleware:
             '/media/',
             '/admin/',
             '/api/platform-settings/',
+            '/api/storefront-notices/',
+            '/api/notifications/',
             '/api/auth/login/',
             '/api/auth/me/',
             '/api/auth/send-otp/',
