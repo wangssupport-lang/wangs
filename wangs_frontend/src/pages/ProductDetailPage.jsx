@@ -10,6 +10,7 @@ import { api } from '../api';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { resolveProductImage } from '../utils/image';
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
@@ -376,7 +377,7 @@ export default function ProductDetailPage() {
         <div className="lg:col-span-6 space-y-5">
           <div className="aspect-[4/3] sm:aspect-square overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/90 bg-cream-100 shadow-artisan relative group">
             <img
-              src={productImages[activeImageIdx] || product.primary_image_url || '/featured-pouches.png'}
+              src={resolveProductImage(productImages[activeImageIdx] || product.primary_image_url)}
               alt={product.title}
               onError={(e) => {
                 e.target.onerror = null;
@@ -424,7 +425,7 @@ export default function ProductDetailPage() {
                   }`}
                 >
                   <img
-                    src={imgUrl}
+                    src={resolveProductImage(imgUrl)}
                     alt={`${product.title} photo ${idx + 1}`}
                     className="w-full h-full object-cover rounded-lg"
                     onError={(e) => {

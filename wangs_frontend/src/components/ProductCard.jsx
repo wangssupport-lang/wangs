@@ -4,6 +4,7 @@ import { Heart, Plus, Minus, Check, ShoppingBag, Flame } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { resolveProductImage } from '../utils/image';
 
 function ProductCard({ product }) {
   const { cart, addToCart, updateQuantity } = useCart();
@@ -104,8 +105,9 @@ function ProductCard({ product }) {
     ? Math.round(((mrpNum - priceNum) / mrpNum) * 100)
     : 0;
 
-  const imageUrl = (!imageError && product.primary_image_url)
-    ? product.primary_image_url
+  const rawImage = product.primary_image_url || (product.images && product.images[0] ? (typeof product.images[0] === 'string' ? product.images[0] : product.images[0].image_url) : '');
+  const imageUrl = (!imageError && rawImage)
+    ? resolveProductImage(rawImage)
     : '/images/stitch/stitch_3_d0bc312725.jpg';
 
   const brandName = product.manufacturer?.business_name || product.brand?.name || 'Heritage Kitchen';

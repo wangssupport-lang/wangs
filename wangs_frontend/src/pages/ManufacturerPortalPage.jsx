@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
+import { compressImageFile, resolveProductImage } from '../utils/image';
 
 export default function ManufacturerPortalPage() {
   const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp, loading: authLoading } = useAuth();
@@ -52,6 +53,7 @@ export default function ManufacturerPortalPage() {
 
   // New product form modal state
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [uploadingSlot, setUploadingSlot] = useState(null);
   const [newProd, setNewProd] = useState({
     title: '',
     category_id: '',
@@ -964,7 +966,7 @@ export default function ManufacturerPortalPage() {
                       <td className="p-3">
                         <div className="flex items-center gap-2.5">
                           <img
-                            src={p.primary_image_url || '/featured-pouches.png'}
+                            src={resolveProductImage(p.primary_image_url || (p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : p.images[0].image_url) : ''))}
                             alt={p.title}
                             className="w-10 h-10 object-cover rounded-lg border border-stone-200 shrink-0"
                             onError={(e) => {
@@ -1719,21 +1721,22 @@ export default function ManufacturerPortalPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {[0, 1, 2].map((slotIdx) => {
                       const imgVal = (newProd.images && newProd.images[slotIdx]) || '';
+                      const isUploading = uploadingSlot === slotIdx;
                       return (
                         <div key={slotIdx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex flex-col justify-between space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="font-semibold text-stone-800 text-[11px]">
                               {slotIdx === 0 ? 'Image 1 (Primary *)' : `Image ${slotIdx + 1} (Optional)`}
                             </span>
-                            {imgVal && (
+                            {imgVal && !isUploading && (
                               <button
                                 type="button"
                                 onClick={() => {
                                   const updated = [...(newProd.images || ['', '', ''])];
                                   updated[slotIdx] = '';
-                                  setNewProd({ ...newProd, images: updated, primary_image_url: updated[0] || '' });
+                                  setNewProd({ ...newProd, images: updated, primary_image_url: updated.find(Boolean) || '' });
                                 }}
-                                className="text-stone-400 hover:text-red-600"
+                                className="text-stone-400 hover:text-red-600 cursor-pointer"
                                 title="Remove photo"
                               >
                                 <X size={12} />
@@ -1741,9 +1744,14 @@ export default function ManufacturerPortalPage() {
                             )}
                           </div>
 
-                          {imgVal ? (
+                          {isUploading ? (
+                            <div className="w-full h-24 rounded-lg border border-stone-200 bg-white flex flex-col items-center justify-center text-forest-800 text-[10px] gap-1.5">
+                              <RefreshCw size={18} className="animate-spin text-forest-800" />
+                              <span className="font-semibold">Optimizing photo...</span>
+                            </div>
+                          ) : imgVal ? (
                             <div className="w-full h-24 rounded-lg overflow-hidden border border-stone-200 bg-white relative">
-                              <img src={imgVal} alt={`Upload ${slotIdx + 1}`} className="w-full h-full object-cover" />
+                              <img src={resolveProductImage(imgVal)} alt={`Upload ${slotIdx + 1}`} className="w-full h-full object-cover" />
                             </div>
                           ) : (
                             <div className="w-full h-24 rounded-lg border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 text-[10px] bg-white">
@@ -1753,31 +1761,38 @@ export default function ManufacturerPortalPage() {
                           )}
 
                           <div className="space-y-1">
-                            <label className="w-full py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg cursor-pointer text-stone-700 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition-colors">
+                            <label className={`w-full py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg cursor-pointer text-stone-700 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
                               <Camera size={12} className="text-forest-800" />
                               <span>{imgVal ? 'Change Photo' : 'Upload Photo'}</span>
                               <input
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
-                                onChange={(e) => {
+                                disabled={isUploading}
+                                onChange={async (e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    if (file.size > 5 * 1024 * 1024) {
-                                      toast.error('Image size must be under 5MB');
+                                    if (file.size > 12 * 1024 * 1024) {
+                                      toast.error('Image size must be under 12MB');
                                       return;
                                     }
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => {
+                                    setUploadingSlot(slotIdx);
+                                    try {
+                                      const compressedDataUrl = await compressImageFile(file);
                                       const updated = [...(newProd.images || ['', '', ''])];
-                                      updated[slotIdx] = reader.result;
-                                      setNewProd({
-                                        ...newProd,
+                                      updated[slotIdx] = compressedDataUrl;
+                                      setNewProd((prev) => ({
+                                        ...prev,
                                         images: updated,
-                                        primary_image_url: updated.find(Boolean) || reader.result
-                                      });
-                                    };
-                                    reader.readAsDataURL(file);
+                                        primary_image_url: updated.find(Boolean) || compressedDataUrl
+                                      }));
+                                      toast.success(`Photo ${slotIdx + 1} attached and optimized!`);
+                                    } catch (err) {
+                                      toast.error(err.message || 'Failed to process image');
+                                    } finally {
+                                      setUploadingSlot(null);
+                                      e.target.value = '';
+                                    }
                                   }
                                 }}
                               />

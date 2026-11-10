@@ -590,18 +590,47 @@ class ProductSerializer(serializers.ModelSerializer):
             import base64
             import uuid
             import os
+            import io
             from django.conf import settings
+            from PIL import Image
+
             header, encoded = data_uri.split(';base64,', 1)
-            mime_type = header.replace('data:', '')
-            ext_map = {'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/svg+xml': 'svg'}
-            ext = ext_map.get(mime_type, 'jpg')
-            filename = f"{uuid.uuid4().hex[:16]}.{ext}"
-            target_dir = os.path.join(settings.MEDIA_ROOT, folder)
-            os.makedirs(target_dir, exist_ok=True)
-            target_path = os.path.join(target_dir, filename)
-            with open(target_path, 'wb') as f:
-                f.write(base64.b64decode(encoded))
-            return f"/media/{folder}/{filename}"
+            raw_bytes = base64.b64decode(encoded)
+
+            # Optimize & compress image to lightweight JPEG (max 900x900, ~40-60KB)
+            try:
+                img = Image.open(io.BytesIO(raw_bytes))
+                img.thumbnail((900, 900), Image.Resampling.LANCZOS)
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    bg = Image.new('RGB', img.size, (255, 255, 255))
+                    bg.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                    img = bg
+                elif img.mode != 'RGB':
+                    img = img.convert('RGB')
+
+                buf = io.BytesIO()
+                img.save(buf, format='JPEG', quality=82, optimize=True)
+                opt_bytes = buf.getvalue()
+                opt_b64 = base64.b64encode(opt_bytes).decode('utf-8')
+                result_uri = f"data:image/jpeg;base64,{opt_b64}"
+            except Exception:
+                opt_bytes = raw_bytes
+                result_uri = data_uri
+
+            # Also write to local MEDIA_ROOT so disk file /media/products/... is created if supported
+            try:
+                filename = f"{uuid.uuid4().hex[:16]}.jpg"
+                target_dir = os.path.join(settings.MEDIA_ROOT, folder)
+                os.makedirs(target_dir, exist_ok=True)
+                target_path = os.path.join(target_dir, filename)
+                with open(target_path, 'wb') as f:
+                    f.write(opt_bytes)
+            except Exception:
+                pass
+
+            # Returning the optimized base64 data URI ensures 100% resilience across
+            # Render container restarts, sleep cycles, deploys, and Vercel routing.
+            return result_uri
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("Failed to decode base64 image: %s", exc)

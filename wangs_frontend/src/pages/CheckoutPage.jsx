@@ -8,6 +8,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
+import { resolveProductImage } from '../utils/image';
 
 export default function CheckoutPage() {
   const { cart, refreshCart } = useCart();
@@ -227,7 +228,7 @@ export default function CheckoutPage() {
                     <div key={item.id} className="py-2 flex items-center justify-between gap-2 text-xs">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <img
-                          src={item.product.primary_image_url || '/featured-pouches.png'}
+                          src={resolveProductImage(item.product.primary_image_url || (item.product.images && item.product.images[0] ? item.product.images[0].image_url : ''))}
                           alt={item.product.title}
                           className="w-9 h-9 object-cover rounded-lg border border-stone-200 flex-shrink-0"
                         />
@@ -577,7 +578,7 @@ export default function CheckoutPage() {
                 <div key={item.id} className="py-3 flex items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-3 min-w-0">
                     <img
-                      src={item.product.primary_image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=100&q=80'}
+                      src={resolveProductImage(item.product.primary_image_url || (item.product.images && item.product.images[0] ? item.product.images[0].image_url : ''), 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=100&q=80')}
                       alt={item.product.title}
                       className="w-12 h-12 object-cover rounded-xl border border-stone-200 flex-shrink-0"
                     />

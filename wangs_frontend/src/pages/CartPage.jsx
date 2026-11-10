@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import { useToast } from '../context/ToastContext';
+import { resolveProductImage } from '../utils/image';
 
 export default function CartPage() {
   const { cart, updateQuantity, removeFromCart, clearCart, itemsCount } = useCart();
@@ -147,7 +148,7 @@ export default function CartPage() {
               <div key={item.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
                 <div className="flex items-center gap-4">
                   <img
-                    src={item.product.primary_image_url || '/featured-pouches.png'}
+                    src={resolveProductImage(item.product.primary_image_url || (item.product.images && item.product.images[0] ? item.product.images[0].image_url : ''))}
                     alt={item.product.title}
                     onError={(e) => {
                       e.target.onerror = null;

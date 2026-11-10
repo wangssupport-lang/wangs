@@ -4,6 +4,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag, ArrowRight, Truck, ShieldCheck, Sp
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { resolveProductImage } from '../utils/image';
 
 export default function CartDrawer() {
   const { cart, isDrawerOpen, setIsDrawerOpen, updateQuantity, removeFromCart, itemsCount } = useCart();
@@ -146,7 +147,7 @@ export default function CartDrawer() {
               items.map((item) => (
                 <div key={item.id} className="py-4 flex gap-4 items-center">
                   <img
-                    src={item.product.primary_image_url || '/featured-pouches.png'}
+                    src={resolveProductImage(item.product.primary_image_url || (item.product.images && item.product.images[0] ? item.product.images[0].image_url : ''))}
                     alt={item.product.title}
                     onError={(e) => {
                       e.target.onerror = null;

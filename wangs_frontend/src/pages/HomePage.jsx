@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
+import { resolveProductImage } from '../utils/image';
 
 // Isolated Memoized Countdown Component to prevent whole HomePage from re-rendering every second
 const FlashDealCountdown = React.memo(function FlashDealCountdown() {
@@ -1305,7 +1306,7 @@ export default function HomePage() {
                   ? deal.discount
                   : (mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0);
                 const costPer100g = deal.costPer100g || Math.round((price / weight) * 100);
-                const imgUrl = deal.primary_image_url || deal.images?.[0]?.image_url || '/images/hero/dried_beef_pickle_signature.jpg';
+                const imgUrl = resolveProductImage(deal.primary_image_url || deal.images?.[0]?.image_url, '/images/hero/dried_beef_pickle_signature.jpg');
                 const rating = deal.average_rating ? Number(deal.average_rating).toFixed(1) : '4.9';
                 const mfgName = deal.manufacturer?.business_name || 'Artisan Direct';
 
@@ -1547,7 +1548,7 @@ export default function HomePage() {
               const mrp = item.mrp ? Math.round(Number(item.mrp)) : null;
               const hasDiscount = mrp && mrp > price;
               const discountPercent = hasDiscount ? Math.round(((mrp - price) / mrp) * 100) : 0;
-              const imgUrl = item.primary_image_url || item.images?.[0]?.image_url || '/images/hero/dried_beef_pickle_signature.jpg';
+              const imgUrl = resolveProductImage(item.primary_image_url || item.images?.[0]?.image_url, '/images/hero/dried_beef_pickle_signature.jpg');
               const rating = item.average_rating ? Number(item.average_rating).toFixed(1) : (item.rating || '4.9');
               const brandName = item.manufacturer?.business_name || 'Artisan Direct';
               const productSlug = item.slug;
