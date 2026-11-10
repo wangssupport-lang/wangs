@@ -45,6 +45,7 @@ export default function ProductDetailPage() {
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     author_name: '',
+    location: '',
     rating: 5,
     title: '',
     comment: '',
@@ -333,7 +334,7 @@ export default function ProductDetailPage() {
       await api.addProductReview(product.slug, reviewForm);
       toast.success('Thank you! Your verified review has been published and the seller has been notified via email.');
       setShowReviewModal(false);
-      setReviewForm({ author_name: '', rating: 5, title: '', comment: '', image_url: '' });
+      setReviewForm({ author_name: '', location: '', rating: 5, title: '', comment: '', image_url: '' });
       // Reload product details to show new review
       const updated = await api.getProductBySlug(slug);
       setProduct(updated);
@@ -1045,8 +1046,11 @@ export default function ProductDetailPage() {
                       {reviewsList.map((rev) => (
                         <div key={rev.id || rev.author_name} className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="font-bold text-stone-900">{rev.author_name}</span>
+                              {rev.location && (
+                                <span className="text-[11px] text-stone-500 font-medium">({rev.location})</span>
+                              )}
                               {rev.is_verified_buyer && (
                                 <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded">
                                   <Check size={10} className="text-emerald-700" /> Verified Buyer
@@ -1109,6 +1113,17 @@ export default function ProductDetailPage() {
                   value={reviewForm.author_name}
                   onChange={(e) => setReviewForm({ ...reviewForm, author_name: e.target.value })}
                   placeholder="e.g. Sentila or Rahul"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-stone-700 font-bold mb-1">Your City / Location (optional)</label>
+                <input
+                  type="text"
+                  value={reviewForm.location || ''}
+                  onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
+                  placeholder="e.g. Bengaluru, Dimapur, or Mumbai"
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600"
                 />
               </div>

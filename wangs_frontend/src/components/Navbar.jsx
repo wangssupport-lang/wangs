@@ -469,10 +469,6 @@ export default function Navbar() {
             <span className="flex items-center gap-1 font-medium">
               <ShieldCheck size={11} className="text-emerald-300" /> FSSAI Certified Purity
             </span>
-            <span className="opacity-40">|</span>
-            <span className="flex items-center gap-1 font-medium">
-              <Sparkles size={11} className="text-amber-300" /> 100% Sun-Matured Batches
-            </span>
           </div>
         </div>
       </div>

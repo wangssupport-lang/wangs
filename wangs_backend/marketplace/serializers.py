@@ -543,10 +543,22 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
 
 class ProductReviewSerializer(serializers.ModelSerializer):
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    product_slug = serializers.CharField(source='product.slug', read_only=True)
+    product_image = serializers.CharField(source='product.primary_image_url', read_only=True)
+    product_weight = serializers.IntegerField(source='product.weight_grams', read_only=True)
+
     class Meta:
         model = ProductReview
-        fields = ['id', 'product', 'author_name', 'rating', 'title', 'comment', 'image_url', 'is_verified_buyer', 'created_at']
-        read_only_fields = ['id', 'is_verified_buyer', 'created_at']
+        fields = [
+            'id', 'product', 'product_title', 'product_slug', 'product_image', 'product_weight',
+            'author_name', 'location', 'rating', 'title', 'comment', 'image_url',
+            'is_verified_buyer', 'created_at'
+        ]
+        read_only_fields = [
+            'id', 'is_verified_buyer', 'created_at',
+            'product_title', 'product_slug', 'product_image', 'product_weight'
+        ]
 
 
 class ProductSerializer(serializers.ModelSerializer):

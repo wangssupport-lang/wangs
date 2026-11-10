@@ -31,8 +31,8 @@ export async function apiRequest(endpoint, options = {}) {
   let response = null;
   let networkError = null;
 
-  // Add timeout protection (default 25 seconds) so cold backend call on Render can wake up cleanly
-  const timeoutMs = options.timeout || 25000;
+  // Add timeout protection (default 45 seconds) so cold backend call on Render can wake up cleanly
+  const timeoutMs = options.timeout || 45000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const fetchSignal = options.signal || controller.signal;
@@ -70,19 +70,24 @@ export async function apiRequest(endpoint, options = {}) {
       });
     } catch (fallbackErr) {
       if (networkError && !response) {
-        throw new Error(
+        const connErr = new Error(
           isProduction
             ? 'Could not connect to Wangs backend at https://wangs.onrender.com. Please try again.'
             : 'Could not connect to backend server. Please verify the backend is running at http://127.0.0.1:8000.'
         );
+        connErr.status = 503;
+        throw connErr;
       }
     } finally {
       clearTimeout(fallbackTimeoutId);
     }
   } else if (networkError && !response) {
     if (networkError.name === 'AbortError') {
-      throw new Error('Connection timed out. Please try again.');
+      const timeoutErr = new Error('Connection timed out. Please try again.');
+      timeoutErr.status = 504;
+      throw timeoutErr;
     }
+    networkError.status = networkError.status || 0;
     throw networkError;
   }
 
@@ -97,12 +102,23 @@ export async function apiRequest(endpoint, options = {}) {
     const refreshToken = localStorage.getItem('wangs_refresh_token');
     if (refreshToken) {
       try {
-        const refreshResp = await fetch(`${DIRECT_BACKEND}/auth/token/refresh/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-        if (refreshResp.ok) {
+        const refreshUrls = [
+          `${API_BASE}/auth/token/refresh/`,
+          `${DIRECT_BACKEND}/auth/token/refresh/`
+        ];
+        let refreshResp = null;
+        for (const rUrl of refreshUrls) {
+          try {
+            refreshResp = await fetch(rUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refresh: refreshToken }),
+            });
+            if (refreshResp.ok) break;
+          } catch {}
+        }
+
+        if (refreshResp && refreshResp.ok) {
           const refreshData = await refreshResp.json();
           if (refreshData?.access) {
             localStorage.setItem('wangs_token', refreshData.access);
@@ -112,11 +128,22 @@ export async function apiRequest(endpoint, options = {}) {
               'X-Authorization': `Bearer ${refreshData.access}`,
               'X-Admin-Token': refreshData.access,
             };
-            const retryResp = await fetch(fallbackUrl, {
-              ...fetchOptions,
-              headers: retryHeaders,
-            });
-            if (retryResp.ok) {
+            let retryResp = null;
+            try {
+              retryResp = await fetch(primaryUrl, {
+                ...fetchOptions,
+                headers: retryHeaders,
+              });
+            } catch {}
+            if ((!retryResp || !retryResp.ok) && primaryUrl !== fallbackUrl) {
+              try {
+                retryResp = await fetch(fallbackUrl, {
+                  ...fetchOptions,
+                  headers: retryHeaders,
+                });
+              } catch {}
+            }
+            if (retryResp && retryResp.ok) {
               const retryContentType = retryResp.headers.get('content-type');
               if (retryContentType && retryContentType.includes('application/json')) {
                 return await retryResp.json();
@@ -124,6 +151,11 @@ export async function apiRequest(endpoint, options = {}) {
               return null;
             }
           }
+        } else if (refreshResp && refreshResp.status === 401) {
+          localStorage.removeItem('wangs_token');
+          localStorage.removeItem('wangs_refresh_token');
+          localStorage.removeItem('wangs_user');
+          localStorage.removeItem('wangs_mfg_profile');
         }
       } catch {
         // Fall through to error handler
@@ -133,7 +165,10 @@ export async function apiRequest(endpoint, options = {}) {
 
   if (!response || !response.ok) {
     const errorMsg = data?.detail || data?.message || (data ? JSON.stringify(data) : response?.statusText || 'Request failed');
-    throw new Error(errorMsg);
+    const err = new Error(errorMsg);
+    err.status = response?.status || 0;
+    err.data = data;
+    throw err;
   }
 
   return data;
@@ -173,6 +208,7 @@ export const api = {
   },
   getProductBySlug: (slug) => apiRequest(`/products/${slug}/`),
   addProductReview: (slug, payload) => apiRequest(`/products/${slug}/add_review/`, { method: 'POST', body: JSON.stringify(payload) }),
+  getCommunityReviews: (limit = 12) => apiRequest(`/community-reviews/?limit=${limit}`),
   getFeaturedProducts: () => apiRequest('/products/featured/'),
   getBestsellerProducts: () => apiRequest('/products/bestsellers/'),
   getDealProducts: () => apiRequest('/products/deals/'),

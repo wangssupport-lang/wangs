@@ -4,8 +4,22 @@ import { api } from '../api';
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [mfgProfile, setMfgProfile] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wangs_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [mfgProfile, setMfgProfile] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wangs_mfg_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [platformSettings, setPlatformSettings] = useState(() => {
     try {
       const cached = localStorage.getItem('wangs_platform_settings');
@@ -13,7 +27,11 @@ export function AuthProvider({ children }) {
     } catch {}
     return { allow_seller_registration: false };
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    // If a token exists, loading starts true to allow background verification;
+    // but cached user ensures views don't flash logged out.
+    return Boolean(localStorage.getItem('wangs_token'));
+  });
 
   // Initialize session key for guests if not exists
   useEffect(() => {
@@ -70,19 +88,53 @@ export function AuthProvider({ children }) {
   const loadCurrentUser = async () => {
     const token = localStorage.getItem('wangs_token');
     if (!token) {
+      setUser(null);
+      setMfgProfile(null);
+      try {
+        localStorage.removeItem('wangs_user');
+        localStorage.removeItem('wangs_mfg_profile');
+      } catch {}
       setLoading(false);
       return;
     }
     try {
       const data = await api.getMe();
-      setUser(data.user);
-      setMfgProfile(data.manufacturer_profile);
-      updateSellerRegistrationState(data.user, data.manufacturer_profile);
+      if (data?.user) {
+        setUser(data.user);
+        try { localStorage.setItem('wangs_user', JSON.stringify(data.user)); } catch {}
+        if (data.manufacturer_profile) {
+          setMfgProfile(data.manufacturer_profile);
+          try { localStorage.setItem('wangs_mfg_profile', JSON.stringify(data.manufacturer_profile)); } catch {}
+        } else {
+          setMfgProfile(null);
+          try { localStorage.removeItem('wangs_mfg_profile'); } catch {}
+        }
+        updateSellerRegistrationState(data.user, data.manufacturer_profile);
+      }
     } catch (err) {
-      console.error('Failed to load user session', err);
-      localStorage.removeItem('wangs_token');
-      setUser(null);
-      setMfgProfile(null);
+      console.warn('Could not re-verify user session from backend:', err?.message || err);
+      // ONLY log out if backend explicitly answered with 401 Unauthorized / Token Invalid!
+      // NEVER log out on temporary network failure, gateway 502/503/504, or cold start timeout.
+      const isAuthError = err?.status === 401 ||
+        (err?.message && (
+          err.message.toLowerCase().includes('token is invalid') ||
+          err.message.toLowerCase().includes('token_not_valid') ||
+          err.message.toLowerCase().includes('given token not valid') ||
+          err.message.toLowerCase().includes('credentials were not provided') ||
+          err.message.toLowerCase().includes('user is inactive')
+        ));
+
+      if (isAuthError) {
+        try {
+          localStorage.removeItem('wangs_token');
+          localStorage.removeItem('wangs_refresh_token');
+          localStorage.removeItem('wangs_user');
+          localStorage.removeItem('wangs_mfg_profile');
+          localStorage.removeItem('wangs_is_registered_seller');
+        } catch {}
+        setUser(null);
+        setMfgProfile(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -97,8 +149,17 @@ export function AuthProvider({ children }) {
     const res = await api.login({ username, password });
     localStorage.setItem('wangs_token', res.token);
     if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
-    setUser(res.user);
-    setMfgProfile(res.manufacturer_profile);
+    if (res.user) {
+      setUser(res.user);
+      try { localStorage.setItem('wangs_user', JSON.stringify(res.user)); } catch {}
+    }
+    if (res.manufacturer_profile) {
+      setMfgProfile(res.manufacturer_profile);
+      try { localStorage.setItem('wangs_mfg_profile', JSON.stringify(res.manufacturer_profile)); } catch {}
+    } else {
+      setMfgProfile(null);
+      try { localStorage.removeItem('wangs_mfg_profile'); } catch {}
+    }
     updateSellerRegistrationState(res.user, res.manufacturer_profile);
     return res.user;
   };
@@ -107,7 +168,10 @@ export function AuthProvider({ children }) {
     const res = await api.register(userData);
     localStorage.setItem('wangs_token', res.token);
     if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
-    setUser(res.user);
+    if (res.user) {
+      setUser(res.user);
+      try { localStorage.setItem('wangs_user', JSON.stringify(res.user)); } catch {}
+    }
     updateSellerRegistrationState(res.user, null);
     return res.user;
   };
@@ -117,8 +181,17 @@ export function AuthProvider({ children }) {
     if (res.token) {
       localStorage.setItem('wangs_token', res.token);
       if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
-      setUser(res.user);
-      setMfgProfile(res.manufacturer_profile);
+      if (res.user) {
+        setUser(res.user);
+        try { localStorage.setItem('wangs_user', JSON.stringify(res.user)); } catch {}
+      }
+      if (res.manufacturer_profile) {
+        setMfgProfile(res.manufacturer_profile);
+        try { localStorage.setItem('wangs_mfg_profile', JSON.stringify(res.manufacturer_profile)); } catch {}
+      } else {
+        setMfgProfile(null);
+        try { localStorage.removeItem('wangs_mfg_profile'); } catch {}
+      }
       updateSellerRegistrationState(res.user, res.manufacturer_profile);
     }
     return res;
@@ -129,16 +202,26 @@ export function AuthProvider({ children }) {
     if (res.token) {
       localStorage.setItem('wangs_token', res.token);
       if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
-      setUser(res.user);
-      setMfgProfile(res.manufacturer_profile);
+      if (res.user) {
+        setUser(res.user);
+        try { localStorage.setItem('wangs_user', JSON.stringify(res.user)); } catch {}
+      }
+      if (res.manufacturer_profile) {
+        setMfgProfile(res.manufacturer_profile);
+        try { localStorage.setItem('wangs_mfg_profile', JSON.stringify(res.manufacturer_profile)); } catch {}
+      }
     }
     return res;
   };
 
   const logout = () => {
-    localStorage.removeItem('wangs_token');
-    localStorage.removeItem('wangs_refresh_token');
-    localStorage.removeItem('wangs_is_registered_seller');
+    try {
+      localStorage.removeItem('wangs_token');
+      localStorage.removeItem('wangs_refresh_token');
+      localStorage.removeItem('wangs_user');
+      localStorage.removeItem('wangs_mfg_profile');
+      localStorage.removeItem('wangs_is_registered_seller');
+    } catch {}
     setUser(null);
     setMfgProfile(null);
   };

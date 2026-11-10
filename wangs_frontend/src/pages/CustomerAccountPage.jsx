@@ -112,7 +112,7 @@ const getShipmentMilestones = (order) => {
 };
 
 export default function CustomerAccountPage() {
-  const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout, allowSellerRegistration } = useAuth();
+  const { user, isAdmin, isManufacturer, isAuthorizedToSell, logout, allowSellerRegistration, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -166,12 +166,13 @@ export default function CustomerAccountPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       navigate('/login');
       return;
     }
     loadData();
-  }, [user]);
+  }, [user, authLoading]);
 
   const handleAddAddress = async (e) => {
     e.preventDefault();
@@ -205,6 +206,15 @@ export default function CustomerAccountPage() {
       toast.error(err.message || 'Failed to remove address');
     }
   };
+
+  if (authLoading) {
+    return (
+      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
+        <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying your account session...</p>
+      </div>
+    );
+  }
 
   if (!user) return null;
 

@@ -12,7 +12,7 @@ import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
 
 export default function ManufacturerPortalPage() {
-  const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp } = useAuth();
+  const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -138,12 +138,13 @@ export default function ManufacturerPortalPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       setLoading(false);
       return;
     }
     loadData();
-  }, [user]);
+  }, [user, authLoading]);
 
   useEffect(() => {
     if (profile) {
@@ -296,7 +297,7 @@ export default function ManufacturerPortalPage() {
     }
   };
 
-  if (loading) {
+  if (authLoading || (loading && user)) {
     return (
       <div className="max-w-7xl mx-auto py-20 px-4 text-center">
         <div className="w-8 h-8 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />

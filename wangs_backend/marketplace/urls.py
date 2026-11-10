@@ -21,7 +21,8 @@ from .views import (
     CustomerRewardWalletView, CustomerRewardScanView, CustomerRewardVerifyTokenView,
     AdminRewardOverviewView, AdminRewardQRListView, AdminRewardPrintLabelsView,
     AdminRewardSettingsView, AdminRewardRevokeQRView, AdminRewardAdjustBalanceView,
-    AdminRewardSuspiciousLogsView, AdminRewardExportTransactionsView
+    AdminRewardSuspiciousLogsView, AdminRewardExportTransactionsView,
+    PublicCommunityReviewsView
 )
 
 router = DefaultRouter()
@@ -52,6 +53,8 @@ urlpatterns = [
     # Storefront & Brands (Amazon-style Brand Spotlight)
     path('notifications/', PublicNotificationView.as_view(), name='public-notifications'),
     path('storefront-notices/', PublicStorefrontNoticeView.as_view(), name='public-storefront-notices'),
+    path('community-reviews/', PublicCommunityReviewsView.as_view(), name='community-reviews'),
+    path('reviews/', PublicCommunityReviewsView.as_view(), name='reviews-list'),
     path('brands/', BrandListView.as_view(), name='brands-list'),
     path('brands/<slug:slug>/', BrandDetailView.as_view(), name='brand-detail'),
     path('pincode/check/', check_pincode_serviceability, name='pincode-check'),

@@ -579,127 +579,190 @@ class Command(BaseCommand):
             {
                 'slug': 'prawn-fusion-king-chilli-homemade-pickle',
                 'author_name': 'Rohan M.',
+                'location': 'Bengaluru, Karnataka',
                 'rating': 5,
                 'title': 'The best prawn pickle I have ever tasted in India!',
                 'comment': 'The prawns are tender and generous, not chewy like other brands. The blend of warm fusion spices with the King Chilli is absolutely addictive with hot dal-rice.',
+                'image_url': '/images/stitch/stitch_30_fb45f00afe.jpg',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'prawn-fusion-king-chilli-homemade-pickle',
                 'author_name': 'Deepika Nair',
+                'location': 'Mumbai, Maharashtra',
                 'rating': 5,
                 'title': 'Pure homemade warmth in a glass jar',
                 'comment': 'Zero chemical smell, pure mustard oil and authentic spices. Arrived in Mumbai within 3 days via air cargo perfectly bubble-wrapped. Ordering 1kg next time!',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'prawn-fusion-king-chilli-homemade-pickle',
                 'author_name': 'Karthik S.',
+                'location': 'Hyderabad, Telangana',
                 'rating': 5,
                 'title': 'Pairs heavenly with plain parathas',
                 'comment': 'Just a spoonful transforms simple parathas or curd rice into a feast. The heat from Raja Mircha hits gently then builds up beautifully.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             # Smoked Pork & King Chilli
             {
                 'slug': 'arenla-signature-smoked-pork-king-chilli-pickle',
                 'author_name': 'Aloto Yeptho',
+                'location': 'Mokokchung, Nagaland',
                 'rating': 5,
                 'title': 'True artisanal firewood smoke flavor!',
                 'comment': 'Takes me right back to our hearth back home in Mokokchung. Meat chunks are substantial and soaked in aromatic spicy oil. 10/10.',
+                'image_url': '/images/stitch/stitch_22_2b98edc9ec.jpg',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'arenla-signature-smoked-pork-king-chilli-pickle',
                 'author_name': 'Priyanka Das',
+                'location': 'Kolkata, West Bengal',
                 'rating': 5,
                 'title': 'Extraordinary depth of flavor',
                 'comment': 'You can taste the 72-hour slow wood smoke. Not overwhelmingly oily. FSSAI certified facility gives great trust too.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             # Pure Raja Mircha
             {
                 'slug': 'pure-raja-mircha-king-chilli-pickle',
                 'author_name': 'Vikramaditya Roy',
+                'location': 'Gurugram, Haryana',
                 'rating': 5,
                 'title': 'Fiery but wonderfully aromatic',
                 'comment': 'One tiny cut of the King Chilli is enough for an entire meal. Authentic Raja Mircha flavor that you cannot find in city supermarkets.',
+                'image_url': '/images/stitch/stitch_7_dced7e9a07.jpg',
                 'is_verified_buyer': True
             },
             # Wild Fermented Bamboo Shoot
             {
                 'slug': 'wild-fermented-bamboo-shoot-pickle',
                 'author_name': 'Sentila Jamir',
+                'location': 'Kohima, Nagaland',
                 'rating': 5,
                 'title': 'Crunchy, tangy, and perfect',
                 'comment': 'Crisp shoots with natural earthen pot fermentation. Tastes clean, pungent in the best way, and utterly delicious with boiled pork and rice.',
+                'image_url': '/images/hero/bamboo_shoot_dish.jpg',
+                'is_verified_buyer': True
+            },
+            # Smoked Pork & Axone
+            {
+                'slug': 'smoked-pork-axone-fermented-soybean-pickle',
+                'author_name': 'Debashree B.',
+                'location': 'Guwahati, Assam',
+                'rating': 5,
+                'title': 'The soul of northeastern cuisine',
+                'comment': 'The earthy pungency of fermented axone paired with tender smoked pork is unmatched. Pure comfort with steamed sticky rice. Re-ordering batch #4!',
+                'image_url': '/images/stitch/stitch_7_dced7e9a07.jpg',
+                'is_verified_buyer': True
+            },
+            # Smoked Beef & Shredded Bamboo Shoot
+            {
+                'slug': 'smoked-beef-shredded-bamboo-shoot-pickle',
+                'author_name': 'Kevisenuo T.',
+                'location': 'Dimapur, Nagaland',
+                'rating': 5,
+                'title': 'Intense firewood smokiness',
+                'comment': 'The shredded bamboo shoots soak up all the smoked beef oils and chilli warmth. Traditional Naga preservation at its finest.',
+                'image_url': '/images/hero/dried_beef_relish.jpg',
+                'is_verified_buyer': True
+            },
+            # Dzüko Roasted King Chilli
+            {
+                'slug': 'dzuko-roasted-king-chilli-mountain-sichuan-mash',
+                'author_name': 'Tenzing N.',
+                'location': 'Gangtok, Sikkim',
+                'rating': 5,
+                'title': 'Tingling Sichuan pepper note',
+                'comment': 'The mountain Sichuan pepper tingling combined with fire-roasted King Chilli creates an electric punch on the palate. A staple on our dinner table.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             # Lia Chuka Pork Pickle
             {
                 'slug': 'lia-chuka-pork-pickle',
                 'author_name': 'Temsu Ao',
+                'location': 'Mokokchung, Nagaland',
                 'rating': 5,
                 'title': 'Exceptional smoky pork texture',
                 'comment': 'Real wood-smoked pork chunks that melt in your mouth with authentic Raja Mircha heat. Outstanding quality from Lia Chuka.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'lia-chuka-pork-pickle',
                 'author_name': 'Ananya Sharma',
+                'location': 'Bengaluru, Karnataka',
                 'rating': 5,
                 'title': 'The aroma hits the moment you open the pouch',
                 'comment': 'Rich mustard oil and distinct mountain smoke. Easily the best packaged pork pickle available online.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'lia-chuka-pork-pickle',
                 'author_name': 'David Lotha',
+                'location': 'Wokha, Nagaland',
                 'rating': 5,
                 'title': 'Tastes just like home',
                 'comment': 'Generous meat cuts and well-balanced King Chilli spice. Perfect with steamed white rice.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'lia-chuka-pork-pickle',
                 'author_name': 'Sunil Verma',
+                'location': 'Noida, Uttar Pradesh',
                 'rating': 4,
                 'title': 'Bold and spicy',
                 'comment': 'Very authentic flavor. Quite hot so a small spoon goes a long way.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             # Lia Chuka Bambooshoot Pickle
             {
                 'slug': 'lia-chuka-bambooshoot-pickle',
                 'author_name': 'Imli Pongen',
+                'location': 'Kohima, Nagaland',
                 'rating': 5,
                 'title': 'Fresh tender bamboo shoots',
                 'comment': 'Natural earthen fermentation with zero synthetic vinegar. Extremely crunchy and savory.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'lia-chuka-bambooshoot-pickle',
                 'author_name': 'Meera Joshi',
+                'location': 'Pune, Maharashtra',
                 'rating': 5,
                 'title': 'Authentic northeastern taste',
                 'comment': 'Clean pungent aroma, perfectly spiced with mountain chillies. Arrived fast and fresh.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             # Lia Chuka Chicken Pickle
             {
                 'slug': 'lia-chuka-chicken-pickle',
                 'author_name': 'Nehal Chawla',
+                'location': 'New Delhi, Delhi',
                 'rating': 5,
                 'title': 'Juicy tender chicken shreds',
                 'comment': 'Not dry at all. The King Chilli garlic blend gives it an unbelievable kick. High quality artisanal packaging.',
+                'image_url': '',
                 'is_verified_buyer': True
             },
             {
                 'slug': 'lia-chuka-chicken-pickle',
                 'author_name': 'Renthungo Kikon',
+                'location': 'Dimapur, Nagaland',
                 'rating': 5,
                 'title': 'Five stars for authentic taste',
                 'comment': 'Lia Chuka maintains consistent taste and hygienic preparation. Great accompaniment for any dinner.',
+                'image_url': '',
                 'is_verified_buyer': True
             }
         ]
@@ -712,9 +775,11 @@ class Command(BaseCommand):
                     product=p,
                     author_name=rev['author_name'],
                     defaults={
+                        'location': rev.get('location', ''),
                         'rating': rev['rating'],
                         'title': rev['title'],
                         'comment': rev['comment'],
+                        'image_url': rev.get('image_url', ''),
                         'is_verified_buyer': rev['is_verified_buyer'],
                     }
                 )

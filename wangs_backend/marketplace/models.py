@@ -294,6 +294,7 @@ class ProductReview(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='reviews')
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     author_name = models.CharField(max_length=120)
+    location = models.CharField(max_length=120, blank=True, default='', help_text="Reviewer location (e.g. Bengaluru, Mumbai, Kohima)")
     rating = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         default=5

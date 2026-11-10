@@ -6,10 +6,19 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 
 export default function AuthPage() {
-  const { login, register, resetPassword } = useAuth();
+  const { user, login, register, resetPassword } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'ADMIN' || user.is_staff) navigate('/admin', { replace: true });
+      else if (user.role === 'MANUFACTURER') navigate('/manufacturer', { replace: true });
+      else navigate('/account', { replace: true });
+    }
+  }, [user, navigate]);
 
   const [isLogin, setIsLogin] = useState(searchParams.get('tab') !== 'register');
   const [showForgotPassword, setShowForgotPassword] = useState(searchParams.get('tab') === 'forgot-password');
