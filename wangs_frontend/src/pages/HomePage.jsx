@@ -37,6 +37,51 @@ const FlashDealCountdown = React.memo(function FlashDealCountdown() {
   );
 });
 
+const defaultFeaturedBrands = [
+  {
+    business_name: "Arenla's Heritage",
+    slug: 'arenlas-heritage-craft',
+    subtitle: 'Kohima · Smoked Pork',
+    image: '/images/stitch/stitch_12_c5839b9db5.jpg',
+    bgColor: 'bg-secondary-container',
+  },
+  {
+    business_name: 'Dzüko Valley',
+    slug: 'dzuko-valley-artisans',
+    subtitle: 'Mokokchung · Bastenga',
+    image: '/images/stitch/stitch_21_bf7f51feb7.jpg',
+    bgColor: 'bg-primary-fixed',
+  },
+  {
+    business_name: 'Lia Chuka',
+    slug: 'lia-chuka',
+    subtitle: 'Kohima · Local Food',
+    image: '/images/stitch/stitch_24_e2003018f3.jpg',
+    bgColor: 'bg-tertiary-fixed',
+  },
+  {
+    business_name: 'Akamla Pickles',
+    slug: 'akamla-pickle',
+    subtitle: 'Dimapur · Bamboo Shoot',
+    image: '/images/stitch/stitch_18_db2cc363df.jpg',
+    bgColor: 'bg-secondary-fixed',
+  },
+  {
+    business_name: 'Highland Harvest',
+    slug: 'highland-harvest',
+    subtitle: 'Zunheboto · Sun-Cured',
+    image: '/images/stitch/stitch_6_cad333af7f.jpg',
+    bgColor: 'bg-primary-container',
+  },
+  {
+    business_name: 'Nagaland Pantry',
+    slug: 'nagaland-heritage',
+    subtitle: 'Wokha · King Chilli',
+    image: '/images/stitch/stitch_17_e5f18411f9.jpg',
+    bgColor: 'bg-surface-variant',
+  },
+];
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { addToCart } = useCart();
@@ -119,6 +164,28 @@ export default function HomePage() {
           bg_color: "#9b4100",
         }
       ];
+
+  // 6 Brands for the Featured Brands section (matching exact 2-row 3-col grid structure)
+  const displayBrands = useMemo(() => {
+    if (!availableBrands || availableBrands.length === 0) {
+      return defaultFeaturedBrands;
+    }
+    const mapped = availableBrands.slice(0, 6).map((b, i) => {
+      const fallback = defaultFeaturedBrands[i % defaultFeaturedBrands.length];
+      return {
+        business_name: b.business_name || b.name || fallback.business_name,
+        slug: b.slug || fallback.slug,
+        subtitle: b.tagline ? b.tagline.split('.')[0] : (b.location_district ? `${b.location_district.split(',')[0]} · Artisan` : fallback.subtitle),
+        image: b.logo_image || b.cover_image || fallback.image,
+        bgColor: fallback.bgColor,
+      };
+    });
+
+    while (mapped.length < 6) {
+      mapped.push(defaultFeaturedBrands[mapped.length]);
+    }
+    return mapped;
+  }, [availableBrands]);
 
   const activeBannerIndexRef = useRef(0);
   const scrollRafId = useRef(null);
@@ -1407,118 +1474,52 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* 3. Shop by Heritage Pickle Belts (Exact match to Image 2) */}
+        {/* 3. Shop by Artisan Brands (Exact match to Image 2 structure) */}
         <section className="flex flex-col gap-2 pt-1">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="font-headline-sm text-base font-serif font-bold text-on-surface">
-                Heritage Pickle Belts
+                Artisan Brands
               </h2>
               <p className="font-body-sm text-[11px] text-on-surface-variant">
-                Trace unique terroir, native chilies &amp; traditional sun-curing
+                Direct from verified home kitchens &amp; heritage pickle makers
               </p>
             </div>
-            <span className="text-tertiary font-label-sm text-[10px] uppercase tracking-wider font-bold shrink-0">
-              6 Terroirs
-            </span>
+            <Link
+              to="/brands"
+              className="text-tertiary font-label-sm text-[10px] uppercase tracking-wider font-bold shrink-0 hover:underline flex items-center gap-0.5"
+            >
+              <span>6 Brands</span>
+              <span className="text-[11px]">→</span>
+            </Link>
           </div>
 
           <div className="grid grid-cols-3 gap-2.5 pt-1">
-            {/* Belt 1: Andhra */}
-            <Link
-              to="/products?search=andhra"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-secondary-container">
-                <img
-                  src="/images/stitch/stitch_12_c5839b9db5.jpg"
-                  alt="Andhra"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
-              <span className="font-title-md text-xs font-bold text-on-surface leading-tight">Andhra</span>
-              <span className="font-label-sm text-[10px] text-outline">Guntur Hot</span>
-            </Link>
-
-            {/* Belt 2: Rajasthan */}
-            <Link
-              to="/products?search=rajasthan"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-primary-fixed">
-                <img
-                  src="/images/stitch/stitch_21_bf7f51feb7.jpg"
-                  alt="Rajasthan"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
-              <span className="font-title-md text-xs font-bold text-on-surface leading-tight">Rajasthan</span>
-              <span className="font-label-sm text-[10px] text-outline">Kair Sangri</span>
-            </Link>
-
-            {/* Belt 3: Kerala */}
-            <Link
-              to="/products?search=kerala"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-tertiary-fixed">
-                <img
-                  src="/images/stitch/stitch_24_e2003018f3.jpg"
-                  alt="Kerala"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
-              <span className="font-title-md text-xs font-bold text-on-surface leading-tight">Kerala</span>
-              <span className="font-label-sm text-[10px] text-outline">Curry Leaf &amp; Fish</span>
-            </Link>
-
-            {/* Belt 4: Punjab */}
-            <Link
-              to="/products?search=punjab"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-secondary-fixed">
-                <img
-                  src="/images/stitch/stitch_18_db2cc363df.jpg"
-                  alt="Punjab"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
-              <span className="font-title-md text-xs font-bold text-on-surface leading-tight">Punjab</span>
-              <span className="font-label-sm text-[10px] text-outline">Pachranga Mix</span>
-            </Link>
-
-            {/* Belt 5: Varanasi */}
-            <Link
-              to="/products?search=banarasi"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-primary-container">
-                <img
-                  src="/images/stitch/stitch_6_cad333af7f.jpg"
-                  alt="Varanasi"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
-              <span className="font-title-md text-xs font-bold text-on-surface leading-tight">Varanasi</span>
-              <span className="font-label-sm text-[10px] text-outline">Sun Stuffed Lal</span>
-            </Link>
-
-            {/* Belt 6: Bengal */}
-            <Link
-              to="/products?search=mustard"
-              className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
-            >
-              <div className="w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 bg-surface-variant">
-                <img
-                  src="/images/stitch/stitch_17_e5f18411f9.jpg"
-                  alt="Bengal"
-                  className="w-full h-full object-cover rounded-full"
-                />
-              </div>
-              <span className="font-title-md text-xs font-bold text-on-surface leading-tight">Bengal</span>
-              <span className="font-label-sm text-[10px] text-outline">Kasundi Mustard</span>
-            </Link>
+            {displayBrands.map((brand, idx) => (
+              <Link
+                key={brand.slug || brand.business_name || idx}
+                to={`/products?brand=${encodeURIComponent(brand.slug || brand.business_name)}`}
+                className="flex flex-col items-center gap-1.5 p-2 rounded-xl bg-surface-container-low hover:bg-surface-container border border-outline-variant/30 text-center active:scale-95 transition-transform"
+              >
+                <div className={`w-16 h-16 rounded-full overflow-hidden shadow-xs relative p-0.5 ${brand.bgColor || 'bg-secondary-container'}`}>
+                  <img
+                    src={brand.image}
+                    alt={brand.business_name}
+                    className="w-full h-full object-cover rounded-full"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = defaultFeaturedBrands[idx % defaultFeaturedBrands.length].image;
+                    }}
+                  />
+                </div>
+                <span className="font-title-md text-xs font-bold text-on-surface leading-tight truncate w-full px-0.5">
+                  {brand.business_name}
+                </span>
+                <span className="font-label-sm text-[10px] text-outline truncate w-full px-0.5">
+                  {brand.subtitle}
+                </span>
+              </Link>
+            ))}
           </div>
         </section>
 
