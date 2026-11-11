@@ -268,7 +268,10 @@ export const api = {
   // Admin Courier Fleet Management
   getAdminCourierStats: () => apiRequest('/admin/couriers/stats/'),
   getAdminCouriers: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    );
+    const qs = new URLSearchParams(cleanParams).toString();
     return apiRequest(`/admin/couriers/${qs ? `?${qs}` : ''}`);
   },
   getAdminCourierDetail: (id) => apiRequest(`/admin/couriers/${id}/`),

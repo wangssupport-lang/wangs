@@ -483,6 +483,7 @@ export default function AdminDashboardPage() {
   const [auditLogs, setAuditLogs] = useState(() => cachedData?.auditLogs || []);
   const [usersList, setUsersList] = useState(() => cachedData?.usersList || []);
   const [sellerRequests, setSellerRequests] = useState(() => cachedData?.sellerRequests || []);
+  const [couriers, setCouriers] = useState(() => cachedData?.couriers || []);
   const [subscribers, setSubscribers] = useState(() => cachedData?.subscribers || []);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('ALL');
@@ -620,7 +621,7 @@ export default function AdminDashboardPage() {
 
       // PHASE 2: Secondary Tab Data loaded smoothly in background with Promise.allSettled
       setSecondaryLoading(true);
-      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes, noticesRes] = await Promise.allSettled([
+      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes, noticesRes, couriersRes] = await Promise.allSettled([
         api.getAdminProducts(),
         api.getAdminOrders(),
         api.getCommissionSettings(),
@@ -631,6 +632,7 @@ export default function AdminDashboardPage() {
         api.getAdminHeroBanners(),
         api.getAdminCategories(),
         api.getAdminStorefrontNotices(),
+        api.getAdminCouriers(),
       ]);
 
       const parsedProds = prodsRes.status === 'fulfilled' ? extractList(prodsRes.value) : (cachedData?.products || []);
@@ -643,6 +645,7 @@ export default function AdminDashboardPage() {
       const parsedBanners = bannersRes.status === 'fulfilled' ? extractList(bannersRes.value) : (cachedData?.heroBanners || []);
       const parsedCats = catsRes.status === 'fulfilled' ? extractList(catsRes.value) : (cachedData?.categoriesList || []);
       const parsedNotices = noticesRes.status === 'fulfilled' ? extractList(noticesRes.value) : (cachedData?.storefrontNotices || []);
+      const parsedCouriers = couriersRes.status === 'fulfilled' ? extractList(couriersRes.value) : (cachedData?.couriers || []);
 
       setProducts(parsedProds);
       setOrders(parsedOrds);
@@ -654,6 +657,7 @@ export default function AdminDashboardPage() {
       setHeroBanners(parsedBanners);
       setCategoriesList(parsedCats);
       setStorefrontNotices(parsedNotices);
+      setCouriers(parsedCouriers);
 
       if (parsedComm?.current) {
         setCommForm({
@@ -680,6 +684,7 @@ export default function AdminDashboardPage() {
         heroBanners: parsedBanners,
         categoriesList: parsedCats,
         storefrontNotices: parsedNotices,
+        couriers: parsedCouriers,
       });
 
     } catch (err) {
@@ -829,6 +834,32 @@ export default function AdminDashboardPage() {
       loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Action failed');
+    }
+  };
+
+  const handleApproveCourier = async (courierId, courierName) => {
+    try {
+      await api.approveAdminCourier(courierId, { admin_notes: 'Approved via Admin Space' });
+      toast.success(`Courier ${courierName || ''} approved and activated successfully!`);
+      await loadAdminData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to approve courier');
+    }
+  };
+
+  const handleRejectCourier = async (courierId, courierName) => {
+    const reason = window.prompt(`Enter reason for declining ${courierName || 'this courier'}'s application:`);
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error('Rejection reason is required.');
+      return;
+    }
+    try {
+      await api.rejectAdminCourier(courierId, { reason: reason.trim() });
+      toast.info(`Courier application rejected.`);
+      await loadAdminData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to reject courier');
     }
   };
 
@@ -1450,7 +1481,10 @@ export default function AdminDashboardPage() {
   const pendingSellerRequests = sellerRequestsList.filter((r) => !r.is_authorized);
   const authorizedSellerRequests = sellerRequestsList.filter((r) => r.is_authorized);
   const pendingMfgProfiles = manufacturersList.filter((m) => m.status === 'PENDING');
-  const totalYetToApprove = pendingSellerRequests.length + pendingMfgProfiles.length;
+  const couriersList = extractList(couriers);
+  const pendingCouriers = couriersList.filter((c) => c.status === 'PENDING');
+  const approvedCouriers = couriersList.filter((c) => c.status === 'APPROVED');
+  const totalYetToApprove = pendingSellerRequests.length + pendingMfgProfiles.length + pendingCouriers.length;
 
   // New Seller Product Upload Notifications
   const recentSellerProductLogs = auditLogsList.filter((log) => log.action === 'SELLER_PRODUCT_PUBLISHED');
@@ -1777,7 +1811,14 @@ export default function AdminDashboardPage() {
         },
         { id: 'orders', label: 'Orders', icon: ShoppingBag, count: ordersList.length },
         { id: 'rewards', label: 'Wangs Rewards', icon: Sparkles },
-        { id: 'couriers', label: 'Couriers & Fleet', icon: Truck }
+        {
+          id: 'couriers',
+          label: 'Couriers & Fleet',
+          icon: Truck,
+          count: couriersList.length,
+          badge: pendingCouriers.length,
+          isAlert: pendingCouriers.length > 0
+        }
       ]
     },
     {
@@ -4207,7 +4248,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Quick Metrics (Clickable Filters) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-forest-800/80">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 border-t border-forest-800/80">
               <button
                 type="button"
                 onClick={() => setPendingTabFilter('PENDING')}
@@ -4217,9 +4258,28 @@ export default function AdminDashboardPage() {
                     : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
                 }`}
               >
-                <span className="text-[11px] text-amber-300 block font-semibold">Awaiting Authorization</span>
+                <span className="text-[11px] text-amber-300 block font-semibold">Pending Sellers</span>
                 <span className="text-2xl font-bold text-white mt-0.5 block">{pendingSellerRequests.length}</span>
-                <span className="text-[10px] text-forest-300">Immediate action needed</span>
+                <span className="text-[10px] text-forest-300">Awaiting seller authorization</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPendingTabFilter('COURIERS')}
+                className={`p-3.5 rounded-2xl text-left transition-all cursor-pointer ${
+                  pendingTabFilter === 'COURIERS'
+                    ? 'bg-purple-500/30 border-2 border-purple-400 ring-2 ring-purple-400/30'
+                    : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-amber-300 block font-semibold">Pending Couriers</span>
+                  {pendingCouriers.length > 0 && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-amber-400 text-forest-950 text-[9px] font-black animate-pulse">ACTION</span>
+                  )}
+                </div>
+                <span className="text-2xl font-bold text-white mt-0.5 block">{pendingCouriers.length}</span>
+                <span className="text-[10px] text-forest-300">{couriersList.length} total registered fleet</span>
               </button>
 
               <button
@@ -4231,7 +4291,7 @@ export default function AdminDashboardPage() {
                     : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
                 }`}
               >
-                <span className="text-[11px] text-emerald-300 block font-semibold">Authorized & Invited</span>
+                <span className="text-[11px] text-emerald-300 block font-semibold">Authorized Sellers</span>
                 <span className="text-2xl font-bold text-white mt-0.5 block">{authorizedSellerRequests.length}</span>
                 <span className="text-[10px] text-forest-300">Seller portal links sent</span>
               </button>
@@ -4259,9 +4319,9 @@ export default function AdminDashboardPage() {
                     : 'bg-forest-900/80 border border-forest-800 hover:bg-forest-800/60'
                 }`}
               >
-                <span className="text-[11px] text-cream-300 block font-semibold">Total Requests Logged</span>
-                <span className="text-2xl font-bold text-white mt-0.5 block">{sellerRequestsList.length}</span>
-                <span className="text-[10px] text-forest-300">Lifetime queue</span>
+                <span className="text-[11px] text-cream-300 block font-semibold">Total Logged</span>
+                <span className="text-2xl font-bold text-white mt-0.5 block">{sellerRequestsList.length + couriersList.length}</span>
+                <span className="text-[10px] text-forest-300">Sellers & Couriers</span>
               </button>
             </div>
           </div>
@@ -4291,9 +4351,10 @@ export default function AdminDashboardPage() {
 
             <div className="flex flex-wrap items-center gap-1.5 bg-stone-100 p-1 rounded-xl w-full md:w-auto">
               {[
-                { id: 'PENDING', label: `Pending Review (${pendingSellerRequests.length})`, isAlert: pendingSellerRequests.length > 0 },
-                { id: 'ALL', label: `All Requests (${sellerRequestsList.length})` },
-                { id: 'AUTHORIZED', label: `Authorized (${authorizedSellerRequests.length})` },
+                { id: 'PENDING', label: `Pending Sellers (${pendingSellerRequests.length})`, isAlert: pendingSellerRequests.length > 0 },
+                { id: 'COURIERS', label: `Courier Applications (${pendingCouriers.length})`, isAlert: pendingCouriers.length > 0 },
+                { id: 'ALL', label: `All Requests` },
+                { id: 'AUTHORIZED', label: `Authorized Sellers (${authorizedSellerRequests.length})` },
                 ...(pendingMfgProfiles.length > 0 ? [{ id: 'PROFILES', label: `Pending Profiles (${pendingMfgProfiles.length})`, isAlert: true }] : [])
               ].map((f) => (
                 <button
@@ -4315,7 +4376,7 @@ export default function AdminDashboardPage() {
           </div>
 
           {/* Table of Inbound Applications */}
-          {pendingTabFilter !== 'PROFILES' && (
+          {pendingTabFilter !== 'PROFILES' && pendingTabFilter !== 'COURIERS' && (
             <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
               <div className="p-4 border-b border-stone-100 flex flex-wrap items-center justify-between gap-2 bg-stone-50/60">
                 <div className="flex items-center gap-2">
@@ -4537,6 +4598,179 @@ export default function AdminDashboardPage() {
                           </td>
                         </tr>
                       ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Inbound Courier Fleet Applications (If in COURIERS tab or ALL) */}
+          {(pendingTabFilter === 'COURIERS' || pendingTabFilter === 'ALL') && (
+            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden mt-6">
+              <div className="p-4 border-b border-stone-100 flex flex-wrap items-center justify-between gap-2 bg-purple-50/50">
+                <div className="flex items-center gap-2">
+                  <Truck size={18} className="text-purple-700" />
+                  <h3 className="font-serif font-bold text-sm text-stone-900">
+                    Courier Fleet Delivery Applications
+                  </h3>
+                  <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">
+                    {couriersList.length} Total
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  {pendingCouriers.length > 0 && (
+                    <span className="text-amber-800 font-bold bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping"></span>
+                      <span>{pendingCouriers.length} Awaiting Approval</span>
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('couriers')}
+                    className="text-purple-700 hover:text-purple-900 font-bold text-xs flex items-center gap-1 cursor-pointer ml-2"
+                  >
+                    <span>Full Fleet Manager</span>
+                    <ArrowRight size={12} />
+                  </button>
+                </div>
+              </div>
+
+              {couriersList.length === 0 ? (
+                <div className="py-12 text-center text-stone-400 space-y-2">
+                  <Truck size={36} className="mx-auto text-stone-300" />
+                  <p className="font-serif font-bold text-sm text-stone-800">No registered couriers yet</p>
+                  <p className="text-xs text-stone-400">
+                    When delivery agents register at <code className="text-stone-600 font-mono">/delivery</code>, their applications appear here for review and authorization.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-stone-50/90 border-b border-stone-200 text-stone-600 uppercase text-[10px] tracking-wider font-bold">
+                      <tr>
+                        <th className="py-3 px-4 min-w-[180px]">Agent & Company</th>
+                        <th className="py-3 px-4 min-w-[200px]">Contact Info</th>
+                        <th className="py-3 px-4 min-w-[150px]">Vehicle & Hub</th>
+                        <th className="py-3 px-4 min-w-[120px]">ID Document</th>
+                        <th className="py-3 px-4 min-w-[110px]">Status</th>
+                        <th className="py-3 px-4 min-w-[180px] text-right sticky right-0 bg-stone-50 shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10">
+                          Admin Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-stone-100">
+                      {(pendingTabFilter === 'COURIERS' ? couriersList : (pendingCouriers.length > 0 ? pendingCouriers : couriersList))
+                        .filter((c) => {
+                          if (!pendingSearch) return true;
+                          const q = pendingSearch.toLowerCase();
+                          return (
+                            c.full_name?.toLowerCase().includes(q) ||
+                            c.phone_number?.toLowerCase().includes(q) ||
+                            c.email?.toLowerCase().includes(q) ||
+                            c.courier_company?.toLowerCase().includes(q) ||
+                            c.vehicle_number?.toLowerCase().includes(q) ||
+                            c.service_area_city?.toLowerCase().includes(q)
+                          );
+                        })
+                        .map((c) => (
+                          <tr key={c.id} className={`hover:bg-purple-50/30 transition-colors ${c.status === 'PENDING' ? 'bg-amber-50/25' : ''}`}>
+                            <td className="py-3.5 px-4">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-xs shrink-0 overflow-hidden">
+                                  {c.profile_photo ? (
+                                    <img src={c.profile_photo} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    c.full_name?.charAt(0) || 'C'
+                                  )}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-stone-900 text-xs block">{c.full_name}</span>
+                                  <span className="text-[10px] text-stone-500 font-mono">{c.courier_company || 'Independent'}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-[11px]">
+                              <div className="space-y-0.5">
+                                <div className="font-mono text-stone-800 font-bold">{c.phone_number}</div>
+                                <div className="text-stone-500 text-[10px] truncate max-w-[170px]">{c.email}</div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-[11px]">
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-1 font-mono text-[10px] font-bold text-stone-700">
+                                  <span className="uppercase px-1.5 py-0.2 bg-stone-100 rounded text-[9px]">{c.vehicle_type || 'BIKE'}</span>
+                                  <span>{c.vehicle_number || '—'}</span>
+                                </div>
+                                <div className="text-stone-500 text-[10px] truncate max-w-[150px]">{c.service_area_city || c.address_line1 || '—'}</div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-[11px]">
+                              {c.identity_document ? (
+                                <a
+                                  href={c.identity_document}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-bold transition-colors cursor-pointer"
+                                >
+                                  <FileText size={10} className="text-purple-600" />
+                                  <span>View Document</span>
+                                  <ExternalLink size={9} />
+                                </a>
+                              ) : (
+                                <span className="text-[10px] text-stone-400 italic">None attached</span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              {c.status === 'APPROVED' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                  <CheckCircle size={10} /> Approved
+                                </span>
+                              ) : c.status === 'PENDING' ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 animate-pulse">
+                                  <Clock size={10} /> Pending
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-700">
+                                  {c.status}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap sticky right-0 bg-white shadow-[-6px_0_10px_-4px_rgba(0,0,0,0.06)] z-10">
+                              <div className="flex items-center justify-end gap-1.5">
+                                {c.status === 'PENDING' && (
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleApproveCourier(c.id, c.full_name)}
+                                      className="px-2.5 py-1 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs shadow-xs hover:scale-102 active:scale-98 transition-all flex items-center gap-1 cursor-pointer"
+                                      title="Approve courier application and activate delivery privileges"
+                                    >
+                                      <CheckCircle size={12} />
+                                      <span>Approve & Activate</span>
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRejectCourier(c.id, c.full_name)}
+                                      className="px-2 py-1 rounded-xl bg-stone-100 hover:bg-red-50 text-stone-600 hover:text-red-700 font-bold text-xs border border-stone-200 transition-colors cursor-pointer"
+                                      title="Decline application"
+                                    >
+                                      <span>Reject</span>
+                                    </button>
+                                  </>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('couriers')}
+                                  className="p-1 text-stone-400 hover:text-purple-700 transition-colors cursor-pointer"
+                                  title="Manage in Courier Fleet Tab"
+                                >
+                                  <Eye size={13} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>

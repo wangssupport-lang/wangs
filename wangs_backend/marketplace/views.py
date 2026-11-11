@@ -1728,7 +1728,7 @@ class AdminCourierApproveView(views.APIView):
         courier.is_active = True
         courier.rejection_reason = ''
         courier.suspension_reason = ''
-        courier.admin_notes = request.data.get('notes', '').strip()
+        courier.admin_notes = (request.data.get('admin_notes') or request.data.get('notes') or '').strip()
         courier.save()
 
         courier.user.is_active = True
