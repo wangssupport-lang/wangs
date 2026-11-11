@@ -312,7 +312,6 @@ export default function ProductListPage() {
                 { label: 'All Specialties', val: '' },
                 { label: 'Non-Veg', val: 'NON_VEG' },
                 { label: 'Veg', val: 'VEG' },
-                { label: 'Veg mixed with Non-Veg', val: 'VEG_MIXED' },
               ].map((opt) => (
                 <label key={opt.val} className="flex items-center gap-2.5 cursor-pointer text-on-surface-variant hover:text-on-surface font-medium">
                   <input
@@ -500,7 +499,6 @@ export default function ProductListPage() {
                     { label: 'All Types', val: '' },
                     { label: 'Non-Veg', val: 'NON_VEG' },
                     { label: 'Veg', val: 'VEG' },
-                    { label: 'Veg Mixed', val: 'VEG_MIXED' },
                   ].map((opt) => (
                     <button
                       key={opt.val}

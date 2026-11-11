@@ -593,9 +593,10 @@ export default function ManufacturerPortalPage() {
 
   const openAddProductModal = () => {
     setEditingProductId(null);
+    const defaultCat = safeCategories.find((c) => c.slug === 'non-veg' || c.name.toLowerCase().includes('non')) || safeCategories[0];
     setNewProd({
       title: '',
-      category_id: safeCategories[0]?.id || '',
+      category_id: defaultCat?.id || safeCategories[0]?.id || '',
       short_description: '',
       description: '',
       base_price: '',
@@ -603,7 +604,7 @@ export default function ManufacturerPortalPage() {
       mrp: '',
       weight_grams: '250',
       spice_level: 'HOT',
-      dietary_type: 'NON_VEG',
+      dietary_type: defaultCat?.slug === 'veg' ? 'VEG' : 'NON_VEG',
       contains_non_veg_substance: false,
       ingredients: '',
       allergens: 'May contain traces of mustard or fermented soybeans (Axone)',
@@ -1984,8 +1985,19 @@ export default function ManufacturerPortalPage() {
                   <label className="block text-stone-700 font-medium mb-1">Category *</label>
                   <select
                     value={newProd.category_id}
-                    onChange={(e) => setNewProd({ ...newProd, category_id: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                    onChange={(e) => {
+                      const catId = e.target.value;
+                      const selectedCat = safeCategories.find((c) => String(c.id) === String(catId));
+                      const isVegCat = selectedCat ? (selectedCat.slug === 'veg' || selectedCat.name.toLowerCase() === 'veg') : false;
+                      const syncedDietary = isVegCat ? 'VEG' : 'NON_VEG';
+                      setNewProd({
+                        ...newProd,
+                        category_id: catId,
+                        dietary_type: syncedDietary,
+                        contains_non_veg_substance: false,
+                      });
+                    }}
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg text-xs"
                   >
                     {safeCategories.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
@@ -1998,53 +2010,24 @@ export default function ManufacturerPortalPage() {
                     value={newProd.dietary_type}
                     onChange={(e) => {
                       const val = e.target.value;
+                      const matchedCat = safeCategories.find((c) => (
+                        val === 'VEG'
+                          ? (c.slug === 'veg' || (c.name.toLowerCase().includes('veg') && !c.name.toLowerCase().includes('non')))
+                          : (c.slug === 'non-veg' || c.name.toLowerCase().includes('non'))
+                      ));
                       setNewProd({
                         ...newProd,
                         dietary_type: val,
-                        contains_non_veg_substance: val === 'VEG_MIXED'
+                        contains_non_veg_substance: false,
+                        category_id: matchedCat ? matchedCat.id : newProd.category_id,
                       });
                     }}
                     className="w-full px-3 py-1.5 border border-stone-200 rounded-lg text-xs"
                   >
                     <option value="NON_VEG">Non-Veg</option>
                     <option value="VEG">Veg</option>
-                    <option value="VEG_MIXED">Veg mixed with Non-Veg</option>
                   </select>
                 </div>
-
-                {(newProd.dietary_type === 'VEG' || newProd.dietary_type === 'VEG_MIXED') && (
-                  <div className="col-span-1 sm:col-span-2 p-3 bg-amber-50/90 rounded-xl border border-amber-200 text-xs">
-                    <label className="flex items-start gap-2.5 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(newProd.contains_non_veg_substance || newProd.dietary_type === 'VEG_MIXED')}
-                        onChange={(e) => {
-                          const checked = e.target.checked;
-                          setNewProd({
-                            ...newProd,
-                            contains_non_veg_substance: checked,
-                            dietary_type: checked ? 'VEG_MIXED' : 'VEG'
-                          });
-                        }}
-                        className="mt-0.5 rounded border-stone-300 text-forest-900 focus:ring-forest-800"
-                      />
-                      <div>
-                        <span className="block font-bold text-stone-900">
-                          Does this veg item contain any non-veg substance?
-                        </span>
-                        <span className="block text-[11px] text-stone-600 mt-0.5">
-                          (e.g., animal oil, pork lard, meat broth, fish sauce, or processed with meat traces)
-                        </span>
-                        {(newProd.contains_non_veg_substance || newProd.dietary_type === 'VEG_MIXED') && (
-                          <span className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-md bg-amber-200/90 text-amber-950 font-bold text-[10px]">
-                            <span className="w-2 h-2 rounded-full bg-amber-600 ring-1 ring-emerald-600" />
-                            Will be displayed as: &quot;Veg mixed with Non-Veg&quot;
-                          </span>
-                        )}
-                      </div>
-                    </label>
-                  </div>
-                )}
                 {/* Transparent Pricing Calculator */}
                 <div className="col-span-2 p-4 bg-gradient-to-br from-amber-50/80 via-emerald-50/40 to-stone-50 rounded-2xl border border-amber-200/80 space-y-3">
                   <div className="flex items-center justify-between">

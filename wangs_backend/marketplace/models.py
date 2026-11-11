@@ -197,7 +197,6 @@ class Product(models.Model):
     class DietaryType(models.TextChoices):
         VEG = 'VEG', 'Veg'
         NON_VEG = 'NON_VEG', 'Non-Veg'
-        VEG_MIXED = 'VEG_MIXED', 'Veg mixed with Non-Veg'
 
     class Status(models.TextChoices):
         PENDING = 'PENDING', 'Pending Admin Approval'
@@ -270,10 +269,8 @@ class Product(models.Model):
         )
 
     def save(self, *args, **kwargs):
-        if self.dietary_type == self.DietaryType.VEG and self.contains_non_veg_substance:
-            self.dietary_type = self.DietaryType.VEG_MIXED
-        elif self.dietary_type == self.DietaryType.VEG_MIXED:
-            self.contains_non_veg_substance = True
+        if self.contains_non_veg_substance:
+            self.dietary_type = self.DietaryType.NON_VEG
         super().save(*args, **kwargs)
 
     def __str__(self):

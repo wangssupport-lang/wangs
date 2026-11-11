@@ -264,42 +264,23 @@ class Command(BaseCommand):
                 is_default=True
             )
 
-        # 4. Categories
+        # 4. Categories (Veg and Non-Veg only)
         categories_data = [
             {
-                'name': 'Pork Pickle',
-                'slug': 'pork-pickle',
-                'description': 'Slow-cured smoked pork chunks cured in pure mustard oil and fiery chillies.',
-                'image_url': 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
-                'display_order': 1
-            },
-            {
-                'name': 'Chilli Pickle',
-                'slug': 'chilli-pickle',
-                'description': 'King Chilli (Raja Mircha) fermented and seasoned with crushed mountain peppercorns.',
-                'image_url': 'https://images.unsplash.com/photo-1588252303782-cb80119abd6d?auto=format&fit=crop&w=600&q=80',
-                'display_order': 2
-            },
-            {
-                'name': 'Bamboo Shoot Pickle',
-                'slug': 'bamboo-shoot-pickle',
-                'description': 'Tender wild bamboo shoot (Bastenga) fermented to tanginess with highland spices.',
-                'image_url': 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
-                'display_order': 3
-            },
-            {
-                'name': 'Fruit Pickle',
-                'slug': 'fruit-pickle',
-                'description': 'Sweet, sour and spicy wild apples, starfruits, and organic mountain gooseberries.',
-                'image_url': 'https://images.unsplash.com/photo-1519996529931-28324d5a630e?auto=format&fit=crop&w=600&q=80',
-                'display_order': 4
-            },
-            {
-                'name': 'Vegetarian Pickles',
-                'slug': 'vegetarian-pickles',
-                'description': 'Rich plant-based pickles crafted with fermented soya and fire-roasted garlic.',
+                'name': 'Veg',
+                'slug': 'veg',
+                'description': '100% vegetarian pickles made from indigenous chillies, bamboo shoot, and hill fruits.',
                 'image_url': 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80',
-                'display_order': 5
+                'display_order': 1,
+                'is_active': True,
+            },
+            {
+                'name': 'Non-Veg',
+                'slug': 'non-veg',
+                'description': 'Authentic artisan pickles cured with oak-smoked pork, beef, and hill prawns.',
+                'image_url': 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+                'display_order': 2,
+                'is_active': True,
             },
         ]
 
@@ -307,6 +288,13 @@ class Command(BaseCommand):
         for cdata in categories_data:
             cat, _ = Category.objects.update_or_create(slug=cdata['slug'], defaults=cdata)
             cat_objs[cat.slug] = cat
+        # Aliases for backward-compatibility with product seeding
+        cat_objs['pork-pickle'] = cat_objs['non-veg']
+        cat_objs['smoked-meat-pickle'] = cat_objs['non-veg']
+        cat_objs['chilli-pickle'] = cat_objs['veg']
+        cat_objs['bamboo-shoot-pickle'] = cat_objs['veg']
+        cat_objs['fruit-pickle'] = cat_objs['veg']
+        cat_objs['vegetarian-pickles'] = cat_objs['veg']
 
         # 5. Products
         products_data = [
