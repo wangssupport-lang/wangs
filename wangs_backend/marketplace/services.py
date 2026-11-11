@@ -317,6 +317,14 @@ class PaymentService:
             details={'payment_id': tx.transaction_id, 'amount': str(order.total_amount)}
         )
 
+        # Notify each manufacturer of their particular product(s) ordered
+        try:
+            from .resend_service import send_order_notifications_to_manufacturers
+            send_order_notifications_to_manufacturers(order)
+        except Exception as exc:
+            import logging
+            logging.getLogger('marketplace.orders').warning("Could not dispatch manufacturer order notifications: %s", exc)
+
         return order, tx
 
 

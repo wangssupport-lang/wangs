@@ -2049,3 +2049,84 @@ class WangsCourierSystemTests(TestCase):
             self.assertEqual(called_profile.id, profile.id)
             self.assertEqual(called_profile.email, 'driver@wangs.in')
 
+    def test_manufacturer_receives_email_for_ordered_products(self):
+        from unittest.mock import patch
+        from marketplace.resend_service import send_order_notifications_to_manufacturers
+
+        # Manufacturer A
+        mfg_user_a = User.objects.create_user(username='chef_akamla', email='akamla@wangs.in', password='pw', role=User.Role.MANUFACTURER)
+        mfg_a = ManufacturerProfile.objects.create(
+            user=mfg_user_a, business_name='Akamla Foods', slug='akamla-foods',
+            contact_email='akamla@wangs.in', contact_phone='9862111111', status=ManufacturerProfile.Status.APPROVED
+        )
+        prod_a = Product.objects.create(
+            manufacturer=mfg_a, category=self.cat, title='Akamla King Chilli',
+            slug='akamla-king-chilli', price=Decimal('200.00'), weight_grams=250, stock_quantity=50,
+            status=Product.Status.APPROVED
+        )
+
+        # Manufacturer B
+        mfg_user_b = User.objects.create_user(username='chef_naga', email='naga@wangs.in', password='pw', role=User.Role.MANUFACTURER)
+        mfg_b = ManufacturerProfile.objects.create(
+            user=mfg_user_b, business_name='Naga Heritage Kitchen', slug='naga-heritage',
+            contact_email='naga@wangs.in', contact_phone='9862222222', status=ManufacturerProfile.Status.APPROVED
+        )
+        prod_b = Product.objects.create(
+            manufacturer=mfg_b, category=self.cat, title='Smoked Pork Pickle',
+            slug='smoked-pork-pickle', price=Decimal('350.00'), weight_grams=300, stock_quantity=50,
+            status=Product.Status.APPROVED
+        )
+
+        # Customer adds both items to cart
+        cart = Cart.objects.create(user=self.customer)
+        item1 = CartItem.objects.create(cart=cart, product=prod_a, quantity=2) # 2 * 200 = 400
+        item2 = CartItem.objects.create(cart=cart, product=prod_b, quantity=1) # 1 * 350 = 350
+
+        # Create Order
+        order = OrderService.create_order_from_cart(
+            user=self.customer,
+            customer_details={'name': 'Vituo Rutsa', 'email': 'vituo@wangs.in', 'phone': '9862333333'},
+            shipping_details={'address_line1': 'Midland', 'city': 'Kohima', 'state': 'Nagaland', 'postal_code': '797001'},
+            cart_items=[item1, item2],
+            payment_method='RAZORPAY_TEST'
+        )
+
+        with patch('marketplace.resend_service.dispatch_email') as mock_dispatch:
+            mock_dispatch.return_value = (True, {'provider': 'MOCK_RELAY'})
+
+            # Confirm payment which dispatches order notifications
+            PaymentService.verify_and_confirm_payment(
+                order=order,
+                payment_id='pay_test_mfg_notify',
+                razorpay_order_id='order_test_mfg',
+                signature='sig_test'
+            )
+
+            # Both manufacturers must receive an email (2 dispatch calls)
+            self.assertEqual(mock_dispatch.call_count, 2)
+
+            dispatched_emails = [call.args[0] for call in mock_dispatch.call_args_list]
+            self.assertIn('akamla@wangs.in', dispatched_emails)
+            self.assertIn('naga@wangs.in', dispatched_emails)
+
+            # Check Manufacturer A's email content
+            call_a = next(c for c in mock_dispatch.call_args_list if c.args[0] == 'akamla@wangs.in')
+            subject_a, html_a = call_a.args[1], call_a.args[2]
+            self.assertIn(order.order_number, subject_a)
+            self.assertIn('Akamla King Chilli', html_a)
+            self.assertNotIn('Smoked Pork Pickle', html_a) # Must NOT leak Manufacturer B's product
+            self.assertIn('Akamla Foods', html_a)
+
+            # Check Manufacturer B's email content
+            call_b = next(c for c in mock_dispatch.call_args_list if c.args[0] == 'naga@wangs.in')
+            subject_b, html_b = call_b.args[1], call_b.args[2]
+            self.assertIn(order.order_number, subject_b)
+            self.assertIn('Smoked Pork Pickle', html_b)
+            self.assertNotIn('Akamla King Chilli', html_b) # Must NOT leak Manufacturer A's product
+            self.assertIn('Naga Heritage Kitchen', html_b)
+
+            # Idempotency: calling again must not send duplicate emails
+            mock_dispatch.reset_mock()
+            send_order_notifications_to_manufacturers(order)
+            self.assertEqual(mock_dispatch.call_count, 0)
+

@@ -105,6 +105,16 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = ('order_number', 'customer_name', 'total_amount', 'status', 'payment_status', 'created_at')
     list_filter = ('status', 'payment_status', 'created_at')
     search_fields = ('order_number', 'customer_name', 'customer_email', 'customer_phone')
+    actions = ['notify_manufacturers_action']
+
+    @admin.action(description="Notify product manufacturer(s) via email for selected orders")
+    def notify_manufacturers_action(self, request, queryset):
+        from .resend_service import send_order_notifications_to_manufacturers
+        count = 0
+        for order in queryset:
+            send_order_notifications_to_manufacturers(order, request=request)
+            count += 1
+        self.message_user(request, f"Manufacturer order notification emails dispatched for {count} order(s).")
 
 admin.site.register(Category)
 admin.site.register(Address)

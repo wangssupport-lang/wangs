@@ -1088,6 +1088,15 @@ class CreateOrderView(views.APIView):
             cart.items.all().delete()
             payment_intent = PaymentService.create_mock_or_razorpay_order(order)
 
+            if order.payment_method == 'COD':
+                order.status = Order.Status.CONFIRMED
+                order.save(update_fields=['status'])
+                try:
+                    from .resend_service import send_order_notifications_to_manufacturers
+                    send_order_notifications_to_manufacturers(order, request=request)
+                except Exception as exc:
+                    logger.warning("Could not dispatch manufacturer order notification for COD order: %s", exc)
+
             return Response({
                 'order': OrderSerializer(order).data,
                 'payment_intent': payment_intent,
@@ -2611,6 +2620,14 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
                 target_id=str(order.id),
                 details={'order_number': order.order_number, 'new_status': new_status}
             )
+
+            if new_status in (Order.Status.CONFIRMED, Order.Status.DISPATCHED):
+                try:
+                    from .resend_service import send_order_notifications_to_manufacturers
+                    send_order_notifications_to_manufacturers(order, request=request)
+                except Exception as exc:
+                    logger.warning("Could not dispatch manufacturer order notification on status change: %s", exc)
+
             return Response(OrderSerializer(order).data)
         return Response({'detail': 'Invalid order status'}, status=400)
 

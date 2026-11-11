@@ -1303,3 +1303,266 @@ def send_admin_new_courier_registration_email(applicant_data: dict):
     </html>
     """
     return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_manufacturer_order_notification(order, manufacturer_profile, items_for_mfg, request=None, site_url: str = None):
+    """
+    Sends an email notification to a specific manufacturer detailing the particular product(s)
+    ordered by a customer, along with customer shipping destination, financial earnings breakdown,
+    and packaging/dispatch instructions.
+    """
+    recipient_email = (
+        manufacturer_profile.contact_email or 
+        (manufacturer_profile.user.email if manufacturer_profile.user else '')
+    ).strip()
+    
+    if not recipient_email:
+        return False, {"error": f"No contact email found for manufacturer '{manufacturer_profile.business_name}'."}
+
+    business_name = manufacturer_profile.business_name or 'Artisan Producer'
+    base_url = (site_url or get_site_url(request)).rstrip('/')
+    seller_portal_url = f"{base_url}/manufacturer"
+    
+    # Calculate totals for THIS manufacturer's products only
+    total_qty = sum(item.quantity for item in items_for_mfg)
+    total_mfg_sales = sum(item.subtotal for item in items_for_mfg)
+    total_mfg_payout = sum(item.manufacturer_payout for item in items_for_mfg)
+    total_commission = sum(item.commission_amount for item in items_for_mfg)
+    
+    # Subject line
+    if len(items_for_mfg) == 1:
+        subject = f"🛒 New Order for '{items_for_mfg[0].product_title}' (#{order.order_number}) - Wangs"
+    else:
+        subject = f"🛒 New Order #{order.order_number} ({total_qty} items) for {business_name} - Wangs"
+
+    order_date = order.created_at.strftime('%d %B %Y, %I:%M %p') if order.created_at else 'Just now'
+    payment_status_display = 'Paid & Confirmed' if order.payment_status == 'PAID' else (
+        'Cash on Delivery' if order.payment_method == 'COD' else order.payment_status
+    )
+
+    # Build item rows HTML
+    item_rows_html = ""
+    for item in items_for_mfg:
+        thumb_html = ""
+        try:
+            if item.product:
+                img = item.product.images.filter(is_primary=True).first() or item.product.images.first()
+                if img and img.image_url:
+                    thumb_html = f'<img src="{img.image_url}" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:8px;border:1px solid #e7dfd4;margin-right:12px;display:inline-block;vertical-align:middle;" />'
+        except Exception:
+            pass
+
+        item_rows_html += f"""
+        <tr style="border-bottom:1px solid #f0ede6;">
+          <td style="padding:14px 12px;font-size:13px;color:#1c1917;vertical-align:middle;">
+            <div style="display:flex;align-items:center;">
+              {thumb_html}
+              <div>
+                <strong style="color:#0e3820;display:block;font-size:13px;">{item.product_title}</strong>
+                <span style="font-size:11px;color:#78716c;">Pack: {item.weight_grams}g &middot; ₹{item.unit_price} each</span>
+              </div>
+            </div>
+          </td>
+          <td style="padding:14px 12px;font-size:13px;text-align:center;font-weight:700;color:#1c1917;vertical-align:middle;">
+            {item.quantity}
+          </td>
+          <td style="padding:14px 12px;font-size:13px;text-align:right;font-family:monospace;font-weight:700;color:#1c1917;vertical-align:middle;">
+            ₹{item.subtotal}
+          </td>
+          <td style="padding:14px 12px;font-size:13px;text-align:right;font-family:monospace;font-weight:700;color:#166534;background:#f0fdf4;vertical-align:middle;">
+            ₹{item.manufacturer_payout}
+          </td>
+        </tr>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>{subject}</title>
+    </head>
+    <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f5f3ef;padding:24px;margin:0;color:#292524;">
+      <div style="max-width:620px;margin:0 auto;background:#ffffff;border-radius:20px;border:1px solid #e7dfd4;padding:36px;box-shadow:0 4px 20px rgba(0,0,0,0.04);">
+        
+        <!-- Header -->
+        <div style="text-align:center;border-bottom:1px solid #f0ede6;padding-bottom:24px;">
+          <h1 style="color:#0e3820;font-size:22px;margin:0 0 8px;letter-spacing:-0.5px;">⚡ Wangs Artisanal Marketplace</h1>
+          <span style="display:inline-block;background:#dcfce7;color:#166534;font-size:12px;font-weight:700;padding:6px 14px;border-radius:999px;border:1px solid #bbf7d0;">
+            ✓ New Customer Order &middot; {payment_status_display}
+          </span>
+        </div>
+
+        <!-- Greeting & Order Overview -->
+        <div style="margin-top:28px;">
+          <p style="font-size:16px;line-height:1.6;margin:0 0 10px;">
+            Hello <strong>{business_name}</strong>,
+          </p>
+          <p style="font-size:14px;line-height:1.7;color:#57534e;margin:0 0 20px;">
+            A customer has just placed an order for your handcrafted product(s) on Wangs! Please review your items below and begin preparing them for packaging.
+          </p>
+        </div>
+
+        <!-- Order Summary Card -->
+        <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:18px 20px;margin:20px 0;">
+          <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <tr>
+              <td style="padding:4px 0;color:#78716c;width:38%;">Order Number:</td>
+              <td style="padding:4px 0;font-weight:700;color:#0e3820;font-family:monospace;font-size:14px;">#{order.order_number}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;color:#78716c;">Order Placed:</td>
+              <td style="padding:4px 0;font-weight:600;color:#1c1917;">{order_date}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;color:#78716c;">Payment Method:</td>
+              <td style="padding:4px 0;font-weight:600;color:#1c1917;">{order.payment_method} ({payment_status_display})</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;color:#78716c;">Deliver To:</td>
+              <td style="padding:4px 0;font-weight:600;color:#1c1917;">{order.customer_name} &middot; {order.shipping_city}, {order.shipping_state} ({order.shipping_postal_code})</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Ordered Products Table (Specific to THIS manufacturer) -->
+        <div style="margin:24px 0;">
+          <h3 style="font-size:13px;color:#0e3820;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">
+            Your Ordered Products ({total_qty} units)
+          </h3>
+          
+          <table style="width:100%;border-collapse:collapse;border:1px solid #f0ede6;border-radius:12px;overflow:hidden;">
+            <thead>
+              <tr style="background:#f5f3ef;border-bottom:2px solid #e7dfd4;font-size:11px;text-transform:uppercase;color:#78716c;letter-spacing:0.5px;">
+                <th style="padding:10px 12px;text-align:left;">Product</th>
+                <th style="padding:10px 12px;text-align:center;">Qty</th>
+                <th style="padding:10px 12px;text-align:right;">Subtotal</th>
+                <th style="padding:10px 12px;text-align:right;background:#e8f7ec;color:#166534;">Your Payout</th>
+              </tr>
+            </thead>
+            <tbody>
+              {item_rows_html}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Financial Payout Breakdown -->
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:18px 20px;margin:20px 0;">
+          <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <tr>
+              <td style="padding:4px 0;color:#166534;">Your Gross Item Sales:</td>
+              <td style="padding:4px 0;text-align:right;font-family:monospace;font-weight:700;color:#166534;">₹{total_mfg_sales}</td>
+            </tr>
+            <tr>
+              <td style="padding:4px 0;color:#166534;">Platform Fee & Commission:</td>
+              <td style="padding:4px 0;text-align:right;font-family:monospace;color:#166534;">- ₹{total_commission}</td>
+            </tr>
+            <tr style="border-top:1px dashed #bbf7d0;">
+              <td style="padding:8px 0 4px;font-size:14px;font-weight:800;color:#0e3820;">Your Net Producer Payout:</td>
+              <td style="padding:8px 0 4px;text-align:right;font-family:monospace;font-size:16px;font-weight:900;color:#0e3820;">₹{total_mfg_payout}</td>
+            </tr>
+          </table>
+          <p style="font-size:11px;color:#166534;margin:8px 0 0;font-style:italic;">
+            Payout will be automatically settled into your registered bank account per standard settlement cycle.
+          </p>
+        </div>
+
+        <!-- Packing & Fulfillment Instructions -->
+        <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:20px;margin:24px 0;">
+          <h3 style="font-size:13px;color:#0e3820;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;">📦 Next Steps to Fulfill</h3>
+          <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:#57534e;">
+            <li>Package the requested jar(s)/pack(s) securely with tamper-evident seal.</li>
+            <li>Sign in to your <a href="{seller_portal_url}" style="color:#0e3820;font-weight:700;text-decoration:underline;">Seller Portal</a> to view and update the order status to <strong>Packed</strong>.</li>
+            <li>A Wangs Express courier partner will arrive for parcel pickup and scan the delivery QR.</li>
+          </ol>
+        </div>
+
+        <!-- Call to Action -->
+        <div style="text-align:center;margin:32px 0 24px;">
+          <a href="{seller_portal_url}" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:14px 36px;border-radius:12px;box-shadow:0 2px 8px rgba(14,56,32,0.25);">
+            Open Seller Portal & Manage Order &rarr;
+          </a>
+        </div>
+
+        <p style="font-size:12px;color:#a8a29e;text-align:center;margin:28px 0 0;line-height:1.5;">
+          Wangs Artisanal Food Marketplace &middot; Kohima, Nagaland &middot; Need help? Contact <a href="mailto:wangssupport@gmail.com" style="color:#78716c;text-decoration:underline;">wangssupport@gmail.com</a>
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"[WANGS MANUFACTURER ORDER EMAIL DISPATCH]")
+    print(f"Recipient:      {recipient_email}")
+    print(f"Manufacturer:   {business_name}")
+    print(f"Order:          #{order.order_number} ({total_qty} items)")
+    print(f"Gross / Payout: ₹{total_mfg_sales} / ₹{total_mfg_payout}")
+    print(f"==========================================\n")
+
+    return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_order_notifications_to_manufacturers(order, request=None, site_url: str = None):
+    """
+    Groups all items in the given order by their manufacturer,
+    and dispatches an email to each manufacturer for their particular ordered product(s).
+    Uses AuditLog for idempotency to avoid sending duplicate emails for the same order.
+    """
+    from .models import AuditLog
+
+    # Group items by manufacturer
+    items = order.items.select_related('manufacturer', 'manufacturer__user', 'product').all()
+    mfg_items_map = {}
+    for item in items:
+        if not item.manufacturer:
+            continue
+        mfg_id = item.manufacturer.id
+        if mfg_id not in mfg_items_map:
+            mfg_items_map[mfg_id] = {
+                'profile': item.manufacturer,
+                'items': []
+            }
+        mfg_items_map[mfg_id]['items'].append(item)
+
+    results = {}
+    for mfg_id, data in mfg_items_map.items():
+        profile = data['profile']
+        mfg_items = data['items']
+
+        audit_key = f"{order.order_number}_{profile.id}"
+        # Prevent duplicate notifications if already sent
+        if AuditLog.objects.filter(action='MANUFACTURER_ORDER_EMAIL_SENT', target_id=audit_key).exists():
+            results[profile.business_name] = {'sent': True, 'skipped': 'Already sent'}
+            continue
+
+        try:
+            sent, info = send_manufacturer_order_notification(
+                order=order,
+                manufacturer_profile=profile,
+                items_for_mfg=mfg_items,
+                request=request,
+                site_url=site_url
+            )
+            results[profile.business_name] = {'sent': sent, 'info': info}
+
+            if sent:
+                AuditLog.objects.create(
+                    user=profile.user,
+                    action='MANUFACTURER_ORDER_EMAIL_SENT',
+                    target_model='Order',
+                    target_id=audit_key,
+                    details={
+                        'order_number': order.order_number,
+                        'manufacturer_id': profile.id,
+                        'business_name': profile.business_name,
+                        'items_count': len(mfg_items),
+                        'recipient_email': profile.contact_email or (profile.user.email if profile.user else '')
+                    }
+                )
+        except Exception as exc:
+            logger.exception("Failed to dispatch order notification to manufacturer %s: %s", profile.business_name, exc)
+            results[profile.business_name] = {'sent': False, 'error': str(exc)}
+
+    return results
