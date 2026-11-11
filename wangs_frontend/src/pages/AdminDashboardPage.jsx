@@ -7,7 +7,8 @@ import {
   Mail, Phone, MapPin, Award, Clock, Trash2, ShieldAlert, CheckCircle2, X, Ban, ShieldCheck,
   Home, LogOut, Download, Copy, Check, Landmark,
   Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags,
-  Megaphone, Bell, Menu, ChevronDown, ShoppingBag, BarChart3, Activity
+  Megaphone, Bell, Menu, ChevronDown, ShoppingBag, BarChart3, Activity,
+  RotateCcw
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
