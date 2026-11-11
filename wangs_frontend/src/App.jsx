@@ -71,7 +71,7 @@ function AppLayout() {
   const isAdminRoute =
     location.pathname.startsWith('/wangsadminspace') ||
     location.pathname.startsWith('/wangadminspace');
-  const isDeliveryRoute = location.pathname.startsWith('/delivery');
+  const isDeliveryRoute = location.pathname.startsWith('/delivery') || location.pathname.startsWith('/courier');
 
   return (
     <div className={`min-h-screen flex flex-col bg-background text-on-surface selection:bg-primary selection:text-white ${isAdminRoute ? 'pb-0' : isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
@@ -99,9 +99,11 @@ function AppLayout() {
               <Route path="/rewards/scan" element={<RewardsScanPage />} />
               <Route path="/rewards/verify/:token" element={<RewardsScanPage />} />
 
-              {/* Delivery Courier Portal - Accessible EXCLUSIVELY via /delivery */}
+              {/* Delivery Courier Portal - Accessible via /delivery and /courier */}
               <Route path="/delivery" element={<DeliveryPage />} />
               <Route path="/delivery/:orderNumber" element={<DeliveryPage />} />
+              <Route path="/courier" element={<Navigate to="/delivery" replace />} />
+              <Route path="/courier/:orderNumber" element={<DeliveryPage />} />
 
               {/* Manufacturer / Seller Portal */}
               <Route path="/manufacturer" element={<ManufacturerPortalPage />} />
