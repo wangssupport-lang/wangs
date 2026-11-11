@@ -577,27 +577,75 @@ class RewardService:
     @transaction.atomic
     def verify_and_claim_customer_qr(token, customer_user, ip_address=None, user_agent=''):
         """
-        Validates token format, checks if revoked, verifies ownership against the logged-in customer,
-        and triggers delivery confirmation and reward awarding.
+        Validates token or order unboxing link, checks if revoked, verifies ownership against
+        the logged-in customer, and triggers delivery confirmation and reward awarding.
+        Accepts:
+        - Direct unit QR token: WNG-QR-xxxx
+        - URL with token parameter: https://wangs.in/rewards/scan?token=xxxx
+        - URL with unboxing parameter: https://wangs.in/account?unboxing=WNG-xxxx
+        - URL with order parameter: https://wangs.in/delivery?order=WNG-xxxx
+        - Order number: WNG-20261111-xxxx
+        - Unit UID: WNG-U-xxxx
         """
-        clean_token = token.strip()
-        if 'token=' in clean_token:
-            clean_token = clean_token.split('token=')[-1].split('&')[0]
+        import re
+        clean_input = (token or '').strip()
+        if not clean_input:
+            raise ValueError("QR code token or scanned link is required.")
 
+        clean_token = clean_input
+        if 'token=' in clean_input:
+            clean_token = clean_input.split('token=')[-1].split('&')[0].strip()
+
+        # 1. Match direct ProductQRCode token
         qr = ProductQRCode.objects.select_related('unit', 'unit__order', 'unit__customer').filter(token=clean_token).first()
+
+        # 2. If not found by direct token, check for Order Number or unboxing/order link
+        if not qr:
+            order_number = ''
+            if 'unboxing=' in clean_input:
+                order_number = clean_input.split('unboxing=')[-1].split('&')[0].strip()
+            elif 'order=' in clean_input:
+                order_number = clean_input.split('order=')[-1].split('&')[0].strip()
+            else:
+                m = re.search(r'(WNG-\d{8}-[A-Za-z0-9]+)', clean_input, re.IGNORECASE)
+                if m:
+                    order_number = m.group(1).upper()
+
+            if order_number:
+                order = Order.objects.filter(order_number__iexact=order_number).first()
+                if order:
+                    RewardService.ensure_order_units_and_qrs(order)
+                    # Find first unclaimed/undelivered unit with a QR code
+                    unclaimed_unit = order.units.select_related('qr_code', 'order', 'customer').filter(is_delivered=False).first()
+                    if unclaimed_unit and hasattr(unclaimed_unit, 'qr_code'):
+                        qr = unclaimed_unit.qr_code
+                    else:
+                        first_unit = order.units.select_related('qr_code', 'order', 'customer').first()
+                        if first_unit and hasattr(first_unit, 'qr_code'):
+                            qr = first_unit.qr_code
+
+        # 3. If still not found, check for unit UID (WNG-U-...)
+        if not qr and 'WNG-U-' in clean_input.upper():
+            m = re.search(r'(WNG-U-[A-Za-z0-9\-]+)', clean_input, re.IGNORECASE)
+            if m:
+                unit_uid = m.group(1).upper()
+                unit = OrderUnit.objects.select_related('qr_code', 'order', 'customer').filter(unit_uid__iexact=unit_uid).first()
+                if unit and hasattr(unit, 'qr_code'):
+                    qr = unit.qr_code
+
         if not qr:
             SuspiciousScanLog.objects.create(
-                token_attempted=clean_token[:100],
+                token_attempted=clean_input[:100],
                 user=customer_user if (customer_user and customer_user.is_authenticated) else None,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                reason="Non-existent QR token scanned"
+                reason="Non-existent QR token or order identifier scanned"
             )
-            raise ValueError("Invalid QR code. This token does not match any product unit in the Wangs registry.")
+            raise ValueError("Invalid QR code or order link. This code does not match any product in the Wangs registry.")
 
         if qr.is_revoked:
             SuspiciousScanLog.objects.create(
-                token_attempted=clean_token[:100],
+                token_attempted=clean_input[:100],
                 user=customer_user if (customer_user and customer_user.is_authenticated) else None,
                 ip_address=ip_address,
                 user_agent=user_agent,
@@ -614,12 +662,21 @@ class RewardService:
         if customer_user and customer_user.is_authenticated:
             if unit.customer_id == customer_user.id or order.user_id == customer_user.id:
                 is_owner = True
-            elif order.customer_email and order.customer_email.strip().lower() == customer_user.email.strip().lower():
+            elif order.customer_email and customer_user.email and order.customer_email.strip().lower() == customer_user.email.strip().lower():
                 is_owner = True
+            elif order.customer_phone and getattr(customer_user, 'phone_number', None) and order.customer_phone.replace(' ', '').replace('-', '') == customer_user.phone_number.replace(' ', '').replace('-', ''):
+                is_owner = True
+            elif customer_user.is_superuser or customer_user.role == 'ADMIN':
+                is_owner = True
+            elif order.user_id is None:
+                # Guest order being claimed by authenticated customer
+                is_owner = True
+                unit.customer = customer_user
+                unit.save(update_fields=['customer'])
 
         if not is_owner:
             SuspiciousScanLog.objects.create(
-                token_attempted=clean_token[:100],
+                token_attempted=clean_input[:100],
                 user=customer_user if (customer_user and customer_user.is_authenticated) else None,
                 ip_address=ip_address,
                 user_agent=user_agent,

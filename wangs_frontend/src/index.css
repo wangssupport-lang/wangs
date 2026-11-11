@@ -356,3 +356,18 @@
     visibility: hidden !important;
   }
 }
+
+@keyframes scanSweep {
+  0% {
+    top: 5%;
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    opacity: 0.8;
+  }
+}
+

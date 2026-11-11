@@ -1756,6 +1756,27 @@ class WangsRewardsSystemTests(TestCase):
         self.assertEqual(scan_resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("revoked", scan_resp.data['detail'])
 
+    def test_claim_reward_via_unboxing_url_and_order_number(self):
+        """Customer can scan or submit shipping parcel QR link or order number to claim reward"""
+        order = self._create_test_order(self.customer1, [(self.product1, 1)])
+        unit = order.units.first()
+
+        self.client.force_authenticate(user=self.customer1)
+
+        # 1. Claim using full parcel label unboxing URL
+        unboxing_url = f"https://wangs.in/account?unboxing={order.order_number}"
+        resp = self.client.post('/api/rewards/scan/', {'token': unboxing_url}, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp.data['success'])
+        self.assertTrue(resp.data['reward_awarded'])
+        self.assertEqual(resp.data['order_number'], order.order_number)
+
+        # 2. Scanning again returns already_claimed=True with product details
+        resp2 = self.client.post('/api/rewards/scan/', {'token': order.order_number}, format='json')
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp2.data['already_claimed'])
+        self.assertEqual(resp2.data['product_name'], self.product1.title)
+
 
 class WangsCourierSystemTests(TestCase):
     def setUp(self):

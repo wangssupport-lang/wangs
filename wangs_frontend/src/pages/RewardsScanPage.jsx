@@ -11,7 +11,7 @@ import ScanAndEarnModal from '../components/ScanAndEarnModal';
 
 export default function RewardsScanPage() {
   const [searchParams] = useSearchParams();
-  const rawToken = searchParams.get('token') || '';
+  const rawToken = searchParams.get('token') || searchParams.get('unboxing') || searchParams.get('order') || '';
   const navigate = useNavigate();
   const toast = useToast();
   const { user, requireAuth } = useAuth();
@@ -23,10 +23,15 @@ export default function RewardsScanPage() {
   const [showScannerModal, setShowScannerModal] = useState(false);
 
   const cleanToken = (raw) => {
-    let t = (raw || '').trim();
-    if (t.includes('token=')) {
-      t = t.split('token=')[1].split('&')[0];
-    }
+    if (!raw) return '';
+    let t = raw.trim();
+    if (t.includes('unboxing=')) return t.split('unboxing=')[1].split('&')[0].trim();
+    if (t.includes('token=')) return t.split('token=')[1].split('&')[0].trim();
+    if (t.includes('order=')) return t.split('order=')[1].split('&')[0].trim();
+    const matchOrder = t.match(/(WNG-\d{8}-[A-Za-z0-9]+)/i);
+    if (matchOrder) return matchOrder[1].toUpperCase();
+    const matchToken = t.match(/(WNG-QR-[A-Za-z0-9_\-]+)/i);
+    if (matchToken) return matchToken[1];
     return t;
   };
 

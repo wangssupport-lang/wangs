@@ -121,6 +121,7 @@ export default function CustomerAccountPage() {
   const [addresses, setAddresses] = useState([]);
   const [rewardWallet, setRewardWallet] = useState(null);
   const [showScanModal, setShowScanModal] = useState(false);
+  const [autoClaimToken, setAutoClaimToken] = useState('');
   const [loading, setLoading] = useState(true);
   const [copiedAwb, setCopiedAwb] = useState(null);
   const [trackingModalOrder, setTrackingModalOrder] = useState(null);
@@ -172,6 +173,15 @@ export default function CustomerAccountPage() {
       return;
     }
     loadData();
+
+    // Check if landing with an unboxing, scan, or token query param
+    const params = new URLSearchParams(window.location.search);
+    const unboxingParam = params.get('unboxing') || params.get('token') || params.get('scan');
+    if (unboxingParam) {
+      setAutoClaimToken(unboxingParam);
+      setShowScanModal(true);
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, [user, authLoading]);
 
   const handleAddAddress = async (e) => {
@@ -1337,7 +1347,11 @@ export default function CustomerAccountPage() {
 
       <ScanAndEarnModal
         isOpen={showScanModal}
-        onClose={() => setShowScanModal(false)}
+        initialToken={autoClaimToken}
+        onClose={() => {
+          setShowScanModal(false);
+          setAutoClaimToken('');
+        }}
         onSuccess={loadData}
       />
     </div>
