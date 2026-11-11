@@ -1375,12 +1375,12 @@ export default function DeliveryPage() {
                 ))}
               </div>
 
-              {/* Fragile & Packaging Advisory */}
-              <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-950 flex items-center gap-2.5">
-                <AlertTriangle size={18} className="text-amber-600 shrink-0" />
+              {/* Packaging Advisory */}
+              <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-[11px] text-stone-800 flex items-center gap-2.5">
+                <Package size={18} className="text-forest-800 shrink-0" />
                 <div>
-                  <span className="font-bold uppercase tracking-wider">Fragile Glass Jars: </span>
-                  <span>Hand-crafted artisanal pickle batch submerged in edible mustard oil. Keep upright and verify seal intact upon customer handoff.</span>
+                  <span className="font-bold uppercase tracking-wider text-forest-950">Food Package: </span>
+                  <span>Authentic artisanal food package. Handle with care and verify tamper-evident seal is intact upon customer handoff.</span>
                 </div>
               </div>
             </div>

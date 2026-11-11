@@ -320,7 +320,7 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
           </div>
           <h3 className="font-serif font-bold text-xl text-white">Scan &amp; Earn Credits</h3>
           <p className="text-xs text-red-100 mt-1 leading-relaxed">
-            Scan the package QR code printed on your parcel label or jar seal to confirm delivery and earn 1 Wangs Credit.
+            Scan the package QR code printed on your parcel label or packaging seal to confirm delivery and earn 1 Wangs Credit.
           </p>
         </div>
 
@@ -527,7 +527,7 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
                   ) : (
                     <div className="flex items-center justify-between text-xs text-stone-500 pt-1">
                       <span className="text-[11px]">
-                        Point at QR code on parcel label or jar seal.
+                        Point at QR code on parcel label or package seal.
                       </span>
 
                       {/* Photo Upload Fallback */}

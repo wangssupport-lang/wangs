@@ -2545,7 +2545,7 @@ export default function ManufacturerPortalPage() {
                     <tr>
                       <td className="p-2.5">
                         <p className="font-bold text-stone-900">{selectedParcelOrder.product_title}</p>
-                        <p className="text-[10px] text-stone-500">Sealed Food Jar · Artisanal Ferment</p>
+                        <p className="text-[10px] text-stone-500">Authentic Food · Sealed Packaging</p>
                       </td>
                       <td className="p-2.5 text-center font-mono text-stone-700">
                         {selectedParcelOrder.weight_grams}g
@@ -2609,18 +2609,9 @@ export default function ManufacturerPortalPage() {
                       Scan to Verify Seal &amp; Earn Rewards
                     </p>
                     <p className="text-[9px] text-stone-600 leading-snug">
-                      Scan with your phone camera upon unboxing to verify jar seal authenticity &amp; claim 1 Wangs Credit.
+                      Scan with your phone camera upon unboxing to verify package seal authenticity &amp; claim 1 Wangs Credit.
                     </p>
                   </div>
-                </div>
-              </div>
-
-              {/* Fragile & Natural Ferment Advisory */}
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-300 text-[11px] text-amber-950 flex items-center gap-2.5">
-                <AlertTriangle size={20} className="text-amber-600 shrink-0" />
-                <div>
-                  <span className="font-black uppercase tracking-wide">FRAGILE / GLASS JARS: </span>
-                  <span>Contains traditional cured ferments submerged in edible mustard oil. Keep upright. Handle with care during transit.</span>
                 </div>
               </div>
 
