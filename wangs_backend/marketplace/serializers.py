@@ -629,6 +629,16 @@ class ProductSerializer(serializers.ModelSerializer):
                 opt_bytes = raw_bytes
                 result_uri = data_uri
 
+            # If Cloudinary is configured, upload directly to Cloudinary and return the permanent HTTPS URL
+            try:
+                from .cloudinary_service import upload_image_to_cloudinary, is_cloudinary_configured
+                if is_cloudinary_configured():
+                    cloud_url = upload_image_to_cloudinary(opt_bytes or raw_bytes, folder=f"wangs/{folder}")
+                    if cloud_url:
+                        return cloud_url
+            except Exception as c_exc:
+                pass
+
             # Also write to local MEDIA_ROOT so disk file /media/products/... is created if supported
             try:
                 filename = f"{uuid.uuid4().hex[:16]}.jpg"
@@ -915,12 +925,41 @@ class HeroBannerSerializer(serializers.ModelSerializer):
         ]
 
     def get_effective_image_url(self, obj):
+        if obj.image_url and obj.image_url.startswith('https://res.cloudinary.com'):
+            return obj.image_url
         if obj.image:
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return obj.image_url or ''
+
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        self._sync_cloudinary(instance)
+        return instance
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        self._sync_cloudinary(instance)
+        return instance
+
+    def _sync_cloudinary(self, instance):
+        try:
+            from .cloudinary_service import upload_image_to_cloudinary, is_cloudinary_configured
+            if is_cloudinary_configured():
+                if instance.image:
+                    cloud_url = upload_image_to_cloudinary(instance.image.path, folder="wangs/banners", public_id=f"banner_{instance.id}")
+                    if cloud_url:
+                        instance.image_url = cloud_url
+                        instance.save(update_fields=['image_url'])
+                elif instance.image_url and not instance.image_url.startswith('https://res.cloudinary.com'):
+                    cloud_url = upload_image_to_cloudinary(instance.image_url, folder="wangs/banners", public_id=f"banner_{instance.id}")
+                    if cloud_url:
+                        instance.image_url = cloud_url
+                        instance.save(update_fields=['image_url'])
+        except Exception:
+            pass
 
 
 class StorefrontNoticeSerializer(serializers.ModelSerializer):
