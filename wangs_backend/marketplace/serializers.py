@@ -3,8 +3,14 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.contrib.auth import authenticate
 from django.utils.text import slugify
 import uuid
+import os
+import base64
+import logging
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Sum, Q
+
+logger = logging.getLogger(__name__)
 from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
     CourierProfile, CourierDeliveryScanLog,
@@ -460,6 +466,99 @@ class CourierRegisterSerializer(serializers.Serializer):
     address = serializers.CharField(required=False, allow_blank=True, default='')
     identity_document = serializers.CharField(required=False, allow_blank=True, default='')
     profile_photo = serializers.CharField(required=False, allow_blank=True, default='')
+
+    @staticmethod
+    def _process_file_upload(file_obj, folder='courier_docs'):
+        try:
+            if not file_obj:
+                return ''
+            file_bytes = file_obj.read() if hasattr(file_obj, 'read') else file_obj
+            if not file_bytes:
+                return ''
+
+            # 1. Cloudinary upload (store all media permanently in Cloudinary)
+            try:
+                from .cloudinary_service import upload_image_to_cloudinary, is_cloudinary_configured
+                if is_cloudinary_configured():
+                    cloud_url = upload_image_to_cloudinary(file_bytes, folder=f"wangs/{folder}", resource_type="auto")
+                    if cloud_url:
+                        return cloud_url
+            except Exception as e:
+                logger.warning("Cloudinary upload failed for courier file: %s", e)
+
+            # 2. Local Media storage fallback
+            try:
+                ext = os.path.splitext(getattr(file_obj, 'name', ''))[1] or '.jpg'
+                filename = f"{uuid.uuid4().hex[:16]}{ext}"
+                target_dir = os.path.join(settings.MEDIA_ROOT, folder)
+                os.makedirs(target_dir, exist_ok=True)
+                target_path = os.path.join(target_dir, filename)
+                with open(target_path, 'wb') as f:
+                    f.write(file_bytes)
+                media_url = f"{settings.MEDIA_URL.rstrip('/')}/{folder}/{filename}"
+                return media_url
+            except Exception as e:
+                logger.warning("Local storage save failed for courier file: %s", e)
+
+            # 3. Base64 fallback if reasonable size (< 5MB)
+            if len(file_bytes) < 5 * 1024 * 1024:
+                b64 = base64.b64encode(file_bytes).decode('utf-8')
+                content_type = getattr(file_obj, 'content_type', 'image/jpeg') or 'image/jpeg'
+                return f"data:{content_type};base64,{b64}"
+
+            return ''
+        except Exception as e:
+            logger.error("Error processing courier file upload: %s", e)
+            return ''
+
+    def to_internal_value(self, data):
+        # Allow mutable copy if data is QueryDict
+        if hasattr(data, 'dict'):
+            mutable_data = data.dict()
+        elif hasattr(data, 'copy'):
+            mutable_data = data.copy()
+        else:
+            mutable_data = dict(data)
+
+        # Merge request.FILES if available in context
+        request = self.context.get('request')
+        if request and getattr(request, 'FILES', None):
+            for k, f in request.FILES.items():
+                mutable_data[k] = f
+
+        # Handle identity_document (UploadedFile, URL, or data URI)
+        raw_doc = mutable_data.get('identity_document')
+        if raw_doc is not None and not isinstance(raw_doc, str):
+            mutable_data['identity_document'] = self._process_file_upload(raw_doc, folder='courier_docs')
+        elif raw_doc and isinstance(raw_doc, str) and raw_doc.startswith('data:'):
+            try:
+                from .cloudinary_service import upload_image_to_cloudinary, is_cloudinary_configured
+                if is_cloudinary_configured():
+                    cloud_url = upload_image_to_cloudinary(raw_doc, folder="wangs/courier_docs", resource_type="auto")
+                    if cloud_url:
+                        mutable_data['identity_document'] = cloud_url
+            except Exception:
+                pass
+        elif raw_doc is None:
+            mutable_data['identity_document'] = ''
+
+        # Handle profile_photo (UploadedFile, URL, or data URI)
+        raw_photo = mutable_data.get('profile_photo')
+        if raw_photo is not None and not isinstance(raw_photo, str):
+            mutable_data['profile_photo'] = self._process_file_upload(raw_photo, folder='courier_photos')
+        elif raw_photo and isinstance(raw_photo, str) and raw_photo.startswith('data:'):
+            try:
+                from .cloudinary_service import upload_image_to_cloudinary, is_cloudinary_configured
+                if is_cloudinary_configured():
+                    cloud_url = upload_image_to_cloudinary(raw_photo, folder="wangs/courier_photos", resource_type="auto")
+                    if cloud_url:
+                        mutable_data['profile_photo'] = cloud_url
+            except Exception:
+                pass
+        elif raw_photo is None:
+            mutable_data['profile_photo'] = ''
+
+        return super().to_internal_value(mutable_data)
 
     def validate_email(self, value):
         cleaned = (value or '').strip().lower()

@@ -164,7 +164,19 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response || !response.ok) {
-    const errorMsg = data?.detail || data?.message || (data ? JSON.stringify(data) : response?.statusText || 'Request failed');
+    let errorMsg = data?.detail || data?.message;
+    if (!errorMsg && data && typeof data === 'object') {
+      const firstKey = Object.keys(data)[0];
+      const val = data[firstKey];
+      if (Array.isArray(val) && val.length > 0) {
+        errorMsg = `${val[0]}`;
+      } else if (typeof val === 'string') {
+        errorMsg = val;
+      } else {
+        errorMsg = JSON.stringify(data);
+      }
+    }
+    errorMsg = errorMsg || response?.statusText || 'Request failed';
     const err = new Error(errorMsg);
     err.status = response?.status || 0;
     err.data = data;

@@ -45,9 +45,9 @@ def init_cloudinary():
         logger.warning("Cloudinary initialization failed: %s", exc)
         return False
 
-def upload_image_to_cloudinary(file_source, folder="wangs/products", public_id=None):
+def upload_image_to_cloudinary(file_source, folder="wangs/products", public_id=None, resource_type="auto"):
     """
-    Uploads an image (raw bytes, base64 data URI, file path, or URL) to Cloudinary.
+    Uploads an image or document (raw bytes, base64 data URI, file path, or URL) to Cloudinary.
     Returns the secure HTTPS URL on success, or None on failure.
     """
     if not is_cloudinary_configured():
@@ -62,7 +62,7 @@ def upload_image_to_cloudinary(file_source, folder="wangs/products", public_id=N
 
         upload_options = {
             "folder": folder,
-            "resource_type": "image",
+            "resource_type": resource_type or "auto",
             "overwrite": True,
         }
         if public_id:

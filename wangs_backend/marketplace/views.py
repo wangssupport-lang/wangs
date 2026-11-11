@@ -1437,9 +1437,10 @@ class DeliveryActiveOrdersView(views.APIView):
 
 class CourierRegisterView(views.APIView):
     permission_classes = [permissions.AllowAny]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def post(self, request):
-        serializer = CourierRegisterSerializer(data=request.data)
+        serializer = CourierRegisterSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             profile = serializer.save()
 

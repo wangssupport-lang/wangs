@@ -1827,6 +1827,29 @@ class WangsCourierSystemTests(TestCase):
         self.assertEqual(profile.status, CourierProfile.Status.PENDING)
         self.assertFalse(courier_user.is_approved_courier())
 
+    def test_courier_registration_with_file_upload(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        fake_id = SimpleUploadedFile("license.jpg", b"fake_driver_license_file_content", content_type="image/jpeg")
+        payload = {
+            'full_name': 'Keneilhou Solo',
+            'phone_number': '9862555555',
+            'email': 'solo@wangs.in',
+            'password': 'CourierPass123!',
+            'confirm_password': 'CourierPass123!',
+            'courier_company': 'Wangs Express Kohima Hub',
+            'vehicle_type': 'BIKE',
+            'vehicle_number': 'NL-01-AB-9876',
+            'service_area_city': 'Kohima',
+            'address': 'High School Junction, Kohima',
+            'identity_document': fake_id
+        }
+        resp = self.client.post('/api/courier/register/', payload, format='multipart')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data['status'], 'PENDING')
+
+        profile = CourierProfile.objects.get(email='solo@wangs.in')
+        self.assertTrue(bool(profile.identity_document))
+
     def test_duplicate_registration_rejected(self):
         payload = {
             'full_name': 'Temsu Jamir',
