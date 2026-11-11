@@ -351,7 +351,7 @@ export default function ProductDetailPage() {
   const reviewsList = product.reviews || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-12 space-y-10 sm:space-y-16">
+    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-12 space-y-8 sm:space-y-16 pb-24 md:pb-12">
       {/* Breadcrumbs */}
       <nav aria-label="Breadcrumb" className="no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap text-xs font-medium text-stone-500">
         <Link to="/" className="shrink-0 hover:text-red-600 transition-colors">Home</Link>
@@ -1247,48 +1247,61 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      {/* Floating Bottom Sticky Bar on Mobile */}
-      {showStickyBar && (
-        <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom,0px))] left-0 right-0 z-40 bg-surface border-t border-outline-variant/30 p-2.5 sm:hidden shadow-[0_-2px_10px_rgba(0,0,0,0.06)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom duration-200">
-          <div className="flex items-center gap-2 min-w-0">
-            <img
-              src={product.primary_image_url || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=100&q=80'}
-              alt={product.title}
-              className="w-10 h-10 object-cover rounded-lg border border-outline-variant/30 flex-shrink-0"
-            />
-            <div className="truncate">
-              <p className="font-bold text-xs text-on-surface truncate">{product.title}</p>
-              <p className="text-[11px] font-serif font-black text-primary">
-                ₹{activePrice} <span className="font-sans font-normal text-[10px] text-on-surface-variant">({currentBundle.name})</span>
-              </p>
+      {/* Mobile Sticky Action Bar (Direct one-tap checkout always within thumb reach) */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200/90 p-2.5 px-3.5 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom duration-200">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <img
+            src={resolveProductImage(product.primary_image_url || productImages[0])}
+            alt={product.title}
+            className="w-10 h-10 object-cover rounded-xl border border-stone-200 shrink-0"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/featured-pouches.png';
+            }}
+          />
+          <div className="truncate min-w-0">
+            <p className="font-bold text-xs text-stone-900 truncate leading-tight">{product.title}</p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="font-serif font-black text-sm text-red-600">
+                ₹{activePrice}
+              </span>
+              <span className="text-[10px] text-stone-500 font-medium truncate">
+                {currentBundle.name}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <button
-              onClick={handleAddToCart}
-              disabled={!isInStock || adding}
-              className={`px-3 py-2 text-xs font-bold rounded-full shadow flex items-center gap-1 transition-transform ${
-                isInStock
-                  ? 'bg-white border border-red-600 text-red-600 active:scale-95'
-                  : 'bg-stone-200 text-stone-400 cursor-not-allowed shadow-none'
-              }`}
-            >
-              <ShoppingBag size={13} /> {isInStock ? 'Add' : 'Sold Out'}
-            </button>
-            <button
-              onClick={handleBuyNow}
-              disabled={!isInStock}
-              className={`px-3.5 py-2 text-xs font-bold rounded-full shadow-md transition-transform ${
-                isInStock
-                  ? 'bg-red-600 text-white active:scale-95 hover:bg-red-700'
-                  : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
-              }`}
-            >
-              {isInStock ? 'Buy Now' : 'In Stock Soon'}
-            </button>
-          </div>
         </div>
-      )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleAddToCart}
+            disabled={!isInStock || adding}
+            className={`px-3 py-2 text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+              added
+                ? 'bg-emerald-600 text-white'
+                : isInStock
+                ? 'bg-red-50 border border-red-600/30 text-red-600 hover:bg-red-100 active:scale-95'
+                : 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed'
+            }`}
+          >
+            {added ? <CheckCircle size={14} /> : <ShoppingBag size={14} />}
+            <span>{added ? 'Added' : isInStock ? 'Add' : 'Sold Out'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleBuyNow}
+            disabled={!isInStock}
+            className={`px-3.5 py-2 text-xs font-bold text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1 ${
+              isInStock
+                ? 'bg-red-600 hover:bg-red-700 active:scale-95'
+                : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
+            }`}
+          >
+            <span>{isInStock ? 'Buy Now' : 'In Stock Soon'}</span>
+            {isInStock && <ArrowRight size={13} />}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

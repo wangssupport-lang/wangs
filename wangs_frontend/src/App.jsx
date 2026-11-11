@@ -129,9 +129,9 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
 
-      {!isAdminRoute && !isDeliveryRoute && <LiveSocialProof />}
+      {!isAdminRoute && !isDeliveryRoute && !location.pathname.startsWith('/product/') && <LiveSocialProof />}
       {!isAdminRoute && !isDeliveryRoute && <Footer />}
-      {!isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && (
+      {!isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/') && (
         <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
       )}
     </div>

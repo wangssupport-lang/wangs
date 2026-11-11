@@ -182,18 +182,18 @@ export default function CartDrawer() {
                           onClick={() => updateItem(item.product.id, item.quantity - 1)}
                           disabled={updatingProductId === item.product.id}
                           aria-label={`Decrease quantity of ${item.product.title}`}
-                          className="px-2 py-1 hover:bg-stone-200 text-stone-600 transition-colors"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-stone-200 text-stone-600 active:scale-95 transition-all cursor-pointer"
                         >
-                          <Minus size={12} />
+                          <Minus size={13} />
                         </button>
                         <span className="px-2.5 text-xs font-bold text-stone-900 font-mono">{item.quantity}</span>
                         <button
                           onClick={() => updateItem(item.product.id, item.quantity + 1)}
                           disabled={updatingProductId === item.product.id || item.quantity >= item.product.stock_quantity}
                           aria-label={`Increase quantity of ${item.product.title}`}
-                          className="px-2 py-1 hover:bg-stone-200 text-stone-600 transition-colors"
+                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center hover:bg-stone-200 text-stone-600 active:scale-95 transition-all cursor-pointer"
                         >
-                          <Plus size={12} />
+                          <Plus size={13} />
                         </button>
                       </div>
 
@@ -201,7 +201,7 @@ export default function CartDrawer() {
                         onClick={() => removeItem(item.product.id)}
                         disabled={updatingProductId === item.product.id}
                         aria-label={`Remove ${item.product.title} from basket`}
-                        className="text-stone-400 hover:text-chilli-700 p-1 transition-colors"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-stone-400 hover:text-red-600 active:scale-90 transition-all cursor-pointer"
                         title="Remove item"
                       >
                         <Trash2 size={15} />

@@ -145,8 +145,8 @@ export default function CartPage() {
         <div className="lg:col-span-8 space-y-4">
           <div className="bg-surface-container-lowest rounded-3xl border border-outline-variant/30 shadow-xs divide-y divide-outline-variant/20 overflow-hidden">
             {items.map((item) => (
-              <div key={item.id} className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
-                <div className="flex items-center gap-4">
+              <div key={item.id} className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-5">
+                <div className="flex items-center gap-3.5 sm:gap-4 min-w-0">
                   <img
                     src={resolveProductImage(item.product.primary_image_url || (item.product.images && item.product.images[0] ? item.product.images[0].image_url : ''))}
                     alt={item.product.title}
@@ -154,20 +154,20 @@ export default function CartPage() {
                       e.target.onerror = null;
                       e.target.src = '/featured-pouches.png';
                     }}
-                    className="w-20 h-20 object-cover rounded-2xl border border-outline-variant/30 flex-shrink-0 shadow-xs"
+                    className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-2xl border border-outline-variant/30 flex-shrink-0 shadow-xs"
                   />
-                  <div>
-                    <Link to={`/product/${item.product.slug}`} className="font-serif font-bold text-base text-on-surface hover:text-primary transition-colors line-clamp-1">
+                  <div className="min-w-0 flex-1">
+                    <Link to={`/product/${item.product.slug}`} className="font-serif font-bold text-sm sm:text-base text-on-surface hover:text-primary transition-colors line-clamp-1">
                       {item.product.title}
                     </Link>
-                    <p className="text-xs text-on-surface-variant mt-0.5">
+                    <p className="text-[11px] sm:text-xs text-on-surface-variant mt-0.5 truncate">
                       {item.product.weight_grams}g · {item.product.manufacturer?.business_name}
                     </p>
-                    <p className="text-sm font-bold text-primary mt-1 font-serif">
+                    <p className="text-xs sm:text-sm font-bold text-primary mt-1 font-serif">
                       ₹{parseFloat(item.product.price).toFixed(0)} each
                     </p>
                     {(item.product.is_in_stock === false || (item.product.stock_quantity !== undefined && item.product.stock_quantity <= 0)) && (
-                      <p className="text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md mt-1 inline-block">
+                      <p className="text-[10px] sm:text-[11px] font-bold text-amber-900 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md mt-1 inline-block">
                         All product sold out · Product will be in stock soon
                       </p>
                     )}
@@ -175,22 +175,22 @@ export default function CartPage() {
                 </div>
 
                 {/* Adjuster & Line Total */}
-                <div className="flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
+                <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-outline-variant/20">
                   <div className="flex items-center border border-outline-variant/30 rounded-xl bg-surface-container-low overflow-hidden">
                     <button
                       onClick={() => changeQuantity(item.product.id, item.quantity - 1)}
                       disabled={updatingProductId === item.product.id}
                       aria-label={`Decrease quantity of ${item.product.title}`}
-                      className="px-3 py-1.5 text-on-surface-variant hover:bg-surface-container transition-colors"
+                      className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all cursor-pointer"
                     >
                       <Minus size={13} />
                     </button>
-                    <span className="px-3 text-xs font-black text-on-surface font-mono">{item.quantity}</span>
+                    <span className="px-2.5 text-xs font-black text-on-surface font-mono">{item.quantity}</span>
                     <button
                       onClick={() => changeQuantity(item.product.id, item.quantity + 1)}
                       disabled={updatingProductId === item.product.id || item.quantity >= item.product.stock_quantity}
                       aria-label={`Increase quantity of ${item.product.title}`}
-                      className="px-3 py-1.5 text-on-surface-variant hover:bg-surface-container transition-colors"
+                      className="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-95 transition-all cursor-pointer"
                     >
                       <Plus size={13} />
                     </button>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Plus, Minus, Check, ShoppingBag, Flame } from 'lucide-react';
+import { Heart, Plus, Minus, Check, ShoppingBag, Flame, Star, CheckCircle2, Sun } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -129,7 +129,7 @@ function ProductCard({ product }) {
     <article className="group bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-outline-variant/30 transition-all duration-300 flex flex-col justify-between">
       <div>
         {/* Top Image Showcase */}
-        <div className="relative h-56 sm:h-64 bg-surface-container-high overflow-hidden">
+        <div className="relative aspect-square sm:aspect-auto sm:h-64 bg-surface-container-high overflow-hidden">
           <Link to={`/product/${product.slug}`} className="block w-full h-full">
             <img
               src={imageUrl}
@@ -141,7 +141,7 @@ function ProductCard({ product }) {
           </Link>
 
           {/* Terroir / Location Pill - Solid Clean Surface */}
-          <span className="absolute top-2.5 left-2.5 bg-surface px-2.5 py-1 rounded-full font-label-sm text-[11px] text-primary font-bold shadow-xs border border-outline-variant/30">
+          <span className="absolute top-2 left-2 sm:top-2.5 sm:left-2.5 bg-surface/95 backdrop-blur-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-label-sm text-[10px] sm:text-[11px] text-primary font-bold shadow-xs border border-outline-variant/30">
             {provenance}
           </span>
 
@@ -150,18 +150,18 @@ function ProductCard({ product }) {
             type="button"
             onClick={toggleWishlist}
             aria-label="Save to Wishlist"
-            className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-surface flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all shadow-xs border border-outline-variant/30"
+            className="absolute top-2 right-2 sm:top-2.5 sm:right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-surface/95 backdrop-blur-xs flex items-center justify-center text-on-surface-variant hover:text-primary active:scale-90 transition-all shadow-xs border border-outline-variant/30 cursor-pointer"
           >
             <Heart
-              size={17}
+              size={15}
               className={isWishlisted ? 'fill-primary text-primary' : 'text-on-surface-variant'}
             />
           </button>
 
           {/* Heat Meter Badge - Solid Clean Badge */}
-          <div className="absolute bottom-2.5 left-2.5 bg-inverse-surface text-inverse-on-surface px-2 py-0.5 rounded-lg font-label-sm text-[10px] sm:text-[11px] flex items-center gap-1">
+          <div className="absolute bottom-2 left-2 sm:bottom-2.5 sm:left-2.5 bg-inverse-surface/90 backdrop-blur-xs text-inverse-on-surface px-1.5 sm:px-2 py-0.5 rounded-lg font-label-sm text-[9.5px] sm:text-[11px] flex items-center gap-1">
             <Flame size={11} className="text-amber-400 shrink-0" />
-            <span>{spiceIndicator}</span>
+            <span className="truncate">{spiceIndicator}</span>
           </div>
 
           {/* Sold out badge */}
@@ -175,71 +175,71 @@ function ProductCard({ product }) {
         </div>
 
         {/* Content Body */}
-        <div className="p-3.5 sm:p-4 flex flex-col gap-1.5">
+        <div className="p-3 sm:p-4 flex flex-col gap-1 sm:gap-1.5">
           {/* Artisan Maker with Verified Check */}
-          <div className="flex items-center gap-1 text-[12px] text-on-surface-variant font-medium truncate">
-            <span className="material-symbols-outlined text-[15px] text-secondary">verified</span>
+          <div className="flex items-center gap-1 text-[11px] sm:text-[12px] text-on-surface-variant font-medium truncate">
+            <CheckCircle2 size={13} className="text-secondary shrink-0" />
             <span className="truncate">{brandName}</span>
           </div>
 
           {/* Title */}
           <Link to={`/product/${product.slug}`} className="block">
-            <h3 className="font-title-md text-[14px] sm:text-[16px] text-on-surface group-hover:text-primary transition-colors font-bold line-clamp-2 leading-snug">
+            <h3 className="font-title-md text-[13px] sm:text-[15px] text-on-surface group-hover:text-primary transition-colors font-bold line-clamp-2 leading-snug">
               {product.title}
             </h3>
           </Link>
 
           {/* Rating & Reviews */}
-          <div className="flex items-center gap-2 pt-0.5">
-            <div className="flex items-center bg-tertiary-fixed text-on-tertiary-fixed px-1.5 py-0.5 rounded font-label-sm text-[11px] font-bold">
+          <div className="flex items-center gap-1.5 pt-0.5">
+            <div className="flex items-center bg-tertiary-fixed text-on-tertiary-fixed px-1.5 py-0.5 rounded font-label-sm text-[10px] sm:text-[11px] font-bold">
               <span>{product.rating || '4.8'}</span>
-              <span className="material-symbols-outlined text-[13px] ml-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+              <Star size={11} className="fill-current text-current ml-0.5 shrink-0" />
             </div>
-            <span className="font-body-sm text-[11px] text-outline">
+            <span className="font-body-sm text-[10.5px] sm:text-[11px] text-outline">
               ({product.review_count || 320}+ reviews)
             </span>
           </div>
 
           {/* Pricing */}
-          <div className="flex items-baseline gap-2 pt-1">
-            <span className="font-title-lg text-[18px] sm:text-[20px] text-primary font-bold">
+          <div className="flex items-baseline gap-1.5 sm:gap-2 pt-0.5">
+            <span className="font-title-lg text-[16px] sm:text-[19px] text-primary font-bold">
               ₹{priceNum}
             </span>
             {hasDiscount && (
-              <span className="font-body-sm text-xs text-outline line-through">
+              <span className="font-body-sm text-[11px] sm:text-xs text-outline line-through">
                 ₹{mrpNum}
               </span>
             )}
             {discountPercent > 0 && (
-              <span className="font-label-sm text-[11px] text-secondary font-bold">
+              <span className="font-label-sm text-[10px] sm:text-[11px] text-secondary font-bold">
                 {discountPercent}% OFF
               </span>
             )}
           </div>
 
           {/* Micro Psychology: Scarcity & Small Batch Social Proof */}
-          <div className="flex items-center justify-between text-[10.5px] pt-1.5 border-t border-outline-variant/20 text-on-surface-variant">
+          <div className="flex items-center justify-between text-[10px] sm:text-[10.5px] pt-1.5 border-t border-outline-variant/20 text-on-surface-variant">
             <span className="flex items-center gap-1 text-primary font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse" />
               <span>Small Batch Cure</span>
             </span>
-            <span className="font-semibold text-outline">
-              {product.weight_grams ? `${product.weight_grams}g Glass Jar` : 'Glass Jar'}
+            <span className="font-semibold text-outline truncate">
+              {product.weight_grams ? `${product.weight_grams}g Jar` : 'Glass Jar'}
             </span>
           </div>
 
           {/* Heritage Micro-Badge */}
-          <div className="bg-surface-container-low px-2 py-1 rounded-lg mt-1">
-            <p className="font-body-sm text-[11px] text-on-surface-variant flex items-center gap-1 truncate">
-              <span className="material-symbols-outlined text-primary text-[14px]">wb_sunny</span>
-              <span>Wood Churned Oil • {weightText}</span>
+          <div className="bg-surface-container-low px-2 py-1 rounded-lg mt-0.5 sm:mt-1">
+            <p className="font-body-sm text-[10px] sm:text-[11px] text-on-surface-variant flex items-center gap-1 truncate">
+              <Sun size={12} className="text-primary shrink-0" />
+              <span className="truncate">Wood Churned Oil • {weightText}</span>
             </p>
           </div>
         </div>
       </div>
 
       {/* Cart Action Footer */}
-      <div className="p-3.5 sm:p-4 pt-0">
+      <div className="p-3 sm:p-4 pt-0">
         {cartItem ? (
           <div className="w-full flex items-center justify-between bg-primary-fixed text-on-primary-fixed rounded-xl px-2 py-1.5 shadow-sm border border-primary/20">
             <button

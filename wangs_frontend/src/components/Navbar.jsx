@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-do
 import {
   ShoppingBag, Search, User, ChevronDown, ChevronLeft, ChevronRight, ShieldCheck, Store,
   Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight,
-  Trash2, Check, CheckSquare, Square
+  Trash2, Check, CheckSquare, Square, Mic
 } from 'lucide-react';
 import SwipeableNotificationItem from './SwipeableNotificationItem';
 import { useAuth } from '../context/AuthContext';
@@ -569,7 +569,7 @@ export default function Navbar() {
                 aria-label="Voice Search"
                 className="w-6 h-6 flex items-center justify-center text-[#8a7267] hover:text-[#9b4100] transition-colors shrink-0"
               >
-                <span className="material-symbols-outlined text-[17px]">mic</span>
+                <Mic size={15} />
               </button>
             </form>
 

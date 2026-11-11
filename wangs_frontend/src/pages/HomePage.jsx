@@ -6,6 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
 import { resolveProductImage } from '../utils/image';
+import {
+  Flame, ArrowRight, Zap, Timer, ChevronRight, ChevronLeft,
+  Star, CheckCircle2, SlidersHorizontal, Heart, Plus,
+  ShieldCheck, Sparkles, Utensils, Store
+} from 'lucide-react';
 
 // Isolated Memoized Countdown Component to prevent whole HomePage from re-rendering every second
 const FlashDealCountdown = React.memo(function FlashDealCountdown() {
@@ -633,7 +638,7 @@ export default function HomePage() {
             {/* Left 7 Columns */}
             <div className="col-span-7 flex flex-col gap-5">
               <div className="inline-flex items-center gap-1.5 bg-primary-fixed text-on-primary-fixed px-3.5 py-1 rounded-full w-fit shadow-xs">
-                <span className="material-symbols-outlined text-[16px]">local_fire_department</span>
+                <Flame size={15} className="text-amber-400 shrink-0" />
                 <span className="font-label-md text-xs font-bold uppercase tracking-wide">
                   Direct From 18 Spice States
                 </span>
@@ -656,7 +661,7 @@ export default function HomePage() {
                   className="bg-primary text-on-primary font-title-md text-sm px-6 py-3.5 rounded-full shadow-md hover:bg-primary-container transition-all flex items-center gap-2 font-bold active:scale-95"
                 >
                   <span>Shop Regional Pickles</span>
-                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                  <ArrowRight size={16} />
                 </a>
               </div>
 
@@ -676,9 +681,7 @@ export default function HomePage() {
                     <span className="font-headline-md text-2xl font-serif text-secondary font-bold">
                       4.8
                     </span>
-                    <span className="material-symbols-outlined text-secondary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                      star
-                    </span>
+                    <Star size={18} className="fill-secondary text-secondary shrink-0" />
                   </div>
                   <span className="font-label-md text-xs text-on-surface-variant">
                     Average Batch Rating
@@ -707,14 +710,14 @@ export default function HomePage() {
 
                 {/* Floating Badge 1: Top Left - Solid Clean Surface */}
                 <div className="absolute top-6 left-6 bg-surface px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 border border-outline-variant/30">
-                  <span className="material-symbols-outlined text-secondary text-[17px]">verified</span>
+                  <CheckCircle2 size={15} className="text-secondary shrink-0" />
                   <span className="font-label-md text-xs font-bold text-on-surface">Sun-Cured Batch #24 Active</span>
                 </div>
 
                 {/* Floating Badge 2: Bottom Right - Solid Clean Badge */}
                 <div className="absolute bottom-6 right-6 bg-inverse-surface text-inverse-on-surface p-3.5 rounded-xl shadow-xl flex items-center gap-3 max-w-[260px] border border-white/10">
                   <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-on-secondary-container text-[22px]">thermostat</span>
+                    <Flame size={20} className="text-amber-400" />
                   </div>
                   <div>
                     <p className="font-label-sm text-[10px] uppercase tracking-wider text-secondary-fixed-dim font-bold">Terroir Fermentation</p>
@@ -747,7 +750,7 @@ export default function HomePage() {
                 className="flex items-center gap-1.5 text-primary font-label-lg text-sm font-bold hover:underline group shrink-0"
               >
                 <span>View All Brands Directory ({availableBrands.length > 0 ? availableBrands.length : 'All'})</span>
-                <span className="material-symbols-outlined text-[18px] group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
             </div>
 
@@ -822,7 +825,7 @@ export default function HomePage() {
                         
                         {brand.is_verified_producer && (
                           <span className="absolute top-2.5 right-2.5 bg-emerald-700/90 backdrop-blur-xs text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px]">verified</span>
+                            <CheckCircle2 size={12} />
                             <span>Verified</span>
                           </span>
                         )}
@@ -848,9 +851,7 @@ export default function HomePage() {
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs text-on-surface-variant group-hover:text-primary font-semibold transition-colors">
                         <span>Explore</span>
-                        <span className="material-symbols-outlined text-[16px] group-hover:translate-x-1 transition-transform">
-                          arrow_forward
-                        </span>
+                        <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                       </span>
                     </div>
                   </Link>
@@ -866,7 +867,7 @@ export default function HomePage() {
             <div className="flex items-end justify-between mb-8">
               <div>
                 <div className="inline-flex items-center gap-1.5 bg-secondary-fixed text-on-secondary-fixed px-3 py-1 rounded-full font-label-sm text-xs font-bold uppercase mb-2">
-                  <span className="material-symbols-outlined text-[15px]">local_fire_department</span>
+                  <Flame size={14} className="text-amber-400" />
                   <span>FRESH BATCHES DAILY</span>
                 </div>
                 <h2 className="font-headline-lg text-3xl font-serif text-on-surface">
@@ -955,7 +956,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-1.5 bg-surface-container-lowest px-3 py-1.5 rounded-full border border-outline-variant/30 shadow-2xs">
                   <div className="flex text-secondary">
                     {[1, 2, 3, 4, 5].map((i) => (
-                      <span key={i} className="material-symbols-outlined text-[19px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                      <Star key={i} size={16} className="fill-secondary text-secondary" />
                     ))}
                   </div>
                   <span className="font-title-md text-sm font-bold text-on-surface">
@@ -979,7 +980,7 @@ export default function HomePage() {
                           : 'border-outline-variant/60 text-on-surface hover:bg-surface-container-high cursor-pointer'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                      <ChevronLeft size={16} />
                     </button>
                     <button
                       type="button"
@@ -992,7 +993,7 @@ export default function HomePage() {
                           : 'border-outline-variant/60 text-on-surface hover:bg-surface-container-high cursor-pointer'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                      <ChevronRight size={16} />
                     </button>
                   </div>
                 )}
@@ -1020,7 +1021,7 @@ export default function HomePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex text-secondary">
                           {Array.from({ length: Math.max(1, Math.min(5, Math.floor(Number(rev.rating) || 5))) }).map((_, sIdx) => (
-                            <span key={sIdx} className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <Star key={sIdx} size={15} className="fill-secondary text-secondary" />
                           ))}
                         </div>
                         {rev.is_verified_buyer && (
@@ -1134,7 +1135,7 @@ export default function HomePage() {
                     <div className="flex flex-col gap-1 z-10">
                       {banner.badge_text && (
                         <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-                          <span className="material-symbols-outlined text-[13px]">local_fire_department</span>
+                          <Flame size={12} className="text-amber-400" />
                           <span>{banner.badge_text}</span>
                         </span>
                       )}
@@ -1172,7 +1173,7 @@ export default function HomePage() {
                         className="px-3.5 py-1.5 rounded-full bg-white text-primary font-label-md text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
                       >
                         <span>{banner.cta_text || 'Shop Now'}</span>
-                        <span className="material-symbols-outlined text-[15px]">arrow_forward</span>
+                        <ArrowRight size={13} />
                       </Link>
                     </div>
                   </div>
@@ -1276,14 +1277,14 @@ export default function HomePage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[16px]">bolt</span>
+                <Zap size={15} className="text-amber-500 fill-amber-500" />
               </div>
               <div>
                 <span className="font-title-md text-sm font-bold text-on-surface flex items-center gap-1 leading-tight">
                   Deal of the Day
                 </span>
                 <div className="flex items-center gap-1 text-on-surface-variant font-label-sm text-[10px]">
-                  <span className="material-symbols-outlined text-[12px] text-primary">timer</span>
+                  <Timer size={11} className="text-primary" />
                   <span>Batch ends in:</span>
                   <FlashDealCountdown />
                 </div>
@@ -1291,7 +1292,7 @@ export default function HomePage() {
             </div>
             <Link to="/products" className="text-primary font-label-md text-xs font-bold flex items-center gap-0.5">
               <span>See All</span>
-              <span className="material-symbols-outlined text-[15px]">chevron_right</span>
+              <ChevronRight size={14} />
             </Link>
           </div>
 
@@ -1336,14 +1337,14 @@ export default function HomePage() {
                           </span>
                         )}
                         <div className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/95 backdrop-blur-xs flex items-center gap-0.5 shadow-xs border border-outline-variant/30">
-                          <span className="material-symbols-outlined text-[11px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                          <Star size={11} className="fill-secondary text-secondary" />
                           <span className="font-label-sm text-[10px] font-bold text-on-surface">{rating}</span>
                         </div>
                       </div>
 
                       <div className="mt-2 flex flex-col gap-0.5">
                         <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-1">
-                          {mfgName} <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                          {mfgName} <CheckCircle2 size={11} className="text-emerald-600 shrink-0" />
                         </span>
                         <h4 className="font-title-md text-xs font-bold text-on-surface line-clamp-1 leading-snug group-hover:text-primary transition-colors">
                           {deal.title}
@@ -1379,7 +1380,7 @@ export default function HomePage() {
                       onClick={(e) => handleQuickAdd(e, deal.title, deal.id)}
                       className="mt-2 w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 hover:bg-primary/90 transition-all flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[15px]">add</span> Add
+                      <Plus size={14} /> Add
                     </button>
                   </div>
                 );
@@ -1536,7 +1537,7 @@ export default function HomePage() {
               to="/products"
               className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant font-label-sm text-[11px] font-semibold border border-outline-variant/30"
             >
-              <span className="material-symbols-outlined text-[13px] text-tertiary">tune</span>
+              <SlidersHorizontal size={12} className="text-tertiary" />
               <span>Filter</span>
             </Link>
           </div>
@@ -1591,7 +1592,7 @@ export default function HomePage() {
                         }}
                         className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white text-on-surface-variant flex items-center justify-center shadow-xs border border-outline-variant/30 active:scale-90 transition-transform cursor-pointer"
                       >
-                        <span className="material-symbols-outlined text-[15px]">favorite</span>
+                        <Heart size={14} className="text-stone-500" />
                       </button>
                       <div className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 rounded bg-surface-container-lowest font-label-sm text-[9px] font-bold text-primary flex items-center gap-0.5 shadow-xs border border-outline-variant/20">
                         <span>Hot</span>
@@ -1601,10 +1602,10 @@ export default function HomePage() {
                     <div className="mt-2 flex flex-col gap-0.5">
                       <div className="flex items-center justify-between">
                         <span className="font-label-sm text-[10px] text-outline truncate flex items-center gap-0.5">
-                          {brandName} <span className="material-symbols-outlined text-[11px] text-tertiary">verified</span>
+                          {brandName} <CheckCircle2 size={11} className="text-emerald-600 shrink-0" />
                         </span>
                         <div className="flex items-center gap-0.5 text-secondary font-label-sm text-[10px] font-bold shrink-0">
-                          <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span> {rating}
+                          <Star size={11} className="fill-secondary text-secondary" /> {rating}
                         </div>
                       </div>
                       <h3 className="font-title-md text-xs font-bold line-clamp-2 leading-snug text-on-surface group-hover:text-primary transition-colors">
@@ -1631,7 +1632,7 @@ export default function HomePage() {
                       onClick={(e) => handleQuickAdd(e, item.title, item.id)}
                       className="w-full py-1.5 rounded-lg bg-primary text-on-primary font-label-md text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-1 shadow-xs cursor-pointer"
                     >
-                      <span className="material-symbols-outlined text-[14px]">add</span> Add
+                      <Plus size={14} /> Add
                     </button>
                   </div>
                 </article>
@@ -1653,7 +1654,7 @@ export default function HomePage() {
                 </h2>
               </div>
               <div className="flex items-center gap-1 text-secondary text-xs font-bold shrink-0 bg-surface-container-low px-2 py-0.5 rounded-full border border-outline-variant/30">
-                <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                <Star size={13} className="fill-secondary text-secondary" />
                 <span className="text-on-surface">{Number(reviewStats.average_rating || 4.9).toFixed(1)}</span>
               </div>
             </div>
@@ -1673,7 +1674,7 @@ export default function HomePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex text-secondary">
                           {Array.from({ length: Math.max(1, Math.min(5, Math.floor(Number(rev.rating) || 5))) }).map((_, sIdx) => (
-                            <span key={sIdx} className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                            <Star key={sIdx} size={12} className="fill-amber-400 text-amber-400" />
                           ))}
                         </div>
                         {rev.is_verified_buyer && (
@@ -1729,7 +1730,7 @@ export default function HomePage() {
           <section className="relative overflow-hidden rounded-xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
-                <span className="material-symbols-outlined text-[28px]">soup_kitchen</span>
+                <Utensils size={22} className="text-primary" />
               </div>
               <div className="flex flex-col">
                 <span className="font-label-sm text-[10px] text-primary font-bold uppercase tracking-wider">
@@ -1763,7 +1764,7 @@ export default function HomePage() {
               to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
               className="w-full h-11 rounded-full bg-primary text-on-primary font-label-lg text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-xs"
             >
-              <span className="material-symbols-outlined text-[19px]">storefront</span>
+              <Store size={16} />
               <span>{isManufacturer ? "Seller Dashboard" : "Register as Seller"}</span>
             </Link>
           </section>

@@ -574,7 +574,7 @@ export default function ManufacturerPortalPage() {
   const avgBasketSize = safeOrders.length > 0 ? (totalJarsSold / safeOrders.length).toFixed(1) : '1.0';
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-10">
       {/* Top Banner / Seller Status */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -696,7 +696,7 @@ export default function ManufacturerPortalPage() {
       )}
 
       {/* Tabs */}
-      <div className="border-b border-stone-200 mb-6 flex gap-6 text-xs font-semibold text-stone-600">
+      <div className="border-b border-stone-200 mb-6 flex gap-4 sm:gap-6 text-xs font-semibold text-stone-600 overflow-x-auto no-scrollbar whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
         <button
           onClick={() => setActiveTab('overview')}
           className={`pb-3 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
