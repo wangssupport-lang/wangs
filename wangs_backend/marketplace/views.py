@@ -3601,16 +3601,40 @@ class CustomerRewardWalletView(views.APIView):
         for order in Order.objects.filter(user=request.user):
             RewardService.ensure_order_units_and_qrs(order)
 
+        # Also link any guest orders with matching email or phone to this user
+        if request.user.email:
+            guest_orders = Order.objects.filter(user__isnull=True, customer_email__iexact=request.user.email.strip())
+            for go in guest_orders:
+                go.user = request.user
+                go.save(update_fields=['user', 'updated_at'])
+                go.units.filter(customer__isnull=True).update(customer=request.user)
+                RewardService.ensure_order_units_and_qrs(go)
+
         # Purchased units
         units_qs = OrderUnit.objects.filter(customer=request.user).select_related('order', 'qr_code').prefetch_related('confirmations').order_by('-created_at')
         pending_count = units_qs.filter(is_delivered=False).count()
 
         wallet_data = CustomerRewardWalletSerializer(wallet).data
+        recent_txs = wallet_data.get('recent_transactions', [])
+
         return Response({
             'wallet': wallet_data,
             'settings': RewardSettingsSerializer(settings_obj).data,
             'pending_units_count': pending_count,
             'purchased_units': OrderUnitSerializer(units_qs[:50], many=True).data,
+
+            # Direct aliases for seamless frontend compatibility
+            'balance': wallet.balance,
+            'available_credits': wallet.balance,
+            'total_earned': wallet.total_earned,
+            'total_credits_earned': wallet.total_earned,
+            'total_redeemed': wallet.total_redeemed,
+            'total_credits_redeemed': wallet.total_redeemed,
+            'pending_confirmations_count': pending_count,
+            'transactions': recent_txs,
+            'recent_transactions': recent_txs,
+            'credit_value_rupees': settings_obj.credit_value_rupees,
+            'equivalent_rupees': str(Decimal(str(wallet.balance)) * settings_obj.credit_value_rupees),
         })
 
 

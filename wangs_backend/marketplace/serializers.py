@@ -1279,14 +1279,18 @@ class CustomerRewardWalletSerializer(serializers.ModelSerializer):
     email = serializers.CharField(source='user.email', read_only=True)
     credit_value_rupees = serializers.SerializerMethodField()
     monetary_value = serializers.SerializerMethodField()
+    available_credits = serializers.IntegerField(source='balance', read_only=True)
+    total_credits_earned = serializers.IntegerField(source='total_earned', read_only=True)
+    total_credits_redeemed = serializers.IntegerField(source='total_redeemed', read_only=True)
     recent_transactions = serializers.SerializerMethodField()
+    transactions = serializers.SerializerMethodField()
 
     class Meta:
         model = CustomerRewardWallet
         fields = [
-            'id', 'user', 'username', 'email', 'balance', 'total_earned',
-            'total_redeemed', 'credit_value_rupees', 'monetary_value',
-            'recent_transactions', 'updated_at'
+            'id', 'user', 'username', 'email', 'balance', 'available_credits',
+            'total_earned', 'total_credits_earned', 'total_redeemed', 'total_credits_redeemed',
+            'credit_value_rupees', 'monetary_value', 'recent_transactions', 'transactions', 'updated_at'
         ]
 
     def get_credit_value_rupees(self, obj):
@@ -1297,7 +1301,11 @@ class CustomerRewardWalletSerializer(serializers.ModelSerializer):
         return Decimal(str(obj.balance)) * rate
 
     def get_recent_transactions(self, obj):
-        txs = obj.transactions.all()[:20]
+        txs = obj.transactions.all()[:50]
+        return RewardTransactionSerializer(txs, many=True).data
+
+    def get_transactions(self, obj):
+        txs = obj.transactions.all()[:50]
         return RewardTransactionSerializer(txs, many=True).data
 
 

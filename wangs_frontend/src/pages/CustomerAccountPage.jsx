@@ -239,6 +239,13 @@ export default function CustomerAccountPage() {
 
   if (!user) return null;
 
+  const availableCredits = rewardWallet?.available_credits ?? rewardWallet?.balance ?? rewardWallet?.wallet?.balance ?? 0;
+  const totalEarnedCredits = rewardWallet?.total_credits_earned ?? rewardWallet?.total_earned ?? rewardWallet?.wallet?.total_earned ?? 0;
+  const totalRedeemedCredits = rewardWallet?.total_credits_redeemed ?? rewardWallet?.total_redeemed ?? rewardWallet?.wallet?.total_redeemed ?? 0;
+  const pendingUnitsCount = rewardWallet?.pending_confirmations_count ?? rewardWallet?.pending_units_count ?? 0;
+  const purchasedUnitsList = rewardWallet?.purchased_units || rewardWallet?.wallet?.purchased_units || [];
+  const transactionsList = rewardWallet?.transactions || rewardWallet?.recent_transactions || rewardWallet?.wallet?.recent_transactions || rewardWallet?.wallet?.transactions || [];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-stone-200 pb-6">
@@ -304,7 +311,7 @@ export default function CustomerAccountPage() {
               activeTab === 'rewards' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
             }`}
           >
-            <Sparkles size={15} className="text-amber-500" /> Wangs Rewards {rewardWallet ? `(${rewardWallet.available_credits})` : ''}
+            <Sparkles size={15} className="text-amber-500" /> Wangs Rewards {rewardWallet ? `(${availableCredits})` : ''}
           </button>
 
           <button
@@ -932,12 +939,12 @@ export default function CustomerAccountPage() {
                       <span className="text-xs uppercase tracking-wider text-stone-300 font-bold block">Available Balance</span>
                       <div className="flex items-baseline gap-3">
                         <span className="font-serif font-black text-4xl sm:text-5xl text-white">
-                          {rewardWallet?.available_credits ?? 0}
+                          {availableCredits}
                         </span>
                         <span className="text-lg font-bold text-amber-400">Credits</span>
                       </div>
                       <span className="text-xs text-stone-400 mt-1 block">
-                        Worth ₹{rewardWallet?.available_credits ?? 0}.00 instant discount on checkout (1 Credit = ₹1)
+                        Worth ₹{availableCredits}.00 instant discount on checkout (1 Credit = ₹1)
                       </span>
                     </div>
                   </div>
@@ -957,19 +964,19 @@ export default function CustomerAccountPage() {
                   <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-700/50">
                     <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Total Earned</span>
                     <span className="font-bold text-emerald-400 text-base mt-0.5 block">
-                      +{rewardWallet?.total_credits_earned ?? 0}
+                      +{totalEarnedCredits}
                     </span>
                   </div>
                   <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-700/50">
                     <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Total Redeemed</span>
                     <span className="font-bold text-amber-300 text-base mt-0.5 block">
-                      -{rewardWallet?.total_credits_redeemed ?? 0}
+                      -{totalRedeemedCredits}
                     </span>
                   </div>
                   <div className="bg-stone-800/60 p-3 rounded-xl border border-stone-700/50">
                     <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Pending Delivery</span>
                     <span className="font-bold text-stone-200 text-base mt-0.5 block">
-                      {rewardWallet?.pending_confirmations_count ?? 0} units
+                      {pendingUnitsCount} units
                     </span>
                   </div>
                 </div>
@@ -988,17 +995,17 @@ export default function CustomerAccountPage() {
                     </p>
                   </div>
                   <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2.5 py-1 rounded-full">
-                    {rewardWallet?.purchased_units?.length || 0} Total Units
+                    {purchasedUnitsList.length} Total Units
                   </span>
                 </div>
 
-                {!rewardWallet?.purchased_units?.length ? (
+                {!purchasedUnitsList.length ? (
                   <div className="py-8 text-center text-stone-400 text-xs">
                     No purchased product units recorded yet. Order delicious artisanal pickles to earn rewards!
                   </div>
                 ) : (
                   <div className="divide-y divide-stone-100">
-                    {rewardWallet.purchased_units.map((unit) => {
+                    {purchasedUnitsList.map((unit) => {
                       const isDelivered = unit.is_delivered;
                       const sourceDisplay = unit.confirmation_source_display || (unit.confirmation_source === 'CUSTOMER_QR' ? 'Customer QR Scan' : unit.confirmation_source === 'COURIER' ? 'Courier Confirmation' : unit.confirmation_source === 'BOTH' ? 'Both Confirmed' : 'Pending');
 
@@ -1070,7 +1077,7 @@ export default function CustomerAccountPage() {
                   </p>
                 </div>
 
-                {!rewardWallet?.transactions?.length ? (
+                {!transactionsList.length ? (
                   <div className="py-8 text-center text-stone-400 text-xs">
                     No reward transactions recorded yet.
                   </div>
@@ -1087,7 +1094,7 @@ export default function CustomerAccountPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-stone-100 text-stone-800">
-                        {rewardWallet.transactions.map((tx) => (
+                        {transactionsList.map((tx) => (
                           <tr key={tx.id} className="py-2.5">
                             <td className="py-3 text-stone-500 whitespace-nowrap">
                               {new Date(tx.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

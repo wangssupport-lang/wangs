@@ -485,6 +485,13 @@ class RewardService:
         else:
             target_customer = order.user or unit.customer or (confirmed_by_user if (confirmed_by_user and confirmed_by_user.is_authenticated) else None)
 
+        if not target_customer and order.customer_email:
+            target_customer = User.objects.filter(email__iexact=order.customer_email.strip()).first()
+        if not target_customer and order.customer_phone:
+            clean_phone = re.sub(r'\D', '', str(order.customer_phone))[-10:]
+            if len(clean_phone) >= 10:
+                target_customer = User.objects.filter(phone_number__endswith=clean_phone).first()
+
         if source == DeliveryConfirmation.Source.CUSTOMER_QR and hasattr(unit, 'qr_code'):
             qr = unit.qr_code
             if not qr.is_claimed:
@@ -583,16 +590,17 @@ class RewardService:
                 performed_by=confirmed_by_user
             )
 
-        unit.reward_awarded = True
-        unit.reward_awarded_at = timezone.now()
-        unit.save(update_fields=['is_delivered', 'status', 'delivered_at', 'reward_awarded', 'reward_awarded_at'])
+            unit.reward_awarded = True
+            unit.reward_awarded_at = timezone.now()
 
-        if hasattr(unit, 'qr_code'):
-            qr = unit.qr_code
-            qr.is_claimed = True
-            qr.claimed_at = timezone.now()
-            qr.claimed_by = target_customer
-            qr.save(update_fields=['is_claimed', 'claimed_at', 'claimed_by'])
+            if hasattr(unit, 'qr_code'):
+                qr = unit.qr_code
+                qr.is_claimed = True
+                qr.claimed_at = timezone.now()
+                qr.claimed_by = target_customer
+                qr.save(update_fields=['is_claimed', 'claimed_at', 'claimed_by'])
+
+        unit.save(update_fields=['is_delivered', 'status', 'delivered_at', 'reward_awarded', 'reward_awarded_at'])
 
         # If all units in this order are delivered, set order status to DELIVERED
         if not order.units.exclude(id=unit.id).filter(is_delivered=False).exists():

@@ -162,7 +162,7 @@ export default function CheckoutPage() {
   };
 
   const rawTotal = parseFloat(summary.total_amount) || 0;
-  const availableCredits = rewardWallet?.available_credits || 0;
+  const availableCredits = rewardWallet?.available_credits ?? rewardWallet?.balance ?? rewardWallet?.wallet?.balance ?? 0;
   const maxRedeemableCredits = Math.min(availableCredits, Math.floor(rawTotal));
   const safeCreditsToRedeem = Math.min(Math.max(0, parseInt(creditsToRedeem, 10) || 0), maxRedeemableCredits);
   const creditDiscount = safeCreditsToRedeem * 1;
