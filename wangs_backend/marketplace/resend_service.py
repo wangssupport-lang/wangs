@@ -1098,48 +1098,99 @@ def send_admin_new_product_notification(product, profile):
 
 def send_courier_approval_email(courier_profile, request=None, site_url: str = None):
     """
-    Sends an approval email to the courier delivery agent with a link to /delivery.
+    Sends an approval email to the courier delivery agent with their login details and a link to /delivery.
     """
     recipient_email = (courier_profile.email or (courier_profile.user.email if courier_profile.user else '')).strip()
     if not recipient_email:
         return False, {"error": "No recipient email address."}
 
-    full_name = courier_profile.full_name or courier_profile.user.get_full_name() or 'Delivery Partner'
+    full_name = courier_profile.full_name or (courier_profile.user.get_full_name() if courier_profile.user else '') or 'Delivery Partner'
+    phone = courier_profile.phone_number or (courier_profile.user.phone_number if courier_profile.user else 'Registered Phone')
     base_url = (site_url or get_site_url(request)).rstrip('/')
     delivery_portal_url = f"{base_url}/delivery"
 
-    subject = "Your Wangs Express Courier Account Has Been Approved!"
+    vehicle_display = courier_profile.get_vehicle_type_display() if hasattr(courier_profile, 'get_vehicle_type_display') else courier_profile.vehicle_type
+    vehicle_info = f"{vehicle_display} ({courier_profile.vehicle_number})" if courier_profile.vehicle_number else vehicle_display
+    admin_notes = getattr(courier_profile, 'admin_notes', '')
+
+    subject = "🎉 Your Wangs Express Courier Account Has Been Approved!"
     html_content = f"""
     <!DOCTYPE html>
     <html>
-    <body style="font-family:sans-serif;background:#f5f3ef;padding:24px;color:#292524;">
-      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e7dfd4;padding:32px;">
-        <div style="text-align:center;border-bottom:1px solid #f0ede6;padding-bottom:20px;">
-          <h2 style="color:#0e3820;margin:0 0 6px;">⚡ Wangs Express Fleet</h2>
-          <span style="background:#dcfce7;color:#166534;font-size:12px;font-weight:700;padding:4px 12px;border-radius:12px;">
-            Application Approved & Active
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Courier Account Approved</title>
+    </head>
+    <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f5f3ef;padding:24px;margin:0;color:#292524;">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:20px;border:1px solid #e7dfd4;padding:36px;box-shadow:0 4px 16px rgba(0,0,0,0.04);">
+        
+        <!-- Header -->
+        <div style="text-align:center;border-bottom:1px solid #f0ede6;padding-bottom:24px;">
+          <h1 style="color:#0e3820;font-size:22px;margin:0 0 8px;letter-spacing:-0.5px;">⚡ Wangs Express Logistics</h1>
+          <span style="display:inline-block;background:#dcfce7;color:#166534;font-size:12px;font-weight:700;padding:6px 14px;border-radius:999px;border:1px solid #bbf7d0;">
+            ✓ Account Approved & Active
           </span>
         </div>
-        <p style="margin-top:24px;font-size:15px;line-height:1.6;">
-          Hello <strong>{full_name}</strong>,
-        </p>
-        <p style="font-size:14px;line-height:1.6;color:#57534e;">
-          Great news! Your application to join the Wangs Express delivery fleet has been approved by the platform administrators.
-          You can now log in to the Courier Delivery Portal, scan parcel QR codes, view customer route directions, and confirm doorstep deliveries.
-        </p>
-        <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:12px;padding:16px;margin:20px 0;font-size:13px;">
-          <p style="margin:4px 0;"><strong>Partner Name:</strong> {full_name}</p>
-          <p style="margin:4px 0;"><strong>Vehicle:</strong> {courier_profile.get_vehicle_type_display()} ({courier_profile.vehicle_number or 'Standard'})</p>
-          <p style="margin:4px 0;"><strong>Service Hub:</strong> {courier_profile.service_area_city}</p>
-          <p style="margin:4px 0;"><strong>Company:</strong> {courier_profile.courier_company}</p>
+
+        <!-- Greeting & Announcement -->
+        <div style="margin-top:28px;">
+          <p style="font-size:16px;line-height:1.6;margin:0 0 12px;">
+            Hello <strong>{full_name}</strong>,
+          </p>
+          <p style="font-size:14px;line-height:1.7;color:#57534e;margin:0 0 20px;">
+            Congratulations! Your application to join the <strong>Wangs Express</strong> delivery fleet has been approved by the platform administration. Your account is now active and ready for parcel delivery operations.
+          </p>
         </div>
-        <div style="text-align:center;margin:32px 0 20px;">
-          <a href="{delivery_portal_url}" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:14px 32px;border-radius:12px;">
+
+        <!-- Account & Fleet Details Card -->
+        <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:20px;margin:24px 0;">
+          <h3 style="font-size:13px;color:#0e3820;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.5px;">Your Approved Fleet Profile</h3>
+          
+          <table style="width:100%;font-size:13px;border-collapse:collapse;">
+            <tr>
+              <td style="padding:5px 0;color:#78716c;width:40%;">Delivery Partner:</td>
+              <td style="padding:5px 0;font-weight:700;color:#1c1917;">{full_name}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#78716c;">Login Mobile / Phone:</td>
+              <td style="padding:5px 0;font-weight:700;color:#0e3820;font-family:monospace;">{phone}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#78716c;">Registered Email:</td>
+              <td style="padding:5px 0;font-weight:700;color:#1c1917;font-family:monospace;">{recipient_email}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#78716c;">Assigned Vehicle:</td>
+              <td style="padding:5px 0;font-weight:700;color:#1c1917;">{vehicle_info}</td>
+            </tr>
+            <tr>
+              <td style="padding:5px 0;color:#78716c;">Courier Company / Hub:</td>
+              <td style="padding:5px 0;font-weight:700;color:#1c1917;">{courier_profile.courier_company or 'Independent'} &middot; {courier_profile.service_area_city or 'Hub'}</td>
+            </tr>
+            {f'<tr><td style="padding:5px 0;color:#78716c;">Admin Notes:</td><td style="padding:5px 0;color:#0e3820;font-style:italic;">{admin_notes}</td></tr>' if admin_notes else ''}
+          </table>
+        </div>
+
+        <!-- How to Sign In / Next Steps -->
+        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px;margin:24px 0;">
+          <h3 style="font-size:13px;color:#166534;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;">🚀 Getting Started in 3 Easy Steps</h3>
+          <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:#166534;">
+            <li>Visit the courier delivery portal at <a href="{delivery_portal_url}" style="color:#0e3820;font-weight:700;text-decoration:underline;">wangs.in/delivery</a>.</li>
+            <li>Sign in using your registered mobile number <strong>{phone}</strong> (or email <strong>{recipient_email}</strong>) and your password.</li>
+            <li>Scan package QR barcodes with the camera scanner, view customer directions, and complete deliveries!</li>
+          </ol>
+        </div>
+
+        <!-- Call to Action Button -->
+        <div style="text-align:center;margin:32px 0 24px;">
+          <a href="{delivery_portal_url}" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:14px 36px;border-radius:12px;box-shadow:0 2px 8px rgba(14,56,32,0.25);">
             Open Courier Delivery Portal &rarr;
           </a>
         </div>
-        <p style="font-size:12px;color:#a8a29e;text-align:center;margin-top:24px;">
-          Wangs Express Logistics &middot; Kohima, Nagaland &middot; Need help? Contact wangssupport@gmail.com
+
+        <p style="font-size:12px;color:#a8a29e;text-align:center;margin:28px 0 0;line-height:1.5;">
+          Wangs Express Logistics &middot; Kohima, Nagaland &middot; Need help? Contact <a href="mailto:wangssupport@gmail.com" style="color:#78716c;text-decoration:underline;">wangssupport@gmail.com</a>
         </p>
       </div>
     </body>
@@ -1151,6 +1202,37 @@ def send_courier_approval_email(courier_profile, request=None, site_url: str = N
     print(f"Agent:          {full_name}")
     print(f"Portal:         {delivery_portal_url}")
     print(f"==========================================\n")
+    return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_courier_suspension_email(courier_profile, reason='', request=None, site_url: str = None):
+    """
+    Sends an account suspension notice email to the courier.
+    """
+    recipient_email = (courier_profile.email or (courier_profile.user.email if courier_profile.user else '')).strip()
+    if not recipient_email:
+        return False, {"error": "No recipient email address."}
+
+    full_name = courier_profile.full_name or 'Delivery Partner'
+    subject = "Notice: Your Wangs Express Courier Account Has Been Suspended"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:sans-serif;background:#f5f3ef;padding:24px;color:#292524;">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e7dfd4;padding:32px;">
+        <h2 style="color:#b91c1c;margin:0 0 12px;">Wangs Express Logistics &middot; Account Suspended</h2>
+        <p style="font-size:15px;line-height:1.6;">Hello <strong>{full_name}</strong>,</p>
+        <p style="font-size:14px;line-height:1.6;color:#57534e;">
+          This is an official notice that your Wangs Express courier delivery privileges have been temporarily suspended by platform administration.
+        </p>
+        {f'<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:16px;margin:20px 0;font-size:13px;"><strong>Reason:</strong><br>{reason}</div>' if reason else ''}
+        <p style="font-size:13px;line-height:1.6;color:#57534e;">
+          During suspension, you will not be able to scan package QR codes, view customer route directions, or confirm deliveries. If you have questions or want to resolve this issue, please contact <strong>wangssupport@gmail.com</strong>.
+        </p>
+      </div>
+    </body>
+    </html>
+    """
     return dispatch_email(recipient_email, subject, html_content)
 
 

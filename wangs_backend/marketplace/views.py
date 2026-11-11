@@ -48,7 +48,7 @@ from .permissions import IsAdminUserRole, IsManufacturerUser, IsApprovedManufact
 from .services import FinancialCalculator, OrderService, PaymentService, SettlementService, RewardService
 from .resend_service import (
     send_otp_email, send_courier_approval_email, send_courier_rejection_email,
-    send_admin_new_courier_registration_email
+    send_courier_suspension_email, send_admin_new_courier_registration_email
 )
 
 
@@ -1734,8 +1734,11 @@ class AdminCourierApproveView(views.APIView):
         courier.user.is_active = True
         courier.user.save(update_fields=['is_active'])
 
+        email_dispatched = False
         try:
-            send_courier_approval_email(courier, request=request)
+            sent, info = send_courier_approval_email(courier, request=request)
+            email_dispatched = sent
+            logger.info("Dispatched courier approval email to %s (success=%s): %s", courier.email, sent, info)
         except Exception as e:
             logger.warning("Could not dispatch courier approval email: %s", e)
 
@@ -1744,12 +1747,13 @@ class AdminCourierApproveView(views.APIView):
             action='ADMIN_COURIER_APPROVED',
             target_model='CourierProfile',
             target_id=str(courier.id),
-            details={'courier_name': courier.full_name, 'phone': courier.phone_number}
+            details={'courier_name': courier.full_name, 'phone': courier.phone_number, 'email': courier.email, 'email_sent': email_dispatched}
         )
 
         return Response({
-            'message': f'Courier {courier.full_name} approved successfully.',
-            'courier': CourierProfileSerializer(courier).data
+            'message': f'Courier {courier.full_name} approved successfully. Confirmation email sent to {courier.email}.',
+            'courier': CourierProfileSerializer(courier).data,
+            'email_sent': email_dispatched
         })
 
 
@@ -1796,6 +1800,11 @@ class AdminCourierSuspendView(views.APIView):
         courier.is_active = False
         courier.save()
 
+        try:
+            send_courier_suspension_email(courier, reason=reason, request=request)
+        except Exception as e:
+            logger.warning("Could not dispatch courier suspension email: %s", e)
+
         AuditLog.objects.create(
             user=request.user,
             action='ADMIN_COURIER_SUSPENDED',
@@ -1823,6 +1832,11 @@ class AdminCourierReactivateView(views.APIView):
         courier.user.is_active = True
         courier.user.save(update_fields=['is_active'])
 
+        try:
+            send_courier_approval_email(courier, request=request)
+        except Exception as e:
+            logger.warning("Could not dispatch courier reactivation email: %s", e)
+
         AuditLog.objects.create(
             user=request.user,
             action='ADMIN_COURIER_REACTIVATED',
@@ -1832,7 +1846,7 @@ class AdminCourierReactivateView(views.APIView):
         )
 
         return Response({
-            'message': f'Courier {courier.full_name} reactivated successfully.',
+            'message': f'Courier {courier.full_name} reactivated successfully. Notification email dispatched.',
             'courier': CourierProfileSerializer(courier).data
         })
 

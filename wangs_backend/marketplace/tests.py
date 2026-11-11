@@ -2020,3 +2020,32 @@ class WangsCourierSystemTests(TestCase):
         }, format='json')
         self.assertEqual(deliver_resp_a.status_code, status.HTTP_200_OK)
 
+    def test_admin_courier_approval_dispatches_email(self):
+        from unittest.mock import patch
+        courier_user = User.objects.create_user(
+            username='courier_email_target',
+            email='driver@wangs.in',
+            password='Password123!',
+            role=User.Role.COURIER
+        )
+        profile = CourierProfile.objects.create(
+            user=courier_user,
+            full_name='Email Target Driver',
+            phone_number='9862000099',
+            email='driver@wangs.in',
+            status=CourierProfile.Status.PENDING
+        )
+
+        with patch('marketplace.views.send_courier_approval_email') as mock_send_email:
+            mock_send_email.return_value = (True, {'provider': 'TEST'})
+            self.client.force_authenticate(user=self.admin_user)
+            resp = self.client.post(f'/api/admin/couriers/{profile.id}/approve/', {
+                'admin_notes': 'Welcome to Wangs Delivery fleet'
+            }, format='json')
+
+            self.assertEqual(resp.status_code, status.HTTP_200_OK)
+            self.assertTrue(mock_send_email.called)
+            called_profile = mock_send_email.call_args[0][0]
+            self.assertEqual(called_profile.id, profile.id)
+            self.assertEqual(called_profile.email, 'driver@wangs.in')
+

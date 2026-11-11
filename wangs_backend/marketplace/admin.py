@@ -120,6 +120,40 @@ class CourierProfileAdmin(admin.ModelAdmin):
     list_display = ('full_name', 'phone_number', 'vehicle_type', 'courier_company', 'status', 'is_active', 'total_deliveries_completed', 'created_at')
     list_filter = ('status', 'vehicle_type', 'is_active')
     search_fields = ('full_name', 'phone_number', 'email', 'vehicle_number', 'courier_company')
+    actions = ['approve_couriers_and_send_email', 'reject_couriers_and_send_email']
+
+    @admin.action(description="Approve selected courier(s) & dispatch approval email")
+    def approve_couriers_and_send_email(self, request, queryset):
+        from .resend_service import send_courier_approval_email
+        count = 0
+        for courier in queryset:
+            courier.status = CourierProfile.Status.APPROVED
+            courier.is_active = True
+            courier.rejection_reason = ''
+            courier.suspension_reason = ''
+            courier.save()
+            courier.user.is_active = True
+            courier.user.save(update_fields=['is_active'])
+            try:
+                send_courier_approval_email(courier, request=request)
+            except Exception:
+                pass
+            count += 1
+        self.message_user(request, f"{count} courier(s) approved and notification email dispatched.")
+
+    @admin.action(description="Reject selected courier(s) & dispatch notification email")
+    def reject_couriers_and_send_email(self, request, queryset):
+        from .resend_service import send_courier_rejection_email
+        count = 0
+        for courier in queryset:
+            courier.status = CourierProfile.Status.REJECTED
+            courier.save()
+            try:
+                send_courier_rejection_email(courier, reason='Declined by administration', request=request)
+            except Exception:
+                pass
+            count += 1
+        self.message_user(request, f"{count} courier(s) rejected and notification email dispatched.")
 
 
 @admin.register(CourierDeliveryScanLog)
