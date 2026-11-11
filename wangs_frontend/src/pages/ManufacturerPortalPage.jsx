@@ -4,20 +4,32 @@ import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
   Plus, Edit, Eye, EyeOff, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
   Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download,
-  Lock, Mail, KeyRound, ArrowRight, Trash2, Edit3, Boxes, AlertTriangle, Landmark
+  Lock, Mail, KeyRound, ArrowRight, Trash2, Edit3, Boxes, AlertTriangle, Landmark,
+  UploadCloud, User, Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
+import BrandCard from '../components/BrandCard';
 import { compressImageFile, resolveProductImage } from '../utils/image';
+
+function getBrandInitials(name = '') {
+  return name
+    .split(/\s+/)
+    .filter((word) => /[a-zA-Z0-9]/.test(word))
+    .slice(0, 2)
+    .map((word) => word[0] || '')
+    .join('')
+    .toUpperCase() || 'W';
+}
 
 export default function ManufacturerPortalPage() {
   const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'products', 'orders', 'financials'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'products', 'orders', 'financials', 'profile'
   const [profile, setProfile] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -26,6 +38,19 @@ export default function ManufacturerPortalPage() {
   const [loading, setLoading] = useState(true);
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
   const [showSellerRulesModal, setShowSellerRulesModal] = useState(false);
+
+  // Profile & Logo Management state
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [profileForm, setProfileForm] = useState({
+    tagline: '',
+    brand_story: '',
+    location_district: '',
+    contact_email: '',
+    contact_phone: '',
+    business_address: '',
+    postal_code: '',
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
 
   // Bank account management state
   const [editingBank, setEditingBank] = useState(false);
@@ -156,8 +181,78 @@ export default function ManufacturerPortalPage() {
         bank_ifsc_code: profile.bank_ifsc_code || '',
         bank_name: profile.bank_name || '',
       });
+      setProfileForm({
+        tagline: profile.tagline || '',
+        brand_story: profile.brand_story || '',
+        location_district: profile.location_district || '',
+        contact_email: profile.contact_email || '',
+        contact_phone: profile.contact_phone || '',
+        business_address: profile.business_address || '',
+        postal_code: profile.postal_code || '',
+      });
     }
   }, [profile]);
+
+  const handleLogoUpload = async (file) => {
+    if (!file) return;
+    if (file.size > 12 * 1024 * 1024) {
+      toast.error('Logo file size must be under 12MB');
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const compressedDataUrl = await compressImageFile(file);
+      const updated = await api.updateManufacturerProfile({
+        logo_image: compressedDataUrl,
+      });
+      setProfile((prev) => ({ ...prev, ...updated }));
+      toast.success('Brand logo uploaded and updated successfully!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload brand logo');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleRemoveLogo = async () => {
+    if (!window.confirm('Are you sure you want to remove your custom logo? Your brand will display your initials monogram fallback.')) {
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const updated = await api.updateManufacturerProfile({
+        logo_image: '',
+      });
+      setProfile((prev) => ({ ...prev, ...updated, logo_image: '' }));
+      toast.success('Brand logo removed. Initial monogram badge restored.');
+    } catch (err) {
+      toast.error(err.message || 'Failed to remove logo');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      const updated = await api.updateManufacturerProfile({
+        tagline: (profileForm.tagline || '').trim(),
+        brand_story: (profileForm.brand_story || '').trim(),
+        location_district: (profileForm.location_district || '').trim(),
+        contact_email: (profileForm.contact_email || '').trim(),
+        contact_phone: (profileForm.contact_phone || '').trim(),
+        business_address: (profileForm.business_address || '').trim(),
+        postal_code: (profileForm.postal_code || '').trim(),
+      });
+      setProfile((prev) => ({ ...prev, ...updated }));
+      toast.success('Brand profile details saved successfully!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update profile details.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   const handleSaveBankDetails = async (e) => {
     e.preventDefault();
@@ -577,25 +672,69 @@ export default function ManufacturerPortalPage() {
     <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-10">
       {/* Top Banner / Seller Status */}
       <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-              {profile.business_name}
-            </h1>
-            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-              profile.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-              profile.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
-              'bg-red-100 text-red-800'
-            }`}>
-              {profile.status === 'APPROVED' ? 'Approved Seller' : `Status: ${profile.status}`}
-            </span>
+        <div className="flex items-center gap-4">
+          {/* Brand Logo with Click-to-Upload */}
+          <div className="relative group shrink-0">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-secondary-container text-on-secondary-container border border-stone-200 shadow-xs overflow-hidden flex items-center justify-center font-serif font-bold text-xl sm:text-2xl">
+              {profile.logo_image ? (
+                <img
+                  src={resolveProductImage(profile.logo_image)}
+                  alt={profile.business_name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span>{getBrandInitials(profile.business_name)}</span>
+              )}
+            </div>
+            <label
+              className="absolute inset-0 bg-stone-950/65 text-white rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold p-1 text-center"
+              title="Click to upload/change brand logo"
+            >
+              <Camera size={16} className="mb-0.5" />
+              <span>{logoUploading ? 'Uploading...' : 'Change Logo'}</span>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={logoUploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleLogoUpload(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
           </div>
-          <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-stone-600">
-            <span>{profile.location_district}</span>
-            <span>·</span>
-            <span className="inline-flex items-center gap-1 font-mono font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-              <ShieldCheck size={13} className="text-emerald-600" /> FSSAI Lic. #{profile.fssai_license_number}
-            </span>
+
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+                {profile.business_name}
+              </h1>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                profile.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                profile.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
+                'bg-red-100 text-red-800'
+              }`}>
+                {profile.status === 'APPROVED' ? 'Approved Seller' : `Status: ${profile.status}`}
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-stone-600">
+              <span>{profile.location_district}</span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1 font-mono font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <ShieldCheck size={13} className="text-emerald-600" /> FSSAI Lic. #{profile.fssai_license_number}
+              </span>
+              <span>·</span>
+              <button
+                type="button"
+                onClick={() => setActiveTab('profile')}
+                className="text-forest-900 hover:text-forest-950 underline font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <Camera size={11} />
+                <span>{profile.logo_image ? 'Manage Logo' : 'Upload Logo'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -720,6 +859,12 @@ export default function ManufacturerPortalPage() {
           className={`pb-3 border-b-2 transition-colors ${activeTab === 'financials' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
         >
           Earnings & Settlements
+        </button>
+        <button
+          onClick={() => setActiveTab('profile')}
+          className={`pb-3 border-b-2 transition-colors ${activeTab === 'profile' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
+        >
+          Brand Profile & Logo
         </button>
       </div>
 
@@ -1378,6 +1523,319 @@ export default function ManufacturerPortalPage() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 5: Brand Profile & Logo */}
+      {activeTab === 'profile' && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Store className="text-forest-900" size={20} />
+                <h2 className="font-serif font-bold text-xl text-stone-900">
+                  Artisan Brand Profile & Storefront Identity
+                </h2>
+              </div>
+              <p className="text-xs text-stone-600 mt-1">
+                Manage your public brand assets, circular logo, tagline, origin story, and contact details.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                to={`/products?brand=${encodeURIComponent(profile.slug || profile.business_name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
+                title="View your storefront as customers see it"
+              >
+                <Eye size={14} className="text-forest-900" />
+                <span>View Public Storefront</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Column: Brand Logo & Visual Assets */}
+            <div className="lg:col-span-1 space-y-6">
+              {/* Logo Card */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-5">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                  <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
+                    <Camera size={16} className="text-forest-900" />
+                    <span>Brand Logo</span>
+                  </h3>
+                  {profile.logo_image ? (
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <CheckCircle size={10} /> Custom Active
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <Sparkles size={10} /> Monogram Mode
+                    </span>
+                  )}
+                </div>
+
+                {/* Circular Logo Avatar Display */}
+                <div className="flex flex-col items-center text-center">
+                  <div className="relative group">
+                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-amber-100/80 shadow-md bg-secondary-container text-on-secondary-container flex items-center justify-center font-serif font-bold text-3xl">
+                      {profile.logo_image ? (
+                        <img
+                          src={resolveProductImage(profile.logo_image)}
+                          alt={profile.business_name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{getBrandInitials(profile.business_name)}</span>
+                      )}
+                    </div>
+                    {/* Hover upload trigger */}
+                    <label
+                      className="absolute inset-0 rounded-full bg-stone-950/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-xs font-bold"
+                      title="Upload new brand logo"
+                    >
+                      <Camera size={20} className="mb-1" />
+                      <span>{logoUploading ? 'Uploading...' : 'Change Logo'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        disabled={logoUploading}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleLogoUpload(file);
+                          e.target.value = '';
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <p className="font-serif font-bold text-stone-900 text-base mt-3">
+                    {profile.business_name}
+                  </p>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    {profile.location_district || 'Nagaland, India'}
+                  </p>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-2 border-t border-stone-100">
+                  <label className={`w-full py-2.5 px-3 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-colors ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <UploadCloud size={15} />
+                    <span>{logoUploading ? 'Uploading & Optimizing...' : profile.logo_image ? 'Upload New Brand Logo' : 'Upload Brand Logo'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={logoUploading}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+
+                  {profile.logo_image && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      disabled={logoUploading}
+                      className="w-full py-2 px-3 bg-white hover:bg-red-50 border border-red-200 text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                      <span>Remove Custom Logo</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Specs & Guidance */}
+                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-[11px] text-stone-600 space-y-1">
+                  <p className="font-bold text-stone-800 flex items-center gap-1">
+                    <Sparkles size={12} className="text-amber-600" />
+                    <span>Logo Guidelines</span>
+                  </p>
+                  <p>• <strong>Aspect Ratio:</strong> 1:1 Square (e.g. 500×500 px).</p>
+                  <p>• <strong>Formats:</strong> JPG, PNG, WebP (up to 12MB).</p>
+                  <p>• <strong>Placements:</strong> Storefront badge, homepage brand carousel, product cards, and invoice slips.</p>
+                </div>
+              </div>
+
+              {/* Storefront Live Card Preview */}
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                  Customer Storefront Preview
+                </span>
+                <BrandCard brand={profile} />
+                <p className="text-[10px] text-stone-500 text-center italic">
+                  Live preview of how shoppers see your brand card on Wangs.
+                </p>
+              </div>
+            </div>
+
+            {/* Right Column: Brand Profile Details Form */}
+            <div className="lg:col-span-2 space-y-6">
+              <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-5">
+                <div className="border-b border-stone-100 pb-3 flex items-center justify-between">
+                  <h3 className="font-serif font-bold text-stone-900 text-base">
+                    Brand Information & Workshop Story
+                  </h3>
+                  <span className="text-[11px] text-stone-500">
+                    Fields marked * are required
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Brand / Business Name</label>
+                    <input
+                      type="text"
+                      disabled
+                      value={profile.business_name}
+                      className="w-full px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-stone-700 text-xs font-semibold cursor-not-allowed"
+                    />
+                    <span className="text-[10px] text-stone-400 mt-1 block">Registered brand name (contact admin to rename).</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Brand Tagline / Punchline</label>
+                    <input
+                      type="text"
+                      value={profileForm.tagline}
+                      onChange={(e) => setProfileForm({ ...profileForm, tagline: e.target.value })}
+                      placeholder="e.g. Kohima's Heritage Wood-Smoked Workshop"
+                      maxLength={180}
+                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                    <span className="text-[10px] text-stone-400 mt-1 block">Appears directly beneath your brand title.</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-stone-700 font-semibold mb-1 text-xs">Artisan Story & Heritage Origins</label>
+                  <textarea
+                    rows={4}
+                    value={profileForm.brand_story}
+                    onChange={(e) => setProfileForm({ ...profileForm, brand_story: e.target.value })}
+                    placeholder="Share your family pickle recipe tradition, wood-smoking technique, or indigenous ingredients used in your kitchen..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800 resize-y"
+                  />
+                  <span className="text-[10px] text-stone-400 mt-1 block">Told to customers on your brand storefront page.</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Workshop District / City *</label>
+                    <input
+                      type="text"
+                      required
+                      value={profileForm.location_district}
+                      onChange={(e) => setProfileForm({ ...profileForm, location_district: e.target.value })}
+                      placeholder="e.g. Kohima, Nagaland"
+                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Workshop PIN Code</label>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={profileForm.postal_code}
+                      onChange={(e) => setProfileForm({ ...profileForm, postal_code: e.target.value.replace(/\D/g, '') })}
+                      placeholder="e.g. 797001"
+                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl font-mono text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-stone-700 font-semibold mb-1 text-xs">Workshop Street Address</label>
+                  <textarea
+                    rows={2}
+                    value={profileForm.business_address}
+                    onChange={(e) => setProfileForm({ ...profileForm, business_address: e.target.value })}
+                    placeholder="Full workshop or commercial kitchen address..."
+                    className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                  <span className="text-[10px] text-stone-400 mt-1 block">Used for courier pickup and dispatch labels.</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Contact Phone *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={profileForm.contact_phone}
+                      onChange={(e) => setProfileForm({ ...profileForm, contact_phone: e.target.value })}
+                      placeholder="e.g. +91 98765 43210"
+                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Contact Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={profileForm.contact_email}
+                      onChange={(e) => setProfileForm({ ...profileForm, contact_email: e.target.value })}
+                      placeholder="e.g. workshop@brand.com"
+                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-xs disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-colors"
+                  >
+                    <CheckCircle size={14} />
+                    <span>{savingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
+                  </button>
+                </div>
+              </form>
+
+              {/* Regulatory Compliance Card */}
+              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
+                <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-emerald-700" />
+                  <span>Food Safety & Regulatory Compliance</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl">
+                    <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
+                      FSSAI Food License
+                    </span>
+                    <span className="font-mono font-bold text-stone-900 text-sm block mt-1">
+                      #{profile.fssai_license_number || '14-digit license registered'}
+                    </span>
+                    <span className="text-[10px] text-emerald-700 mt-1 block">
+                      ✓ Mandatory license registered for all pickle jars
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-xl">
+                    <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">
+                      GSTIN (Goods & Services Tax)
+                    </span>
+                    <span className="font-mono font-semibold text-stone-800 text-sm block mt-1">
+                      {profile.gst_number || 'Exempt / Composition Scheme'}
+                    </span>
+                    <span className="text-[10px] text-stone-500 mt-1 block">
+                      Recorded on invoice settlements
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

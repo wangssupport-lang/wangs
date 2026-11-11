@@ -340,6 +340,21 @@ class ManufacturerProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'user', 'slug', 'status', 'commission_rate_override', 'is_verified_producer', 'created_at']
 
+    def to_internal_value(self, data):
+        ret = super().to_internal_value(data)
+        raw_logo = ret.get('logo_image') or data.get('logo_image')
+        if raw_logo and isinstance(raw_logo, str) and raw_logo.startswith('data:image/'):
+            ret['logo_image'] = ProductSerializer._save_base64_image(raw_logo, folder='brand_logos')
+        elif raw_logo is not None and str(raw_logo).strip() == '':
+            ret['logo_image'] = ''
+
+        raw_banner = ret.get('hero_banner') or data.get('hero_banner')
+        if raw_banner and isinstance(raw_banner, str) and raw_banner.startswith('data:image/'):
+            ret['hero_banner'] = ProductSerializer._save_base64_image(raw_banner, folder='brand_banners')
+        elif raw_banner is not None and str(raw_banner).strip() == '':
+            ret['hero_banner'] = ''
+        return ret
+
     def validate_fssai_license_number(self, value):
         if value:
             cleaned = str(value).strip()

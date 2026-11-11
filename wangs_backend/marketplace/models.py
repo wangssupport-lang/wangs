@@ -125,17 +125,15 @@ class ManufacturerProfile(models.Model):
         default='Official Brand Store',
         help_text="Badge e.g. 'Featured Brand' or 'Amazon-style Brand Spotlight'"
     )
-    hero_banner = models.CharField(
-        max_length=500,
+    hero_banner = models.TextField(
         blank=True,
         default='',
         help_text="Banner image URL for the brand showcase"
     )
-    logo_image = models.CharField(
-        max_length=500,
+    logo_image = models.TextField(
         blank=True,
         default='',
-        help_text="Brand circular logo URL"
+        help_text="Brand circular logo URL or base64"
     )
     admin_review_notes = models.TextField(blank=True, default='')
     display_priority = models.PositiveIntegerField(
