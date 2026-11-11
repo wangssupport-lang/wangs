@@ -1725,51 +1725,6 @@ export default function HomePage() {
             </div>
           </section>
         )}
-
-        {/* 5. Sell Your Pickles on Wangs Banner Card (Only when registration is enabled) */}
-        {Boolean(allowSellerRegistration) && (
-          <section className="relative overflow-hidden rounded-xl bg-surface-container p-4 flex flex-col gap-3 shadow-xs border border-outline-variant/30">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center text-primary shrink-0">
-                <Utensils size={22} className="text-primary" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-label-sm text-[10px] text-primary font-bold uppercase tracking-wider">
-                  Artisan Maker Guild
-                </span>
-                <h3 className="font-headline-sm text-sm font-serif font-bold text-on-surface leading-tight">
-                  Turn Your Family Recipe Into a Business
-                </h3>
-              </div>
-            </div>
-            <p className="font-body-md text-xs text-on-surface-variant leading-relaxed">
-              Join 320+ verified home cooks and regional manufacturers delivering authentic Indian flavors directly to food lovers nationwide.
-            </p>
-            <div className="flex items-center gap-4 py-1">
-              <div className="flex flex-col">
-                <span className="font-title-lg text-base font-bold text-primary">320+</span>
-                <span className="font-label-sm text-[10px] text-outline">Active Makers</span>
-              </div>
-              <div className="h-6 w-px bg-outline-variant/40" />
-              <div className="flex flex-col">
-                <span className="font-title-lg text-base font-bold text-primary">₹0 Fee</span>
-                <span className="font-label-sm text-[10px] text-outline">To List Batches</span>
-              </div>
-              <div className="h-6 w-px bg-outline-variant/40" />
-              <div className="flex flex-col">
-                <span className="font-title-lg text-base font-bold text-primary">Pan-India</span>
-                <span className="font-label-sm text-[10px] text-outline">Jar Logistics</span>
-              </div>
-            </div>
-            <Link
-              to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
-              className="w-full h-11 rounded-full bg-primary text-on-primary font-label-lg text-xs font-bold active:scale-95 transition-transform flex items-center justify-center gap-2 shadow-xs"
-            >
-              <Store size={16} />
-              <span>{isManufacturer ? "Seller Dashboard" : "Register as Seller"}</span>
-            </Link>
-          </section>
-        )}
       </div>
     </div>
   );
