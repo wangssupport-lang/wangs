@@ -6023,6 +6023,18 @@ export default function AdminDashboardPage() {
                 <p className="text-stone-700">Bank: <strong className="font-semibold">{selectedSeller.bank_name || 'Not provided'}</strong></p>
                 <p className="text-stone-700">A/C: <span className="font-mono font-bold text-stone-900">{selectedSeller.bank_account_number || 'Not provided'}</span></p>
                 <p className="text-stone-700">IFSC: <span className="font-mono font-bold text-emerald-900">{selectedSeller.bank_ifsc_code || 'Not provided'}</span></p>
+                {selectedSeller.bank_passbook_image && (
+                  <div className="pt-1.5 border-t border-amber-200/80">
+                    <button
+                      type="button"
+                      onClick={() => window.open(selectedSeller.bank_passbook_image, '_blank')}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <span>View Uploaded Bank Passbook</span>
+                      <span>↗</span>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200/80 space-y-1.5">
@@ -6373,6 +6385,18 @@ export default function AdminDashboardPage() {
                       <div>Bank: <strong>{selectedUser.seller_request_details.bank_name || '—'}</strong></div>
                       <div>A/C: <span className="font-mono">{selectedUser.seller_request_details.bank_account_number || '—'}</span></div>
                     </div>
+                    {selectedUser.seller_request_details.bank_passbook_image && (
+                      <div className="pt-1.5 border-t border-amber-200/80">
+                        <button
+                          type="button"
+                          onClick={() => window.open(selectedUser.seller_request_details.bank_passbook_image, '_blank')}
+                          className="inline-flex items-center gap-1 text-[10.5px] font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 px-2 py-0.5 rounded-lg transition-colors cursor-pointer"
+                        >
+                          <span>View Bank Passbook</span>
+                          <span>↗</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -6537,6 +6561,36 @@ export default function AdminDashboardPage() {
                 </div>
               ) : (
                 <p className="text-[11px] text-stone-500 italic">No bank account details recorded for this request.</p>
+              )}
+
+              {/* Uploaded Bank Passbook / Cancelled Cheque */}
+              {inspectingRequest.bank_passbook_image ? (
+                <div className="pt-2 border-t border-amber-200/90 space-y-1.5">
+                  <span className="text-stone-600 block text-[10px] uppercase font-bold flex items-center gap-1">
+                    <CheckCircle size={12} className="text-emerald-600" />
+                    Mandatory Bank Passbook / Cancelled Cheque Photo:
+                  </span>
+                  <div className="rounded-xl overflow-hidden border border-amber-300/80 bg-white inline-block shadow-xs">
+                    <img
+                      src={inspectingRequest.bank_passbook_image}
+                      alt="Bank Passbook"
+                      className="max-h-44 w-auto object-contain cursor-pointer hover:opacity-90 transition-opacity bg-stone-50"
+                      onClick={() => window.open(inspectingRequest.bank_passbook_image, '_blank')}
+                    />
+                    <a
+                      href={inspectingRequest.bank_passbook_image}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block text-center text-[10.5px] font-bold text-amber-900 bg-amber-100/90 hover:bg-amber-200 py-1 transition-colors"
+                    >
+                      Click to inspect full document ↗
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[10px] text-amber-800/80 italic pt-1 border-t border-amber-200/60">
+                  No bank passbook image attached to this legacy request.
+                </p>
               )}
             </div>
 

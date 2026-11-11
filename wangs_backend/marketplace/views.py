@@ -365,6 +365,7 @@ class RequestSellerAccessView(views.APIView):
         bank_account_number = request.data.get('bank_account_number', '').strip()
         bank_ifsc_code = request.data.get('bank_ifsc_code', '').strip().upper()
         bank_name = request.data.get('bank_name', '').strip()
+        bank_passbook_image = request.data.get('bank_passbook_image', '').strip()
 
         if not email or not business_name:
             return Response({'detail': 'Business name and contact email are required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -392,6 +393,18 @@ class RequestSellerAccessView(views.APIView):
             return Response({
                 'detail': 'Email verification is mandatory. Please click "Send OTP" and enter the 6-digit verification code sent to your email.'
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Settlement Bank details & Passbook / Cancelled Cheque image are strictly mandatory
+        if bank_account_holder or bank_account_number or bank_ifsc_code or bank_passbook_image:
+            if not bank_account_holder or not bank_account_number or not bank_ifsc_code:
+                return Response({
+                    'detail': 'Bank Account Holder Name, Account Number, and 11-character IFSC Code are mandatory for settlement.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            if not bank_passbook_image:
+                return Response({
+                    'detail': 'A clear photo or scan of your Bank Passbook or Cancelled Cheque is strictly mandatory for settlement verification.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # Pre-create or link User account with the chosen password
         user_record = User.objects.filter(email__iexact=email).first()
@@ -436,6 +449,7 @@ class RequestSellerAccessView(views.APIView):
                 'bank_account_number': bank_account_number,
                 'bank_ifsc_code': bank_ifsc_code,
                 'bank_name': bank_name,
+                'bank_passbook_image': bank_passbook_image,
             }
         )
 
@@ -454,6 +468,7 @@ class RequestSellerAccessView(views.APIView):
                 'bank_account_number': bank_account_number,
                 'bank_ifsc_code': bank_ifsc_code,
                 'bank_name': bank_name,
+                'bank_passbook_image': bank_passbook_image,
                 'type': 'Seller Authorization Request'
             })
             # 2. Confirmation email dispatched directly to the applicant's entered email
@@ -2355,6 +2370,7 @@ class AdminSellerRequestView(views.APIView):
                 'bank_account_number': details.get('bank_account_number', ''),
                 'bank_ifsc_code': details.get('bank_ifsc_code', ''),
                 'bank_name': details.get('bank_name', ''),
+                'bank_passbook_image': details.get('bank_passbook_image', ''),
                 'user_id': user_match.id if user_match else None,
                 'is_authorized': is_approved,
             })
@@ -2417,6 +2433,7 @@ class AdminSellerRequestView(views.APIView):
                 bank_account_number=details.get('bank_account_number', '') or '',
                 bank_ifsc_code=details.get('bank_ifsc_code', '') or '',
                 bank_name=details.get('bank_name', '') or '',
+                bank_passbook_image=details.get('bank_passbook_image', '') or '',
                 is_verified_producer=True,
                 status=ManufacturerProfile.Status.APPROVED
             )
@@ -2429,6 +2446,10 @@ class AdminSellerRequestView(views.APIView):
                 mfg.bank_account_number = details.get('bank_account_number', '') or mfg.bank_account_number
                 mfg.bank_ifsc_code = details.get('bank_ifsc_code', '') or mfg.bank_ifsc_code
                 mfg.bank_name = details.get('bank_name', '') or mfg.bank_name
+                update_fields.extend(['bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name'])
+            if details.get('bank_passbook_image') and not mfg.bank_passbook_image:
+                mfg.bank_passbook_image = details.get('bank_passbook_image', '')
+                update_fields.append('bank_passbook_image')
                 update_fields.extend(['bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name'])
             mfg.save(update_fields=update_fields)
 

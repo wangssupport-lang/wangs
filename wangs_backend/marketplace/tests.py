@@ -700,6 +700,18 @@ class WangsFinancialAndOrderTests(TestCase):
         self.assertEqual(inv_resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('FSSAI Food Business License / Registration Number is mandatory', inv_resp.data['detail'])
 
+        # 3b. Submission with banking details but missing passbook photo is rejected
+        missing_passbook_data = req_data.copy()
+        missing_passbook_data.update({
+            'bank_account_holder': 'Arenla Jamir',
+            'bank_name': 'State Bank of India',
+            'bank_account_number': '302910482910',
+            'bank_ifsc_code': 'SBIN0000214',
+        })
+        pb_resp = self.client.post(url, missing_passbook_data, format='json')
+        self.assertEqual(pb_resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('Bank Passbook or Cancelled Cheque is strictly mandatory', pb_resp.data['detail'])
+
         # 4. Verified submission with valid 14-digit FSSAI succeeds
         req_with_bank = req_data.copy()
         req_with_bank.update({
@@ -707,18 +719,20 @@ class WangsFinancialAndOrderTests(TestCase):
             'bank_name': 'State Bank of India',
             'bank_account_number': '302910482910',
             'bank_ifsc_code': 'SBIN0000214',
+            'bank_passbook_image': 'data:image/jpeg;base64,mockpassbookscan123',
         })
         ok_resp = self.client.post(url, req_with_bank, format='json')
         self.assertEqual(ok_resp.status_code, status.HTTP_200_OK)
         self.assertTrue(ok_resp.data['success'])
 
-        # Verify AuditLog recorded bank details
+        # Verify AuditLog recorded bank details & mandatory passbook image
         log = AuditLog.objects.filter(details__email='producer@hills.in').order_by('-created_at').first()
         self.assertIsNotNone(log)
         self.assertEqual(log.details.get('bank_account_number'), '302910482910')
         self.assertEqual(log.details.get('bank_ifsc_code'), 'SBIN0000214')
         self.assertEqual(log.details.get('bank_name'), 'State Bank of India')
         self.assertEqual(log.details.get('bank_account_holder'), 'Arenla Jamir')
+        self.assertEqual(log.details.get('bank_passbook_image'), 'data:image/jpeg;base64,mockpassbookscan123')
 
     def test_seller_approval_email_dispatch_on_admin_actions(self):
         """

@@ -95,6 +95,11 @@ class ManufacturerProfile(models.Model):
     bank_account_number = models.CharField(max_length=50, blank=True, default='')
     bank_ifsc_code = models.CharField(max_length=20, blank=True, default='')
     bank_name = models.CharField(max_length=100, blank=True, default='')
+    bank_passbook_image = models.TextField(
+        blank=True,
+        default='',
+        help_text="Mandatory photo/scan of bank passbook or cancelled cheque for settlement verification"
+    )
 
     # Admin approval & commission override
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)

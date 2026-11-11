@@ -209,6 +209,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
                         'bank_account_number': d.get('bank_account_number', ''),
                         'bank_ifsc_code': d.get('bank_ifsc_code', ''),
                         'bank_name': d.get('bank_name', ''),
+                        'bank_passbook_image': d.get('bank_passbook_image', ''),
                         'message': d.get('message', ''),
                         'created_at': log.created_at.isoformat() if log.created_at else None,
                         'status': d.get('status', 'PENDING'),
@@ -331,6 +332,7 @@ class ManufacturerProfileSerializer(serializers.ModelSerializer):
             'contact_email', 'contact_phone', 'business_address', 'postal_code',
             'fssai_license_number', 'gst_number', 'compliance_notes',
             'bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name',
+            'bank_passbook_image',
             'status', 'commission_rate_override', 'is_verified_producer',
             'is_featured', 'display_priority', 'tagline', 'brand_badge', 'hero_banner', 'logo_image',
             'admin_review_notes', 'documents', 'products_count', 'active_products_count',
@@ -448,6 +450,15 @@ class ManufacturerApplicationSerializer(serializers.ModelSerializer):
         }
     )
 
+    bank_passbook_image = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default='',
+        error_messages={
+            'required': 'A clear photo or scan of your Bank Passbook or Cancelled Cheque is strictly mandatory for settlement verification.',
+        }
+    )
+
     class Meta:
         model = ManufacturerProfile
         fields = [
@@ -455,7 +466,8 @@ class ManufacturerApplicationSerializer(serializers.ModelSerializer):
             'business_name', 'brand_story', 'location_district',
             'contact_email', 'contact_phone', 'business_address', 'postal_code',
             'fssai_license_number', 'gst_number', 'compliance_notes',
-            'bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name'
+            'bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name',
+            'bank_passbook_image'
         ]
 
     def validate_fssai_license_number(self, value):
