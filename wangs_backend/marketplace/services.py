@@ -236,6 +236,14 @@ class OrderService:
         # Automatically generate OrderUnits and cryptographically secure ProductQRCodes for every unit
         RewardService.ensure_order_units_and_qrs(order)
 
+        # Notify each manufacturer of their particular ordered product(s) upon order creation
+        try:
+            from .resend_service import send_order_notifications_to_manufacturers
+            send_order_notifications_to_manufacturers(order)
+        except Exception as exc:
+            import logging
+            logging.getLogger('marketplace.orders').warning("Could not dispatch manufacturer order notifications upon creation: %s", exc)
+
         return order
 
 

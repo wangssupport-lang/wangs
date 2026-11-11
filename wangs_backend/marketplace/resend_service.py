@@ -1512,16 +1512,30 @@ def send_order_notifications_to_manufacturers(order, request=None, site_url: str
     """
     from .models import AuditLog
 
-    # Group items by manufacturer
-    items = order.items.select_related('manufacturer', 'manufacturer__user', 'product').all()
+    # Group items by manufacturer (auto-resolving manufacturer from product if missing)
+    from .models import Product
+    items = order.items.select_related('manufacturer', 'manufacturer__user', 'product', 'product__manufacturer', 'product__manufacturer__user').all()
     mfg_items_map = {}
     for item in items:
-        if not item.manufacturer:
+        mfg = item.manufacturer
+        if not mfg and item.product and getattr(item.product, 'manufacturer', None):
+            mfg = item.product.manufacturer
+            item.manufacturer = mfg
+            item.save(update_fields=['manufacturer'])
+        elif not mfg and item.product_title:
+            prod_match = Product.objects.filter(title__iexact=item.product_title).select_related('manufacturer').first()
+            if prod_match and prod_match.manufacturer:
+                mfg = prod_match.manufacturer
+                item.manufacturer = mfg
+                item.save(update_fields=['manufacturer'])
+
+        if not mfg:
             continue
-        mfg_id = item.manufacturer.id
+
+        mfg_id = mfg.id
         if mfg_id not in mfg_items_map:
             mfg_items_map[mfg_id] = {
-                'profile': item.manufacturer,
+                'profile': mfg,
                 'items': []
             }
         mfg_items_map[mfg_id]['items'].append(item)
