@@ -532,7 +532,7 @@ export default function CustomerAccountPage() {
                               <div className="space-y-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span className="font-bold text-purple-950 text-xs sm:text-sm">
-                                    {ord.courier_partner || 'Air Cargo Express (India Post Speed Post)'}
+                                    {ord.courier_partner || 'Air Cargo Express'}
                                   </span>
                                   <span className="px-2 py-0.5 bg-purple-200/70 text-purple-900 rounded-full text-[10px] font-bold uppercase tracking-wider">
                                     Air Freight Priority
@@ -586,17 +586,6 @@ export default function CustomerAccountPage() {
                                 <Navigation size={13} />
                                 <span>Track Milestones</span>
                               </button>
-
-                              <a
-                                href="https://www.indiapost.gov.in/_layouts/15/dpt.cept.tracking/trackconsignment.aspx"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="px-3 py-1.5 bg-white hover:bg-purple-50 text-purple-900 border border-purple-200 rounded-xl text-xs font-semibold inline-flex items-center gap-1.5 shadow-2xs transition-all"
-                                title="Open India Post Consignment Tracking"
-                              >
-                                <span>Carrier Portal</span>
-                                <ExternalLink size={12} />
-                              </a>
                             </div>
                           </div>
 
@@ -702,7 +691,7 @@ export default function CustomerAccountPage() {
                       <div className="space-y-2 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-purple-950">
-                            {trackingModalOrder.courier_partner || 'Air Cargo Express (India Post Speed Post)'}
+                            {trackingModalOrder.courier_partner || 'Air Cargo Express'}
                           </span>
                           <span className="px-2 py-0.5 bg-purple-200 text-purple-900 font-bold rounded-full text-[10px] uppercase">
                             {trackingModalOrder.status === 'DELIVERED' ? 'Delivered' : 'Air Freight In Transit'}
@@ -789,21 +778,11 @@ export default function CustomerAccountPage() {
                     </div>
 
                     {/* Modal Footer */}
-                    <div className="pt-4 border-t border-stone-100 flex flex-wrap items-center justify-between gap-3 text-xs">
-                      <a
-                        href="https://www.indiapost.gov.in/_layouts/15/dpt.cept.tracking/trackconsignment.aspx"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-xl font-semibold inline-flex items-center gap-1.5 transition-colors"
-                      >
-                        <span>Track on India Post Official Portal</span>
-                        <ExternalLink size={13} />
-                      </a>
-
+                    <div className="pt-4 border-t border-stone-100 flex items-center justify-end text-xs">
                       <button
                         type="button"
                         onClick={() => setTrackingModalOrder(null)}
-                        className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-xs"
+                        className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-all shadow-xs cursor-pointer"
                       >
                         Close
                       </button>
