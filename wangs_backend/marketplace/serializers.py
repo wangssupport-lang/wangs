@@ -391,6 +391,7 @@ class BrandSerializer(serializers.ModelSerializer):
     products_count = serializers.SerializerMethodField()
     sample_products = serializers.SerializerMethodField()
     cover_image = serializers.SerializerMethodField()
+    logo_image = serializers.SerializerMethodField()
 
     class Meta:
         model = ManufacturerProfile
@@ -404,16 +405,32 @@ class BrandSerializer(serializers.ModelSerializer):
     def get_products_count(self, obj):
         return obj.products.filter(is_active=True, status=Product.Status.APPROVED).count()
 
-    def get_cover_image(self, obj):
-        if obj.hero_banner:
-            return obj.hero_banner
-        if obj.logo_image:
-            return obj.logo_image
-        first_prod = obj.products.filter(is_active=True, status=Product.Status.APPROVED).first()
+    def get_logo_image(self, obj):
+        if obj.logo_image and str(obj.logo_image).strip():
+            return str(obj.logo_image).strip()
+        first_prod = obj.products.filter(is_active=True, status=Product.Status.APPROVED).first() or obj.products.first()
         if first_prod:
+            if first_prod.primary_image_url and str(first_prod.primary_image_url).strip():
+                return str(first_prod.primary_image_url).strip()
             first_img = first_prod.images.filter(is_primary=True).first() or first_prod.images.first()
-            if first_img:
-                return first_img.image_url
+            if first_img and first_img.image_url and str(first_img.image_url).strip():
+                return str(first_img.image_url).strip()
+        if obj.hero_banner and str(obj.hero_banner).strip():
+            return str(obj.hero_banner).strip()
+        return None
+
+    def get_cover_image(self, obj):
+        if obj.hero_banner and str(obj.hero_banner).strip():
+            return str(obj.hero_banner).strip()
+        if obj.logo_image and str(obj.logo_image).strip():
+            return str(obj.logo_image).strip()
+        first_prod = obj.products.filter(is_active=True, status=Product.Status.APPROVED).first() or obj.products.first()
+        if first_prod:
+            if first_prod.primary_image_url and str(first_prod.primary_image_url).strip():
+                return str(first_prod.primary_image_url).strip()
+            first_img = first_prod.images.filter(is_primary=True).first() or first_prod.images.first()
+            if first_img and first_img.image_url and str(first_img.image_url).strip():
+                return str(first_img.image_url).strip()
         return None
 
     def get_sample_products(self, obj):

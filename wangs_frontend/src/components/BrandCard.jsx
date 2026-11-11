@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, ShieldCheck, MapPin } from 'lucide-react';
+import { resolveProductImage } from '../utils/image';
 
 function getInitials(name = '') {
   return name
     .split(/\s+/)
     .filter((word) => /[a-zA-Z0-9]/.test(word))
-    .slice(0, 3)
-    .map((word) => word.match(/[a-zA-Z0-9]/)?.[0] || '')
+    .slice(0, 2)
+    .map((word) => word[0] || '')
     .join('')
-    .toUpperCase();
+    .toUpperCase() || 'W';
 }
 
 export default function BrandCard({ brand, compact = false }) {
@@ -20,6 +21,8 @@ export default function BrandCard({ brand, compact = false }) {
   const targetUrl = `/products?brand=${encodeURIComponent(brandSlug)}`;
   const location = brand.location_district || brand.location || 'Artisan Workshop';
   const tagline = brand.tagline || brand.brand_story || 'Small-batch authentic artisanal brand';
+  const rawImage = brand.logo_image || brand.cover_image || '';
+  const brandImage = rawImage ? resolveProductImage(rawImage) : '';
 
   // Minimal mode for Homepage Showcase (Logo and brand name in same row)
   if (compact) {
@@ -29,10 +32,10 @@ export default function BrandCard({ brand, compact = false }) {
         className="w-[200px] xs:w-[220px] sm:w-auto shrink-0 snap-start group flex items-center gap-3 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 hover:border-primary p-3 hover:shadow-md transition-all select-none text-left"
         title={`Visit ${brandName}`}
       >
-        <div className="w-12 h-12 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-serif font-black text-sm border border-outline-variant/30 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden shrink-0">
-          {brand.logo_image && !logoFailed ? (
+        <div className="w-12 h-12 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-serif font-black text-sm border border-outline-variant/30 shadow-2xs group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+          {brandImage && !logoFailed ? (
             <img
-              src={brand.logo_image}
+              src={brandImage}
               alt={brandName}
               onError={() => setLogoFailed(true)}
               className="w-full h-full object-cover"
@@ -65,10 +68,10 @@ export default function BrandCard({ brand, compact = false }) {
       <div>
         <div className="flex items-center justify-between gap-4">
           {/* Logo / Crest */}
-          <div className="w-14 h-14 rounded-2xl bg-primary text-on-primary flex items-center justify-center font-serif font-bold text-lg border border-outline-variant/30 shadow-xs overflow-hidden flex-shrink-0">
-            {brand.logo_image && !logoFailed ? (
+          <div className="w-14 h-14 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-serif font-bold text-lg border border-outline-variant/30 shadow-xs overflow-hidden flex-shrink-0">
+            {brandImage && !logoFailed ? (
               <img
-                src={brand.logo_image}
+                src={brandImage}
                 alt={brandName}
                 onError={() => setLogoFailed(true)}
                 className="w-full h-full object-cover"
