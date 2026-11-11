@@ -40,6 +40,17 @@ class User(AbstractUser):
     def is_authorized_to_sell(self):
         return self.can_sell or self.role == self.Role.MANUFACTURER or self.role == self.Role.ADMIN or self.is_superuser
 
+    def is_courier(self):
+        return self.role == self.Role.COURIER
+
+    def is_approved_courier(self):
+        if self.role == self.Role.ADMIN or self.is_superuser:
+            return True
+        if self.role != self.Role.COURIER or getattr(self, 'is_banned', False) or not self.is_active:
+            return False
+        profile = getattr(self, 'courier_profile', None)
+        return bool(profile and profile.status == 'APPROVED' and profile.is_active)
+
 
 class CustomerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='customer_profile')
@@ -49,6 +60,55 @@ class CustomerProfile(models.Model):
 
     def __str__(self):
         return f"Customer: {self.user.username}"
+
+
+class CourierProfile(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending Approval'
+        APPROVED = 'APPROVED', 'Approved'
+        REJECTED = 'REJECTED', 'Rejected'
+        SUSPENDED = 'SUSPENDED', 'Suspended'
+
+    class VehicleType(models.TextChoices):
+        BIKE = 'BIKE', 'Motorcycle / Bike'
+        SCOOTER = 'SCOOTER', 'Scooter'
+        VAN = 'VAN', 'Delivery Van / Car'
+        TRUCK = 'TRUCK', 'Mini Truck'
+        EV = 'EV', 'Electric Vehicle'
+        BICYCLE = 'BICYCLE', 'Bicycle'
+        FOOT = 'FOOT', 'Walking / On Foot'
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='courier_profile')
+    full_name = models.CharField(max_length=150)
+    phone_number = models.CharField(max_length=20, unique=True)
+    email = models.EmailField(blank=True, default='')
+    courier_company = models.CharField(max_length=150, blank=True, default='Wangs Express Runner')
+    vehicle_type = models.CharField(max_length=30, choices=VehicleType.choices, default=VehicleType.BIKE)
+    vehicle_number = models.CharField(max_length=50, blank=True, default='')
+    service_area_city = models.CharField(max_length=100, default='Kohima')
+    address = models.TextField(blank=True, default='')
+    identity_document = models.TextField(blank=True, default='', help_text="ID card, driving license, or document photo/base64")
+    profile_photo = models.TextField(blank=True, default='', help_text="Courier profile picture photo/base64")
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    is_active = models.BooleanField(default=True)
+    rejection_reason = models.TextField(blank=True, default='')
+    suspension_reason = models.TextField(blank=True, default='')
+    admin_notes = models.TextField(blank=True, default='')
+
+    total_deliveries_completed = models.PositiveIntegerField(default=0)
+    last_delivery_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Courier: {self.full_name} ({self.phone_number}) - {self.status}"
+
+    def is_approved(self):
+        return self.status == self.Status.APPROVED and self.is_active and not getattr(self.user, 'is_banned', False)
 
 
 class Address(models.Model):
@@ -526,6 +586,29 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.order_number} (₹{self.total_amount})"
+
+
+class CourierDeliveryScanLog(models.Model):
+    class Action(models.TextChoices):
+        LOOKUP = 'LOOKUP', 'Order Lookup'
+        QR_SCAN = 'QR_SCAN', 'Camera QR Scan'
+        DELIVERED = 'DELIVERED', 'Confirmed Delivered'
+        STATUS_CHECK = 'STATUS_CHECK', 'Status Check'
+
+    courier = models.ForeignKey(User, on_delete=models.CASCADE, related_name='courier_scan_logs')
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='courier_scan_logs')
+    action = models.CharField(max_length=30, choices=Action.choices, default=Action.LOOKUP)
+    confirmation_method = models.CharField(max_length=50, default='CAMERA_QR', help_text="CAMERA_QR, MANUAL_SEARCH, DIRECT_CONFIRM")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.courier.username} -> {self.order.order_number} ({self.action}) at {self.created_at}"
 
 
 class OrderItem(models.Model):

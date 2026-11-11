@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
+    CourierProfile, CourierDeliveryScanLog,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
     ManufacturerSettlement, Coupon, AuditLog, EmailOTP
@@ -112,4 +113,18 @@ admin.site.register(Coupon)
 admin.site.register(PaymentTransaction)
 admin.site.register(ManufacturerSettlement)
 admin.site.register(AuditLog)
+
+
+@admin.register(CourierProfile)
+class CourierProfileAdmin(admin.ModelAdmin):
+    list_display = ('full_name', 'phone_number', 'vehicle_type', 'courier_company', 'status', 'is_active', 'total_deliveries_completed', 'created_at')
+    list_filter = ('status', 'vehicle_type', 'is_active')
+    search_fields = ('full_name', 'phone_number', 'email', 'vehicle_number', 'courier_company')
+
+
+@admin.register(CourierDeliveryScanLog)
+class CourierDeliveryScanLogAdmin(admin.ModelAdmin):
+    list_display = ('courier', 'order', 'action', 'confirmation_method', 'created_at')
+    list_filter = ('action', 'confirmation_method', 'created_at')
+    search_fields = ('courier__username', 'courier__email', 'order__order_number')
 

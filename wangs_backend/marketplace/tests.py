@@ -12,7 +12,8 @@ from .models import (
     CommissionSetting, Cart, CartItem, Order, OrderItem, PaymentTransaction, Coupon,
     EmailOTP, MaintenanceSubscriber, AuditLog,
     RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
-    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog
+    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog,
+    CourierProfile, CourierDeliveryScanLog
 )
 from .services import FinancialCalculator, OrderService, PaymentService, RewardService
 
@@ -1323,6 +1324,31 @@ class WangsFinancialAndOrderTests(TestCase):
             fulfillment_status=OrderItem.FulfillmentStatus.DISPATCHED
         )
 
+        # Create approved courier for authenticated testing
+        courier_user = User.objects.create_user(
+            username='runner_john',
+            email='runner@wangs.in',
+            password='Password123!',
+            role=User.Role.COURIER,
+            phone_number='9876543210',
+            first_name='John Runner'
+        )
+        CourierProfile.objects.create(
+            user=courier_user,
+            full_name='John Runner',
+            phone_number='9876543210',
+            email='runner@wangs.in',
+            status=CourierProfile.Status.APPROVED,
+            is_active=True
+        )
+
+        # 0. Unauthenticated access blocked
+        unauth_resp = self.client.get(f'/api/delivery/order/{del_order.order_number}/')
+        self.assertIn(unauth_resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+        # Authenticate as approved courier
+        self.client.force_authenticate(user=courier_user)
+
         # 1. Lookup
         resp = self.client.get(f'/api/delivery/order/{del_order.order_number}/')
         self.assertEqual(resp.status_code, status.HTTP_200_OK)
@@ -1430,9 +1456,25 @@ class WangsRewardsSystemTests(TestCase):
             username='courier_john', email='courier_john@wangs.in', password='password123',
             role=User.Role.COURIER, first_name='John', last_name='Delivery'
         )
+        CourierProfile.objects.create(
+            user=self.courier1,
+            full_name='John Delivery',
+            phone_number='9862111111',
+            email='courier_john@wangs.in',
+            status=CourierProfile.Status.APPROVED,
+            is_active=True
+        )
         self.courier2 = User.objects.create_user(
             username='courier_dave', email='courier_dave@wangs.in', password='password123',
             role=User.Role.COURIER, first_name='Dave', last_name='Fleet'
+        )
+        CourierProfile.objects.create(
+            user=self.courier2,
+            full_name='Dave Fleet',
+            phone_number='9862222222',
+            email='courier_dave@wangs.in',
+            status=CourierProfile.Status.APPROVED,
+            is_active=True
         )
         self.admin_user = User.objects.create_user(
             username='rewards_admin', email='rewards_admin@wangs.in', password='password123',
@@ -1713,3 +1755,245 @@ class WangsRewardsSystemTests(TestCase):
         scan_resp = self.client.post('/api/rewards/scan/', {'token': qr.token}, format='json')
         self.assertEqual(scan_resp.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("revoked", scan_resp.data['detail'])
+
+
+class WangsCourierSystemTests(TestCase):
+    def setUp(self):
+        self.admin_user = User.objects.create_superuser(
+            username='wangs_admin',
+            email='admin@wangs.in',
+            password='AdminPassword123!'
+        )
+        self.comm_setting = CommissionSetting.objects.create(
+            default_commission_rate=Decimal('10.00'),
+            customer_platform_fee=Decimal('5.00'),
+            default_delivery_fee=Decimal('50.00'),
+            free_delivery_threshold=Decimal('999.00')
+        )
+        self.mfg_user = User.objects.create_user(
+            username='mfg_runner',
+            email='mfg@wangs.in',
+            password='password123',
+            role=User.Role.MANUFACTURER
+        )
+        self.mfg_profile = ManufacturerProfile.objects.create(
+            user=self.mfg_user,
+            business_name="Wangs Kitchens",
+            slug='wangs-kitchens',
+            status=ManufacturerProfile.Status.APPROVED
+        )
+        self.cat = Category.objects.create(name='Pickle', slug='pickle')
+        self.product = Product.objects.create(
+            manufacturer=self.mfg_profile,
+            category=self.cat,
+            title='Naga King Chilli Pickle',
+            slug='naga-king-chilli',
+            price=Decimal('250.00'),
+            weight_grams=250,
+            stock_quantity=50,
+            status=Product.Status.APPROVED
+        )
+        self.customer = User.objects.create_user(
+            username='cust_alex',
+            email='alex@wangs.in',
+            password='password123',
+            role=User.Role.CUSTOMER,
+            phone_number='9999911111'
+        )
+        CustomerProfile.objects.create(user=self.customer)
+        self.client = APIClient()
+
+    def test_courier_registration_creates_pending_account(self):
+        payload = {
+            'full_name': 'Temsu Jamir',
+            'phone_number': '9862123456',
+            'email': 'temsu@wangs.in',
+            'password': 'CourierPass123!',
+            'confirm_password': 'CourierPass123!',
+            'courier_company': 'Wangs Express Kohima Hub',
+            'vehicle_type': 'BIKE',
+            'vehicle_number': 'NL-01-AB-1234',
+            'service_area_city': 'Kohima',
+            'address': 'High School Junction, Kohima'
+        }
+        resp = self.client.post('/api/courier/register/', payload, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(resp.data['status'], 'PENDING')
+
+        # Check DB
+        courier_user = User.objects.get(email='temsu@wangs.in')
+        self.assertEqual(courier_user.role, User.Role.COURIER)
+        profile = CourierProfile.objects.get(user=courier_user)
+        self.assertEqual(profile.status, CourierProfile.Status.PENDING)
+        self.assertFalse(courier_user.is_approved_courier())
+
+    def test_duplicate_registration_rejected(self):
+        payload = {
+            'full_name': 'Temsu Jamir',
+            'phone_number': '9862123456',
+            'email': 'temsu@wangs.in',
+            'password': 'CourierPass123!',
+            'confirm_password': 'CourierPass123!',
+            'vehicle_type': 'BIKE',
+            'vehicle_number': 'NL-01-AB-1234'
+        }
+        resp1 = self.client.post('/api/courier/register/', payload, format='json')
+        self.assertEqual(resp1.status_code, status.HTTP_201_CREATED)
+
+        resp2 = self.client.post('/api/courier/register/', payload, format='json')
+        self.assertEqual(resp2.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_pending_courier_cannot_access_delivery_portal(self):
+        # Register courier
+        courier_user = User.objects.create_user(
+            username='courier_pending',
+            email='pending@wangs.in',
+            password='CourierPass123!',
+            role=User.Role.COURIER
+        )
+        CourierProfile.objects.create(
+            user=courier_user,
+            full_name='Pending Courier',
+            phone_number='9862000001',
+            email='pending@wangs.in',
+            status=CourierProfile.Status.PENDING
+        )
+
+        # Login returns pending status
+        login_resp = self.client.post('/api/courier/login/', {
+            'username': 'pending@wangs.in',
+            'password': 'CourierPass123!'
+        }, format='json')
+        self.assertEqual(login_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(login_resp.data['status'], 'PENDING')
+
+        # Accessing delivery orders while authenticated as pending courier should be 403
+        self.client.force_authenticate(user=courier_user)
+        del_resp = self.client.get('/api/delivery/active/')
+        self.assertEqual(del_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_approve_courier_and_delivery_flow(self):
+        courier_user = User.objects.create_user(
+            username='courier_flow',
+            email='flow@wangs.in',
+            password='CourierPass123!',
+            role=User.Role.COURIER
+        )
+        profile = CourierProfile.objects.create(
+            user=courier_user,
+            full_name='Flow Runner',
+            phone_number='9862000002',
+            email='flow@wangs.in',
+            status=CourierProfile.Status.PENDING
+        )
+
+        # Admin approves
+        self.client.force_authenticate(user=self.admin_user)
+        approve_resp = self.client.post(f'/api/admin/couriers/{profile.id}/approve/', {
+            'admin_notes': 'Documents verified and on-boarded'
+        }, format='json')
+        self.assertEqual(approve_resp.status_code, status.HTTP_200_OK)
+
+        profile.refresh_from_db()
+        self.assertEqual(profile.status, CourierProfile.Status.APPROVED)
+        self.assertTrue(courier_user.is_approved_courier())
+
+        # Create dispatched order assigned to this courier
+        order = Order.objects.create(
+            order_number='ORD-TEST-FLOW-01',
+            user=self.customer,
+            customer_name='Alex Customer',
+            customer_email='alex@wangs.in',
+            customer_phone='9999911111',
+            shipping_address_line1='Main Street',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('250.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('50.00'),
+            total_amount=Decimal('305.00'),
+            platform_commission_total=Decimal('25.00'),
+            manufacturer_payout_total=Decimal('225.00'),
+            status=Order.Status.DISPATCHED,
+            payment_status=Order.PaymentStatus.PAID,
+            assigned_courier=courier_user
+        )
+        item = OrderItem.objects.create(
+            order=order,
+            product_title=self.product.title,
+            weight_grams=250,
+            unit_price=self.product.price,
+            quantity=1,
+            subtotal=self.product.price,
+            commission_rate=Decimal('10.00'),
+            commission_amount=Decimal('25.00'),
+            manufacturer_payout=Decimal('225.00'),
+            fulfillment_status=OrderItem.FulfillmentStatus.DISPATCHED
+        )
+
+        # Now courier can lookup active delivery orders
+        self.client.force_authenticate(user=courier_user)
+        lookup_resp = self.client.get(f'/api/delivery/order/{order.order_number}/')
+        self.assertEqual(lookup_resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(lookup_resp.data['order_number'], order.order_number)
+
+        # Mark delivered
+        deliver_resp = self.client.post(f'/api/delivery/order/{order.order_number}/mark-delivered/', {
+            'confirmation_method': 'CAMERA_QR',
+            'notes': 'Delivered to customer'
+        }, format='json')
+        self.assertEqual(deliver_resp.status_code, status.HTTP_200_OK)
+
+        # Verify scan log & courier stats
+        profile.refresh_from_db()
+        self.assertEqual(profile.total_deliveries_completed, 1)
+        self.assertIsNotNone(profile.last_delivery_at)
+        log = CourierDeliveryScanLog.objects.filter(courier=courier_user, order=order).first()
+        self.assertIsNotNone(log)
+        self.assertEqual(log.action, CourierDeliveryScanLog.Action.DELIVERED)
+
+    def test_courier_assignment_enforcement(self):
+        # Two approved couriers
+        courier_a = User.objects.create_user(username='courier_a', email='a@wangs.in', password='pw', role=User.Role.COURIER)
+        CourierProfile.objects.create(user=courier_a, full_name='Courier A', phone_number='9862000010', email='a@wangs.in', status=CourierProfile.Status.APPROVED)
+
+        courier_b = User.objects.create_user(username='courier_b', email='b@wangs.in', password='pw', role=User.Role.COURIER)
+        CourierProfile.objects.create(user=courier_b, full_name='Courier B', phone_number='9862000011', email='b@wangs.in', status=CourierProfile.Status.APPROVED)
+
+        # Order assigned specifically to Courier A
+        order = Order.objects.create(
+            order_number='ORD-TEST-ASSIGN-01',
+            user=self.customer,
+            customer_name='Alex Customer',
+            customer_email='alex@wangs.in',
+            customer_phone='9999911111',
+            shipping_address_line1='Main Street',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('250.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('50.00'),
+            total_amount=Decimal('305.00'),
+            platform_commission_total=Decimal('25.00'),
+            manufacturer_payout_total=Decimal('225.00'),
+            status=Order.Status.DISPATCHED,
+            payment_status=Order.PaymentStatus.PAID,
+            assigned_courier=courier_a
+        )
+
+        # Courier B tries to confirm delivery
+        self.client.force_authenticate(user=courier_b)
+        deliver_resp = self.client.post(f'/api/delivery/order/{order.order_number}/mark-delivered/', {
+            'confirmation_method': 'MANUAL_SEARCH'
+        }, format='json')
+        self.assertEqual(deliver_resp.status_code, status.HTTP_403_FORBIDDEN)
+
+        # Courier A confirms delivery successfully
+        self.client.force_authenticate(user=courier_a)
+        deliver_resp_a = self.client.post(f'/api/delivery/order/{order.order_number}/mark-delivered/', {
+            'confirmation_method': 'CAMERA_QR'
+        }, format='json')
+        self.assertEqual(deliver_resp_a.status_code, status.HTTP_200_OK)
+

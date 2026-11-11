@@ -20,6 +20,14 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
+  const [courierProfile, setCourierProfile] = useState(() => {
+    try {
+      const cached = localStorage.getItem('wangs_courier_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [platformSettings, setPlatformSettings] = useState(() => {
     try {
       const cached = localStorage.getItem('wangs_platform_settings');
@@ -90,9 +98,11 @@ export function AuthProvider({ children }) {
     if (!token) {
       setUser(null);
       setMfgProfile(null);
+      setCourierProfile(null);
       try {
         localStorage.removeItem('wangs_user');
         localStorage.removeItem('wangs_mfg_profile');
+        localStorage.removeItem('wangs_courier_profile');
       } catch {}
       setLoading(false);
       return;
@@ -108,6 +118,13 @@ export function AuthProvider({ children }) {
         } else {
           setMfgProfile(null);
           try { localStorage.removeItem('wangs_mfg_profile'); } catch {}
+        }
+        if (data.courier_profile) {
+          setCourierProfile(data.courier_profile);
+          try { localStorage.setItem('wangs_courier_profile', JSON.stringify(data.courier_profile)); } catch {}
+        } else {
+          setCourierProfile(null);
+          try { localStorage.removeItem('wangs_courier_profile'); } catch {}
         }
         updateSellerRegistrationState(data.user, data.manufacturer_profile);
       }
@@ -130,10 +147,12 @@ export function AuthProvider({ children }) {
           localStorage.removeItem('wangs_refresh_token');
           localStorage.removeItem('wangs_user');
           localStorage.removeItem('wangs_mfg_profile');
+          localStorage.removeItem('wangs_courier_profile');
           localStorage.removeItem('wangs_is_registered_seller');
         } catch {}
         setUser(null);
         setMfgProfile(null);
+        setCourierProfile(null);
       }
     } finally {
       setLoading(false);
@@ -159,6 +178,13 @@ export function AuthProvider({ children }) {
     } else {
       setMfgProfile(null);
       try { localStorage.removeItem('wangs_mfg_profile'); } catch {}
+    }
+    if (res.courier_profile) {
+      setCourierProfile(res.courier_profile);
+      try { localStorage.setItem('wangs_courier_profile', JSON.stringify(res.courier_profile)); } catch {}
+    } else {
+      setCourierProfile(null);
+      try { localStorage.removeItem('wangs_courier_profile'); } catch {}
     }
     updateSellerRegistrationState(res.user, res.manufacturer_profile);
     return res.user;
@@ -192,6 +218,13 @@ export function AuthProvider({ children }) {
         setMfgProfile(null);
         try { localStorage.removeItem('wangs_mfg_profile'); } catch {}
       }
+      if (res.courier_profile) {
+        setCourierProfile(res.courier_profile);
+        try { localStorage.setItem('wangs_courier_profile', JSON.stringify(res.courier_profile)); } catch {}
+      } else {
+        setCourierProfile(null);
+        try { localStorage.removeItem('wangs_courier_profile'); } catch {}
+      }
       updateSellerRegistrationState(res.user, res.manufacturer_profile);
     }
     return res;
@@ -210,6 +243,10 @@ export function AuthProvider({ children }) {
         setMfgProfile(res.manufacturer_profile);
         try { localStorage.setItem('wangs_mfg_profile', JSON.stringify(res.manufacturer_profile)); } catch {}
       }
+      if (res.courier_profile) {
+        setCourierProfile(res.courier_profile);
+        try { localStorage.setItem('wangs_courier_profile', JSON.stringify(res.courier_profile)); } catch {}
+      }
     }
     return res;
   };
@@ -220,10 +257,12 @@ export function AuthProvider({ children }) {
       localStorage.removeItem('wangs_refresh_token');
       localStorage.removeItem('wangs_user');
       localStorage.removeItem('wangs_mfg_profile');
+      localStorage.removeItem('wangs_courier_profile');
       localStorage.removeItem('wangs_is_registered_seller');
     } catch {}
     setUser(null);
     setMfgProfile(null);
+    setCourierProfile(null);
   };
 
   const [authModalConfig, setAuthModalConfig] = useState(null);
@@ -259,11 +298,22 @@ export function AuthProvider({ children }) {
   const isAuthorizedToSell = Boolean(
     user && (user.is_authorized_to_sell || user.can_sell || user.role === 'MANUFACTURER' || user.role === 'ADMIN' || user.is_staff)
   );
+  const isCourier = Boolean(user && user.role === 'COURIER');
+  const isApprovedCourier = Boolean(
+    user && (
+      user.role === 'ADMIN' ||
+      user.is_staff ||
+      user.is_superuser ||
+      (user.role === 'COURIER' && (user.is_approved_courier || courierProfile?.status === 'APPROVED'))
+    )
+  );
 
   return (
     <AuthContext.Provider value={{
       user,
       mfgProfile,
+      courierProfile,
+      setCourierProfile,
       loading,
       login,
       loginWithOtp,
@@ -273,6 +323,8 @@ export function AuthProvider({ children }) {
       isAdmin,
       isManufacturer,
       isAuthorizedToSell,
+      isCourier,
+      isApprovedCourier,
       authModalConfig,
       openAuthModal,
       closeAuthModal,

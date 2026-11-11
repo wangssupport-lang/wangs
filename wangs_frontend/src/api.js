@@ -234,6 +234,52 @@ export const api = {
   }),
   getActiveDeliveryOrders: () => apiRequest('/delivery/active/'),
 
+  // Wangs Express Courier Auth & Portal
+  courierRegister: (payload) => apiRequest('/courier/register/', {
+    method: 'POST',
+    body: typeof FormData !== 'undefined' && payload instanceof FormData ? payload : JSON.stringify(payload),
+  }),
+  courierLogin: (payload) => apiRequest('/courier/login/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getCourierProfile: () => apiRequest('/courier/profile/'),
+  courierForgotPassword: (payload) => apiRequest('/courier/forgot-password/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  courierResetPassword: (payload) => apiRequest('/courier/reset-password/', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+
+  // Admin Courier Fleet Management
+  getAdminCourierStats: () => apiRequest('/admin/couriers/stats/'),
+  getAdminCouriers: (params = {}) => {
+    const qs = new URLSearchParams(params).toString();
+    return apiRequest(`/admin/couriers/${qs ? `?${qs}` : ''}`);
+  },
+  getAdminCourierDetail: (id) => apiRequest(`/admin/couriers/${id}/`),
+  approveAdminCourier: (id, payload = {}) => apiRequest(`/admin/couriers/${id}/approve/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  rejectAdminCourier: (id, payload = {}) => apiRequest(`/admin/couriers/${id}/reject/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  suspendAdminCourier: (id, payload = {}) => apiRequest(`/admin/couriers/${id}/suspend/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  reactivateAdminCourier: (id) => apiRequest(`/admin/couriers/${id}/reactivate/`, {
+    method: 'POST',
+  }),
+  assignOrderToCourier: (courierId, payload = {}) => apiRequest(`/admin/couriers/${courierId}/assign-order/`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+
   // Customer Wangs Rewards & QR Scanning
   getRewardWallet: () => apiRequest('/rewards/wallet/'),
   scanRewardQR: (token) => apiRequest('/rewards/scan/', {

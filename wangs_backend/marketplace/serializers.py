@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import Sum, Q
 from .models import (
     User, CustomerProfile, Address, ManufacturerProfile, ComplianceDocument,
+    CourierProfile, CourierDeliveryScanLog,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
     ManufacturerSettlement, Coupon, AuditLog, HeroBanner, StorefrontNotice,
@@ -20,20 +21,26 @@ class UserSerializer(serializers.ModelSerializer):
     has_pending_seller_request = serializers.SerializerMethodField()
     seller_request_status = serializers.SerializerMethodField()
     seller_request_details = serializers.SerializerMethodField()
+    is_approved_courier = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
             'role', 'phone_number', 'is_staff', 'can_sell', 'is_authorized_to_sell',
+            'is_approved_courier',
             'has_pending_seller_request', 'seller_request_status', 'seller_request_details',
             'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined'
         ]
         read_only_fields = [
             'id', 'role', 'is_staff', 'can_sell', 'is_authorized_to_sell',
+            'is_approved_courier',
             'has_pending_seller_request', 'seller_request_status', 'seller_request_details',
             'is_active', 'is_banned', 'ban_reason', 'banned_at', 'date_joined'
         ]
+
+    def get_is_approved_courier(self, obj):
+        return obj.is_approved_courier() if hasattr(obj, 'is_approved_courier') else False
 
     def get_is_authorized_to_sell(self, obj):
         return obj.is_authorized_to_sell()
@@ -400,6 +407,148 @@ class ManufacturerProfileSerializer(serializers.ModelSerializer):
             return str(all_rev or Decimal('0.00'))
         except Exception:
             return '0.00'
+
+
+class CourierProfileSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    assigned_orders_count = serializers.SerializerMethodField()
+    active_deliveries_count = serializers.SerializerMethodField()
+    vehicle_type_display = serializers.CharField(source='get_vehicle_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = CourierProfile
+        fields = [
+            'id', 'user', 'full_name', 'phone_number', 'email', 'courier_company',
+            'vehicle_type', 'vehicle_type_display', 'vehicle_number',
+            'service_area_city', 'address', 'identity_document', 'profile_photo',
+            'status', 'status_display', 'is_active', 'rejection_reason',
+            'suspension_reason', 'admin_notes', 'total_deliveries_completed',
+            'last_delivery_at', 'assigned_orders_count', 'active_deliveries_count',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'user', 'status', 'is_active', 'total_deliveries_completed',
+            'last_delivery_at', 'created_at', 'updated_at'
+        ]
+
+    def get_assigned_orders_count(self, obj):
+        try:
+            return obj.user.assigned_deliveries.count()
+        except Exception:
+            return 0
+
+    def get_active_deliveries_count(self, obj):
+        try:
+            return obj.user.assigned_deliveries.exclude(
+                status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED, Order.Status.REFUNDED]
+            ).count()
+        except Exception:
+            return 0
+
+
+class CourierRegisterSerializer(serializers.Serializer):
+    full_name = serializers.CharField(max_length=150)
+    phone_number = serializers.CharField(max_length=20)
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True, min_length=6)
+    confirm_password = serializers.CharField(write_only=True, min_length=6)
+    courier_company = serializers.CharField(max_length=150, required=False, allow_blank=True, default='Wangs Express Runner')
+    vehicle_type = serializers.ChoiceField(choices=CourierProfile.VehicleType.choices, default=CourierProfile.VehicleType.BIKE)
+    vehicle_number = serializers.CharField(max_length=50, required=False, allow_blank=True, default='')
+    service_area_city = serializers.CharField(max_length=100, required=False, allow_blank=True, default='Kohima')
+    address = serializers.CharField(required=False, allow_blank=True, default='')
+    identity_document = serializers.CharField(required=False, allow_blank=True, default='')
+    profile_photo = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate_email(self, value):
+        cleaned = (value or '').strip().lower()
+        if not cleaned:
+            raise serializers.ValidationError('Email address is required.')
+        if User.objects.filter(email__iexact=cleaned).exists():
+            raise serializers.ValidationError('An account already exists with this email address. Please sign in.')
+        return cleaned
+
+    def validate_phone_number(self, value):
+        cleaned = (value or '').strip().replace(' ', '').replace('-', '')
+        if not cleaned or len(cleaned) < 10:
+            raise serializers.ValidationError('Please enter a valid 10-digit mobile number.')
+        if CourierProfile.objects.filter(phone_number__iexact=cleaned).exists():
+            raise serializers.ValidationError('A courier account is already registered with this mobile number.')
+        if User.objects.filter(phone_number__iexact=cleaned).exists():
+            raise serializers.ValidationError('This phone number is already registered. Please sign in.')
+        return cleaned
+
+    def validate(self, attrs):
+        if attrs.get('password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('confirm_password', None)
+        password = validated_data.pop('password')
+        email = validated_data['email'].strip().lower()
+        phone_number = validated_data['phone_number'].strip().replace(' ', '').replace('-', '')
+        full_name = validated_data['full_name'].strip()
+
+        base_username = slugify(full_name).replace('-', '_') or email.split('@')[0]
+        username = f"courier_{base_username}"[:30]
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"courier_{base_username}_{counter}"[:30]
+            counter += 1
+
+        with transaction.atomic():
+            user = User.objects.create(
+                username=username,
+                email=email,
+                phone_number=phone_number,
+                first_name=full_name,
+                role=User.Role.COURIER,
+                is_active=True
+            )
+            user.set_password(password)
+            user.save()
+
+            profile = CourierProfile.objects.create(
+                user=user,
+                full_name=full_name,
+                phone_number=phone_number,
+                email=email,
+                courier_company=validated_data.get('courier_company') or 'Wangs Express Runner',
+                vehicle_type=validated_data.get('vehicle_type', CourierProfile.VehicleType.BIKE),
+                vehicle_number=validated_data.get('vehicle_number', ''),
+                service_area_city=validated_data.get('service_area_city', 'Kohima'),
+                address=validated_data.get('address', ''),
+                identity_document=validated_data.get('identity_document', ''),
+                profile_photo=validated_data.get('profile_photo', ''),
+                status=CourierProfile.Status.PENDING,
+                is_active=True
+            )
+
+            AuditLog.objects.create(
+                user=user,
+                action='COURIER_REGISTERED',
+                target_model='CourierProfile',
+                target_id=str(profile.id),
+                details={
+                    'full_name': full_name,
+                    'phone': phone_number,
+                    'vehicle_type': profile.vehicle_type,
+                    'vehicle_number': profile.vehicle_number,
+                    'status': profile.status
+                }
+            )
+            return profile
+
+
+class CourierDeliveryScanLogSerializer(serializers.ModelSerializer):
+    courier_name = serializers.CharField(source='courier.get_full_name', read_only=True)
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+
+    class Meta:
+        model = CourierDeliveryScanLog
+        fields = '__all__'
 
 
 class BrandSerializer(serializers.ModelSerializer):

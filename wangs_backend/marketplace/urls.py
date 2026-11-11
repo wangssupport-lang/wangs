@@ -9,6 +9,11 @@ from .views import (
     CartView, CheckoutQuoteView, CreateOrderView, VerifyPaymentView,
     OrderLookupView, CustomerOrdersView,
     DeliveryOrderLookupView, DeliveryOrderMarkDeliveredView, DeliveryActiveOrdersView,
+    CourierRegisterView, CourierLoginView, CourierProfileView,
+    CourierForgotPasswordView, CourierResetPasswordView,
+    AdminCourierListView, AdminCourierDetailView, AdminCourierApproveView,
+    AdminCourierRejectView, AdminCourierSuspendView, AdminCourierReactivateView,
+    AdminCourierAssignOrderView, AdminCourierStatsView,
     ManufacturerRegisterView, ManufacturerProfileView, ManufacturerProductViewSet,
     ManufacturerOrdersView, ManufacturerFinancialsView, SellerRulesPDFView,
     AdminMetricsView, AdminManufacturerViewSet, AdminProductViewSet,
@@ -67,10 +72,27 @@ urlpatterns = [
     path('orders/lookup/<str:order_number>/', OrderLookupView.as_view(), name='order-lookup'),
     path('orders/my-orders/', CustomerOrdersView.as_view(), name='customer-orders'),
     
-    # Delivery Portal (Accessed directly via /delivery & QR scan)
+    # Delivery Portal (Accessed directly via /delivery & QR scan - Protected for Approved Couriers)
     path('delivery/active/', DeliveryActiveOrdersView.as_view(), name='delivery-active-orders'),
     path('delivery/order/<str:identifier>/mark-delivered/', DeliveryOrderMarkDeliveredView.as_view(), name='delivery-order-delivered'),
     path('delivery/order/<path:identifier>/', DeliveryOrderLookupView.as_view(), name='delivery-order-lookup'),
+
+    # Courier Authentication & Portal Management
+    path('courier/register/', CourierRegisterView.as_view(), name='courier-register'),
+    path('courier/login/', CourierLoginView.as_view(), name='courier-login'),
+    path('courier/profile/', CourierProfileView.as_view(), name='courier-profile'),
+    path('courier/forgot-password/', CourierForgotPasswordView.as_view(), name='courier-forgot-password'),
+    path('courier/reset-password/', CourierResetPasswordView.as_view(), name='courier-reset-password'),
+
+    # Admin Courier Fleet Management
+    path('admin/couriers/stats/', AdminCourierStatsView.as_view(), name='admin-couriers-stats'),
+    path('admin/couriers/', AdminCourierListView.as_view(), name='admin-couriers-list'),
+    path('admin/couriers/<int:pk>/', AdminCourierDetailView.as_view(), name='admin-couriers-detail'),
+    path('admin/couriers/<int:pk>/approve/', AdminCourierApproveView.as_view(), name='admin-couriers-approve'),
+    path('admin/couriers/<int:pk>/reject/', AdminCourierRejectView.as_view(), name='admin-couriers-reject'),
+    path('admin/couriers/<int:pk>/suspend/', AdminCourierSuspendView.as_view(), name='admin-couriers-suspend'),
+    path('admin/couriers/<int:pk>/reactivate/', AdminCourierReactivateView.as_view(), name='admin-couriers-reactivate'),
+    path('admin/couriers/<int:pk>/assign-order/', AdminCourierAssignOrderView.as_view(), name='admin-couriers-assign-order'),
     
     # Manufacturer Portal
     path('manufacturer/register/', ManufacturerRegisterView.as_view(), name='mfg-register'),

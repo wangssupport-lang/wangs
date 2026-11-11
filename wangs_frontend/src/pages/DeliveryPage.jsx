@@ -4,9 +4,11 @@ import {
   Package, MapPin, Navigation, QrCode, Phone, ExternalLink,
   CheckCircle2, Clock, AlertTriangle, Search, ArrowLeft, Camera,
   Check, Truck, Copy, MessageSquare, Compass, ShieldCheck, RefreshCw, X,
-  Sparkles, CheckCircle
+  Sparkles, CheckCircle, LogOut, User, Lock, Mail, Key, Shield,
+  FileText, UploadCloud, ChevronRight, Ban, XCircle
 } from 'lucide-react';
 import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function DeliveryPage() {
@@ -14,6 +16,51 @@ export default function DeliveryPage() {
   const { orderNumber: paramOrderNumber } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const {
+    user,
+    courierProfile,
+    setCourierProfile,
+    isAdmin,
+    isCourier,
+    isApprovedCourier,
+    logout,
+    refreshUser,
+    loading: authLoading
+  } = useAuth();
+
+  // Auth & Registration Tabs: 'login' | 'register' | 'forgot'
+  const [authTab, setAuthTab] = useState('login');
+  const [authSubmitting, setAuthSubmitting] = useState(false);
+
+  // Login Form State
+  const [loginForm, setLoginForm] = useState({
+    username: '', // email or phone
+    password: '',
+  });
+
+  // Courier Registration Form State
+  const [regForm, setRegForm] = useState({
+    full_name: '',
+    phone_number: '',
+    email: '',
+    password: '',
+    confirm_password: '',
+    courier_company: '',
+    vehicle_type: 'BIKE',
+    vehicle_number: '',
+    service_area_city: '',
+    address: '',
+  });
+  const [idDocFile, setIdDocFile] = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
+
+  // Forgot Password State
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
+  const [resetToken, setResetToken] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [resetStep, setResetStep] = useState(1); // 1: request, 2: set new password
 
   const activeOrderParam = searchParams.get('order') || searchParams.get('track') || paramOrderNumber || '';
 
@@ -61,6 +108,7 @@ export default function DeliveryPage() {
 
   // Load active dispatches queue
   const loadRecentParcels = async () => {
+    if (!isApprovedCourier) return;
     setLoadingRecent(true);
     try {
       const data = await api.getActiveDeliveryOrders();
@@ -73,12 +121,13 @@ export default function DeliveryPage() {
   };
 
   useEffect(() => {
+    if (!isApprovedCourier) return;
     if (activeOrderParam) {
       loadOrder(activeOrderParam);
     } else {
       loadRecentParcels();
     }
-  }, [activeOrderParam]);
+  }, [activeOrderParam, isApprovedCourier]);
 
   // Clean raw QR code strings (extract order number from URL or raw text)
   const cleanOrderIdentifier = (raw) => {
@@ -103,6 +152,144 @@ export default function DeliveryPage() {
     }
   };
 
+  // Courier Sign In Handler
+  const handleCourierLogin = async (e) => {
+    e.preventDefault();
+    if (!loginForm.username.trim() || !loginForm.password) {
+      toast.error('Please enter your email/phone and password.');
+      return;
+    }
+    setAuthSubmitting(true);
+    try {
+      const res = await api.courierLogin({
+        username: loginForm.username.trim(),
+        password: loginForm.password,
+      });
+
+      if (res.token) {
+        localStorage.setItem('wangs_token', res.token);
+        if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
+      }
+      if (res.courier_profile) {
+        localStorage.setItem('wangs_courier_profile', JSON.stringify(res.courier_profile));
+        setCourierProfile(res.courier_profile);
+      }
+
+      await refreshUser();
+
+      if (res.status === 'PENDING') {
+        toast.info(res.message || 'Registration is pending administrator approval.');
+      } else if (res.status === 'SUSPENDED') {
+        toast.error('Your courier account is suspended. Please contact support.');
+      } else if (res.status === 'REJECTED') {
+        toast.error('Your application was not approved. Please contact support.');
+      } else {
+        toast.success('Welcome back, Courier Partner!');
+      }
+    } catch (err) {
+      toast.error(err.message || 'Invalid credentials or login failed.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Courier Registration Handler
+  const handleCourierRegister = async (e) => {
+    e.preventDefault();
+    if (!regForm.full_name.trim()) return toast.error('Full name is required.');
+    if (!regForm.phone_number.trim() || regForm.phone_number.replace(/\D/g, '').length < 10) {
+      return toast.error('A valid 10-digit mobile number is required.');
+    }
+    if (!regForm.email.trim()) return toast.error('Email address is required.');
+    if (!regForm.password || regForm.password.length < 6) {
+      return toast.error('Password must be at least 6 characters.');
+    }
+    if (regForm.password !== regForm.confirm_password) {
+      return toast.error('Passwords do not match.');
+    }
+
+    setAuthSubmitting(true);
+    try {
+      let payload;
+      if (idDocFile || photoFile) {
+        payload = new FormData();
+        Object.entries(regForm).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) payload.append(k, v);
+        });
+        if (idDocFile) payload.append('identity_document', idDocFile);
+        if (photoFile) payload.append('profile_photo', photoFile);
+      } else {
+        payload = { ...regForm };
+      }
+
+      const res = await api.courierRegister(payload);
+      if (res.token) {
+        localStorage.setItem('wangs_token', res.token);
+        if (res.refresh) localStorage.setItem('wangs_refresh_token', res.refresh);
+      }
+      if (res.courier_profile) {
+        localStorage.setItem('wangs_courier_profile', JSON.stringify(res.courier_profile));
+        setCourierProfile(res.courier_profile);
+      }
+
+      await refreshUser();
+      toast.success(res.message || 'Your registration has been submitted. Please wait for administrator approval.');
+    } catch (err) {
+      toast.error(err.message || 'Registration failed. Please check your details.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Courier Forgot Password Request Handler
+  const handleForgotRequest = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail.trim()) {
+      return toast.error('Please enter your registered email or phone.');
+    }
+    setAuthSubmitting(true);
+    try {
+      const res = await api.courierForgotPassword({ email_or_phone: forgotEmail.trim() });
+      toast.success(res.message || 'Password reset instructions have been dispatched.');
+      setForgotSent(true);
+      if (res.reset_token) {
+        setResetToken(res.reset_token);
+        setResetStep(2);
+      }
+    } catch (err) {
+      toast.error(err.message || 'Could not process password reset request.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
+  // Courier Reset Password Submit Handler
+  const handleResetSubmit = async (e) => {
+    e.preventDefault();
+    if (!resetToken.trim()) return toast.error('Reset token or OTP is required.');
+    if (!newPassword || newPassword.length < 6) return toast.error('Password must be at least 6 characters.');
+    if (newPassword !== confirmNewPassword) return toast.error('Passwords do not match.');
+
+    setAuthSubmitting(true);
+    try {
+      const res = await api.courierResetPassword({
+        token: resetToken.trim(),
+        new_password: newPassword,
+      });
+      toast.success(res.message || 'Password has been reset successfully! You can now log in.');
+      setAuthTab('login');
+      setResetStep(1);
+      setForgotSent(false);
+      setResetToken('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (err) {
+      toast.error(err.message || 'Password reset failed. Token may have expired.');
+    } finally {
+      setAuthSubmitting(false);
+    }
+  };
+
   // Handle Mark as Delivered
   const handleConfirmDelivery = async () => {
     if (!order) return;
@@ -110,12 +297,14 @@ export default function DeliveryPage() {
     try {
       const res = await api.markDeliveryOrderDelivered(order.order_number, {
         notes: deliveryNotes,
+        confirmation_method: 'MANUAL_SEARCH'
       });
       toast.success(`Order ${order.order_number} marked as Delivered!`);
       setShowDeliveredModal(false);
       setDeliveryNotes('');
       // Refresh current order data
       await loadOrder(order.order_number);
+      await refreshUser();
     } catch (err) {
       toast.error(err.message || 'Failed to update delivery status.');
     } finally {
@@ -130,9 +319,11 @@ export default function DeliveryPage() {
       await api.markDeliveryOrderDelivered(order.order_number, {
         notes: deliveryNotes || 'Courier confirmed individual unit delivery',
         unit_ids: [unitId],
+        confirmation_method: 'CAMERA_QR'
       });
       toast.success('Product unit delivery confirmed and credit awarded!');
       await loadOrder(order.order_number);
+      await refreshUser();
     } catch (err) {
       toast.error(err.message || 'Failed to update unit delivery status.');
     } finally {
@@ -218,20 +409,632 @@ export default function DeliveryPage() {
     return digits;
   };
 
+  // ==========================================
+  // VIEW CASE 1: Loading Auth State
+  // ==========================================
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <Truck size={36} className="text-red-600 animate-bounce mx-auto" />
+          <p className="text-xs font-bold text-stone-600">Verifying Courier Authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // VIEW CASE 2: Unauthenticated Visitor -> Courier Login & Registration
+  // ==========================================
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-stone-100 text-stone-900 pb-16">
+        {/* Top Header Bar */}
+        <div className="bg-red-600 text-white shadow-md border-b border-red-700">
+          <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-red-700 text-white flex items-center justify-center font-bold shadow-inner">
+                <Truck size={22} />
+              </div>
+              <div>
+                <span className="font-bold text-base tracking-wide uppercase block leading-tight">Wangs Express</span>
+                <span className="text-[11px] text-red-100">Delivery Fleet & Courier Partner Portal</span>
+              </div>
+            </div>
+            <Link to="/" className="text-xs font-bold text-red-100 hover:text-white underline">
+              Storefront
+            </Link>
+          </div>
+        </div>
+
+        {/* Portal Gateway Container */}
+        <div className="max-w-md mx-auto px-4 pt-6 space-y-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/90 shadow-xl space-y-5">
+            {/* Tab Switcher */}
+            <div className="flex p-1 bg-stone-100 rounded-2xl">
+              <button
+                type="button"
+                onClick={() => setAuthTab('login')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  authTab === 'login'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Sign In
+              </button>
+              <button
+                type="button"
+                onClick={() => setAuthTab('register')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  authTab === 'register'
+                    ? 'bg-red-600 text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Courier Registration
+              </button>
+            </div>
+
+            {/* TAB: SIGN IN */}
+            {authTab === 'login' && (
+              <form onSubmit={handleCourierLogin} className="space-y-4">
+                <div className="space-y-1 text-center">
+                  <h2 className="font-serif text-xl font-black text-stone-900">Courier Sign In</h2>
+                  <p className="text-xs text-stone-500">
+                    Enter your registered email address or mobile number to access active dispatches and QR scanner.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Email Address or Mobile Number
+                    </label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                      <input
+                        type="text"
+                        required
+                        value={loginForm.username}
+                        onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
+                        placeholder="e.g. runner@wangs.in or 9862000000"
+                        className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-xs font-bold text-stone-700">Password</label>
+                      <button
+                        type="button"
+                        onClick={() => setAuthTab('forgot')}
+                        className="text-[11px] font-bold text-red-600 hover:text-red-700 underline cursor-pointer"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Lock size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
+                      <input
+                        type="password"
+                        required
+                        value={loginForm.password}
+                        onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
+                        placeholder="••••••••"
+                        className="w-full pl-10 pr-4 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authSubmitting}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
+                >
+                  {authSubmitting ? 'Verifying Credentials...' : 'Sign In to Wangs Express'}
+                </button>
+
+                <div className="pt-2 text-center text-xs text-stone-500">
+                  New to Wangs Express?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setAuthTab('register')}
+                    className="font-bold text-red-600 hover:text-red-700 underline cursor-pointer"
+                  >
+                    Register as a Courier
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB: REGISTER */}
+            {authTab === 'register' && (
+              <form onSubmit={handleCourierRegister} className="space-y-4">
+                <div className="space-y-1 text-center">
+                  <h2 className="font-serif text-xl font-black text-stone-900">Courier Registration</h2>
+                  <p className="text-xs text-stone-500">
+                    Apply to become a verified Wangs Express delivery partner in your district.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Full Legal Name *</label>
+                    <input
+                      type="text"
+                      required
+                      value={regForm.full_name}
+                      onChange={(e) => setRegForm({ ...regForm, full_name: e.target.value })}
+                      placeholder="e.g. Temsu Jamir"
+                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Mobile Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        value={regForm.phone_number}
+                        onChange={(e) => setRegForm({ ...regForm, phone_number: e.target.value })}
+                        placeholder="10-digit mobile"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600 font-mono"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Email Address *</label>
+                      <input
+                        type="email"
+                        required
+                        value={regForm.email}
+                        onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                        placeholder="courier@wangs.in"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Password *</label>
+                      <input
+                        type="password"
+                        required
+                        value={regForm.password}
+                        onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                        placeholder="At least 6 chars"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Confirm Password *</label>
+                      <input
+                        type="password"
+                        required
+                        value={regForm.confirm_password}
+                        onChange={(e) => setRegForm({ ...regForm, confirm_password: e.target.value })}
+                        placeholder="Re-enter password"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Courier Company / Agency Name
+                    </label>
+                    <input
+                      type="text"
+                      value={regForm.courier_company}
+                      onChange={(e) => setRegForm({ ...regForm, courier_company: e.target.value })}
+                      placeholder="e.g. Wangs Express Hub, DTDC, or Independent Partner"
+                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Vehicle Type *</label>
+                      <select
+                        value={regForm.vehicle_type}
+                        onChange={(e) => setRegForm({ ...regForm, vehicle_type: e.target.value })}
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      >
+                        <option value="BIKE">Motorcycle / Bike</option>
+                        <option value="SCOOTER">Scooter / Moped</option>
+                        <option value="EV">Electric 2W / EV</option>
+                        <option value="VAN">Delivery Van</option>
+                        <option value="TRUCK">Pickup Truck</option>
+                        <option value="BICYCLE">Bicycle</option>
+                        <option value="FOOT">On Foot Walker</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Vehicle Reg Number</label>
+                      <input
+                        type="text"
+                        value={regForm.vehicle_number}
+                        onChange={(e) => setRegForm({ ...regForm, vehicle_number: e.target.value })}
+                        placeholder="e.g. NL-01-AB-1234"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Hub City / Service Area</label>
+                    <input
+                      type="text"
+                      value={regForm.service_area_city}
+                      onChange={(e) => setRegForm({ ...regForm, service_area_city: e.target.value })}
+                      placeholder="e.g. Kohima, Dimapur, Mokokchung"
+                      className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Residential / Base Address</label>
+                    <textarea
+                      rows={2}
+                      value={regForm.address}
+                      onChange={(e) => setRegForm({ ...regForm, address: e.target.value })}
+                      placeholder="Street, locality, landmark..."
+                      className="w-full p-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Identity Document or Driving License (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*,.pdf"
+                      onChange={(e) => setIdDocFile(e.target.files?.[0] || null)}
+                      className="w-full text-xs text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-stone-100 file:text-stone-800 hover:file:bg-stone-200 cursor-pointer"
+                    />
+                    <p className="text-[10px] text-stone-400 mt-0.5">JPG, PNG, or PDF file</p>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <Clock size={13} className="text-amber-700 shrink-0" />
+                    <span>Administrator Approval Required</span>
+                  </div>
+                  <p>
+                    All courier applications are reviewed by Wangs administration before portal access is granted.
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={authSubmitting}
+                  className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
+                >
+                  {authSubmitting ? 'Submitting Registration...' : 'Submit Courier Registration'}
+                </button>
+
+                <div className="pt-2 text-center text-xs text-stone-500">
+                  Already have an account?{' '}
+                  <button
+                    type="button"
+                    onClick={() => setAuthTab('login')}
+                    className="font-bold text-red-600 hover:text-red-700 underline cursor-pointer"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* TAB: FORGOT PASSWORD */}
+            {authTab === 'forgot' && (
+              <div className="space-y-4">
+                <div className="space-y-1 text-center">
+                  <h2 className="font-serif text-xl font-black text-stone-900">Reset Courier Password</h2>
+                  <p className="text-xs text-stone-500">
+                    Recover access to your Wangs Express courier account.
+                  </p>
+                </div>
+
+                {resetStep === 1 ? (
+                  <form onSubmit={handleForgotRequest} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Registered Email Address or Mobile Number
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="e.g. runner@wangs.in or 9862000000"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authSubmitting}
+                      className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
+                    >
+                      {authSubmitting ? 'Requesting Reset...' : 'Send Password Reset Code'}
+                    </button>
+
+                    <div className="pt-1 text-center">
+                      <button
+                        type="button"
+                        onClick={() => setResetStep(2)}
+                        className="text-xs font-bold text-stone-600 hover:text-stone-900 underline"
+                      >
+                        I already have a reset token
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleResetSubmit} className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Reset Token / OTP Code
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={resetToken}
+                        onChange={(e) => setResetToken(e.target.value)}
+                        placeholder="Enter 6-digit code or reset token"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 font-mono focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">New Password</label>
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="At least 6 characters"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">Confirm New Password</label>
+                      <input
+                        type="password"
+                        required
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                        className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-300 rounded-xl text-xs sm:text-sm text-stone-900 focus:outline-none focus:ring-2 focus:ring-red-600"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={authSubmitting}
+                      className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md transition-all active:scale-98 disabled:opacity-50 cursor-pointer"
+                    >
+                      {authSubmitting ? 'Updating Password...' : 'Save New Password & Sign In'}
+                    </button>
+                  </form>
+                )}
+
+                <div className="pt-2 text-center text-xs text-stone-500">
+                  <button
+                    type="button"
+                    onClick={() => { setAuthTab('login'); setResetStep(1); }}
+                    className="font-bold text-stone-700 hover:text-stone-900 underline cursor-pointer"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // VIEW CASE 3: Authenticated but NOT Approved (PENDING / SUSPENDED / REJECTED)
+  // ==========================================
+  if (!isApprovedCourier) {
+    const isPending = courierProfile?.status === 'PENDING' || (!courierProfile && user.role === 'COURIER');
+    const isSuspended = courierProfile?.status === 'SUSPENDED';
+    const isRejected = courierProfile?.status === 'REJECTED';
+
+    return (
+      <div className="min-h-screen bg-stone-100 text-stone-900 pb-16">
+        <div className="bg-red-600 text-white shadow-md border-b border-red-700">
+          <div className="max-w-md mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-red-700 text-white flex items-center justify-center font-bold shadow-inner">
+                <Truck size={22} />
+              </div>
+              <div>
+                <span className="font-bold text-base tracking-wide uppercase block leading-tight">Wangs Express</span>
+                <span className="text-[11px] text-red-100">Courier Account Status</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-700 hover:bg-red-800 text-xs font-bold cursor-pointer"
+            >
+              <LogOut size={13} /> Logout
+            </button>
+          </div>
+        </div>
+
+        <div className="max-w-md mx-auto px-4 pt-8 space-y-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/90 shadow-xl space-y-5">
+            {isPending && (
+              <div className="text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-inner animate-pulse">
+                  <Clock size={28} />
+                </div>
+                <div>
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 uppercase tracking-wide mb-2">
+                    Application Pending Approval
+                  </span>
+                  <h2 className="font-serif text-xl font-bold text-stone-900">
+                    Your Registration Has Been Submitted
+                  </h2>
+                  <p className="text-xs text-stone-600 mt-2 leading-relaxed">
+                    Please wait for administrator approval. Our fleet dispatch team verifies all courier partner credentials before granting delivery portal access.
+                  </p>
+                </div>
+
+                <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 text-left text-xs space-y-2">
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1.5">
+                    <span className="text-stone-500">Applicant:</span>
+                    <strong className="text-stone-900">{courierProfile?.full_name || user.first_name || user.username}</strong>
+                  </div>
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1.5">
+                    <span className="text-stone-500">Phone:</span>
+                    <span className="font-mono font-bold text-stone-800">{courierProfile?.phone_number || user.phone_number || 'Registered'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-stone-200/60 pb-1.5">
+                    <span className="text-stone-500">Vehicle:</span>
+                    <span className="font-mono font-bold text-stone-800">{courierProfile?.vehicle_type || 'BIKE'} ({courierProfile?.vehicle_number || 'N/A'})</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-stone-500">Company:</span>
+                    <span className="font-bold text-stone-800">{courierProfile?.courier_company || 'Independent'}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row gap-2">
+                  <button
+                    type="button"
+                    onClick={() => refreshUser()}
+                    className="flex-1 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <RefreshCw size={14} />
+                    <span>Check Approval Status</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isSuspended && (
+              <div className="text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-700 flex items-center justify-center mx-auto shadow-inner">
+                  <Ban size={28} />
+                </div>
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-900 border border-red-300 uppercase tracking-wide">
+                  Account Suspended
+                </span>
+                <h2 className="font-serif text-xl font-bold text-stone-900">Delivery Privileges Suspended</h2>
+                <p className="text-xs text-stone-600">
+                  {courierProfile?.suspension_reason || 'Access has been suspended by the marketplace administrator.'}
+                </p>
+                <div className="pt-4 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="px-5 py-2.5 bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {isRejected && (
+              <div className="text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-stone-200 text-stone-700 flex items-center justify-center mx-auto shadow-inner">
+                  <XCircle size={28} />
+                </div>
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-stone-200 text-stone-800 border border-stone-300 uppercase tracking-wide">
+                  Application Declined
+                </span>
+                <h2 className="font-serif text-xl font-bold text-stone-900">Registration Not Approved</h2>
+                <p className="text-xs text-stone-600">
+                  {courierProfile?.rejection_reason || 'Your application did not satisfy fleet verification requirements.'}
+                </p>
+                <div className="pt-4 flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={logout}
+                    className="px-5 py-2.5 bg-stone-800 hover:bg-stone-900 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {!isPending && !isSuspended && !isRejected && (
+              <div className="text-center space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto">
+                  <AlertTriangle size={28} />
+                </div>
+                <h2 className="font-serif text-lg font-bold text-stone-900">Courier Account Required</h2>
+                <p className="text-xs text-stone-600">
+                  You are currently signed in as <strong>{user.username}</strong> ({user.role}). Delivery portal operations are restricted to approved courier personnel.
+                </p>
+                <div className="pt-2 flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { logout(); setAuthTab('register'); }}
+                    className="py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Register as Courier
+                  </button>
+                  <Link
+                    to="/"
+                    className="py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl text-center"
+                  >
+                    Return to Storefront
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // VIEW CASE 4: Authenticated & Approved Courier / Admin -> FULL PORTAL
+  // ==========================================
+  const courierDisplayName = courierProfile?.full_name || user.first_name || user.username;
+  const courierVehicle = courierProfile?.vehicle_type || 'EXPRESS';
+
   return (
     <div className="min-h-screen bg-stone-100/90 text-stone-900 pb-16">
       {/* Top Header Bar for Delivery Fleet */}
       <div className="bg-red-600 text-white sticky top-0 z-30 shadow-md border-b border-red-700">
-        <div className="max-w-5xl mx-auto px-4 py-3.5 flex items-center justify-between gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-red-700 text-white flex items-center justify-center font-bold shadow-inner">
               <Truck size={20} />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-bold text-sm tracking-wide text-white uppercase">Wangs Express</span>
                 <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/20 text-white font-bold border border-white/30">
                   COURIER
+                </span>
+                <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-700/80 text-emerald-100 border border-emerald-500/40 hidden sm:inline-flex items-center gap-1">
+                  <ShieldCheck size={10} /> {courierDisplayName} ({courierVehicle})
                 </span>
               </div>
               <p className="text-[10px] text-red-100">Direct Delivery & Customer Route Navigator</p>
@@ -256,12 +1059,21 @@ export default function DeliveryPage() {
                   setSearchParams({});
                   loadRecentParcels();
                 }}
-                className="p-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs transition-colors"
+                className="p-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs transition-colors cursor-pointer"
                 title="View All Parcels"
               >
                 <ArrowLeft size={16} />
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={logout}
+              className="p-2 rounded-xl bg-red-700 hover:bg-red-800 text-white text-xs transition-colors cursor-pointer"
+              title="Logout from Courier Portal"
+            >
+              <LogOut size={16} />
+            </button>
           </div>
         </div>
       </div>

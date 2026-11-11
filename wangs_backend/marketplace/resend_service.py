@@ -1094,3 +1094,130 @@ def send_admin_new_product_notification(product, profile):
     print(f"==========================================\n")
 
     return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_courier_approval_email(courier_profile, request=None, site_url: str = None):
+    """
+    Sends an approval email to the courier delivery agent with a link to /delivery.
+    """
+    recipient_email = (courier_profile.email or (courier_profile.user.email if courier_profile.user else '')).strip()
+    if not recipient_email:
+        return False, {"error": "No recipient email address."}
+
+    full_name = courier_profile.full_name or courier_profile.user.get_full_name() or 'Delivery Partner'
+    base_url = (site_url or get_site_url(request)).rstrip('/')
+    delivery_portal_url = f"{base_url}/delivery"
+
+    subject = "Your Wangs Express Courier Account Has Been Approved!"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:sans-serif;background:#f5f3ef;padding:24px;color:#292524;">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e7dfd4;padding:32px;">
+        <div style="text-align:center;border-bottom:1px solid #f0ede6;padding-bottom:20px;">
+          <h2 style="color:#0e3820;margin:0 0 6px;">⚡ Wangs Express Fleet</h2>
+          <span style="background:#dcfce7;color:#166534;font-size:12px;font-weight:700;padding:4px 12px;border-radius:12px;">
+            Application Approved & Active
+          </span>
+        </div>
+        <p style="margin-top:24px;font-size:15px;line-height:1.6;">
+          Hello <strong>{full_name}</strong>,
+        </p>
+        <p style="font-size:14px;line-height:1.6;color:#57534e;">
+          Great news! Your application to join the Wangs Express delivery fleet has been approved by the platform administrators.
+          You can now log in to the Courier Delivery Portal, scan parcel QR codes, view customer route directions, and confirm doorstep deliveries.
+        </p>
+        <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:12px;padding:16px;margin:20px 0;font-size:13px;">
+          <p style="margin:4px 0;"><strong>Partner Name:</strong> {full_name}</p>
+          <p style="margin:4px 0;"><strong>Vehicle:</strong> {courier_profile.get_vehicle_type_display()} ({courier_profile.vehicle_number or 'Standard'})</p>
+          <p style="margin:4px 0;"><strong>Service Hub:</strong> {courier_profile.service_area_city}</p>
+          <p style="margin:4px 0;"><strong>Company:</strong> {courier_profile.courier_company}</p>
+        </div>
+        <div style="text-align:center;margin:32px 0 20px;">
+          <a href="{delivery_portal_url}" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:14px 32px;border-radius:12px;">
+            Open Courier Delivery Portal &rarr;
+          </a>
+        </div>
+        <p style="font-size:12px;color:#a8a29e;text-align:center;margin-top:24px;">
+          Wangs Express Logistics &middot; Kohima, Nagaland &middot; Need help? Contact wangssupport@gmail.com
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+    print(f"\n==========================================")
+    print(f"[WANGS COURIER APPROVAL EMAIL DISPATCH]")
+    print(f"Recipient:      {recipient_email}")
+    print(f"Agent:          {full_name}")
+    print(f"Portal:         {delivery_portal_url}")
+    print(f"==========================================\n")
+    return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_courier_rejection_email(courier_profile, reason='', request=None, site_url: str = None):
+    """
+    Sends a rejection notice email to the applicant courier.
+    """
+    recipient_email = (courier_profile.email or (courier_profile.user.email if courier_profile.user else '')).strip()
+    if not recipient_email:
+        return False, {"error": "No recipient email address."}
+
+    full_name = courier_profile.full_name or 'Delivery Partner'
+    subject = "Update on Your Wangs Express Courier Application"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:sans-serif;background:#f5f3ef;padding:24px;color:#292524;">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e7dfd4;padding:32px;">
+        <h2 style="color:#b91c1c;margin:0 0 12px;">Wangs Express Logistics</h2>
+        <p style="font-size:15px;line-height:1.6;">Hello <strong>{full_name}</strong>,</p>
+        <p style="font-size:14px;line-height:1.6;color:#57534e;">
+          Thank you for applying to the Wangs Express courier partner program.
+          After reviewing your credentials, our administration was unable to approve your application at this time.
+        </p>
+        {f'<div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;border-radius:12px;padding:16px;margin:20px 0;font-size:13px;"><strong>Reason / Notes:</strong><br>{reason}</div>' if reason else ''}
+        <p style="font-size:13px;line-height:1.6;color:#57534e;">
+          If you believe this decision was made in error or wish to submit updated documentation, please email <strong>wangssupport@gmail.com</strong>.
+        </p>
+      </div>
+    </body>
+    </html>
+    """
+    return dispatch_email(recipient_email, subject, html_content)
+
+
+def send_admin_new_courier_registration_email(applicant_data: dict):
+    """
+    Notifies wangssupport@gmail.com whenever a new courier registers and is pending review.
+    """
+    recipient_email = "wangssupport@gmail.com"
+    full_name = applicant_data.get('full_name', 'New Courier Applicant')
+    phone = applicant_data.get('phone', 'N/A')
+    email = applicant_data.get('email', 'N/A')
+    vehicle = applicant_data.get('vehicle_type', 'BIKE')
+    admin_space_url = "https://wangs.in/wangsadminspace"
+
+    subject = f"[New Courier Application] {full_name} ({phone}) - Wangs Express"
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:sans-serif;background:#f5f3ef;padding:24px;color:#292524;">
+      <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e7dfd4;padding:32px;">
+        <h2 style="color:#0e3820;margin:0 0 12px;">New Courier Registration Pending Review</h2>
+        <p style="font-size:14px;color:#57534e;">A new delivery agent has registered on Wangs Express and is waiting for administrator approval.</p>
+        <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:12px;padding:16px;margin:20px 0;font-size:13px;">
+          <p style="margin:4px 0;"><strong>Name:</strong> {full_name}</p>
+          <p style="margin:4px 0;"><strong>Phone:</strong> {phone}</p>
+          <p style="margin:4px 0;"><strong>Email:</strong> {email}</p>
+          <p style="margin:4px 0;"><strong>Vehicle:</strong> {vehicle}</p>
+        </div>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="{admin_space_url}" style="display:inline-block;background:#0e3820;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 28px;border-radius:12px;">
+            Open Admin Dashboard to Approve &rarr;
+          </a>
+        </div>
+      </div>
+    </body>
+    </html>
+    """
+    return dispatch_email(recipient_email, subject, html_content)

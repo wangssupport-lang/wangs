@@ -8,12 +8,13 @@ import {
   Home, LogOut, Download, Copy, Check, Landmark,
   Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags,
   Megaphone, Bell, Menu, ChevronDown, ShoppingBag, BarChart3, Activity,
-  RotateCcw
+  RotateCcw, Truck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import AdminRewardsTab from '../components/AdminRewardsTab';
+import AdminCouriersTab from '../components/AdminCouriersTab';
 
 const extractList = (data) => {
   if (!data) return [];
@@ -440,6 +441,7 @@ const tabTitles = {
   products: 'Catalog Moderation',
   orders: 'Orders Management',
   rewards: 'Wangs Rewards Loyalty',
+  couriers: 'Couriers & Delivery Fleet',
   notices: 'Notice Ribbon Announcements',
   banners: 'Hero Promo Banners',
   categories: 'Catalog Categories',
@@ -1774,7 +1776,8 @@ export default function AdminDashboardPage() {
           isNotice: activeProductNotifications.length > 0
         },
         { id: 'orders', label: 'Orders', icon: ShoppingBag, count: ordersList.length },
-        { id: 'rewards', label: 'Wangs Rewards', icon: Sparkles }
+        { id: 'rewards', label: 'Wangs Rewards', icon: Sparkles },
+        { id: 'couriers', label: 'Couriers & Fleet', icon: Truck }
       ]
     },
     {
@@ -5478,6 +5481,9 @@ export default function AdminDashboardPage() {
 
       {/* Tab: Wangs Rewards Management */}
       {activeTab === 'rewards' && <AdminRewardsTab />}
+
+      {/* Tab: Courier Fleet Management */}
+      {activeTab === 'couriers' && <AdminCouriersTab />}
 
       {/* Tab 5: Commission & Fee Management */}
       {activeTab === 'commission' && (
