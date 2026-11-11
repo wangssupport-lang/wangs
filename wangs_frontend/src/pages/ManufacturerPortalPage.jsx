@@ -420,7 +420,7 @@ export default function ManufacturerPortalPage() {
   const handleUpdateFulfillment = async (orderItemId, newStatus) => {
     try {
       await api.updateFulfillmentStatus(orderItemId, newStatus);
-      toast.success(`Fulfillment status updated to ${newStatus}`);
+      toast.success(`Fulfillment status updated to ${newStatus} · Customer notified via email!`);
       loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to update fulfillment status');

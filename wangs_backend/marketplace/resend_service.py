@@ -1580,3 +1580,309 @@ def send_order_notifications_to_manufacturers(order, request=None, site_url: str
             results[profile.business_name] = {'sent': False, 'error': str(exc)}
 
     return results
+
+
+
+def send_customer_delivery_status_email(order, status: str, item=None, tracking_number: str = None, courier_partner: str = None, request=None, site_url: str = None):
+    """
+    Sends an email to the customer for every update on their product delivery process:
+    - PACKED: Artisan producer has prepared and sealed the product in protective wrap
+    - DISPATCHED: Handed over to express air cargo with tracking/AWB details
+    - DELIVERED: Parcel delivered to doorstep; prompt to scan unboxing QR code for wallet rewards
+    - Other status updates (PENDING, CONFIRMED, etc.)
+    """
+    recipient_email = (order.customer_email or (order.user.email if order.user else '')).strip()
+    if not recipient_email:
+        logger.warning("No customer email available for Order #%s", getattr(order, 'order_number', 'UNKNOWN'))
+        return False, {"error": "No customer email available."}
+
+    norm_status = (status or getattr(order, 'status', '') or '').strip().upper()
+    customer_name = getattr(order, 'customer_name', '') or (order.user.get_full_name() if getattr(order, 'user', None) else '') or (order.user.username if getattr(order, 'user', None) else '') or 'Valued Customer'
+    base_url = (site_url or get_site_url(request)).rstrip('/')
+    account_url = f"{base_url}/account"
+
+    # Target items to display
+    target_items = [item] if item else list(order.items.all())
+    item_title = item.product_title if item else (target_items[0].product_title if target_items else "Pickle Selection")
+    mfg_name = (item.manufacturer.business_name if (item and getattr(item, 'manufacturer', None)) else (
+        target_items[0].manufacturer.business_name if (target_items and getattr(target_items[0], 'manufacturer', None)) else "Wangs Artisan Kitchen"
+    ))
+
+    # Effective tracking details
+    eff_tracking = (tracking_number or getattr(order, 'tracking_number', '') or '').strip()
+    eff_courier = (courier_partner or getattr(order, 'courier_partner', '') or 'Air Cargo Express').strip()
+
+    # Dynamic status content
+    if norm_status in ('PACKED', 'PROCESSING'):
+        subject = f"📦 Your Order #{order.order_number} has been Packed! - Wangs"
+        badge_text = "PACKED & PREPARED"
+        badge_bg = "#eff6ff"
+        badge_color = "#1d4ed8"
+        badge_border = "#bfdbfe"
+        headline = "Your Artisanal Order has been Packed!"
+        subtitle = "Sealed airtight in protective wrap and awaiting courier pickup"
+        lead_msg = (
+            f"Great news, <strong>{customer_name}</strong>! Your order item <strong>'{item_title}'</strong> "
+            f"has been prepared and safely packed by <strong>{mfg_name}</strong>. "
+            f"Our air cargo logistics partner will pick up the package within 24–48 business hours for express transit."
+        )
+
+    elif norm_status == 'DISPATCHED':
+        subject = f"✈️ Your Order #{order.order_number} has been Dispatched via Air Cargo! - Wangs"
+        badge_text = "AIR CARGO DISPATCHED"
+        badge_bg = "#f3e8ff"
+        badge_color = "#6b21a8"
+        badge_border = "#d8b4fe"
+        headline = "Your Parcel is on the Way!"
+        subtitle = f"In flight via {eff_courier} Priority Air Cargo"
+        lead_msg = (
+            f"Hello <strong>{customer_name}</strong>, your parcel has been handed over for air transit! "
+            f"It is en route to <strong>{order.shipping_city}, {order.shipping_state} ({order.shipping_postal_code})</strong>. "
+            f"Priority express air delivery is estimated in 2–4 business days."
+        )
+
+    elif norm_status == 'DELIVERED':
+        subject = f"🎉 Your Order #{order.order_number} has been Delivered! Scan to Claim Rewards - Wangs"
+        badge_text = "DELIVERED TO DOORSTEP"
+        badge_bg = "#ecfdf5"
+        badge_color = "#047857"
+        badge_border = "#a7f3d0"
+        headline = "Your Package has been Delivered!"
+        subtitle = f"Delivered to {order.shipping_city}, {order.shipping_state}"
+        lead_msg = (
+            f"Hello <strong>{customer_name}</strong>, your Wangs authentic pickle order has been successfully "
+            f"delivered to your doorstep! We hope you love the rich flavours, wood smoke aroma, and heritage spices."
+        )
+
+    else:
+        subject = f"📋 Delivery Process Update for Order #{order.order_number} ({norm_status}) - Wangs"
+        badge_text = f"STATUS: {norm_status}"
+        badge_bg = "#f5f5f4"
+        badge_color = "#44403c"
+        badge_border = "#d6d3d1"
+        headline = "Delivery Process Update"
+        subtitle = f"Latest fulfillment status for Order #{order.order_number}"
+        lead_msg = (
+            f"Hello <strong>{customer_name}</strong>, there is an update on your order. "
+            f"The current delivery status of your items is <strong>{norm_status}</strong>."
+        )
+
+    # Build items HTML table
+    items_html = ""
+    for it in target_items:
+        items_html += f"""
+        <tr style="border-bottom:1px solid #f0ede6;">
+          <td style="padding:12px 10px;font-size:13px;color:#1c1917;vertical-align:middle;">
+            <strong style="color:#0e3820;display:block;font-size:13px;">{it.product_title}</strong>
+            <span style="font-size:11px;color:#78716c;">Pack: {it.weight_grams}g &middot; {it.quantity} {('Jar' if it.quantity == 1 else 'Jars')}</span>
+          </td>
+          <td style="padding:12px 10px;font-size:12px;color:#57534e;vertical-align:middle;text-align:center;">
+            <span style="font-size:11px;font-weight:700;color:{badge_color};background:{badge_bg};padding:3px 8px;border-radius:6px;border:1px solid {badge_border};">
+              {norm_status}
+            </span>
+          </td>
+          <td style="padding:12px 10px;font-size:13px;text-align:right;font-family:monospace;font-weight:700;color:#1c1917;vertical-align:middle;">
+            ₹{it.subtotal}
+          </td>
+        </tr>
+        """
+
+    # Unboxing QR reward banner if DELIVERED
+    reward_box_html = ""
+    if norm_status == 'DELIVERED':
+        reward_box_html = f"""
+        <div style="background:#fffbeb;border:2px dashed #f59e0b;border-radius:14px;padding:16px 20px;margin:22px 0;text-align:left;">
+          <div style="display:flex;align-items:center;margin-bottom:8px;">
+            <span style="font-size:20px;margin-right:8px;">🎁</span>
+            <strong style="color:#92400e;font-size:14px;">Scan Your Unboxing QR Code to Claim Rewards!</strong>
+          </div>
+          <p style="margin:0;font-size:12.5px;color:#78350f;line-height:1.5;">
+            Look at the bottom of the shipping label attached to your parcel box. Open your phone camera or the Wangs app and scan the <strong>Customer Unboxing QR</strong> to instantly credit cash points into your Wangs Rewards Wallet!
+          </p>
+          <div style="margin-top:12px;">
+            <a href="{account_url}" style="background:#0e3820;color:#ffffff;text-decoration:none;font-size:12px;font-weight:700;padding:8px 16px;border-radius:8px;display:inline-block;">
+              Open Wallet & View Balance &rarr;
+            </a>
+          </div>
+        </div>
+        """
+
+    # Tracking box if tracking exists
+    tracking_box_html = ""
+    if eff_tracking:
+        tracking_box_html = f"""
+        <div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:12px;padding:14px 18px;margin:18px 0;">
+          <span style="font-size:10px;font-weight:800;color:#6b21a8;text-transform:uppercase;letter-spacing:1px;display:block;">Air Cargo Tracking Details</span>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+            <div>
+              <span style="font-size:11px;color:#78716c;">Courier Partner:</span>
+              <strong style="font-size:13px;color:#1c1917;display:block;">{eff_courier}</strong>
+            </div>
+            <div style="margin-left:auto;">
+              <span style="font-size:11px;color:#78716c;">AWB Consignment No:</span>
+              <span style="font-family:monospace;font-size:13px;font-weight:800;color:#6b21a8;background:#ffffff;padding:4px 8px;border-radius:6px;border:1px solid #d8b4fe;display:inline-block;">
+                {eff_tracking}
+              </span>
+            </div>
+          </div>
+        </div>
+        """
+
+    phone_display = f"<br />Phone: <span style='font-family:monospace;'>{order.customer_phone}</span>" if getattr(order, 'customer_phone', None) else ""
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>{subject}</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#f8f6f0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1c1917;-webkit-font-smoothing:antialiased;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8f6f0;padding:24px 12px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:620px;background-color:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 8px 30px rgba(0,0,0,0.06);border:1px solid #e7dfd4;">
+              
+              <!-- Brand Header -->
+              <tr>
+                <td style="background:linear-gradient(135deg, #072214 0%, #0e3820 60%, #154c2e 100%);padding:28px 24px;text-align:center;border-bottom:3px solid #f59e0b;">
+                  <div style="display:inline-block;background:#f59e0b;color:#072214;font-family:Georgia,serif;font-size:24px;font-weight:900;letter-spacing:4px;padding:4px 18px;border-radius:8px;margin-bottom:8px;">
+                    WANGS
+                  </div>
+                  <p style="margin:0;color:#d1fae5;font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;">
+                    Authentic Food Marketplace &middot; Delivery Tracking
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Status Banner -->
+              <tr>
+                <td style="padding:28px 24px 16px 24px;">
+                  <div style="display:inline-block;background:{badge_bg};color:{badge_color};border:1px solid {badge_border};font-size:11px;font-weight:800;letter-spacing:1px;padding:4px 12px;border-radius:999px;margin-bottom:12px;">
+                    ● {badge_text}
+                  </div>
+                  <h1 style="margin:0 0 6px 0;font-family:Georgia,serif;font-size:22px;color:#0e3820;font-weight:800;line-height:1.3;">
+                    {headline}
+                  </h1>
+                  <p style="margin:0 0 16px 0;color:#78716c;font-size:13px;line-height:1.4;">
+                    {subtitle}
+                  </p>
+                  <p style="margin:0;color:#292524;font-size:13.5px;line-height:1.6;">
+                    {lead_msg}
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Tracking Box (if dispatched) -->
+              <tr>
+                <td style="padding:0 24px;">
+                  {tracking_box_html}
+                </td>
+              </tr>
+
+              <!-- Reward Box (if delivered) -->
+              <tr>
+                <td style="padding:0 24px;">
+                  {reward_box_html}
+                </td>
+              </tr>
+
+              <!-- Order Summary Section -->
+              <tr>
+                <td style="padding:12px 24px 20px 24px;">
+                  <div style="border:1px solid #e7dfd4;border-radius:14px;overflow:hidden;background:#faf9f6;">
+                    
+                    <div style="padding:12px 16px;background:#f0ede6;border-bottom:1px solid #e7dfd4;display:flex;justify-content:space-between;align-items:center;">
+                      <span style="font-size:11px;font-weight:800;color:#0e3820;text-transform:uppercase;letter-spacing:0.5px;">
+                        Order Reference: #{order.order_number}
+                      </span>
+                      <span style="font-size:11px;color:#78716c;font-family:monospace;">
+                        Total: ₹{order.total_amount}
+                      </span>
+                    </div>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                      <thead>
+                        <tr style="background:#fcfbf9;border-bottom:1px solid #f0ede6;">
+                          <th align="left" style="padding:10px 10px;font-size:11px;color:#78716c;font-weight:700;text-transform:uppercase;">Item</th>
+                          <th align="center" style="padding:10px 10px;font-size:11px;color:#78716c;font-weight:700;text-transform:uppercase;">Status</th>
+                          <th align="right" style="padding:10px 10px;font-size:11px;color:#78716c;font-weight:700;text-transform:uppercase;">Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items_html}
+                      </tbody>
+                    </table>
+
+                    <!-- Delivery Address Bar -->
+                    <div style="padding:14px 16px;background:#ffffff;border-top:1px solid #f0ede6;font-size:12px;color:#57534e;line-height:1.5;">
+                      <strong style="color:#1c1917;display:block;margin-bottom:2px;">Destination Address:</strong>
+                      {order.shipping_address_line1}, {order.shipping_city}, {order.shipping_state} - {order.shipping_postal_code}
+                      {phone_display}
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Call to Action -->
+              <tr>
+                <td style="padding:10px 24px 28px 24px;text-align:center;">
+                  <a href="{account_url}" style="background:#0e3820;color:#ffffff;text-decoration:none;font-size:13px;font-weight:700;padding:12px 28px;border-radius:12px;display:inline-block;box-shadow:0 4px 12px rgba(14,56,32,0.25);">
+                    View &amp; Track Order in Your Account &rarr;
+                  </a>
+                  <p style="margin:12px 0 0 0;font-size:11px;color:#a8a29e;">
+                    Have questions? Email us at <a href="mailto:wangssupport@gmail.com" style="color:#0e3820;text-decoration:underline;">wangssupport@gmail.com</a>
+                  </p>
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td style="background-color:#f0ede6;padding:18px 24px;text-align:center;font-size:11px;color:#78716c;line-height:1.5;border-top:1px solid #e7dfd4;">
+                  <p style="margin:0 0 4px 0;font-weight:600;color:#44403c;">
+                    Wangs Authentic Food Marketplace
+                  </p>
+                  <p style="margin:0;">
+                    Connecting connoisseurs nationwide to indigenous, wood-smoked, and fermented culinary traditions.
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    print(f"\n==========================================")
+    print(f"[WANGS CUSTOMER DELIVERY EMAIL DISPATCH]")
+    print(f"Recipient:      {recipient_email}")
+    print(f"Customer Name:  {customer_name}")
+    print(f"Order:          #{order.order_number}")
+    print(f"Status Update:  {norm_status}")
+    print(f"Subject:        {subject}")
+    print(f"==========================================\n")
+
+    sent, info = dispatch_email(recipient_email, subject, html_content)
+    if sent:
+        try:
+            from .models import AuditLog
+            AuditLog.objects.create(
+                user=order.user,
+                action='CUSTOMER_DELIVERY_STATUS_EMAIL_SENT',
+                target_model='Order',
+                target_id=f"{order.order_number}_{norm_status}",
+                details={
+                    'order_number': order.order_number,
+                    'status': norm_status,
+                    'recipient_email': recipient_email,
+                    'tracking_number': eff_tracking
+                }
+            )
+        except Exception:
+            pass
+
+    return sent, info

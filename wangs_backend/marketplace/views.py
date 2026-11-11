@@ -2188,7 +2188,7 @@ class ManufacturerOrdersView(views.APIView):
             elif any(s in [OrderItem.FulfillmentStatus.DISPATCHED, OrderItem.FulfillmentStatus.DELIVERED] for s in all_statuses):
                 order.status = Order.Status.DISPATCHED
                 if not order.courier_partner:
-                    order.courier_partner = 'Air Cargo Express (India Post Speed Post)'
+                    order.courier_partner = 'Air Cargo Express'
                 if not order.tracking_number:
                     order.tracking_number = f"WNG-AWB-{order.order_number[-6:]}-{item.id}IN"
             elif any(s == OrderItem.FulfillmentStatus.PACKED for s in all_statuses):
@@ -2198,6 +2198,21 @@ class ManufacturerOrdersView(views.APIView):
                 order.status = Order.Status.CANCELLED
 
             order.save()
+
+            # Dispatch notification email to customer for every update on delivery / fulfillment process
+            try:
+                from .resend_service import send_customer_delivery_status_email
+                send_customer_delivery_status_email(
+                    order=order,
+                    status=new_status,
+                    item=item,
+                    tracking_number=order.tracking_number,
+                    courier_partner=order.courier_partner,
+                    request=request
+                )
+            except Exception as mail_exc:
+                logger.warning("Could not dispatch customer delivery update email: %s", mail_exc)
+
             return Response({
                 'detail': f'Status updated to {new_status}',
                 'order_status': order.status,
@@ -2628,6 +2643,19 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
                 except Exception as exc:
                     logger.warning("Could not dispatch manufacturer order notification on status change: %s", exc)
 
+            # Notify customer for every delivery / order process status update
+            try:
+                from .resend_service import send_customer_delivery_status_email
+                send_customer_delivery_status_email(
+                    order=order,
+                    status=new_status,
+                    tracking_number=order.tracking_number,
+                    courier_partner=order.courier_partner,
+                    request=request
+                )
+            except Exception as exc:
+                logger.warning("Could not dispatch customer delivery status email on admin status change: %s", exc)
+
             return Response(OrderSerializer(order).data)
         return Response({'detail': 'Invalid order status'}, status=400)
 
@@ -2635,7 +2663,7 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
     def update_dispatch_tracking(self, request, pk=None):
         order = self.get_object()
         tracking_number = request.data.get('tracking_number', '').strip()
-        courier_partner = request.data.get('courier_partner', '').strip() or 'India Post Air Cargo'
+        courier_partner = request.data.get('courier_partner', '').strip() or 'Air Cargo Express'
         dispatch_notes = request.data.get('dispatch_notes', '').strip()
         advance_status = request.data.get('advance_status', True)
 
@@ -2655,6 +2683,20 @@ class AdminOrderViewSet(viewsets.ModelViewSet):
             target_id=str(order.id),
             details={'tracking_number': tracking_number, 'courier': courier_partner, 'status': order.status}
         )
+
+        # Notify customer about dispatch tracking update
+        try:
+            from .resend_service import send_customer_delivery_status_email
+            send_customer_delivery_status_email(
+                order=order,
+                status=order.status,
+                tracking_number=order.tracking_number,
+                courier_partner=order.courier_partner,
+                request=request
+            )
+        except Exception as exc:
+            logger.warning("Could not dispatch customer delivery email on dispatch tracking update: %s", exc)
+
         return Response(OrderSerializer(order).data)
 
 

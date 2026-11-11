@@ -467,9 +467,17 @@ class RewardService:
         # Update order item and order fulfillment if all units delivered
         all_units = order.units.all()
         if all_units.exists() and all(u.is_delivered for u in all_units):
+            was_already_delivered = (order.status == Order.Status.DELIVERED)
             order.status = Order.Status.DELIVERED
             order.save(update_fields=['status', 'updated_at'])
             order.items.all().update(fulfillment_status=OrderItem.FulfillmentStatus.DELIVERED)
+
+            if not was_already_delivered:
+                try:
+                    from .resend_service import send_customer_delivery_status_email
+                    send_customer_delivery_status_email(order=order, status='DELIVERED')
+                except Exception as mail_exc:
+                    logger.warning("Could not dispatch customer delivered email: %s", mail_exc)
 
         # 3. Determine the target customer user to receive the credits
         if source == DeliveryConfirmation.Source.COURIER:

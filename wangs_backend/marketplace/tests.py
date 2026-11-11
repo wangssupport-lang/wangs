@@ -2185,3 +2185,105 @@ class WangsCourierSystemTests(TestCase):
             send_order_notifications_to_manufacturers(order)
             self.assertEqual(mock_dispatch.call_count, 0)
 
+    @patch('marketplace.resend_service.dispatch_email')
+    def test_customer_delivery_process_email_updates(self, mock_dispatch):
+        """
+        Verify that for every delivery process update (PACKED, DISPATCHED, DELIVERED),
+        the customer receives an email notification with appropriate subject and content.
+        """
+        mock_dispatch.return_value = (True, {'id': 'msg_test'})
+
+        order = Order.objects.create(
+            order_number='WNG-20261111-TESTDELIV',
+            user=self.customer,
+            customer_name='Akamla Customer',
+            customer_email='akamla_cust@wangs.in',
+            customer_phone='9863119295',
+            shipping_address_line1='Duncan Basti, Lane 4',
+            shipping_city='Dimapur',
+            shipping_state='Nagaland',
+            shipping_postal_code='797112',
+            items_subtotal=Decimal('300.00'),
+            customer_platform_fee=Decimal('0.00'),
+            delivery_fee=Decimal('0.00'),
+            total_amount=Decimal('300.00'),
+            platform_commission_total=Decimal('30.00'),
+            manufacturer_payout_total=Decimal('270.00'),
+            status=Order.Status.CONFIRMED,
+            payment_status=Order.PaymentStatus.PAID
+        )
+
+        item = OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            product_title=self.product.title,
+            manufacturer=self.mfg_profile,
+            unit_price=Decimal('300.00'),
+            quantity=1,
+            weight_grams=250,
+            subtotal=Decimal('300.00'),
+            commission_rate=Decimal('10.00'),
+            commission_amount=Decimal('30.00'),
+            manufacturer_payout=Decimal('270.00'),
+            fulfillment_status=OrderItem.FulfillmentStatus.PENDING
+        )
+
+        from marketplace.resend_service import send_customer_delivery_status_email
+
+        # 1. Update to PACKED
+        mock_dispatch.reset_mock()
+        sent, _ = send_customer_delivery_status_email(order, status='PACKED', item=item)
+        self.assertTrue(sent)
+        self.assertEqual(mock_dispatch.call_count, 1)
+        recipient, subject, html = mock_dispatch.call_args[0]
+        self.assertEqual(recipient, 'akamla_cust@wangs.in')
+        self.assertIn('Packed', subject)
+        self.assertIn('Your Artisanal Order has been Packed', html)
+        self.assertIn(self.product.title, html)
+        self.assertIn('Akamla Customer', html)
+
+        # 2. Update to DISPATCHED
+        mock_dispatch.reset_mock()
+        order.tracking_number = 'WNG-AWB-998877IN'
+        order.courier_partner = 'Air Cargo Express'
+        sent, _ = send_customer_delivery_status_email(
+            order, status='DISPATCHED', item=item,
+            tracking_number=order.tracking_number,
+            courier_partner=order.courier_partner
+        )
+        self.assertTrue(sent)
+        self.assertEqual(mock_dispatch.call_count, 1)
+        recipient, subject, html = mock_dispatch.call_args[0]
+        self.assertEqual(recipient, 'akamla_cust@wangs.in')
+        self.assertIn('Dispatched', subject)
+        self.assertIn('Your Parcel is on the Way', html)
+        self.assertIn('WNG-AWB-998877IN', html)
+        self.assertIn('Air Cargo Express', html)
+
+        # 3. Update to DELIVERED
+        mock_dispatch.reset_mock()
+        sent, _ = send_customer_delivery_status_email(order, status='DELIVERED', item=item)
+        self.assertTrue(sent)
+        self.assertEqual(mock_dispatch.call_count, 1)
+        recipient, subject, html = mock_dispatch.call_args[0]
+        self.assertEqual(recipient, 'akamla_cust@wangs.in')
+        self.assertIn('Delivered', subject)
+        self.assertIn('Your Package has been Delivered', html)
+        self.assertIn('Scan Your Unboxing QR Code', html)
+
+        # 4. Integration Test: Manufacturer PATCH triggers customer email
+        mock_dispatch.reset_mock()
+        self.client.force_authenticate(user=self.mfg_user)
+        patch_resp = self.client.patch('/api/manufacturer/orders/', {
+            'order_item_id': item.id,
+            'fulfillment_status': 'DISPATCHED',
+            'courier_partner': 'Air Cargo Express',
+            'tracking_number': 'WNG-AWB-TEST123'
+        }, format='json')
+        self.assertEqual(patch_resp.status_code, 200)
+        self.assertEqual(mock_dispatch.call_count, 1)
+        patch_recip, patch_sub, patch_html = mock_dispatch.call_args[0]
+        self.assertEqual(patch_recip, 'akamla_cust@wangs.in')
+        self.assertIn('Dispatched', patch_sub)
+        self.assertIn('WNG-AWB-TEST123', patch_html)
+
