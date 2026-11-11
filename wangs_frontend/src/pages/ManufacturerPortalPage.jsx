@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
@@ -698,12 +698,14 @@ export default function ManufacturerPortalPage() {
   const dispatchedOrders = safeOrders.filter((o) => o.fulfillment_status === 'DISPATCHED');
   const deliveredOrders = safeOrders.filter((o) => o.fulfillment_status === 'DELIVERED');
 
-  const filteredOrders = useMemo(() => {
-    if (orderStatusFilter === 'PENDING') return pendingOrders;
-    if (orderStatusFilter === 'DISPATCHED') return dispatchedOrders;
-    if (orderStatusFilter === 'DELIVERED') return deliveredOrders;
-    return safeOrders;
-  }, [safeOrders, orderStatusFilter, pendingOrders, dispatchedOrders, deliveredOrders]);
+  const filteredOrders =
+    orderStatusFilter === 'PENDING'
+      ? pendingOrders
+      : orderStatusFilter === 'DISPATCHED'
+      ? dispatchedOrders
+      : orderStatusFilter === 'DELIVERED'
+      ? deliveredOrders
+      : safeOrders;
 
   // Bundle order metrics calculation
   const bundleOrdersCount = safeOrders.filter((o) => o.quantity >= 2).length;
