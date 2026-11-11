@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   Store, Package, DollarSign, Clock, CheckCircle, AlertCircle,
   Plus, Edit, Eye, EyeOff, Filter, RefreshCw, Truck, ShieldCheck, Sparkles,
   Printer, X, FileText, Phone, MapPin, Camera, Calculator, Download,
   Lock, Mail, KeyRound, ArrowRight, Trash2, Edit3, Boxes, AlertTriangle, Landmark,
-  UploadCloud, User, Image as ImageIcon
+  UploadCloud, User, Image as ImageIcon, ChevronRight, ExternalLink, HelpCircle,
+  SlidersHorizontal, Check, Info, BadgeCheck, Layers
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -28,16 +29,28 @@ export default function ManufacturerPortalPage() {
   const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview', 'products', 'orders', 'financials', 'profile'
+  // Navigation tab states
+  const initialTab = searchParams.get('tab') || 'overview';
+  const initialSub = searchParams.get('sub') || 'brand';
+  const [activeTab, setActiveTab] = useState(initialTab === 'profile' ? 'settings' : initialTab);
+  const [settingsSubTab, setSettingsSubTab] = useState(initialSub);
+  const [orderStatusFilter, setOrderStatusFilter] = useState('ALL'); // 'ALL', 'PENDING', 'DISPATCHED', 'DELIVERED'
+
+  // Data states
   const [profile, setProfile] = useState(null);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [orders, setOrders] = useState([]);
   const [financials, setFinancials] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Modals & Overlays
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
   const [showSellerRulesModal, setShowSellerRulesModal] = useState(false);
+  const [quickStockModal, setQuickStockModal] = useState(null);
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
 
   // Profile & Logo Management state
   const [logoUploading, setLogoUploading] = useState(false);
@@ -62,7 +75,7 @@ export default function ManufacturerPortalPage() {
   });
   const [savingBank, setSavingBank] = useState(false);
 
-  // Dedicated Seller Login Space State (Username/Email & Password only)
+  // Dedicated Seller Login Space State
   const [sellerPasswordIdentifier, setSellerPasswordIdentifier] = useState('');
   const [sellerPassword, setSellerPassword] = useState('');
   const [showSellerPassword, setShowSellerPassword] = useState(false);
@@ -73,11 +86,9 @@ export default function ManufacturerPortalPage() {
   const [editingProductId, setEditingProductId] = useState(null);
   const [deletingProductId, setDeletingProductId] = useState(null);
   const [updatingStockId, setUpdatingStockId] = useState(null);
-  const [quickStockModal, setQuickStockModal] = useState(null);
   const [productStockFilter, setProductStockFilter] = useState('ALL');
 
   // New product form modal state
-  const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState(null);
   const [newProd, setNewProd] = useState({
     title: '',
@@ -102,6 +113,28 @@ export default function ManufacturerPortalPage() {
 
   const commissionRate = parseFloat(profile?.commission_rate_override) || 10;
   const deliveryCharge = 50;
+
+  // Handle URL tab changes
+  const handleTabChange = (tab, sub = null) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', tab);
+    if (sub) {
+      setSettingsSubTab(sub);
+      params.set('sub', sub);
+    } else if (tab !== 'settings') {
+      params.delete('sub');
+    }
+    setSearchParams(params, { replace: true });
+  };
+
+  const handleSettingsSubChange = (sub) => {
+    setSettingsSubTab(sub);
+    const params = new URLSearchParams(searchParams);
+    params.set('tab', 'settings');
+    params.set('sub', sub);
+    setSearchParams(params, { replace: true });
+  };
 
   const handleBasePriceChange = (val) => {
     if (val === '') {
@@ -206,7 +239,7 @@ export default function ManufacturerPortalPage() {
         logo_image: compressedDataUrl,
       });
       setProfile((prev) => ({ ...prev, ...updated }));
-      toast.success('Brand logo uploaded and updated successfully!');
+      toast.success('Brand logo updated successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to upload brand logo');
     } finally {
@@ -246,7 +279,7 @@ export default function ManufacturerPortalPage() {
         postal_code: (profileForm.postal_code || '').trim(),
       });
       setProfile((prev) => ({ ...prev, ...updated }));
-      toast.success('Brand profile details saved successfully!');
+      toast.success('Store details saved successfully!');
     } catch (err) {
       toast.error(err.message || 'Failed to update profile details.');
     } finally {
@@ -396,9 +429,9 @@ export default function ManufacturerPortalPage() {
 
   if (authLoading || (loading && user)) {
     return (
-      <div className="max-w-7xl mx-auto py-20 px-4 text-center">
-        <div className="w-8 h-8 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-500 mt-2">Loading manufacturer workspace...</p>
+      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
+        <div className="w-10 h-10 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
+        <p className="text-sm font-medium text-stone-600 mt-4">Loading artisan seller workspace...</p>
       </div>
     );
   }
@@ -408,7 +441,6 @@ export default function ManufacturerPortalPage() {
     return (
       <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 bg-stone-50/50">
         <div className="max-w-md w-full bg-white rounded-3xl border border-stone-200/90 shadow-2xl p-6 sm:p-8 space-y-6 animate-fade-in">
-          {/* Header */}
           <div className="text-center space-y-2">
             <div className="w-14 h-14 bg-gradient-to-br from-amber-400 to-amber-500 text-stone-950 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
               <Store size={28} />
@@ -431,7 +463,6 @@ export default function ManufacturerPortalPage() {
             </div>
           )}
 
-          {/* Credentials Login */}
           <form onSubmit={handleSellerPasswordLogin} className="space-y-4 text-xs">
             <div>
               <label className="block text-stone-700 font-semibold mb-1">
@@ -494,12 +525,11 @@ export default function ManufacturerPortalPage() {
             </button>
           </form>
 
-          {/* Quick Guidance & Links */}
           <div className="pt-2 border-t border-stone-100 space-y-2.5 text-center text-xs">
             <div className="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-stone-700 text-[11px] leading-relaxed text-left flex items-start gap-2">
               <Sparkles size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
               <span>
-                <strong>Approved Seller?</strong> Sign in with your registered username or email and your chosen password to access your recipes, manage customer orders, and dispatch parcels.
+                <strong>Approved Seller?</strong> Sign in with your registered username or email and password to access your recipes, manage orders, and dispatch parcels.
               </span>
             </div>
 
@@ -586,7 +616,7 @@ export default function ManufacturerPortalPage() {
     );
   }
 
-  // Safe array references to prevent any runtime filter/map crashes
+  // Safe array references
   const safeProducts = Array.isArray(products) ? products : (products?.results || []);
   const safeOrders = Array.isArray(orders) ? orders : (orders?.results || []);
   const safeCategories = Array.isArray(categories) ? categories : (categories?.results || []);
@@ -663,6 +693,18 @@ export default function ManufacturerPortalPage() {
     return true;
   });
 
+  // Order filtration & statistics
+  const pendingOrders = safeOrders.filter((o) => o.fulfillment_status === 'PENDING' || o.fulfillment_status === 'PACKED');
+  const dispatchedOrders = safeOrders.filter((o) => o.fulfillment_status === 'DISPATCHED');
+  const deliveredOrders = safeOrders.filter((o) => o.fulfillment_status === 'DELIVERED');
+
+  const filteredOrders = useMemo(() => {
+    if (orderStatusFilter === 'PENDING') return pendingOrders;
+    if (orderStatusFilter === 'DISPATCHED') return dispatchedOrders;
+    if (orderStatusFilter === 'DELIVERED') return deliveredOrders;
+    return safeOrders;
+  }, [safeOrders, orderStatusFilter, pendingOrders, dispatchedOrders, deliveredOrders]);
+
   // Bundle order metrics calculation
   const bundleOrdersCount = safeOrders.filter((o) => o.quantity >= 2).length;
   const bundlePercentage = safeOrders.length > 0 ? Math.round((bundleOrdersCount / safeOrders.length) * 100) : 0;
@@ -670,1178 +712,1615 @@ export default function ManufacturerPortalPage() {
   const avgBasketSize = safeOrders.length > 0 ? (totalJarsSold / safeOrders.length).toFixed(1) : '1.0';
 
   return (
-    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-5 sm:py-10">
-      {/* Top Banner / Seller Status */}
-      <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          {/* Brand Logo with Click-to-Upload */}
-          <div className="relative group shrink-0">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-secondary-container text-on-secondary-container border border-stone-200 shadow-xs overflow-hidden flex items-center justify-center font-serif font-bold text-xl sm:text-2xl">
-              {profile.logo_image ? (
-                <img
-                  src={resolveProductImage(profile.logo_image)}
-                  alt={profile.business_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{getBrandInitials(profile.business_name)}</span>
-              )}
-            </div>
-            <label
-              className="absolute inset-0 bg-stone-950/65 text-white rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold p-1 text-center"
-              title="Click to upload/change brand logo"
-            >
-              <Camera size={16} className="mb-0.5" />
-              <span>{logoUploading ? 'Uploading...' : 'Change Logo'}</span>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={logoUploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleLogoUpload(file);
-                  e.target.value = '';
-                }}
-              />
-            </label>
-          </div>
-
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-                {profile.business_name}
-              </h1>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                profile.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                profile.status === 'PENDING' ? 'bg-amber-100 text-amber-800' :
-                'bg-red-100 text-red-800'
-              }`}>
-                {profile.status === 'APPROVED' ? 'Approved Seller' : `Status: ${profile.status}`}
-              </span>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs text-stone-600">
-              <span>{profile.location_district}</span>
-              <span>·</span>
-              <span className="inline-flex items-center gap-1 font-mono font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                <ShieldCheck size={13} className="text-emerald-600" /> FSSAI Lic. #{profile.fssai_license_number}
-              </span>
-              <span>·</span>
-              <button
-                type="button"
-                onClick={() => setActiveTab('profile')}
-                className="text-forest-900 hover:text-forest-950 underline font-semibold flex items-center gap-1 cursor-pointer"
-              >
-                <Camera size={11} />
-                <span>{profile.logo_image ? 'Manage Logo' : 'Upload Logo'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4 text-xs">
-          <div className="bg-cream-100 p-3 rounded-xl border border-stone-200">
-            <span className="text-stone-500 block">Commission Rate</span>
-            <span className="font-serif font-bold text-forest-900 text-sm">
-              {profile.commission_rate_override || '10.00'}%
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <a
-              href="/documents/wangs_seller_rules.pdf"
-              target="_blank"
-              rel="noopener noreferrer"
-              download="wangs_seller_rules.pdf"
-              className="px-3.5 py-3 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
-              title="Download Wangs Seller Rules PDF"
-            >
-              <FileText size={15} className="text-forest-800" />
-              <span>Seller Rules (PDF)</span>
-            </a>
-
-            {profile.status === 'APPROVED' && (
-              <button
-                onClick={openAddProductModal}
-                className="px-4 py-3 bg-forest-800 hover:bg-forest-900 text-white font-bold text-xs rounded-xl shadow flex items-center gap-1.5 transition-colors cursor-pointer"
-              >
-                <Plus size={15} /> Add New Pickle Batch
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Official Seller Policy Notice: Brand Bundle Rule */}
-      <div className="mb-8 p-5 bg-gradient-to-r from-amber-50 via-cream-100 to-amber-50 border border-amber-300 rounded-2xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <span className="p-2.5 bg-amber-500 text-stone-950 rounded-xl mt-0.5 flex-shrink-0 shadow-xs">
-            <Sparkles size={20} />
-          </span>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-serif font-bold text-stone-950 text-base">
-                Seller Policy Notice: Flexible Brand Bundling (2–4 Items · 10% Discount)
-              </h3>
-              <span className="bg-chilli-700 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                10% Off Rule
-              </span>
-            </div>
-            <p className="text-xs text-stone-700 mt-1 leading-relaxed max-w-3xl">
-              Shoppers can now build custom bundles of <strong>2 to 4 items exclusively from your brand</strong> on your product pages. Customers are free to <strong>cut or add recipes</strong> from your brand catalog and receive a <strong>flat 10% bundle discount</strong>. Keep at least 2–4 complementary recipes active in stock to maximize your bundle sales.
-            </p>
-            <div className="flex items-center gap-2.5 mt-3 flex-wrap">
-              <a
-                href="/documents/wangs_seller_rules.pdf"
-                target="_blank"
-                rel="noopener noreferrer"
-                download="wangs_seller_rules.pdf"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-xs transition-colors"
-              >
-                <Download size={13} />
-                <span>Download Seller Rules PDF</span>
-              </a>
-              <button
-                type="button"
-                onClick={() => setShowSellerRulesModal(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-stone-50 border border-amber-300 text-stone-800 text-xs font-bold rounded-xl shadow-2xs transition-colors"
-              >
-                <Eye size={13} className="text-amber-700" />
-                <span>View Full Rules Handbook</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white/90 p-3.5 rounded-xl border border-amber-200 text-center flex-shrink-0 self-start md:self-auto min-w-[190px]">
-          <span className="text-[10px] text-stone-500 block uppercase tracking-wider font-semibold">Active Storefront Rule</span>
-          <span className="font-bold text-forest-950 text-sm block mt-0.5">2–4 Items · Save 10%</span>
-          <span className="text-[9px] text-amber-800 font-medium block">Same Brand Only</span>
-          <span className="inline-block mt-2 font-mono text-[9px] text-stone-600 bg-stone-100 px-2 py-0.5 rounded border border-stone-200">
-            PDF Ref: WNG-SELLER-V2
-          </span>
-        </div>
-      </div>
-
-      {profile.status === 'PENDING' && (
-        <div className="mb-8 p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-3">
-          <AlertCircle size={18} className="text-amber-700 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-bold">Application Pending Review</p>
-            <p className="mt-0.5 text-stone-600">
-              Your business and FSSAI credentials have been submitted to Wangs platform administrators.
-              Once verified, your listed pickles will go live on the customer marketplace.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="border-b border-stone-200 mb-6 flex gap-4 sm:gap-6 text-xs font-semibold text-stone-600 overflow-x-auto no-scrollbar whitespace-nowrap -mx-4 px-4 sm:mx-0 sm:px-0">
-        <button
-          onClick={() => setActiveTab('overview')}
-          className={`pb-3 border-b-2 transition-colors ${activeTab === 'overview' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
-        >
-          Overview & Sales
-        </button>
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`pb-3 border-b-2 transition-colors ${activeTab === 'products' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
-        >
-          My Products ({safeProducts.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('orders')}
-          className={`pb-3 border-b-2 transition-colors ${activeTab === 'orders' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
-        >
-          Fulfillment Orders ({safeOrders.length})
-        </button>
-        <button
-          onClick={() => setActiveTab('financials')}
-          className={`pb-3 border-b-2 transition-colors ${activeTab === 'financials' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
-        >
-          Earnings & Settlements
-        </button>
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`pb-3 border-b-2 transition-colors ${activeTab === 'profile' ? 'border-forest-800 text-forest-900 font-bold' : 'border-transparent hover:text-stone-900'}`}
-        >
-          Brand Profile & Logo
-        </button>
-      </div>
-
-      {/* Tab 1: Overview */}
-      {activeTab === 'overview' && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm">
-              <span className="text-xs text-stone-500 font-medium">Gross Product Sales</span>
-              <p className="text-2xl font-serif font-bold text-stone-900 mt-1">₹{financials?.total_sales || '0.00'}</p>
-            </div>
-            <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm">
-              <span className="text-xs text-stone-500 font-medium">Commission Deducted ({profile.commission_rate_override || 10}%)</span>
-              <p className="text-2xl font-serif font-bold text-stone-900 mt-1">₹{financials?.total_commission_deducted || '0.00'}</p>
-            </div>
-            <div className="bg-forest-900 text-cream-50 p-5 rounded-xl border border-forest-800 shadow-sm">
-              <span className="text-xs text-cream-300 font-medium">Net Producer Earnings</span>
-              <p className="text-2xl font-serif font-bold text-white mt-1">₹{financials?.net_earnings || '0.00'}</p>
-            </div>
-            <div className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm">
-              <span className="text-xs text-stone-500 font-medium">Active Products</span>
-              <p className="text-2xl font-serif font-bold text-stone-900 mt-1">{safeProducts.filter((p) => p.status === 'APPROVED').length}</p>
-            </div>
-            <div className="bg-gradient-to-br from-amber-50 to-orange-50 p-5 rounded-xl border border-amber-200 shadow-sm">
-              <span className="text-xs text-amber-900 font-bold flex items-center gap-1">
-                <Sparkles size={12} className="text-amber-600" /> Bundle Orders (2+ Jars)
-              </span>
-              <p className="text-2xl font-serif font-bold text-amber-950 mt-1">
-                {bundleOrdersCount} <span className="text-xs font-sans font-normal text-amber-700">({bundlePercentage}%)</span>
-              </p>
-              <p className="text-[10px] text-amber-800 mt-0.5">Avg basket: {avgBasketSize} jars/order</p>
-            </div>
-          </div>
-
-          {/* Active Bundle Program & Monitoring Card */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <span className="p-2 bg-forest-50 text-forest-800 rounded-xl">
-                  <Sparkles size={18} />
-                </span>
-                <div>
-                  <h3 className="font-serif font-bold text-base text-stone-900">
-                    Artisan Bundle & Volume Program Monitor
-                  </h3>
-                  <p className="text-xs text-stone-500">
-                    Official platform rules: Customers save 10% when curating flexible 2–4 jar bundles from your brand
-                  </p>
+    <div className="min-h-screen bg-stone-50/60 pb-16">
+      {/* Top Professional Header Bar */}
+      <header className="bg-white border-b border-stone-200/90 shadow-2xs sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            {/* Brand Identity & Status */}
+            <div className="flex items-center gap-3.5 sm:gap-4">
+              <div className="relative group shrink-0">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-amber-50 border-2 border-stone-200/80 shadow-xs overflow-hidden flex items-center justify-center font-serif font-bold text-xl sm:text-2xl text-stone-800">
+                  {profile.logo_image ? (
+                    <img
+                      src={resolveProductImage(profile.logo_image)}
+                      alt={profile.business_name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{getBrandInitials(profile.business_name)}</span>
+                  )}
                 </div>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <a
-                  href="/documents/wangs_seller_rules.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download="wangs_seller_rules.pdf"
-                  className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition-colors shadow-2xs"
+                <label
+                  className="absolute inset-0 bg-stone-950/70 text-white rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[9px] font-bold p-1 text-center"
+                  title="Click to update brand logo"
                 >
-                  <Download size={12} /> Rules PDF
-                </a>
-                <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                  <CheckCircle size={13} className="text-emerald-700" /> Monitored by Admin
-                </span>
+                  <Camera size={15} className="mb-0.5" />
+                  <span>{logoUploading ? 'Uploading...' : 'Change'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={logoUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoUpload(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 text-xs">
-              <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-                <span className="font-bold text-stone-900 block">Single Jar Option (1 Jar)</span>
-                <p className="text-stone-500 text-[11px]">Standard batch retail price set by your brand.</p>
-                <span className="inline-block mt-1 font-mono text-[10px] text-stone-600 bg-white px-2 py-0.5 rounded border border-stone-200">
-                  Tier 1 · Full Margin
-                </span>
-              </div>
-
-              <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900 block">Flexible Brand Bundle (2–4 Jars)</span>
-                  <span className="bg-amber-500 text-stone-950 font-black text-[9px] px-1.5 py-0.2 rounded">Save 10%</span>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="font-serif text-xl sm:text-2xl font-bold text-stone-900 tracking-tight">
+                    {profile.business_name}
+                  </h1>
+                  {profile.status === 'APPROVED' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                      Approved Seller
+                    </span>
+                  ) : profile.status === 'PENDING' ? (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                      <Clock size={11} /> Application Pending
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-800 border border-red-200">
+                      Status: {profile.status}
+                    </span>
+                  )}
                 </div>
-                <p className="text-stone-700 text-[11px] leading-relaxed">
-                  Shoppers can mix & match 2 to 4 items from your brand only. Free to cut or add recipes with a flat 10% bundle discount.
-                </p>
-                <span className="inline-block mt-1 font-mono text-[10px] text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-200">
-                  Storefront Rule · Same Brand Only
-                </span>
-              </div>
 
-              <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900 block">Protective Bundle Logistics</span>
-                  <span className="bg-purple-700 text-white font-black text-[9px] px-1.5 py-0.2 rounded">Air Cargo</span>
-                </div>
-                <p className="text-stone-700 text-[11px] leading-relaxed">
-                  Insulated shock-proof packaging & priority express cargo dispatch for multi-jar bundles.
-                </p>
-                <span className="inline-block mt-1 font-mono text-[10px] text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200">
-                  Safe Delivery Guarantee
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-            <h3 className="font-serif font-bold text-base text-stone-900">Recent Customer Orders for Your Brand</h3>
-            {safeOrders.length === 0 ? (
-              <p className="text-xs text-stone-500">No orders placed yet.</p>
-            ) : (
-              <div className="divide-y divide-stone-100 text-xs">
-                {safeOrders.slice(0, 5).map((o) => (
-                  <div key={o.order_item_id} className="py-3 flex items-center justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-semibold text-stone-900">#{o.order_number} · {o.product_title}</p>
-                        {o.quantity >= 3 ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5">
-                            <Sparkles size={10} /> Trio Bundle ({o.quantity} jars)
-                          </span>
-                        ) : o.quantity === 2 ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-0.5">
-                            <Sparkles size={10} /> Duo Bundle (2 jars)
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="text-stone-500 text-[11px] mt-0.5">
-                        <span className="font-medium text-stone-700">{o.customer_name}</span> · Qty: {o.quantity} · Destination: {o.shipping_city}, {o.shipping_state}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <span className="font-bold text-stone-900 block">Net Payout: ₹{parseFloat(o.manufacturer_payout).toFixed(2)}</span>
-                        <span className="text-[10px] text-forest-700 bg-forest-50 px-2 py-0.5 rounded font-semibold">
-                          Fulfillment: {o.fulfillment_status}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedParcelOrder(o)}
-                        className="px-2.5 py-1.5 bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-700 rounded-lg text-xs font-semibold flex items-center gap-1 transition-colors shadow-2xs"
-                        title="Print Parcel Shipping Label"
-                      >
-                        <Printer size={13} />
-                        <span>Parcel Slip</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 2: Products */}
-      {activeTab === 'products' && (
-        <div className="space-y-4">
-          {/* Inventory Health & Quantity Monitoring Bar */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
-              <span className="text-stone-500 text-[11px] block font-medium">Total Listed Products</span>
-              <span className="text-xl font-serif font-bold text-stone-900 mt-0.5 block">{safeProducts.length}</span>
-              <span className="text-[10px] text-stone-400">Recipes in brand store</span>
-            </div>
-            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
-              <span className="text-stone-500 text-[11px] block font-medium">Total Jars in Inventory</span>
-              <span className="text-xl font-serif font-bold text-forest-950 mt-0.5 block">{totalStockJars}</span>
-              <span className="text-[10px] text-emerald-700 font-semibold">Ready for cargo dispatch</span>
-            </div>
-            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
-              <span className="text-stone-500 text-[11px] block font-medium">Low Stock Watch (≤ 5 jars)</span>
-              <span className={`text-xl font-serif font-bold mt-0.5 block ${lowStockCount > 0 ? 'text-amber-600 font-black' : 'text-stone-900'}`}>
-                {lowStockCount}
-              </span>
-              <span className="text-[10px] text-amber-700">Restock recommended</span>
-            </div>
-            <div className="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-2xs">
-              <span className="text-stone-500 text-[11px] block font-medium">Out of Stock (0 jars)</span>
-              <span className={`text-xl font-serif font-bold mt-0.5 block ${outOfStockCount > 0 ? 'text-red-600 font-black' : 'text-stone-900'}`}>
-                {outOfStockCount}
-              </span>
-              <span className="text-[10px] text-stone-400">Hidden from instant checkout</span>
-            </div>
-          </div>
-
-          {/* Table Header with Filter Pills and Add Product Button */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {[
-                { id: 'ALL', label: `All Products (${safeProducts.length})` },
-                { id: 'LOW', label: `Low Stock (${lowStockCount})`, alert: lowStockCount > 0 },
-                { id: 'OUT', label: `Out of Stock (${outOfStockCount})`, alert: outOfStockCount > 0 },
-                { id: 'HEALTHY', label: `Healthy Stock (${healthyStockCount})` }
-              ].map((pill) => (
-                <button
-                  key={pill.id}
-                  type="button"
-                  onClick={() => setProductStockFilter(pill.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    productStockFilter === pill.id
-                      ? 'bg-forest-900 text-white shadow-xs'
-                      : pill.alert
-                      ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
-                      : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200'
-                  }`}
-                >
-                  {pill.label}
-                </button>
-              ))}
-            </div>
-
-            {profile.status === 'APPROVED' && (
-              <button
-                onClick={openAddProductModal}
-                className="px-3.5 py-2 bg-forest-800 hover:bg-forest-900 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs shrink-0 self-start sm:self-auto"
-              >
-                <Plus size={14} /> Add Product
-              </button>
-            )}
-          </div>
-
-          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-cream-100 border-b border-stone-200 text-stone-700">
-                <tr>
-                  <th className="p-3">Product</th>
-                  <th className="p-3">Category</th>
-                  <th className="p-3">Customer Price</th>
-                  <th className="p-3">Pricing Equation (Base + Comm + Delivery)</th>
-                  <th className="p-3">Weight & Quantity Monitor</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100 text-stone-800">
-                {filteredProducts.map((p) => {
-                  const actual = parseFloat(p.price) || 0;
-                  const withoutDelivery = Math.max(0, actual - deliveryCharge);
-                  const base = Math.max(0, Math.round(withoutDelivery / (1 + commissionRate / 100)));
-                  const comm = Math.max(0, withoutDelivery - base);
-                  const qty = parseInt(p.stock_quantity, 10) || 0;
-
-                  return (
-                    <tr key={p.id} className="hover:bg-cream-50/50">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2.5">
-                          <img
-                            src={resolveProductImage(p.primary_image_url || (p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : p.images[0].image_url) : ''))}
-                            alt={p.title}
-                            className="w-10 h-10 object-cover rounded-lg border border-stone-200 shrink-0"
-                            onError={(e) => {
-                              e.target.onerror = null;
-                              e.target.src = '/featured-pouches.png';
-                            }}
-                          />
-                          <div>
-                            <p className="font-semibold text-stone-900 leading-tight">{p.title}</p>
-                            <span className="text-[10px] text-stone-500">{p.dietary_type}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-3">{p.category?.name}</td>
-                      <td className="p-3">
-                        <span className="font-bold text-forest-950 text-sm">₹{actual.toFixed(0)}</span>
-                        <span className="block text-[10px] font-medium text-emerald-700">Free Customer Delivery</span>
-                      </td>
-                      <td className="p-3">
-                        <div className="text-[11px] text-stone-700 font-medium whitespace-nowrap">
-                          <span className="text-forest-900 font-bold">₹{base}</span> (Base) + <span className="text-amber-800">₹{comm}</span> ({commissionRate}%) + <span className="text-blue-700">₹{deliveryCharge}</span> (Air)
-                        </div>
-                        <span className="text-[10px] text-stone-500 font-semibold">= ₹{actual.toFixed(0)} Customer Price</span>
-                      </td>
-                      <td className="p-3">
-                        <span className="block font-medium text-stone-600 text-[11px]">{p.weight_grams}g jar</span>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold ${
-                            qty === 0
-                              ? 'bg-red-100 text-red-800 border border-red-200'
-                              : qty <= 5
-                              ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                              : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                          }`}>
-                            {qty === 0 ? 'Out of Stock' : `${qty} left`}
-                          </span>
-                        </div>
-
-                        {/* Interactive Quantity Quick Control */}
-                        <div className="flex items-center gap-1 mt-1.5">
-                          <button
-                            type="button"
-                            disabled={qty <= 0 || updatingStockId === p.id}
-                            onClick={() => handleQuickUpdateStock(p.id, Math.max(0, qty - 1))}
-                            className="w-5 h-5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40 shadow-2xs"
-                            title="Decrease stock by 1 jar"
-                          >
-                            -
-                          </button>
-                          <button
-                            type="button"
-                            disabled={updatingStockId === p.id}
-                            onClick={() => setQuickStockModal({ id: p.id, title: p.title, currentStock: qty, nextStock: qty })}
-                            className="px-2 py-0.5 font-mono text-[11px] font-bold text-forest-950 hover:bg-amber-100 bg-cream-100 rounded border border-stone-200 cursor-pointer shadow-2xs"
-                            title="Click to set exact jar quantity or quick restock"
-                          >
-                            {updatingStockId === p.id ? '...' : `${qty} jars`}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={updatingStockId === p.id}
-                            onClick={() => handleQuickUpdateStock(p.id, qty + 1)}
-                            className="w-5 h-5 rounded bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40 shadow-2xs"
-                            title="Increase stock by 1 jar"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </td>
-                      <td className="p-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
-                          p.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {p.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setQuickStockModal({ id: p.id, title: p.title, currentStock: qty, nextStock: qty })}
-                            className="px-2 py-1 bg-stone-50 hover:bg-forest-50 hover:text-forest-900 text-stone-700 rounded-lg text-[11px] font-semibold border border-stone-200 transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
-                            title="Manage quantity / stock"
-                          >
-                            <Boxes size={12} className="text-forest-800" />
-                            <span>Stock</span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openEditProductModal(p)}
-                            className="p-1.5 text-stone-600 hover:text-forest-950 hover:bg-stone-100 rounded-lg border border-stone-200 transition-colors cursor-pointer shadow-2xs"
-                            title="Edit recipe details & photos"
-                          >
-                            <Edit3 size={13} />
-                          </button>
-                          <button
-                            type="button"
-                            disabled={deletingProductId === p.id}
-                            onClick={() => handleDeleteProduct(p)}
-                            className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg border border-red-200 transition-all cursor-pointer shadow-2xs disabled:opacity-50"
-                            title="Delete product"
-                          >
-                            <Trash2 size={13} className={deletingProductId === p.id ? 'animate-spin' : ''} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-
-            {filteredProducts.length === 0 && (
-              <div className="p-8 text-center text-stone-500">
-                <Boxes size={32} className="mx-auto text-stone-300 mb-2" />
-                <p className="font-semibold text-stone-700">No products found matching current stock filter.</p>
-                <p className="text-xs text-stone-400 mt-1">Try switching the stock filter above or click "Add Product" to list a new recipe.</p>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 3: Orders Fulfillment */}
-      {activeTab === 'orders' && (
-        <div className="space-y-4">
-          <h3 className="font-serif font-bold text-base text-stone-900">Manage Item Packaging & Dispatch</h3>
-          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-cream-100 border-b border-stone-200 text-stone-700">
-                <tr>
-                  <th className="p-3">Order #</th>
-                  <th className="p-3">Customer & Destination</th>
-                  <th className="p-3">Item & Weight</th>
-                  <th className="p-3">Quantity</th>
-                  <th className="p-3">Net Payout</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Parcel Label / Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-stone-100">
-                {safeOrders.map((o) => (
-                  <tr key={o.order_item_id} className="hover:bg-cream-50/50">
-                    <td className="p-3">
-                      <span className="font-mono font-bold text-stone-900 block">{o.order_number}</span>
-                      <span className="text-[10px] text-stone-400">
-                        {new Date(o.order_date).toLocaleDateString()}
-                      </span>
-                    </td>
-                    <td className="p-3">
-                      <p className="font-bold text-stone-900">{o.customer_name}</p>
-                      <p className="text-[11px] text-stone-600">
-                        {o.shipping_city}, {o.shipping_state} {o.shipping_postal_code ? `- ${o.shipping_postal_code}` : ''}
-                      </p>
-                      {o.customer_phone && (
-                        <p className="text-[10px] font-mono text-stone-500 mt-0.5 flex items-center gap-1">
-                          <Phone size={10} className="text-stone-500" />
-                          <span>{o.customer_phone}</span>
-                        </p>
-                      )}
-                    </td>
-                    <td className="p-3">
-                      <p className="font-medium text-stone-900">{o.product_title}</p>
-                      <span className="text-[10px] text-stone-500 font-mono">{o.weight_grams}g jar</span>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="font-bold text-stone-900">{o.quantity}</span>
-                        {o.quantity >= 3 ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5">
-                            <Sparkles size={9} /> Trio Bundle
-                          </span>
-                        ) : o.quantity === 2 ? (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-0.5">
-                            <Sparkles size={9} /> Duo Bundle
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-stone-400">Single</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3 font-bold text-forest-900 font-mono">₹{parseFloat(o.manufacturer_payout).toFixed(2)}</td>
-                    <td className="p-3">
-                      <div className="space-y-1">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold block w-max ${
-                          o.fulfillment_status === 'DISPATCHED'
-                            ? 'bg-purple-100 text-purple-800 border border-purple-200'
-                            : o.fulfillment_status === 'DELIVERED'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                            : o.fulfillment_status === 'PACKED'
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : 'bg-stone-100 text-stone-800'
-                        }`}>
-                          {o.fulfillment_status}
-                        </span>
-                        {o.tracking_number && (
-                          <span className="font-mono text-[9px] text-purple-900 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 block w-max" title={o.courier_partner}>
-                            AWB: {o.tracking_number}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedParcelOrder(o)}
-                          className="px-2.5 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 shadow-xs transition-all cursor-pointer whitespace-nowrap"
-                          title="View and print parcel slip to paste on shipping box"
-                        >
-                          <Printer size={13} />
-                          <span>Print Parcel Slip</span>
-                        </button>
-                        <select
-                          value={o.fulfillment_status}
-                          onChange={(e) => handleUpdateFulfillment(o.order_item_id, e.target.value)}
-                          className="p-1 border border-stone-200 rounded text-xs focus:ring-1 focus:ring-forest-700 font-medium"
-                        >
-                          <option value="PENDING">Pending</option>
-                          <option value="PACKED">Packed</option>
-                          <option value="DISPATCHED">Dispatched</option>
-                          <option value="DELIVERED">Delivered</option>
-                        </select>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Tab 4: Financials & Settlement */}
-      {activeTab === 'financials' && (
-        <div className="space-y-6 text-xs">
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-            <h3 className="font-serif font-bold text-base text-stone-900">Producer Financial Snapshot</h3>
-            <p className="text-stone-600 leading-relaxed max-w-2xl">
-              Platform fees are strictly transparent. When an order is completed, 
-              the standard marketplace commission ({financials?.effective_commission_rate}%) is deducted from product revenue, 
-              and the remainder is held in compliant marketplace escrow until batch settlement.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-              <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
-                <span className="text-stone-500 block">Total Product Sales</span>
-                <span className="font-serif font-bold text-xl text-stone-950">₹{financials?.total_sales || '0.00'}</span>
-              </div>
-              <div className="p-4 bg-stone-50 rounded-xl border border-stone-200">
-                <span className="text-stone-500 block">Platform Commission ({financials?.effective_commission_rate}%)</span>
-                <span className="font-serif font-bold text-xl text-stone-950">₹{financials?.total_commission_deducted || '0.00'}</span>
-              </div>
-              <div className="p-4 bg-forest-50 rounded-xl border border-forest-200 text-forest-900">
-                <span className="block text-forest-700 font-medium">Net Payable to Seller</span>
-                <span className="font-serif font-bold text-2xl text-forest-900">₹{financials?.net_earnings || '0.00'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Payout Settlement Bank Account Card */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
-                  <Landmark size={18} className="text-amber-800" />
-                </div>
-                <div>
-                  <h3 className="font-serif font-bold text-base text-stone-900">Payout Settlement Bank Account</h3>
-                  <p className="text-[11px] text-stone-500">
-                    Weekly sales disbursements are transferred directly to this account via NEFT/RTGS
-                  </p>
-                </div>
-              </div>
-              {!editingBank ? (
-                <button
-                  type="button"
-                  onClick={() => setEditingBank(true)}
-                  className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
-                >
-                  <Edit3 size={13} />
-                  <span>Update Bank Details</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setEditingBank(false)}
-                  className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
-                >
-                  <X size={13} />
-                  <span>Cancel</span>
-                </button>
-              )}
-            </div>
-
-            {!editingBank ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-stone-50/70 p-4 rounded-xl border border-stone-200/80">
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Holder Name</span>
-                  <span className="font-semibold text-stone-900 block mt-0.5">{profile?.bank_account_holder || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Bank Name</span>
-                  <span className="font-semibold text-stone-900 block mt-0.5">{profile?.bank_name || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
-                </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Number</span>
-                  <span className="font-mono font-bold text-stone-900 block mt-0.5">
-                    {profile?.bank_account_number ? `••••${profile.bank_account_number.slice(-4)}` : <span className="text-stone-400 italic font-normal">Not provided</span>}
+                <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-stone-500">
+                  <span className="flex items-center gap-1 font-medium text-stone-700">
+                    <MapPin size={12} className="text-stone-400" />
+                    {profile.location_district || 'Nagaland, India'}
+                  </span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1 font-mono text-[11px] font-semibold text-emerald-800 bg-emerald-50/80 px-2 py-0.5 rounded border border-emerald-200/80">
+                    <ShieldCheck size={12} className="text-emerald-600" />
+                    FSSAI #{profile.fssai_license_number || 'Registered'}
+                  </span>
+                  <span>·</span>
+                  <span className="text-[11px] text-stone-600 font-medium">
+                    Commission: <strong className="text-forest-900 font-bold">{commissionRate}%</strong>
                   </span>
                 </div>
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">IFSC Code</span>
-                  <span className="font-mono font-bold text-forest-950 block mt-0.5">{profile?.bank_ifsc_code || <span className="text-stone-400 italic font-normal">Not provided</span>}</span>
-                </div>
               </div>
-            ) : (
-              <form onSubmit={handleSaveBankDetails} className="space-y-4 bg-stone-50/80 p-4 rounded-xl border border-stone-200/90">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Account Holder Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={bankForm.bank_account_holder}
-                      onChange={(e) => setBankForm({ ...bankForm, bank_account_holder: e.target.value })}
-                      placeholder="As per bank passbook"
-                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Bank Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={bankForm.bank_name}
-                      onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })}
-                      placeholder="e.g. State Bank of India, HDFC"
-                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Bank Account Number *</label>
-                    <input
-                      type="text"
-                      required
-                      value={bankForm.bank_account_number}
-                      onChange={(e) => setBankForm({ ...bankForm, bank_account_number: e.target.value.replace(/\s+/g, '') })}
-                      placeholder="Enter account number"
-                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-[11px]">IFSC Code (11 Chars) *</label>
-                    <input
-                      type="text"
-                      required
-                      maxLength={11}
-                      value={bankForm.bank_ifsc_code}
-                      onChange={(e) => setBankForm({ ...bankForm, bank_ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })}
-                      placeholder="e.g. SBIN0000214"
-                      className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl font-mono uppercase text-stone-900 focus:outline-none focus:ring-1 focus:ring-red-600"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setEditingBank(false)}
-                    className="px-3.5 py-2 bg-white border border-stone-300 text-stone-700 font-bold rounded-xl text-xs hover:bg-stone-50 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={savingBank}
-                    className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <CheckCircle size={13} />
-                    <span>{savingBank ? 'Saving Details...' : 'Save Bank Details'}</span>
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-            <h3 className="font-serif font-bold text-base text-stone-900">Settlement History</h3>
-            {financials?.settlement_history?.length === 0 ? (
-              <p className="text-stone-500">No settlement disbursements recorded yet. Accruals will be included in the next cycle batch.</p>
-            ) : (
-              <div className="divide-y divide-stone-100">
-                {financials?.settlement_history?.map((s) => (
-                  <div key={s.id} className="py-2.5 flex justify-between items-center">
-                    <div>
-                      <span className="font-bold font-mono text-stone-900">{s.settlement_reference}</span>
-                      <span className="text-stone-500 text-[11px] block">{s.period_start} to {s.period_end}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="font-bold text-stone-900">₹{parseFloat(s.net_payable).toFixed(2)}</span>
-                      <span className="text-[10px] block font-semibold text-emerald-700">{s.status}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Tab 5: Brand Profile & Logo */}
-      {activeTab === 'profile' && (
-        <div className="space-y-6">
-          {/* Header Card */}
-          <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Store className="text-forest-900" size={20} />
-                <h2 className="font-serif font-bold text-xl text-stone-900">
-                  Artisan Brand Profile & Storefront Identity
-                </h2>
-              </div>
-              <p className="text-xs text-stone-600 mt-1">
-                Manage your public brand assets, circular logo, tagline, origin story, and contact details.
-              </p>
             </div>
-            <div className="flex items-center gap-2">
+
+            {/* Quick Action Toolbar */}
+            <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
               <Link
                 to={`/products?brand=${encodeURIComponent(profile.slug || profile.business_name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors"
-                title="View your storefront as customers see it"
+                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="View customer storefront"
               >
                 <Eye size={14} className="text-forest-900" />
-                <span>View Public Storefront</span>
+                <span>Public Store</span>
+                <ExternalLink size={11} className="text-stone-400" />
               </Link>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Brand Logo & Visual Assets */}
-            <div className="lg:col-span-1 space-y-6">
-              {/* Logo Card */}
-              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-5">
-                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-                  <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
-                    <Camera size={16} className="text-forest-900" />
-                    <span>Brand Logo</span>
-                  </h3>
-                  {profile.logo_image ? (
-                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <CheckCircle size={10} /> Custom Active
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                      <Sparkles size={10} /> Monogram Mode
-                    </span>
-                  )}
-                </div>
+              <button
+                type="button"
+                onClick={() => setShowSellerRulesModal(true)}
+                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="Open Seller Rules & Packaging Handbook"
+              >
+                <FileText size={14} className="text-forest-800" />
+                <span>Handbook</span>
+              </button>
 
-                {/* Circular Logo Avatar Display */}
-                <div className="flex flex-col items-center text-center">
-                  <div className="relative group">
-                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-amber-100/80 shadow-md bg-secondary-container text-on-secondary-container flex items-center justify-center font-serif font-bold text-3xl">
-                      {profile.logo_image ? (
-                        <img
-                          src={resolveProductImage(profile.logo_image)}
-                          alt={profile.business_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{getBrandInitials(profile.business_name)}</span>
-                      )}
-                    </div>
-                    {/* Hover upload trigger */}
-                    <label
-                      className="absolute inset-0 rounded-full bg-stone-950/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-xs font-bold"
-                      title="Upload new brand logo"
-                    >
-                      <Camera size={20} className="mb-1" />
-                      <span>{logoUploading ? 'Uploading...' : 'Change Logo'}</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        disabled={logoUploading}
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) handleLogoUpload(file);
-                          e.target.value = '';
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  <p className="font-serif font-bold text-stone-900 text-base mt-3">
-                    {profile.business_name}
-                  </p>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    {profile.location_district || 'Nagaland, India'}
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-2 pt-2 border-t border-stone-100">
-                  <label className={`w-full py-2.5 px-3 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-2 cursor-pointer transition-colors ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <UploadCloud size={15} />
-                    <span>{logoUploading ? 'Uploading & Optimizing...' : profile.logo_image ? 'Upload New Brand Logo' : 'Upload Brand Logo'}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={logoUploading}
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleLogoUpload(file);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-
-                  {profile.logo_image && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveLogo}
-                      disabled={logoUploading}
-                      className="w-full py-2 px-3 bg-white hover:bg-red-50 border border-red-200 text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                    >
-                      <Trash2 size={13} />
-                      <span>Remove Custom Logo</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Specs & Guidance */}
-                <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-[11px] text-stone-600 space-y-1">
-                  <p className="font-bold text-stone-800 flex items-center gap-1">
-                    <Sparkles size={12} className="text-amber-600" />
-                    <span>Logo Guidelines</span>
-                  </p>
-                  <p>• <strong>Aspect Ratio:</strong> 1:1 Square (e.g. 500×500 px).</p>
-                  <p>• <strong>Formats:</strong> JPG, PNG, WebP (up to 12MB).</p>
-                  <p>• <strong>Placements:</strong> Storefront badge, homepage brand carousel, product cards, and invoice slips.</p>
-                </div>
-              </div>
-
-              {/* Storefront Live Card Preview */}
-              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm space-y-3">
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
-                  Customer Storefront Preview
-                </span>
-                <BrandCard brand={profile} />
-                <p className="text-[10px] text-stone-500 text-center italic">
-                  Live preview of how shoppers see your brand card on Wangs.
-                </p>
-              </div>
-            </div>
-
-            {/* Right Column: Brand Profile Details Form */}
-            <div className="lg:col-span-2 space-y-6">
-              <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-5">
-                <div className="border-b border-stone-100 pb-3 flex items-center justify-between">
-                  <h3 className="font-serif font-bold text-stone-900 text-base">
-                    Brand Information & Workshop Story
-                  </h3>
-                  <span className="text-[11px] text-stone-500">
-                    Fields marked * are required
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Brand / Business Name</label>
-                    <input
-                      type="text"
-                      disabled
-                      value={profile.business_name}
-                      className="w-full px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-stone-700 text-xs font-semibold cursor-not-allowed"
-                    />
-                    <span className="text-[10px] text-stone-400 mt-1 block">Registered brand name (contact admin to rename).</span>
-                  </div>
-
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Brand Tagline / Punchline</label>
-                    <input
-                      type="text"
-                      value={profileForm.tagline}
-                      onChange={(e) => setProfileForm({ ...profileForm, tagline: e.target.value })}
-                      placeholder="e.g. Kohima's Heritage Wood-Smoked Workshop"
-                      maxLength={180}
-                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
-                    />
-                    <span className="text-[10px] text-stone-400 mt-1 block">Appears directly beneath your brand title.</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-stone-700 font-semibold mb-1 text-xs">Artisan Story & Heritage Origins</label>
-                  <textarea
-                    rows={4}
-                    value={profileForm.brand_story}
-                    onChange={(e) => setProfileForm({ ...profileForm, brand_story: e.target.value })}
-                    placeholder="Share your family pickle recipe tradition, wood-smoking technique, or indigenous ingredients used in your kitchen..."
-                    className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800 resize-y"
-                  />
-                  <span className="text-[10px] text-stone-400 mt-1 block">Told to customers on your brand storefront page.</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Workshop District / City *</label>
-                    <input
-                      type="text"
-                      required
-                      value={profileForm.location_district}
-                      onChange={(e) => setProfileForm({ ...profileForm, location_district: e.target.value })}
-                      placeholder="e.g. Kohima, Nagaland"
-                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Workshop PIN Code</label>
-                    <input
-                      type="text"
-                      maxLength={6}
-                      value={profileForm.postal_code}
-                      onChange={(e) => setProfileForm({ ...profileForm, postal_code: e.target.value.replace(/\D/g, '') })}
-                      placeholder="e.g. 797001"
-                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl font-mono text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-stone-700 font-semibold mb-1 text-xs">Workshop Street Address</label>
-                  <textarea
-                    rows={2}
-                    value={profileForm.business_address}
-                    onChange={(e) => setProfileForm({ ...profileForm, business_address: e.target.value })}
-                    placeholder="Full workshop or commercial kitchen address..."
-                    className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
-                  />
-                  <span className="text-[10px] text-stone-400 mt-1 block">Used for courier pickup and dispatch labels.</span>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Contact Phone *</label>
-                    <input
-                      type="tel"
-                      required
-                      value={profileForm.contact_phone}
-                      onChange={(e) => setProfileForm({ ...profileForm, contact_phone: e.target.value })}
-                      placeholder="e.g. +91 98765 43210"
-                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-stone-700 font-semibold mb-1 text-xs">Contact Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={profileForm.contact_email}
-                      onChange={(e) => setProfileForm({ ...profileForm, contact_email: e.target.value })}
-                      placeholder="e.g. workshop@brand.com"
-                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 text-xs focus:outline-none focus:ring-1 focus:ring-forest-800"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-stone-100">
-                  <button
-                    type="submit"
-                    disabled={savingProfile}
-                    className="px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-xs disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-colors"
-                  >
-                    <CheckCircle size={14} />
-                    <span>{savingProfile ? 'Saving Changes...' : 'Save Profile Changes'}</span>
-                  </button>
-                </div>
-              </form>
-
-              {/* Regulatory Compliance Card */}
-              <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-4">
-                <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
-                  <ShieldCheck size={16} className="text-emerald-700" />
-                  <span>Food Safety & Regulatory Compliance</span>
-                </h3>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
-                      FSSAI Food License
-                    </span>
-                    <span className="font-mono font-bold text-stone-900 text-sm block mt-1">
-                      #{profile.fssai_license_number || '14-digit license registered'}
-                    </span>
-                    <span className="text-[10px] text-emerald-700 mt-1 block">
-                      ✓ Mandatory license registered for all pickle jars
-                    </span>
-                  </div>
-
-                  <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-xl">
-                    <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">
-                      GSTIN (Goods & Services Tax)
-                    </span>
-                    <span className="font-mono font-semibold text-stone-800 text-sm block mt-1">
-                      {profile.gst_number || 'Exempt / Composition Scheme'}
-                    </span>
-                    <span className="text-[10px] text-stone-500 mt-1 block">
-                      Recorded on invoice settlements
-                    </span>
-                  </div>
-                </div>
-              </div>
+              {profile.status === 'APPROVED' && (
+                <button
+                  type="button"
+                  onClick={openAddProductModal}
+                  className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={15} />
+                  <span>Add Product</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
-      )}
 
-      {/* Quick Quantity & Restock Management Modal */}
+        {/* Primary Page Navigation Tabs */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 border-t border-stone-100">
+          <nav className="flex gap-2 sm:gap-6 text-xs font-semibold overflow-x-auto no-scrollbar whitespace-nowrap pt-2.5 pb-0.5">
+            <button
+              onClick={() => handleTabChange('overview')}
+              className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'overview'
+                  ? 'border-forest-900 text-forest-950 font-bold'
+                  : 'border-transparent text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Store size={15} className={activeTab === 'overview' ? 'text-forest-900' : 'text-stone-400'} />
+              <span>Dashboard</span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange('products')}
+              className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'products'
+                  ? 'border-forest-900 text-forest-950 font-bold'
+                  : 'border-transparent text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Package size={15} className={activeTab === 'products' ? 'text-forest-900' : 'text-stone-400'} />
+              <span>Products Catalog</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                activeTab === 'products' ? 'bg-forest-100 text-forest-900' : 'bg-stone-100 text-stone-600'
+              }`}>
+                {safeProducts.length}
+              </span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange('orders')}
+              className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'orders'
+                  ? 'border-forest-900 text-forest-950 font-bold'
+                  : 'border-transparent text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Truck size={15} className={activeTab === 'orders' ? 'text-forest-900' : 'text-stone-400'} />
+              <span>Orders & Shipping</span>
+              {pendingOrders.length > 0 ? (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                  {pendingOrders.length} pending
+                </span>
+              ) : (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  activeTab === 'orders' ? 'bg-forest-100 text-forest-900' : 'bg-stone-100 text-stone-600'
+                }`}>
+                  {safeOrders.length}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => handleTabChange('financials')}
+              className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'financials'
+                  ? 'border-forest-900 text-forest-950 font-bold'
+                  : 'border-transparent text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <DollarSign size={15} className={activeTab === 'financials' ? 'text-forest-900' : 'text-stone-400'} />
+              <span>Earnings & Payouts</span>
+            </button>
+
+            <button
+              onClick={() => handleTabChange('settings', 'brand')}
+              className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'settings'
+                  ? 'border-forest-900 text-forest-950 font-bold'
+                  : 'border-transparent text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <SlidersHorizontal size={15} className={activeTab === 'settings' ? 'text-forest-900' : 'text-stone-400'} />
+              <span>Store Settings</span>
+            </button>
+          </nav>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Pending Review Notice (only if not approved) */}
+        {profile.status === 'PENDING' && (
+          <div className="mb-6 p-4 bg-amber-50/90 border border-amber-200/90 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-2xs">
+            <AlertCircle size={18} className="text-amber-700 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-bold text-sm">Application Under Review</p>
+              <p className="mt-0.5 text-stone-600 leading-relaxed">
+                Your workshop profile and FSSAI credentials have been submitted for platform authorization. Once confirmed by our verification team, your recipes will automatically appear on the live storefront.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 1: DASHBOARD & OVERVIEW
+           =================================================================== */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Quick Action Alert Bar if Pending Orders exist */}
+            {pendingOrders.length > 0 && (
+              <div className="p-4 bg-gradient-to-r from-amber-50 via-amber-100/70 to-cream-100 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center font-bold shrink-0">
+                    <Truck size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-stone-900 text-xs sm:text-sm">
+                      {pendingOrders.length} Order{pendingOrders.length > 1 ? 's' : ''} Awaiting Packing & Dispatch
+                    </h3>
+                    <p className="text-[11px] text-stone-600">
+                      Air courier packaging SLA is 24-48 business hours. Generate and print shipping labels directly.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { handleTabChange('orders'); setOrderStatusFilter('PENDING'); }}
+                  className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 self-start sm:self-auto flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>View Pending Orders</span>
+                  <ArrowRight size={13} />
+                </button>
+              </div>
+            )}
+
+            {/* KPI Metric Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+              <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Gross Sales</span>
+                <p className="text-2xl font-serif font-black text-stone-950">₹{financials?.total_sales || '0.00'}</p>
+                <span className="text-[10px] text-stone-500 block">Total jar order volume</span>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Commission ({commissionRate}%)</span>
+                <p className="text-2xl font-serif font-black text-stone-950">₹{financials?.total_commission_deducted || '0.00'}</p>
+                <span className="text-[10px] text-amber-700 block">Platform service fee</span>
+              </div>
+
+              <div className="bg-forest-900 text-white p-5 rounded-2xl border border-forest-800 shadow-xs space-y-1">
+                <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">Net Producer Earnings</span>
+                <p className="text-2xl font-serif font-black text-white">₹{financials?.net_earnings || '0.00'}</p>
+                <span className="text-[10px] text-cream-200 block">Direct bank payout total</span>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
+                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Active Products</span>
+                <p className="text-2xl font-serif font-black text-stone-950">
+                  {safeProducts.filter((p) => p.status === 'APPROVED').length}
+                </p>
+                <span className="text-[10px] text-emerald-700 block">Live on storefront</span>
+              </div>
+
+              <div className="bg-gradient-to-br from-amber-50 to-orange-50/70 p-5 rounded-2xl border border-amber-200 shadow-2xs space-y-1">
+                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block flex items-center gap-1">
+                  <Sparkles size={11} className="text-amber-600" /> Bundle Orders
+                </span>
+                <p className="text-2xl font-serif font-black text-amber-950">
+                  {bundleOrdersCount} <span className="text-xs font-sans font-normal text-amber-700">({bundlePercentage}%)</span>
+                </p>
+                <span className="text-[10px] text-amber-800 block">Avg basket: {avgBasketSize} jars</span>
+              </div>
+            </div>
+
+            {/* Middle Grid: Catalog Health & Bundle Program */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Catalog Health Snapshot */}
+              <div className="lg:col-span-1 bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                  <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                    <Boxes size={17} className="text-forest-900" />
+                    <span>Inventory Status</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => handleTabChange('products')}
+                    className="text-xs font-bold text-forest-800 hover:text-forest-950 underline cursor-pointer"
+                  >
+                    View All
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-stone-500 font-medium block">Total Jars in Stock</span>
+                      <span className="font-bold text-stone-900 text-base">{totalStockJars} jars</span>
+                    </div>
+                    <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">
+                      {safeProducts.length} listings
+                    </span>
+                  </div>
+
+                  <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-amber-800 font-medium block">Low Stock Alert (≤ 5 jars)</span>
+                      <span className="font-bold text-amber-950 text-base">{lowStockCount} recipes</span>
+                    </div>
+                    {lowStockCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => { handleTabChange('products'); setProductStockFilter('LOW'); }}
+                        className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-amber-900 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Restock
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-bold text-emerald-700">Healthy</span>
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-red-50/60 rounded-xl border border-red-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] text-red-700 font-medium block">Out of Stock (0 jars)</span>
+                      <span className="font-bold text-red-950 text-base">{outOfStockCount} recipes</span>
+                    </div>
+                    {outOfStockCount > 0 ? (
+                      <button
+                        type="button"
+                        onClick={() => { handleTabChange('products'); setProductStockFilter('OUT'); }}
+                        className="px-2.5 py-1 bg-red-200 hover:bg-red-300 text-red-900 rounded-lg text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Review
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-bold text-stone-400">None</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Artisan Bundle Program Monitor */}
+              <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+                  <div className="flex items-center gap-2.5">
+                    <span className="p-2 bg-amber-100 text-amber-900 rounded-xl shrink-0">
+                      <Sparkles size={17} />
+                    </span>
+                    <div>
+                      <h3 className="font-serif font-bold text-base text-stone-900">
+                        Brand Bundle & Volume System
+                      </h3>
+                      <p className="text-xs text-stone-500">
+                        Shoppers curating 2–4 jars from your brand automatically save 10%
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowSellerRulesModal(true)}
+                    className="text-xs font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+                  >
+                    <span>Read Policy Handbook</span>
+                    <ChevronRight size={13} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
+                    <span className="font-bold text-stone-900 block">1 Jar (Single Order)</span>
+                    <p className="text-stone-500 text-[11px] leading-relaxed">
+                      Standard batch price. Full margin payout directly credited.
+                    </p>
+                    <span className="inline-block mt-1 font-mono text-[10px] text-stone-600 bg-white px-2 py-0.5 rounded border border-stone-200">
+                      Standard Margin
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-stone-900 block">2–4 Jars Bundle</span>
+                      <span className="bg-amber-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded">10% OFF</span>
+                    </div>
+                    <p className="text-stone-700 text-[11px] leading-relaxed">
+                      Shoppers mix recipes from your catalog with a flat 10% bundle discount.
+                    </p>
+                    <span className="inline-block mt-1 font-mono text-[10px] text-amber-800 bg-white px-2 py-0.5 rounded border border-amber-200">
+                      Same Brand Only
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-stone-900 block">Air Cargo Packaging</span>
+                      <span className="bg-purple-700 text-white font-black text-[9px] px-1.5 py-0.2 rounded">Express</span>
+                    </div>
+                    <p className="text-stone-700 text-[11px] leading-relaxed">
+                      Cushioned packaging & courier dispatch labels built-in for multi-jar boxes.
+                    </p>
+                    <span className="inline-block mt-1 font-mono text-[10px] text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200">
+                      Shock-Proof Shipping
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Orders Table */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <h3 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
+                  <Truck size={17} className="text-forest-900" />
+                  <span>Recent Customer Orders</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('orders')}
+                  className="text-xs font-bold text-forest-800 hover:text-forest-950 underline cursor-pointer"
+                >
+                  View All Orders ({safeOrders.length})
+                </button>
+              </div>
+
+              {safeOrders.length === 0 ? (
+                <div className="py-8 text-center text-stone-400 text-xs">
+                  <Store size={28} className="mx-auto text-stone-300 mb-2" />
+                  <p>No customer orders placed yet. As soon as a customer orders your recipes, they will appear here.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-stone-100 text-xs">
+                  {safeOrders.slice(0, 5).map((o) => (
+                    <div key={o.order_item_id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/50 rounded-xl px-2 transition-colors">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-stone-900">#{o.order_number}</span>
+                          <span className="font-semibold text-stone-800">· {o.product_title}</span>
+                          {o.quantity >= 3 ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5">
+                              <Sparkles size={10} /> Trio Bundle ({o.quantity} jars)
+                            </span>
+                          ) : o.quantity === 2 ? (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-0.5">
+                              <Sparkles size={10} /> Duo Bundle (2 jars)
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="text-stone-500 text-[11px] mt-0.5">
+                          <strong className="text-stone-700">{o.customer_name}</strong> · Qty: {o.quantity} · Destination: {o.shipping_city}, {o.shipping_state}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-3 self-end sm:self-auto">
+                        <div className="text-right">
+                          <span className="font-bold text-stone-900 block font-mono text-xs">
+                            ₹{parseFloat(o.manufacturer_payout).toFixed(2)}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-semibold inline-block ${
+                            o.fulfillment_status === 'DELIVERED'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : o.fulfillment_status === 'DISPATCHED'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-amber-100 text-amber-800'
+                          }`}>
+                            {o.fulfillment_status}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setSelectedParcelOrder(o)}
+                          className="px-3 py-1.5 bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-700 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                          title="Print Parcel Shipping Label"
+                        >
+                          <Printer size={13} />
+                          <span>Slip</span>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 2: PRODUCTS CATALOG
+           =================================================================== */}
+        {activeTab === 'products' && (
+          <div className="space-y-5 animate-fade-in">
+            {/* Inventory KPI Status Bar */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-0.5">
+                <span className="text-stone-500 text-[11px] block font-medium">Total Listed Recipes</span>
+                <span className="text-xl font-serif font-black text-stone-900 block">{safeProducts.length}</span>
+                <span className="text-[10px] text-stone-400">Active catalog items</span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-0.5">
+                <span className="text-stone-500 text-[11px] block font-medium">Total Jars in Stock</span>
+                <span className="text-xl font-serif font-black text-forest-950 block">{totalStockJars}</span>
+                <span className="text-[10px] text-emerald-700 font-semibold">Available for order</span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-0.5">
+                <span className="text-stone-500 text-[11px] block font-medium">Low Stock Watch (≤ 5)</span>
+                <span className={`text-xl font-serif font-black block ${lowStockCount > 0 ? 'text-amber-600' : 'text-stone-900'}`}>
+                  {lowStockCount}
+                </span>
+                <span className="text-[10px] text-amber-700">Restock advised</span>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-0.5">
+                <span className="text-stone-500 text-[11px] block font-medium">Out of Stock (0 jars)</span>
+                <span className={`text-xl font-serif font-black block ${outOfStockCount > 0 ? 'text-red-600' : 'text-stone-900'}`}>
+                  {outOfStockCount}
+                </span>
+                <span className="text-[10px] text-stone-400">Hidden from checkout</span>
+              </div>
+            </div>
+
+            {/* Filter Bar & Add Action */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { id: 'ALL', label: `All Products (${safeProducts.length})` },
+                  { id: 'HEALTHY', label: `Healthy Stock (${healthyStockCount})` },
+                  { id: 'LOW', label: `Low Stock (${lowStockCount})`, alert: lowStockCount > 0 },
+                  { id: 'OUT', label: `Out of Stock (${outOfStockCount})`, alert: outOfStockCount > 0 },
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setProductStockFilter(pill.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      productStockFilter === pill.id
+                        ? 'bg-forest-900 text-white shadow-2xs'
+                        : pill.alert
+                        ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+                        : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                ))}
+              </div>
+
+              {profile.status === 'APPROVED' && (
+                <button
+                  type="button"
+                  onClick={openAddProductModal}
+                  className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-2xs self-start sm:self-auto shrink-0"
+                >
+                  <Plus size={15} />
+                  <span>Add New Recipe Batch</span>
+                </button>
+              )}
+            </div>
+
+            {/* Products Table Card */}
+            <div className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-semibold">
+                    <tr>
+                      <th className="p-3.5">Product Recipe</th>
+                      <th className="p-3.5">Category</th>
+                      <th className="p-3.5">Customer Price</th>
+                      <th className="p-3.5">Pricing Formula (Base + Comm + Courier)</th>
+                      <th className="p-3.5">Inventory Stock</th>
+                      <th className="p-3.5">Status</th>
+                      <th className="p-3.5 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100 text-stone-800">
+                    {filteredProducts.map((p) => {
+                      const actual = parseFloat(p.price) || 0;
+                      const withoutDelivery = Math.max(0, actual - deliveryCharge);
+                      const base = Math.max(0, Math.round(withoutDelivery / (1 + commissionRate / 100)));
+                      const comm = Math.max(0, withoutDelivery - base);
+                      const qty = parseInt(p.stock_quantity, 10) || 0;
+
+                      return (
+                        <tr key={p.id} className="hover:bg-stone-50/60 transition-colors">
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={resolveProductImage(p.primary_image_url || (p.images && p.images[0] ? (typeof p.images[0] === 'string' ? p.images[0] : p.images[0].image_url) : ''))}
+                                alt={p.title}
+                                className="w-11 h-11 object-cover rounded-xl border border-stone-200 shrink-0 shadow-2xs"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = '/featured-pouches.png';
+                                }}
+                              />
+                              <div>
+                                <p className="font-bold text-stone-900 leading-tight text-xs">{p.title}</p>
+                                <span className="text-[10px] text-stone-500 font-mono mt-0.5 block">{p.weight_grams}g · {p.dietary_type}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          <td className="p-3.5">
+                            <span className="font-medium text-stone-700 bg-stone-100 px-2 py-0.5 rounded-lg border border-stone-200/80 text-[11px]">
+                              {p.category?.name || 'Pickle'}
+                            </span>
+                          </td>
+
+                          <td className="p-3.5">
+                            <span className="font-black text-forest-950 text-sm font-mono">₹{actual.toFixed(0)}</span>
+                            <span className="block text-[10px] font-semibold text-emerald-700">Free Customer Delivery</span>
+                          </td>
+
+                          <td className="p-3.5">
+                            <div className="text-[11px] text-stone-700 font-medium whitespace-nowrap">
+                              <span className="text-forest-900 font-bold">₹{base}</span> (Base) + <span className="text-amber-800">₹{comm}</span> ({commissionRate}%) + <span className="text-blue-700">₹{deliveryCharge}</span> (Air)
+                            </div>
+                            <span className="text-[10px] text-stone-400 font-semibold block mt-0.5">
+                              Net Seller Payout: ₹{base}
+                            </span>
+                          </td>
+
+                          <td className="p-3.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                                qty === 0
+                                  ? 'bg-red-100 text-red-800 border border-red-200'
+                                  : qty <= 5
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              }`}>
+                                {qty === 0 ? 'Out of Stock' : `${qty} jars in stock`}
+                              </span>
+                            </div>
+
+                            {/* Quantity Quick Step Controls */}
+                            <div className="flex items-center gap-1 mt-1.5">
+                              <button
+                                type="button"
+                                disabled={qty <= 0 || updatingStockId === p.id}
+                                onClick={() => handleQuickUpdateStock(p.id, Math.max(0, qty - 1))}
+                                className="w-5 h-5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40"
+                                title="Subtract 1 jar"
+                              >
+                                -
+                              </button>
+                              <button
+                                type="button"
+                                disabled={updatingStockId === p.id}
+                                onClick={() => setQuickStockModal({ id: p.id, title: p.title, currentStock: qty, nextStock: qty })}
+                                className="px-2 py-0.5 font-mono text-[11px] font-bold text-forest-950 hover:bg-amber-100 bg-stone-100 rounded border border-stone-200 cursor-pointer"
+                                title="Click to edit stock quantity"
+                              >
+                                {updatingStockId === p.id ? '...' : `${qty}`}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={updatingStockId === p.id}
+                                onClick={() => handleQuickUpdateStock(p.id, qty + 1)}
+                                className="w-5 h-5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40"
+                                title="Add 1 jar"
+                              >
+                                +
+                              </button>
+                            </div>
+                          </td>
+
+                          <td className="p-3.5">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' :
+                              p.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {p.status}
+                            </span>
+                          </td>
+
+                          <td className="p-3.5 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setQuickStockModal({ id: p.id, title: p.title, currentStock: qty, nextStock: qty })}
+                                className="px-2.5 py-1 bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-700 rounded-lg text-[11px] font-semibold border border-stone-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Manage stock"
+                              >
+                                <Boxes size={12} />
+                                <span>Stock</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEditProductModal(p)}
+                                className="p-1.5 text-stone-600 hover:text-forest-950 hover:bg-stone-100 rounded-lg border border-stone-200 transition-colors cursor-pointer"
+                                title="Edit recipe & pricing"
+                              >
+                                <Edit3 size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={deletingProductId === p.id}
+                                onClick={() => handleDeleteProduct(p)}
+                                className="p-1.5 text-red-600 hover:text-white hover:bg-red-600 rounded-lg border border-red-200 transition-all cursor-pointer disabled:opacity-50"
+                                title="Delete product"
+                              >
+                                <Trash2 size={13} className={deletingProductId === p.id ? 'animate-spin' : ''} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {filteredProducts.length === 0 && (
+                <div className="p-12 text-center text-stone-500">
+                  <Boxes size={32} className="mx-auto text-stone-300 mb-2" />
+                  <p className="font-semibold text-stone-700">No products found matching this filter.</p>
+                  <p className="text-xs text-stone-400 mt-1">Change the filter tab or click "Add New Recipe Batch" to publish a new product.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 3: ORDERS & SHIPPING
+           =================================================================== */}
+        {activeTab === 'orders' && (
+          <div className="space-y-5 animate-fade-in">
+            {/* Filter Tabs for Orders */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { id: 'ALL', label: `All Orders (${safeOrders.length})` },
+                  { id: 'PENDING', label: `Needs Packaging (${pendingOrders.length})`, alert: pendingOrders.length > 0 },
+                  { id: 'DISPATCHED', label: `Dispatched (${dispatchedOrders.length})` },
+                  { id: 'DELIVERED', label: `Delivered (${deliveredOrders.length})` },
+                ].map((pill) => (
+                  <button
+                    key={pill.id}
+                    type="button"
+                    onClick={() => setOrderStatusFilter(pill.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      orderStatusFilter === pill.id
+                        ? 'bg-forest-900 text-white shadow-2xs'
+                        : pill.alert
+                        ? 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-black'
+                        : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200'
+                    }`}
+                  >
+                    {pill.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="text-xs text-stone-500 font-medium self-start sm:self-auto flex items-center gap-1.5">
+                <Truck size={14} className="text-forest-900" />
+                <span>Air Cargo Packaging: Plastic pouch or jar with shock-proof cushion</span>
+              </div>
+            </div>
+
+            {/* Orders Table Card */}
+            <div className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-stone-50 border-b border-stone-200 text-stone-600 font-semibold">
+                    <tr>
+                      <th className="p-3.5">Order Reference</th>
+                      <th className="p-3.5">Recipient Destination</th>
+                      <th className="p-3.5">Recipe Item</th>
+                      <th className="p-3.5">Quantity / Bundle</th>
+                      <th className="p-3.5">Net Payout</th>
+                      <th className="p-3.5">Fulfillment Status</th>
+                      <th className="p-3.5 text-right">Shipping Label / Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-100">
+                    {filteredOrders.map((o) => (
+                      <tr key={o.order_item_id} className="hover:bg-stone-50/60 transition-colors">
+                        <td className="p-3.5">
+                          <span className="font-mono font-black text-stone-900 block text-xs">#{o.order_number}</span>
+                          <span className="text-[10px] text-stone-400 font-mono">
+                            {new Date(o.order_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </td>
+
+                        <td className="p-3.5">
+                          <p className="font-bold text-stone-900 text-xs">{o.customer_name}</p>
+                          <p className="text-[11px] text-stone-600">
+                            {o.shipping_city}, {o.shipping_state} {o.shipping_postal_code ? `- ${o.shipping_postal_code}` : ''}
+                          </p>
+                          {o.customer_phone && (
+                            <p className="text-[10px] font-mono text-stone-500 mt-0.5 flex items-center gap-1">
+                              <Phone size={10} className="text-stone-400" />
+                              <span>{o.customer_phone}</span>
+                            </p>
+                          )}
+                        </td>
+
+                        <td className="p-3.5">
+                          <p className="font-medium text-stone-900">{o.product_title}</p>
+                          <span className="text-[10px] text-stone-500 font-mono">{o.weight_grams}g jar</span>
+                        </td>
+
+                        <td className="p-3.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-black text-stone-900 font-mono text-sm">{o.quantity}</span>
+                            {o.quantity >= 3 ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5">
+                                <Sparkles size={9} /> Trio Bundle
+                              </span>
+                            ) : o.quantity === 2 ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-0.5">
+                                <Sparkles size={9} /> Duo Bundle
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-stone-400">Single</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-3.5 font-black text-forest-900 font-mono text-sm">
+                          ₹{parseFloat(o.manufacturer_payout).toFixed(2)}
+                        </td>
+
+                        <td className="p-3.5">
+                          <div className="space-y-1">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold block w-max ${
+                              o.fulfillment_status === 'DISPATCHED'
+                                ? 'bg-purple-100 text-purple-800 border border-purple-200'
+                                : o.fulfillment_status === 'DELIVERED'
+                                ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                : o.fulfillment_status === 'PACKED'
+                                ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                                : 'bg-amber-100 text-amber-900 border border-amber-300'
+                            }`}>
+                              {o.fulfillment_status}
+                            </span>
+                            {o.tracking_number && (
+                              <span className="font-mono text-[9px] text-purple-900 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-200 block w-max" title={o.courier_partner}>
+                                AWB: {o.tracking_number}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="p-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-2 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedParcelOrder(o)}
+                              className="px-3 py-1.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                              title="Print Parcel Shipping Slip"
+                            >
+                              <Printer size={13} />
+                              <span>Print Parcel Slip</span>
+                            </button>
+
+                            <select
+                              value={o.fulfillment_status}
+                              onChange={(e) => handleUpdateFulfillment(o.order_item_id, e.target.value)}
+                              className="p-1.5 border border-stone-200 rounded-xl text-xs focus:ring-1 focus:ring-forest-800 font-medium bg-white cursor-pointer"
+                            >
+                              <option value="PENDING">Pending</option>
+                              <option value="PACKED">Packed</option>
+                              <option value="DISPATCHED">Dispatched</option>
+                              <option value="DELIVERED">Delivered</option>
+                            </select>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {filteredOrders.length === 0 && (
+                <div className="p-12 text-center text-stone-500">
+                  <Truck size={32} className="mx-auto text-stone-300 mb-2" />
+                  <p className="font-semibold text-stone-700">No orders found in this view.</p>
+                  <p className="text-xs text-stone-400 mt-1">Try switching the order filter tab above to view other order statuses.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 4: FINANCIALS & SETTLEMENTS
+           =================================================================== */}
+        {activeTab === 'financials' && (
+          <div className="space-y-6 text-xs animate-fade-in">
+            {/* Financial Overview Card */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <DollarSign size={18} className="text-forest-900" />
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Producer Financial Performance Snapshot
+                  </h3>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Automated Escrow Accounting
+                </span>
+              </div>
+
+              <p className="text-stone-600 leading-relaxed max-w-3xl">
+                Wangs operates transparent accounting. When customer orders complete, the agreed {financials?.effective_commission_rate || commissionRate}% marketplace commission is deducted from gross line sales. Producer net payout is deposited directly into your verified bank account via weekly NEFT/RTGS settlement.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200/90 space-y-1">
+                  <span className="text-stone-500 text-[11px] font-medium block">Total Gross Line Sales</span>
+                  <span className="font-serif font-black text-2xl text-stone-950 block">₹{financials?.total_sales || '0.00'}</span>
+                  <span className="text-[10px] text-stone-400">Total customer orders</span>
+                </div>
+
+                <div className="p-4 bg-amber-50/70 rounded-2xl border border-amber-200 space-y-1">
+                  <span className="text-amber-900 text-[11px] font-medium block">Platform Commission ({financials?.effective_commission_rate || commissionRate}%)</span>
+                  <span className="font-serif font-black text-2xl text-amber-950 block">₹{financials?.total_commission_deducted || '0.00'}</span>
+                  <span className="text-[10px] text-amber-700">Calculated per line item</span>
+                </div>
+
+                <div className="p-4 bg-forest-900 text-white rounded-2xl border border-forest-800 space-y-1 shadow-xs">
+                  <span className="text-amber-300 text-[11px] font-bold block uppercase tracking-wider">Net Payable to Seller</span>
+                  <span className="font-serif font-black text-2xl text-white block">₹{financials?.net_earnings || '0.00'}</span>
+                  <span className="text-[10px] text-cream-200">Disbursed to your bank account</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Bank Account Display Card */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-3">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Landmark size={18} className="text-forest-900" />
+                  <h3 className="font-serif font-bold text-base text-stone-900">
+                    Disbursement Payout Bank Account
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('settings', 'payout')}
+                  className="px-3 py-1.5 bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Edit3 size={13} />
+                  <span>Update Bank in Settings</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-stone-50/70 p-4 rounded-xl border border-stone-200/80">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Holder</span>
+                  <span className="font-semibold text-stone-900 block mt-0.5">
+                    {profile?.bank_account_holder || <span className="text-stone-400 italic">Not provided</span>}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Bank Name</span>
+                  <span className="font-semibold text-stone-900 block mt-0.5">
+                    {profile?.bank_name || <span className="text-stone-400 italic">Not provided</span>}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Number</span>
+                  <span className="font-mono font-bold text-stone-900 block mt-0.5">
+                    {profile?.bank_account_number ? `••••${profile.bank_account_number.slice(-4)}` : <span className="text-stone-400 italic">Not provided</span>}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">IFSC Code</span>
+                  <span className="font-mono font-bold text-forest-950 block mt-0.5">
+                    {profile?.bank_ifsc_code || <span className="text-stone-400 italic">Not provided</span>}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Settlement History Card */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-3">
+              <h3 className="font-serif font-bold text-base text-stone-900">Settlement Transfer History</h3>
+              {financials?.settlement_history?.length === 0 ? (
+                <p className="text-stone-500 py-3">No settlement disbursements recorded yet. Accruals will be included in the upcoming weekly cycle.</p>
+              ) : (
+                <div className="divide-y divide-stone-100">
+                  {financials?.settlement_history?.map((s) => (
+                    <div key={s.id} className="py-3 flex justify-between items-center">
+                      <div>
+                        <span className="font-bold font-mono text-stone-900">{s.settlement_reference}</span>
+                        <span className="text-stone-500 text-[11px] block">{s.period_start} to {s.period_end}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-bold text-stone-900 font-mono text-sm">₹{parseFloat(s.net_payable).toFixed(2)}</span>
+                        <span className="text-[10px] block font-semibold text-emerald-700">{s.status}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ===================================================================
+            TAB 5: STORE SETTINGS (DE-CROWDED INTO CLEAN SUB-PAGES)
+           =================================================================== */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6 animate-fade-in">
+            {/* Settings Sub-Navigation Header */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="font-serif font-bold text-lg sm:text-xl text-stone-900 flex items-center gap-2">
+                  <SlidersHorizontal size={18} className="text-forest-900" />
+                  <span>Artisan Store Settings & Configuration</span>
+                </h2>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Manage your brand identity, workshop location, bank payouts, and regulatory food safety licenses
+                </p>
+              </div>
+
+              {/* Sub-Page Navigation Buttons */}
+              <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl self-start sm:self-auto overflow-x-auto no-scrollbar">
+                {[
+                  { id: 'brand', label: 'Brand Identity', icon: Store },
+                  { id: 'contact', label: 'Kitchen & Contact', icon: MapPin },
+                  { id: 'payout', label: 'Bank Payouts', icon: Landmark },
+                  { id: 'compliance', label: 'Compliance & Rules', icon: ShieldCheck },
+                ].map((sub) => {
+                  const Icon = sub.icon;
+                  const isActive = settingsSubTab === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      onClick={() => handleSettingsSubChange(sub.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                        isActive
+                          ? 'bg-white text-forest-950 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <Icon size={13} className={isActive ? 'text-forest-900' : 'text-stone-400'} />
+                      <span>{sub.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* -------------------------------------------------------------
+                SUB-PAGE 1: BRAND IDENTITY & STOREFRONT
+               ------------------------------------------------------------- */}
+            {settingsSubTab === 'brand' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+                {/* Brand Logo & Upload Card */}
+                <div className="lg:col-span-1 space-y-6">
+                  <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-5">
+                    <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                      <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-2">
+                        <Camera size={16} className="text-forest-900" />
+                        <span>Brand Logo</span>
+                      </h3>
+                      {profile.logo_image ? (
+                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle size={10} /> Active
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Sparkles size={10} /> Monogram
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col items-center text-center">
+                      <div className="relative group">
+                        <div className="w-28 h-28 rounded-2xl overflow-hidden border-2 border-stone-200 shadow-sm bg-amber-50 text-stone-800 flex items-center justify-center font-serif font-bold text-2xl">
+                          {profile.logo_image ? (
+                            <img
+                              src={resolveProductImage(profile.logo_image)}
+                              alt={profile.business_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span>{getBrandInitials(profile.business_name)}</span>
+                          )}
+                        </div>
+
+                        <label
+                          className="absolute inset-0 rounded-2xl bg-stone-950/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-[10px] font-bold"
+                          title="Upload new brand logo"
+                        >
+                          <Camera size={18} className="mb-1" />
+                          <span>{logoUploading ? 'Uploading...' : 'Change Logo'}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={logoUploading}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleLogoUpload(file);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <p className="font-serif font-bold text-stone-900 text-base mt-3">
+                        {profile.business_name}
+                      </p>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        {profile.location_district || 'Nagaland, India'}
+                      </p>
+                    </div>
+
+                    <div className="space-y-2 pt-2 border-t border-stone-100">
+                      <label className={`w-full py-2.5 px-3 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-2xs flex items-center justify-center gap-2 cursor-pointer transition-colors ${logoUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                        <UploadCloud size={15} />
+                        <span>{logoUploading ? 'Uploading & Optimizing...' : profile.logo_image ? 'Upload New Brand Logo' : 'Upload Brand Logo'}</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={logoUploading}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleLogoUpload(file);
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+
+                      {profile.logo_image && (
+                        <button
+                          type="button"
+                          onClick={handleRemoveLogo}
+                          disabled={logoUploading}
+                          className="w-full py-2 px-3 bg-white hover:bg-red-50 border border-red-200 text-red-700 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <Trash2 size={13} />
+                          <span>Remove Custom Logo</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 text-[11px] text-stone-600 space-y-1">
+                      <p className="font-bold text-stone-800">Guidelines:</p>
+                      <p>• 1:1 Square (e.g. 500×500 px)</p>
+                      <p>• Formats: JPG, PNG, WebP (up to 12MB)</p>
+                      <p>• Appears on brand storefront and shipping slips</p>
+                    </div>
+                  </div>
+
+                  {/* Customer Storefront Card Live Preview */}
+                  <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-3">
+                    <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                      Live Storefront Card Preview
+                    </span>
+                    <BrandCard brand={profile} />
+                    <p className="text-[10px] text-stone-400 text-center italic">
+                      How shoppers see your brand in store carousels
+                    </p>
+                  </div>
+                </div>
+
+                {/* Brand Story & Tagline Form */}
+                <div className="lg:col-span-2">
+                  <form onSubmit={handleSaveProfile} className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-5">
+                    <div className="border-b border-stone-100 pb-3 flex items-center justify-between">
+                      <h3 className="font-serif font-bold text-stone-900 text-base">
+                        Brand Tagline & Culinary Story
+                      </h3>
+                      <Link
+                        to={`/products?brand=${encodeURIComponent(profile.slug || profile.business_name)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-forest-800 hover:text-forest-950 font-bold flex items-center gap-1"
+                      >
+                        <Eye size={13} />
+                        <span>View Live Storefront</span>
+                      </Link>
+                    </div>
+
+                    <div className="space-y-4 text-xs">
+                      <div>
+                        <label className="block text-stone-700 font-semibold mb-1">
+                          Registered Brand Name
+                        </label>
+                        <input
+                          type="text"
+                          disabled
+                          value={profile.business_name}
+                          className="w-full px-3.5 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-stone-700 font-semibold cursor-not-allowed"
+                        />
+                        <span className="text-[10px] text-stone-400 mt-1 block">Brand name cannot be changed without administrator approval.</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-stone-700 font-semibold mb-1">
+                          Brand Tagline / Punchline
+                        </label>
+                        <input
+                          type="text"
+                          value={profileForm.tagline}
+                          onChange={(e) => setProfileForm({ ...profileForm, tagline: e.target.value })}
+                          placeholder="e.g. Kohima's Heritage Wood-Smoked Kitchen"
+                          maxLength={180}
+                          className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                        />
+                        <span className="text-[10px] text-stone-400 mt-1 block">Appears directly beneath your brand title on the storefront.</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-stone-700 font-semibold mb-1">
+                          Artisan Heritage Story & Kitchen Recipe Origins
+                        </label>
+                        <textarea
+                          rows={6}
+                          value={profileForm.brand_story}
+                          onChange={(e) => setProfileForm({ ...profileForm, brand_story: e.target.value })}
+                          placeholder="Share your family pickle recipe tradition, wood-smoking technique, or indigenous ingredients used in your kitchen..."
+                          className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 resize-y leading-relaxed"
+                        />
+                        <span className="text-[10px] text-stone-400 mt-1 block">Displayed on your brand dedicated storefront page.</span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end pt-3 border-t border-stone-100">
+                      <button
+                        type="submit"
+                        disabled={savingProfile}
+                        className="px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-2xs disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-colors"
+                      >
+                        <CheckCircle size={14} />
+                        <span>{savingProfile ? 'Saving Changes...' : 'Save Brand Story'}</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* -------------------------------------------------------------
+                SUB-PAGE 2: WORKSHOP KITCHEN & CONTACT DETAILS
+               ------------------------------------------------------------- */}
+            {settingsSubTab === 'contact' && (
+              <div className="max-w-3xl mx-auto animate-fade-in">
+                <form onSubmit={handleSaveProfile} className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200/90 shadow-2xs space-y-5 text-xs">
+                  <div className="border-b border-stone-100 pb-3 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
+                        <MapPin size={17} className="text-forest-900" />
+                        <span>Workshop Location & Courier Dispatch Address</span>
+                      </h3>
+                      <p className="text-stone-500 text-[11px] mt-0.5">
+                        Used as the pickup origin address on courier shipping slips and customer manifests.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-stone-700 font-semibold mb-1">
+                        Workshop District / City *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={profileForm.location_district}
+                        onChange={(e) => setProfileForm({ ...profileForm, location_district: e.target.value })}
+                        placeholder="e.g. Kohima, Nagaland"
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-stone-700 font-semibold mb-1">
+                        Workshop PIN Code
+                      </label>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={profileForm.postal_code}
+                        onChange={(e) => setProfileForm({ ...profileForm, postal_code: e.target.value.replace(/\D/g, '') })}
+                        placeholder="e.g. 797001"
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">
+                      Full Commercial Kitchen / Workshop Street Address
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={profileForm.business_address}
+                      onChange={(e) => setProfileForm({ ...profileForm, business_address: e.target.value })}
+                      placeholder="Detailed address with landmark for courier pickup..."
+                      className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                    />
+                    <span className="text-[10px] text-stone-400 mt-1 block">Printed on shipping labels under 'SHIP FROM'.</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-stone-700 font-semibold mb-1">
+                        Dispatch Phone Contact *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        value={profileForm.contact_phone}
+                        onChange={(e) => setProfileForm({ ...profileForm, contact_phone: e.target.value })}
+                        placeholder="e.g. +91 98765 43210"
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800 font-mono"
+                      />
+                      <span className="text-[10px] text-stone-400 mt-1 block">Called by logistics partner during pickup.</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-stone-700 font-semibold mb-1">
+                        Order Notification Email *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        value={profileForm.contact_email}
+                        onChange={(e) => setProfileForm({ ...profileForm, contact_email: e.target.value })}
+                        placeholder="e.g. workshop@brand.com"
+                        className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                      />
+                      <span className="text-[10px] text-stone-400 mt-1 block">Instant email notifications for new orders are sent here.</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end pt-3 border-t border-stone-100">
+                    <button
+                      type="submit"
+                      disabled={savingProfile}
+                      className="px-6 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-2xs disabled:opacity-50 flex items-center gap-2 cursor-pointer transition-colors"
+                    >
+                      <CheckCircle size={14} />
+                      <span>{savingProfile ? 'Saving Address...' : 'Save Workshop & Contact Details'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* -------------------------------------------------------------
+                SUB-PAGE 3: BANK PAYOUT & SETTLEMENT ACCOUNT
+               ------------------------------------------------------------- */}
+            {settingsSubTab === 'payout' && (
+              <div className="max-w-3xl mx-auto animate-fade-in space-y-6">
+                <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200/90 shadow-2xs space-y-5 text-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+                        <Landmark size={18} className="text-amber-800" />
+                      </div>
+                      <div>
+                        <h3 className="font-serif font-bold text-base text-stone-900">
+                          Direct Payout Settlement Bank Account
+                        </h3>
+                        <p className="text-[11px] text-stone-500">
+                          Weekly sales disbursements are transferred directly to this account via NEFT/RTGS
+                        </p>
+                      </div>
+                    </div>
+
+                    {!editingBank ? (
+                      <button
+                        type="button"
+                        onClick={() => setEditingBank(true)}
+                        className="px-3.5 py-2 bg-stone-100 hover:bg-forest-900 hover:text-white text-stone-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+                      >
+                        <Edit3 size={13} />
+                        <span>Update Bank Account</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setEditingBank(false)}
+                        className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer"
+                      >
+                        <X size={13} />
+                        <span>Cancel</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {!editingBank ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-stone-50/70 p-5 rounded-2xl border border-stone-200/80">
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Holder Name</span>
+                          <span className="font-bold text-stone-900 block mt-1 text-sm">
+                            {profile?.bank_account_holder || <span className="text-stone-400 italic font-normal">Not provided</span>}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Bank Name</span>
+                          <span className="font-bold text-stone-900 block mt-1 text-sm">
+                            {profile?.bank_name || <span className="text-stone-400 italic font-normal">Not provided</span>}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Account Number</span>
+                          <span className="font-mono font-bold text-stone-900 block mt-1 text-sm">
+                            {profile?.bank_account_number ? `•••• •••• •••• ${profile.bank_account_number.slice(-4)}` : <span className="text-stone-400 italic font-normal">Not provided</span>}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">IFSC Code</span>
+                          <span className="font-mono font-bold text-forest-950 block mt-1 text-sm">
+                            {profile?.bank_ifsc_code || <span className="text-stone-400 italic font-normal">Not provided</span>}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-stone-700 text-[11px] leading-relaxed">
+                        <ShieldCheck size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+                        <div>
+                          <strong className="text-emerald-950 block">Encrypted Payout Channel:</strong>
+                          Your bank information is encrypted and strictly used for automated weekly sales transfers. No payment processing fees are deducted from your base payout.
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <form onSubmit={handleSaveBankDetails} className="space-y-4 bg-stone-50/80 p-5 rounded-2xl border border-stone-200">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Account Holder Name *</label>
+                          <input
+                            type="text"
+                            required
+                            value={bankForm.bank_account_holder}
+                            onChange={(e) => setBankForm({ ...bankForm, bank_account_holder: e.target.value })}
+                            placeholder="As printed on bank passbook"
+                            className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Bank Name *</label>
+                          <input
+                            type="text"
+                            required
+                            value={bankForm.bank_name}
+                            onChange={(e) => setBankForm({ ...bankForm, bank_name: e.target.value })}
+                            placeholder="e.g. State Bank of India, HDFC"
+                            className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                          <label className="block text-stone-700 font-semibold mb-1 text-[11px]">Bank Account Number *</label>
+                          <input
+                            type="text"
+                            required
+                            value={bankForm.bank_account_number}
+                            onChange={(e) => setBankForm({ ...bankForm, bank_account_number: e.target.value.replace(/\s+/g, '') })}
+                            placeholder="Full bank account number"
+                            className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl font-mono text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-stone-700 font-semibold mb-1 text-[11px]">IFSC Code (11 Characters) *</label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={11}
+                            value={bankForm.bank_ifsc_code}
+                            onChange={(e) => setBankForm({ ...bankForm, bank_ifsc_code: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) })}
+                            placeholder="e.g. SBIN0000214"
+                            className="w-full px-3.5 py-2.5 bg-white border border-stone-300 rounded-xl font-mono uppercase text-stone-900 focus:outline-none focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-stone-200">
+                        <button
+                          type="button"
+                          onClick={() => setEditingBank(false)}
+                          className="px-4 py-2 bg-white border border-stone-300 text-stone-700 font-bold rounded-xl text-xs hover:bg-stone-50 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={savingBank}
+                          className="px-5 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs shadow-2xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <CheckCircle size={13} />
+                          <span>{savingBank ? 'Saving...' : 'Save Bank Account'}</span>
+                        </button>
+                      </div>
+                    </form>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* -------------------------------------------------------------
+                SUB-PAGE 4: COMPLIANCE, LICENSES & SELLER RULES
+               ------------------------------------------------------------- */}
+            {settingsSubTab === 'compliance' && (
+              <div className="max-w-3xl mx-auto animate-fade-in space-y-6 text-xs">
+                {/* FSSAI & GSTIN Card */}
+                <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200/90 shadow-2xs space-y-5">
+                  <div className="border-b border-stone-100 pb-3 flex items-center justify-between">
+                    <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
+                      <ShieldCheck size={18} className="text-emerald-700" />
+                      <span>Food Safety & Regulatory Licensing</span>
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      Verified
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider block">
+                        FSSAI Food License / Registration
+                      </span>
+                      <span className="font-mono font-black text-stone-900 text-base block">
+                        #{profile.fssai_license_number || '14-digit registered'}
+                      </span>
+                      <span className="text-[10px] text-emerald-700 block">
+                        ✓ Mandatory license verified for commercial pickle distribution
+                      </span>
+                    </div>
+
+                    <div className="p-4 bg-stone-50 border border-stone-200 rounded-2xl space-y-1">
+                      <span className="text-[10px] uppercase font-bold text-stone-500 tracking-wider block">
+                        GSTIN (Goods & Services Tax)
+                      </span>
+                      <span className="font-mono font-bold text-stone-800 text-base block">
+                        {profile.gst_number || 'Exempt / Composition Scheme'}
+                      </span>
+                      <span className="text-[10px] text-stone-500 block">
+                        Recorded on settlement tax statements
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seller Rules Handbook Card */}
+                <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-3">
+                    <div>
+                      <h3 className="font-serif font-bold text-stone-900 text-base flex items-center gap-2">
+                        <FileText size={17} className="text-forest-900" />
+                        <span>Official Wangs Artisan Seller Policy</span>
+                      </h3>
+                      <p className="text-stone-500 text-[11px] mt-0.5">
+                        Covers batch pricing above ₹100, the 10% bundle discount system, and air courier dispatch SLAs.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      <a
+                        href="/documents/wangs_seller_rules.pdf"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        download="wangs_seller_rules.pdf"
+                        className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+                      >
+                        <Download size={13} />
+                        <span>Download PDF</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => setShowSellerRulesModal(true)}
+                        className="px-3.5 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                      >
+                        <Eye size={13} />
+                        <span>View Handbook</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 text-stone-600 leading-relaxed text-[11px]">
+                    <p>• <strong>Strict Pricing Rule:</strong> All product listings must be priced above ₹100 (minimum ₹101).</p>
+                    <p>• <strong>Flexible Brand Bundles:</strong> Customers who select 2 to 4 recipes exclusively from your brand catalog receive a 10% discount.</p>
+                    <p>• <strong>Leak-Proof Packaging:</strong> Jars and pouches must feature airtight seals with bubble wrap/cushioning for safe cargo delivery.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* =====================================================================
+          QUICK STOCK MANAGEMENT MODAL
+         ===================================================================== */}
       {quickStockModal && (
         <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-center justify-center p-4 animate-in fade-in">
           <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-stone-200 space-y-4">
@@ -1897,9 +2376,9 @@ export default function ManufacturerPortalPage() {
               </div>
             </div>
 
-            {/* Quick Add Batch Presets */}
+            {/* Quick Add Presets */}
             <div className="space-y-1">
-              <span className="text-[10px] text-stone-500 uppercase font-bold tracking-wider block">Quick Restock Batch:</span>
+              <span className="text-[10px] text-stone-500 uppercase font-bold tracking-wider block">Quick Add Batch:</span>
               <div className="grid grid-cols-4 gap-1.5 text-xs font-bold">
                 {[5, 10, 25, 50].map((batch) => (
                   <button
@@ -1909,7 +2388,7 @@ export default function ManufacturerPortalPage() {
                       ...prev,
                       nextStock: (parseInt(prev.nextStock, 10) || 0) + batch
                     }))}
-                    className="py-1.5 rounded-lg bg-cream-100 hover:bg-amber-100 border border-stone-200 text-stone-800 text-[11px] cursor-pointer transition-colors"
+                    className="py-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 border border-stone-200 text-stone-800 text-[11px] cursor-pointer transition-colors"
                   >
                     +{batch}
                   </button>
@@ -1938,14 +2417,16 @@ export default function ManufacturerPortalPage() {
         </div>
       )}
 
-      {/* Add / Edit Product Modal */}
+      {/* =====================================================================
+          ADD / EDIT PRODUCT MODAL
+         ===================================================================== */}
       {showAddProductModal && (
         <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
           <div className="bg-white rounded-3xl max-w-2xl w-full my-auto shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-fade-in">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white flex items-center justify-between border-b border-amber-500/30 shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center shadow-xs shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center shadow-xs shrink-0 font-bold">
                   <Package size={20} />
                 </div>
                 <div>
@@ -1968,296 +2449,256 @@ export default function ManufacturerPortalPage() {
             </div>
 
             <form onSubmit={handleCreateProduct} className="flex flex-col flex-1 overflow-hidden text-xs">
-              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                <div className="col-span-2">
-                  <label className="block text-stone-700 font-medium mb-1">Product Title *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newProd.title}
-                    onChange={(e) => setNewProd({ ...newProd, title: e.target.value })}
-                    placeholder="e.g. Cured Smoked Pork Pickle"
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-stone-700 font-medium mb-1">Category *</label>
-                  <select
-                    value={newProd.category_id}
-                    onChange={(e) => {
-                      const catId = e.target.value;
-                      const selectedCat = safeCategories.find((c) => String(c.id) === String(catId));
-                      const isVegCat = selectedCat ? (selectedCat.slug === 'veg' || selectedCat.name.toLowerCase() === 'veg') : false;
-                      const syncedDietary = isVegCat ? 'VEG' : 'NON_VEG';
-                      setNewProd({
-                        ...newProd,
-                        category_id: catId,
-                        dietary_type: syncedDietary,
-                        contains_non_veg_substance: false,
-                      });
-                    }}
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg text-xs"
-                  >
-                    {safeCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-stone-700 font-medium mb-1">Dietary Type *</label>
-                  <select
-                    value={newProd.dietary_type}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      const matchedCat = safeCategories.find((c) => (
-                        val === 'VEG'
-                          ? (c.slug === 'veg' || (c.name.toLowerCase().includes('veg') && !c.name.toLowerCase().includes('non')))
-                          : (c.slug === 'non-veg' || c.name.toLowerCase().includes('non'))
-                      ));
-                      setNewProd({
-                        ...newProd,
-                        dietary_type: val,
-                        contains_non_veg_substance: false,
-                        category_id: matchedCat ? matchedCat.id : newProd.category_id,
-                      });
-                    }}
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg text-xs"
-                  >
-                    <option value="NON_VEG">Non-Veg</option>
-                    <option value="VEG">Veg</option>
-                  </select>
-                </div>
-                {/* Transparent Pricing Calculator */}
-                <div className="col-span-2 p-4 bg-gradient-to-br from-amber-50/80 via-emerald-50/40 to-stone-50 rounded-2xl border border-amber-200/80 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <Calculator size={15} className="text-forest-800" />
-                      <span className="font-bold text-stone-900 text-xs">Transparent Pricing & Payout Equation</span>
-                    </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                      Zero Customer Delivery Fee
-                    </span>
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-3.5">
+                  <div className="col-span-2">
+                    <label className="block text-stone-700 font-semibold mb-1">Product Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newProd.title}
+                      onChange={(e) => setNewProd({ ...newProd, title: e.target.value })}
+                      placeholder="e.g. Cured Smoked Pork Pickle"
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl focus:ring-1 focus:ring-forest-800"
+                    />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-stone-800 font-bold mb-1">
-                        Your Desired Base Payout (₹) *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={newProd.base_price || ''}
-                          onChange={(e) => handleBasePriceChange(e.target.value)}
-                          placeholder="e.g. 200"
-                          className="w-full pl-7 pr-3 py-2 border border-stone-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-forest-800"
-                        />
-                      </div>
-                      <p className="text-[10.5px] text-stone-600 mt-1">Amount you receive into your bank per jar sold.</p>
-                    </div>
-
-                    <div>
-                      <label className="block text-stone-800 font-bold mb-1">
-                        Actual Customer Listed Price (₹) *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
-                        <input
-                          type="number"
-                          required
-                          min="101"
-                          step="1"
-                          value={newProd.price || ''}
-                          onChange={(e) => handleActualPriceChange(e.target.value)}
-                          placeholder="Min ₹101"
-                          className="w-full pl-7 pr-3 py-2 border border-emerald-300 bg-white rounded-xl text-sm font-black text-forest-950 focus:ring-1 focus:ring-forest-800"
-                        />
-                      </div>
-                      <p className="text-[10.5px] text-amber-700 font-semibold mt-1">Platform policy: Must be strictly above ₹100.</p>
-                    </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">Category *</label>
+                    <select
+                      value={newProd.category_id}
+                      onChange={(e) => {
+                        const catId = e.target.value;
+                        const selectedCat = safeCategories.find((c) => String(c.id) === String(catId));
+                        setNewProd({
+                          ...newProd,
+                          category_id: catId,
+                          dietary_type: selectedCat?.slug === 'veg' ? 'VEG' : 'NON_VEG'
+                        });
+                      }}
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl focus:ring-1 focus:ring-forest-800 bg-white"
+                    >
+                      {safeCategories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
                   </div>
 
-                  {/* Visual Equation Formula Bar */}
-                  <div className="p-3 bg-white rounded-xl border border-stone-200 text-stone-800 shadow-2xs">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-center text-xs">
-                      <div className="flex-1 min-w-[70px] bg-stone-50 py-1.5 px-2 rounded-lg border border-stone-200">
-                        <span className="block text-[10px] text-stone-500 font-medium">Product Base Payout</span>
-                        <span className="font-bold text-forest-900 text-sm">₹{parseFloat(newProd.base_price || 0).toFixed(0)}</span>
-                      </div>
-                      <span className="font-black text-stone-400 text-sm">+</span>
-                      <div className="flex-1 min-w-[70px] bg-amber-50/70 py-1.5 px-2 rounded-lg border border-amber-200">
-                        <span className="block text-[10px] text-amber-800 font-medium">Platform Fee ({commissionRate}%)</span>
-                        <span className="font-bold text-amber-900 text-sm">
-                          ₹{Math.max(0, Math.round(((parseFloat(newProd.base_price) || 0) * commissionRate) / 100))}
-                        </span>
-                      </div>
-                      <span className="font-black text-stone-400 text-sm">+</span>
-                      <div className="flex-1 min-w-[70px] bg-blue-50 py-1.5 px-2 rounded-lg border border-blue-200">
-                        <span className="block text-[10px] text-blue-700 font-medium">Express Courier (Built-in)</span>
-                        <span className="font-bold text-blue-900 text-sm">₹{deliveryCharge}</span>
-                      </div>
-                      <span className="font-black text-stone-400 text-sm">=</span>
-                      <div className="flex-1 min-w-[85px] bg-forest-900 text-white py-1.5 px-2 rounded-lg shadow-xs">
-                        <span className="block text-[10px] text-amber-300 font-bold">Customer Actual Price</span>
-                        <span className="font-black text-sm">₹{parseFloat(newProd.price || 0).toFixed(0)}</span>
-                      </div>
-                    </div>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">Dietary Type</label>
+                    <select
+                      value={newProd.dietary_type}
+                      onChange={(e) => setNewProd({ ...newProd, dietary_type: e.target.value })}
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl focus:ring-1 focus:ring-forest-800 bg-white"
+                    >
+                      <option value="NON_VEG">Non-Veg</option>
+                      <option value="VEG">Veg</option>
+                    </select>
+                  </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-stone-100 flex items-start gap-1.5 text-[10.5px] text-stone-600">
-                      <ShieldCheck size={13} className="text-emerald-700 mt-0.5 shrink-0" />
-                      <span>
-                        <strong>Zero Customer Delivery Fee Policy:</strong> Customers are never charged delivery fees on Wangs. Nationwide air courier (₹{deliveryCharge}) and platform commission are calculated into the final selling price so you receive your full ₹{newProd.base_price || 0} payout upon order fulfillment.
+                  {/* Pricing Equation Section */}
+                  <div className="col-span-2 p-4 bg-gradient-to-br from-amber-50/80 via-emerald-50/40 to-stone-50 rounded-2xl border border-amber-200/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Calculator size={15} className="text-forest-800" />
+                        <span className="font-bold text-stone-900 text-xs">Transparent Pricing Equation</span>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        Zero Customer Delivery Fee
                       </span>
                     </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-stone-800 font-bold mb-1">
+                          Your Desired Base Payout (₹) *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
+                          <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={newProd.base_price || ''}
+                            onChange={(e) => handleBasePriceChange(e.target.value)}
+                            placeholder="e.g. 200"
+                            className="w-full pl-7 pr-3 py-2 border border-stone-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                        <p className="text-[10.5px] text-stone-600 mt-1">Amount you receive into your bank per jar sold.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-stone-800 font-bold mb-1">
+                          Actual Customer Listed Price (₹) *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
+                          <input
+                            type="number"
+                            required
+                            min="101"
+                            step="1"
+                            value={newProd.price || ''}
+                            onChange={(e) => handleActualPriceChange(e.target.value)}
+                            placeholder="Min ₹101"
+                            className="w-full pl-7 pr-3 py-2 border border-emerald-300 bg-white rounded-xl text-sm font-black text-forest-950 focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                        <p className="text-[10.5px] text-amber-700 font-semibold mt-1">Platform policy: Must be strictly above ₹100.</p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-white rounded-xl border border-stone-200 text-stone-800 shadow-2xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-center text-xs">
+                        <div className="flex-1 min-w-[70px] bg-stone-50 py-1.5 px-2 rounded-lg border border-stone-200">
+                          <span className="block text-[10px] text-stone-500 font-medium">Base Payout</span>
+                          <span className="font-bold text-forest-900 text-sm">₹{parseFloat(newProd.base_price || 0).toFixed(0)}</span>
+                        </div>
+                        <span className="font-black text-stone-400 text-sm">+</span>
+                        <div className="flex-1 min-w-[70px] bg-amber-50/70 py-1.5 px-2 rounded-lg border border-amber-200">
+                          <span className="block text-[10px] text-amber-800 font-medium">Fee ({commissionRate}%)</span>
+                          <span className="font-bold text-amber-900 text-sm">
+                            ₹{Math.max(0, Math.round(((parseFloat(newProd.base_price) || 0) * commissionRate) / 100))}
+                          </span>
+                        </div>
+                        <span className="font-black text-stone-400 text-sm">+</span>
+                        <div className="flex-1 min-w-[70px] bg-blue-50 py-1.5 px-2 rounded-lg border border-blue-200">
+                          <span className="block text-[10px] text-blue-700 font-medium">Air Courier</span>
+                          <span className="font-bold text-blue-900 text-sm">₹{deliveryCharge}</span>
+                        </div>
+                        <span className="font-black text-stone-400 text-sm">=</span>
+                        <div className="flex-1 min-w-[85px] bg-forest-900 text-white py-1.5 px-2 rounded-lg shadow-xs">
+                          <span className="block text-[10px] text-amber-300 font-bold">Store Price</span>
+                          <span className="font-black text-sm">₹{parseFloat(newProd.price || 0).toFixed(0)}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-stone-700 font-medium mb-1">Net Weight (Grams) *</label>
-                  <input
-                    type="number"
-                    required
-                    value={newProd.weight_grams}
-                    onChange={(e) => setNewProd({ ...newProd, weight_grams: e.target.value })}
-                    placeholder="250"
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
-                  />
-                </div>
-                <div>
-                  <label className="block text-stone-700 font-medium mb-1">Heat / Spice Level *</label>
-                  <select
-                    value={newProd.spice_level}
-                    onChange={(e) => setNewProd({ ...newProd, spice_level: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
-                  >
-                    <option value="MILD">Mild</option>
-                    <option value="MEDIUM">Medium</option>
-                    <option value="HOT">Hot</option>
-                    <option value="FIERY_KING_CHILLI">Fiery King Chilli (Raja Mircha)</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-stone-700 font-medium mb-1">Inventory Quantity in Stock *</label>
-                  <input
-                    type="number"
-                    required
-                    value={newProd.stock_quantity}
-                    onChange={(e) => setNewProd({ ...newProd, stock_quantity: e.target.value })}
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
-                  />
-                </div>
-
-                {/* 1-3 Product Photos */}
-                <div className="col-span-2 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-stone-700 font-bold">
-                      Product Photos (1 to 3 Images) *
-                    </label>
-                    <span className="text-[11px] text-stone-500">Provide 1 to 3 clear photos</span>
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">Net Weight (Grams) *</label>
+                    <input
+                      type="number"
+                      required
+                      value={newProd.weight_grams}
+                      onChange={(e) => setNewProd({ ...newProd, weight_grams: e.target.value })}
+                      placeholder="250"
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl"
+                    />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {[0, 1, 2].map((slotIdx) => {
-                      const imgVal = (newProd.images && newProd.images[slotIdx]) || '';
-                      const isUploading = uploadingSlot === slotIdx;
-                      return (
-                        <div key={slotIdx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex flex-col justify-between space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-stone-800 text-[11px]">
-                              {slotIdx === 0 ? 'Image 1 (Primary *)' : `Image ${slotIdx + 1} (Optional)`}
-                            </span>
-                            {imgVal && !isUploading && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const updated = [...(newProd.images || ['', '', ''])];
-                                  updated[slotIdx] = '';
-                                  setNewProd({ ...newProd, images: updated, primary_image_url: updated.find(Boolean) || '' });
-                                }}
-                                className="text-stone-400 hover:text-red-600 cursor-pointer"
-                                title="Remove photo"
-                              >
-                                <X size={12} />
-                              </button>
-                            )}
-                          </div>
 
-                          {isUploading ? (
-                            <div className="w-full h-24 rounded-lg border border-stone-200 bg-white flex flex-col items-center justify-center text-forest-800 text-[10px] gap-1.5">
-                              <RefreshCw size={18} className="animate-spin text-forest-800" />
-                              <span className="font-semibold">Optimizing photo...</span>
-                            </div>
-                          ) : imgVal ? (
-                            <div className="w-full h-24 rounded-lg overflow-hidden border border-stone-200 bg-white relative">
-                              <img src={resolveProductImage(imgVal)} alt={`Upload ${slotIdx + 1}`} className="w-full h-full object-cover" />
-                            </div>
-                          ) : (
-                            <div className="w-full h-24 rounded-lg border-2 border-dashed border-stone-200 flex flex-col items-center justify-center text-stone-400 text-[10px] bg-white">
-                              <Camera size={18} className="mb-1 text-stone-300" />
-                              <span>No image selected</span>
-                            </div>
-                          )}
+                  <div>
+                    <label className="block text-stone-700 font-semibold mb-1">Spice Level</label>
+                    <select
+                      value={newProd.spice_level}
+                      onChange={(e) => setNewProd({ ...newProd, spice_level: e.target.value })}
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl bg-white"
+                    >
+                      <option value="MILD">Mild</option>
+                      <option value="MEDIUM">Medium</option>
+                      <option value="HOT">Hot</option>
+                      <option value="FIERY_KING_CHILLI">Fiery King Chilli (Raja Mircha)</option>
+                    </select>
+                  </div>
 
-                          <div className="space-y-1">
-                            <label className={`w-full py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-300 rounded-lg cursor-pointer text-stone-700 text-[10.5px] font-semibold flex items-center justify-center gap-1 transition-colors ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                              <Camera size={12} className="text-forest-800" />
-                              <span>{imgVal ? 'Change Photo' : 'Upload Photo'}</span>
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="hidden"
-                                disabled={isUploading}
-                                onChange={async (e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    if (file.size > 12 * 1024 * 1024) {
-                                      toast.error('Image size must be under 12MB');
-                                      return;
-                                    }
-                                    setUploadingSlot(slotIdx);
-                                    try {
-                                      const compressedDataUrl = await compressImageFile(file);
-                                      const updated = [...(newProd.images || ['', '', ''])];
-                                      updated[slotIdx] = compressedDataUrl;
-                                      setNewProd((prev) => ({
-                                        ...prev,
-                                        images: updated,
-                                        primary_image_url: updated.find(Boolean) || compressedDataUrl
-                                      }));
-                                      toast.success(`Photo ${slotIdx + 1} attached and optimized!`);
-                                    } catch (err) {
-                                      toast.error(err.message || 'Failed to process image');
-                                    } finally {
-                                      setUploadingSlot(null);
-                                      e.target.value = '';
-                                    }
-                                  }
-                                }}
-                              />
-                            </label>
-                            {imgVal && imgVal.startsWith('data:image/') ? (
-                              <div className="flex items-center justify-between px-2 py-1 bg-emerald-50 border border-emerald-200 rounded-lg text-[10px] text-emerald-800">
-                                <span className="font-semibold truncate">Photo attached</span>
+                  <div className="col-span-2">
+                    <label className="block text-stone-700 font-semibold mb-1">Inventory Quantity in Stock *</label>
+                    <input
+                      type="number"
+                      required
+                      value={newProd.stock_quantity}
+                      onChange={(e) => setNewProd({ ...newProd, stock_quantity: e.target.value })}
+                      placeholder="e.g. 50"
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl font-mono font-bold"
+                    />
+                  </div>
+
+                  {/* 1-3 Product Photos */}
+                  <div className="col-span-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-stone-700 font-bold">
+                        Product Photos (1 to 3 Images) *
+                      </label>
+                      <span className="text-[11px] text-stone-500">Provide 1 to 3 clear photos</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[0, 1, 2].map((slotIdx) => {
+                        const imgVal = (newProd.images && newProd.images[slotIdx]) || '';
+                        const isUploading = uploadingSlot === slotIdx;
+                        return (
+                          <div key={slotIdx} className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex flex-col justify-between space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="font-semibold text-stone-800 text-[11px]">
+                                {slotIdx === 0 ? 'Image 1 (Primary *)' : `Image ${slotIdx + 1} (Optional)`}
+                              </span>
+                              {imgVal && !isUploading && (
                                 <button
                                   type="button"
                                   onClick={() => {
                                     const updated = [...(newProd.images || ['', '', ''])];
                                     updated[slotIdx] = '';
-                                    setNewProd({
-                                      ...newProd,
-                                      images: updated,
-                                      primary_image_url: updated.find(Boolean) || ''
-                                    });
+                                    setNewProd({ ...newProd, images: updated, primary_image_url: updated.find(Boolean) || '' });
                                   }}
-                                  className="text-stone-400 hover:text-red-600 font-bold ml-1 cursor-pointer"
+                                  className="text-stone-400 hover:text-red-600 p-0.5"
+                                  title="Remove image"
                                 >
-                                  Clear
+                                  <X size={13} />
                                 </button>
-                              </div>
-                            ) : (
+                              )}
+                            </div>
+
+                            <div className="h-24 bg-white rounded-lg border border-dashed border-stone-300 flex items-center justify-center overflow-hidden relative">
+                              {isUploading ? (
+                                <div className="text-center">
+                                  <div className="w-5 h-5 border-2 border-forest-900 border-t-transparent rounded-full animate-spin mx-auto" />
+                                  <span className="text-[10px] text-stone-500 block mt-1">Compressing...</span>
+                                </div>
+                              ) : imgVal ? (
+                                <img
+                                  src={resolveProductImage(imgVal)}
+                                  alt={`Product slot ${slotIdx + 1}`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = '/featured-pouches.png';
+                                  }}
+                                />
+                              ) : (
+                                <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer text-stone-400 hover:text-forest-900 transition-colors p-2 text-center">
+                                  <Camera size={18} className="mb-1" />
+                                  <span className="text-[10px] font-medium">Click to Upload</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={async (e) => {
+                                      const file = e.target.files?.[0];
+                                      if (!file) return;
+                                      setUploadingSlot(slotIdx);
+                                      try {
+                                        const compressed = await compressImageFile(file);
+                                        const updated = [...(newProd.images || ['', '', ''])];
+                                        updated[slotIdx] = compressed;
+                                        setNewProd({
+                                          ...newProd,
+                                          images: updated,
+                                          primary_image_url: updated.find(Boolean) || compressed
+                                        });
+                                      } catch (err) {
+                                        toast.error('Failed to process image');
+                                      } finally {
+                                        setUploadingSlot(null);
+                                        e.target.value = '';
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              )}
+                            </div>
+
+                            <div>
                               <input
                                 type="url"
                                 value={imgVal}
@@ -2273,37 +2714,38 @@ export default function ManufacturerPortalPage() {
                                 placeholder="Or paste image URL"
                                 className="w-full px-2 py-1 text-[10px] border border-stone-200 rounded-lg bg-white"
                               />
-                            )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-stone-700 font-semibold mb-1">Ingredients Breakdown *</label>
+                    <textarea
+                      rows={2}
+                      required
+                      value={newProd.ingredients}
+                      onChange={(e) => setNewProd({ ...newProd, ingredients: e.target.value })}
+                      placeholder="e.g. Smoked Pork, King Chilli, Axone, Mustard Oil, Rock Salt"
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl"
+                    />
+                  </div>
+
+                  <div className="col-span-2">
+                    <label className="block text-stone-700 font-semibold mb-1">Detailed Description *</label>
+                    <textarea
+                      rows={3}
+                      required
+                      value={newProd.description}
+                      onChange={(e) => setNewProd({ ...newProd, description: e.target.value, short_description: e.target.value.substring(0, 150) })}
+                      placeholder="Describe curing, wood smoke aroma, texture, serving suggestions..."
+                      className="w-full px-3.5 py-2 border border-stone-300 rounded-xl"
+                    />
                   </div>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-stone-700 font-medium mb-1">Ingredients Breakdown *</label>
-                  <textarea
-                    rows={2}
-                    required
-                    value={newProd.ingredients}
-                    onChange={(e) => setNewProd({ ...newProd, ingredients: e.target.value })}
-                    placeholder="e.g. Smoked Pork, King Chilli, Axone, Mustard Oil, Rock Salt"
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-stone-700 font-medium mb-1">Detailed Description *</label>
-                  <textarea
-                    rows={3}
-                    required
-                    value={newProd.description}
-                    onChange={(e) => setNewProd({ ...newProd, description: e.target.value, short_description: e.target.value.substring(0, 150) })}
-                    placeholder="Describe traditional curing, wood smoke, aroma, serving suggestions..."
-                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
-                  />
-                </div>
               </div>
-            </div>
 
               {/* Action Buttons Sticky Footer */}
               <div className="flex items-center justify-end gap-3 p-4 px-6 bg-stone-50 border-t border-stone-200 shrink-0">
@@ -2328,7 +2770,7 @@ export default function ManufacturerPortalPage() {
       )}
 
       {/* =====================================================================
-          PARCEL SHIPPING SLIP / PACKING LABEL MODAL (READY TO PRINT & AFFIX)
+          PARCEL SHIPPING SLIP / PACKING LABEL MODAL
          ===================================================================== */}
       {selectedParcelOrder && (
         <div className="fixed inset-0 z-50 bg-black/75 flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
@@ -2399,7 +2841,7 @@ export default function ManufacturerPortalPage() {
                   </div>
                 </div>
 
-                {/* Primary Courier & Logistics QR Code (Large, Crisp & Scannable) */}
+                {/* Primary Courier & Logistics QR Code */}
                 <div className="flex items-center gap-3 bg-white border-2 border-stone-900 rounded-xl p-2 shrink-0 self-start sm:self-center shadow-xs">
                   <div className="text-center shrink-0">
                     <QRCodeSVG
@@ -2462,7 +2904,6 @@ export default function ManufacturerPortalPage() {
                     </div>
                   </div>
 
-                  {/* Destination Hub details */}
                   <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between">
                     <div>
                       <span className="text-[9px] font-mono text-stone-500 uppercase block font-semibold">Delivery Destination Hub</span>
@@ -2481,348 +2922,218 @@ export default function ManufacturerPortalPage() {
                 <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-300 flex flex-col justify-between">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <Store size={13} className="text-stone-700" />
-                      <span className="text-[10px] font-black uppercase tracking-wider text-stone-800 bg-stone-200 px-2 py-0.5 rounded">
-                        FROM (ARTISAN PRODUCER):
+                      <Store size={13} className="text-forest-800" />
+                      <span className="text-[10px] font-black uppercase tracking-wider text-forest-900 bg-forest-100 px-2 py-0.5 rounded">
+                        DISPATCHED FROM (ARTISAN SELLER):
                       </span>
                     </div>
-                    <h4 className="font-bold text-sm text-stone-950 leading-tight">
-                      {selectedParcelOrder.seller_business_name || profile?.business_name || 'Artisan Brand'}
+                    <h4 className="font-bold text-base text-stone-950 leading-tight">
+                      {profile.business_name}
                     </h4>
                     <div className="text-xs text-stone-800 mt-2 space-y-1 leading-snug">
-                      <p className="text-stone-700">
-                        {selectedParcelOrder.seller_address || profile?.business_address || 'Artisan Workshop'}
+                      <p className="text-stone-700">{profile.business_address || 'Artisan Workshop Kitchen'}</p>
+                      <p className="font-bold text-stone-950">
+                        {profile.location_district || 'Dimapur'}, Nagaland {profile.postal_code ? `- ${profile.postal_code}` : ''}
                       </p>
-                      <p className="text-stone-800">
-                        {(selectedParcelOrder.seller_district || profile?.location_district || '')}
-                        {(selectedParcelOrder.seller_pincode || profile?.pincode) ? ` - ${selectedParcelOrder.seller_pincode || profile?.pincode}` : ''}
-                      </p>
-                      <p className="text-stone-800 pt-1 flex items-center gap-1">
-                        <Phone size={11} /> {selectedParcelOrder.seller_contact_phone || profile?.contact_phone || 'N/A'}
+                      <div className="pt-1.5 flex items-center gap-2">
+                        <span className="font-bold text-xs text-stone-900 flex items-center gap-1">
+                          <Phone size={11} /> Support:
+                        </span>
+                        <span className="font-mono text-xs bg-white px-2 py-0.5 rounded border border-stone-300 text-stone-950">
+                          {profile.contact_phone || 'N/A'}
+                        </span>
+                      </div>
+                      <p className="text-[10.5px] font-mono text-emerald-800 pt-0.5 font-bold flex items-center gap-1">
+                        <ShieldCheck size={12} className="text-emerald-700" />
+                        FSSAI Reg. #{profile.fssai_license_number || 'Registered'}
                       </p>
                     </div>
                   </div>
 
-                  {/* FSSAI Verified Food Safety License Badge */}
-                  <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between gap-2">
+                  <div className="mt-3 pt-2.5 border-t border-stone-200 flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300 inline-block font-mono">
-                        FSSAI: {selectedParcelOrder.seller_fssai || profile?.fssai_license_number || 'REG-AUTHENTIC'}
-                      </span>
-                      <span className="block text-[8.5px] text-stone-500 mt-0.5 font-medium">Verified Food Safety License</span>
+                      <span className="text-[9px] font-mono text-stone-500 uppercase block font-semibold">Origin Hub</span>
+                      <span className="text-xs font-mono font-black text-stone-900 block">{profile.location_district || 'Dimapur'} Hub</span>
                     </div>
                     <div className="text-right">
-                      <span className="inline-flex items-center gap-1 text-[8.5px] font-bold text-emerald-800 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
-                        ✓ Certified Food Operator
-                      </span>
+                      <span className="text-[9px] font-mono text-stone-500 uppercase block font-semibold">Origin PIN</span>
+                      <span className="text-xs font-mono font-black text-stone-900 block">{profile.postal_code || '797112'}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Package Contents Table */}
-              <div className="space-y-1.5">
+              {/* Package Contents Breakdown */}
+              <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-600">
-                    Package Contents &amp; Manifest
+                  <span className="text-[10.5px] font-black uppercase tracking-wider text-stone-900">
+                    PARCEL CONTENTS &amp; MANIFEST:
                   </span>
-                  {selectedParcelOrder.courier_partner && (
-                    <span className="text-[10px] font-mono text-stone-600">
-                      Courier: {selectedParcelOrder.courier_partner} ({selectedParcelOrder.tracking_number || 'Standard'})
-                    </span>
-                  )}
-                </div>
-                <table className="w-full text-left text-xs border border-stone-300 rounded-xl overflow-hidden">
-                  <thead className="bg-stone-100 text-stone-800 font-bold border-b border-stone-300">
-                    <tr>
-                      <th className="p-2.5">Item Description</th>
-                      <th className="p-2.5 text-center">Net Weight</th>
-                      <th className="p-2.5 text-center">Quantity</th>
-                      <th className="p-2.5 text-right">Declared Value</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-stone-200">
-                    <tr>
-                      <td className="p-2.5">
-                        <p className="font-bold text-stone-900">{selectedParcelOrder.product_title}</p>
-                        <p className="text-[10px] text-stone-500">Authentic Food · Sealed Packaging</p>
-                      </td>
-                      <td className="p-2.5 text-center font-mono text-stone-700">
-                        {selectedParcelOrder.weight_grams}g
-                      </td>
-                      <td className="p-2.5 text-center font-bold text-stone-950 font-mono text-sm">
-                        {selectedParcelOrder.quantity}
-                      </td>
-                      <td className="p-2.5 text-right font-mono font-bold text-stone-900">
-                        ₹{parseFloat(selectedParcelOrder.subtotal || 0).toFixed(2)}
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Logistics AWB Barcode & Customer Jar Unboxing QR Strip */}
-              <div className="p-3.5 bg-stone-100 rounded-xl border border-stone-300 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-                <div className="space-y-1.5 w-full sm:w-auto flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-black uppercase text-stone-700 bg-stone-200 px-1.5 py-0.5 rounded">
-                      AIRWAY BILL (AWB):
-                    </span>
-                    <span className="font-mono font-black text-stone-950 text-xs tracking-wider">
-                      {selectedParcelOrder.tracking_number || `WNG-AWB-${selectedParcelOrder.order_number.slice(-6)}-1IN`}
-                    </span>
-                  </div>
-                  <div className="font-mono text-xs text-stone-700 tracking-[0.25em] bg-white px-2.5 py-1 rounded border border-stone-300 font-bold">
-                    ||| | |||| | ||||| || |||||| | |||| ||| |||||||
-                  </div>
-                  <div className="text-[9.5px] text-stone-500 space-y-0.5">
-                    <p>
-                      Logistics Routing: Dimapur Air Cargo (797112) → {selectedParcelOrder.shipping_city} ({selectedParcelOrder.shipping_postal_code})
-                    </p>
-                    {selectedParcelOrder.courier_partner && (
-                      <p className="font-mono text-[9px] text-stone-600">
-                        Carrier Partner: {selectedParcelOrder.courier_partner}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Big High-Resolution Customer Unboxing & Rewards QR Code */}
-                <div className="flex items-center gap-3 bg-white p-2.5 rounded-xl border-2 border-stone-900 shrink-0 w-full sm:w-auto justify-center sm:justify-start shadow-xs">
-                  <div className="text-center shrink-0">
-                    <QRCodeSVG
-                      value={`https://wangs.in/account?unboxing=${selectedParcelOrder.order_number}`}
-                      size={96}
-                      level="M"
-                      margin={1}
-                      className="mx-auto"
-                    />
-                    <span className="text-[7.5px] font-mono font-black text-emerald-900 bg-emerald-100 px-1.5 py-0.5 rounded block mt-1 uppercase tracking-tight">
-                      ★ EARN 1 CREDIT
-                    </span>
-                  </div>
-                  <div className="text-left space-y-1 max-w-[155px]">
-                    <div className="inline-block px-1.5 py-0.5 bg-forest-900 text-white rounded text-[8.5px] font-black uppercase tracking-wider">
-                      CUSTOMER UNBOXING
-                    </div>
-                    <p className="font-serif font-bold text-xs text-stone-950 leading-tight">
-                      Scan to Verify Seal &amp; Earn Rewards
-                    </p>
-                    <p className="text-[9px] text-stone-600 leading-snug">
-                      Scan with your phone camera upon unboxing to verify package seal authenticity &amp; claim 1 Wangs Credit.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dotted Cut & Affix Notice */}
-              <div className="pt-2 text-center text-[10px] text-stone-500 border-t border-dashed border-stone-400 font-mono">
-                CUT ALONG OUTER DOTTED LINE AND SECURELY AFFIX TO PARCEL EXTERIOR · WANGS ARTISANAL MARKETPLACE
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Official Seller Rules & Policy Handbook Modal */}
-      {showSellerRulesModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-stone-950/75 overflow-y-auto">
-          <div className="bg-white rounded-3xl border border-stone-200 shadow-2xl max-w-4xl w-full my-8 overflow-hidden animate-fade-in flex flex-col max-h-[90vh]">
-            {/* Modal Header & Quick Actions Toolbar */}
-            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-5 sm:p-6 flex items-center justify-between gap-4 border-b border-amber-500/40">
-              <div className="flex items-center gap-3">
-                <span className="p-2.5 bg-amber-500 text-stone-950 rounded-2xl shadow-xs">
-                  <FileText size={22} />
-                </span>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-serif font-bold text-lg sm:text-xl text-cream-50">
-                      Wangs Artisan Seller Rules & Policy Handbook
-                    </h2>
-                    <span className="bg-amber-400 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                      Official PDF
-                    </span>
-                  </div>
-                  <p className="text-xs text-cream-200 mt-0.5">
-                    Document Ref: WNG-SELLER-2026-V2 · Standard Operating Procedures & Brand Bundle Guidelines
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <a
-                  href="/documents/wangs_seller_rules.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  download="wangs_seller_rules.pdf"
-                  className="px-3 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
-                  title="Download PDF Document"
-                >
-                  <Download size={14} />
-                  <span className="hidden sm:inline">Download PDF</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="px-3 py-2 bg-forest-800 hover:bg-forest-700 text-white text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-colors hidden sm:flex"
-                  title="Print Handbook"
-                >
-                  <Printer size={14} />
-                  <span>Print</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowSellerRulesModal(false)}
-                  className="p-2 text-cream-200 hover:text-white hover:bg-forest-800 rounded-xl transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Scrollable Body */}
-            <div className="p-6 sm:p-8 space-y-8 overflow-y-auto text-xs text-stone-700 leading-relaxed bg-stone-50/50">
-              {/* Executive Summary */}
-              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
-                <h3 className="font-serif font-bold text-stone-900 text-sm">
-                  1. Marketplace Mission & Partnership Principles
-                </h3>
-                <p>
-                  Wangs operates as a curated platform connecting authentic regional pickle brands and producers with discerning culinary enthusiasts across India. All approved sellers operate their digital storefront under strict adherence to product authenticity, food safety, packaging integrity, and customer satisfaction standards.
-                </p>
-              </div>
-
-              {/* Key Bundle Policy */}
-              <div className="p-5 bg-gradient-to-br from-amber-50 via-cream-100 to-amber-50 rounded-2xl border-2 border-amber-300 shadow-xs space-y-3">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <h3 className="font-serif font-bold text-stone-950 text-sm flex items-center gap-2">
-                    <Sparkles size={16} className="text-amber-600" />
-                    2. Flexible Brand Bundle Program (2 to 4 Items · Flat 10% Discount Rule)
-                  </h3>
-                  <span className="bg-chilli-700 text-white text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
-                    Mandatory Storefront Rule
+                  <span className="text-[10px] font-mono font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded border border-stone-300">
+                    Total Qty: {selectedParcelOrder.quantity} {selectedParcelOrder.quantity > 1 ? 'Units' : 'Unit'}
                   </span>
                 </div>
-                <div className="space-y-2 bg-white/80 p-4 rounded-xl border border-amber-200 text-stone-800 text-xs">
-                  <p>
-                    <strong>• Same Brand Exclusivity:</strong> Brand bundles are formed exclusively from items belonging to your brand catalog. Products from different brands cannot be combined into a brand bundle.
-                  </p>
-                  <p>
-                    <strong>• Flexible 2 to 4 Jars Limit:</strong> Customers have full flexibility to <strong>cut (remove)</strong> or <strong>add recipes</strong> from your brand. The bundle size is strictly bounded between a minimum of <strong>2 jars</strong> and a maximum of <strong>4 jars</strong>.
-                  </p>
-                  <p>
-                    <strong>• Flat 10% Bundle Discount:</strong> When a customer selects between 2 and 4 items from your brand, an automated <strong>10% bundle discount</strong> is applied across the combined subtotal at checkout.
-                  </p>
-                  <p>
-                    <strong>• Catalog Depth Recommendation:</strong> Sellers are required to maintain at least 2 to 4 complementary recipes active in stock so shoppers can customize their bundle and maximize basket size.
-                  </p>
-                  <p>
-                    <strong>• Logistics Subsidy:</strong> All 2 to 4 jar bundles receive subsidized priority air cargo dispatch and insulated shock-proof packaging.
-                  </p>
-                </div>
 
-                {/* Bundle Matrix Table */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs bg-white rounded-xl border border-amber-200 overflow-hidden">
-                    <thead className="bg-forest-900 text-cream-50 font-bold">
+                <div className="border border-stone-300 rounded-xl overflow-hidden text-xs">
+                  <table className="w-full text-left">
+                    <thead className="bg-stone-100 text-stone-800 font-bold border-b border-stone-300">
                       <tr>
-                        <th className="p-2.5">Bundle Configuration</th>
-                        <th className="p-2.5">Eligible Selection</th>
-                        <th className="p-2.5">Customer Savings</th>
-                        <th className="p-2.5">Seller Benefit</th>
+                        <th className="p-2.5">Item Description</th>
+                        <th className="p-2.5">Net Wt.</th>
+                        <th className="p-2.5 text-center">Qty</th>
+                        <th className="p-2.5 text-right">Payment</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-200">
                       <tr>
-                        <td className="p-2.5 font-bold text-stone-900">Duo Pack (2 Jars)</td>
-                        <td className="p-2.5">Any 2 recipes from your brand</td>
-                        <td className="p-2.5 font-bold text-chilli-700">Save 10% OFF</td>
-                        <td className="p-2.5 text-stone-600">Doubles average order volume</td>
-                      </tr>
-                      <tr className="bg-stone-50">
-                        <td className="p-2.5 font-bold text-stone-900">Tasting Trio (3 Jars)</td>
-                        <td className="p-2.5">Any 3 recipes from your brand</td>
-                        <td className="p-2.5 font-bold text-chilli-700">Save 10% OFF</td>
-                        <td className="p-2.5 text-stone-600">Triples recipe discovery</td>
-                      </tr>
-                      <tr>
-                        <td className="p-2.5 font-bold text-stone-900">Family Pack (4 Jars - Max)</td>
-                        <td className="p-2.5">Any 4 recipes from your brand</td>
-                        <td className="p-2.5 font-bold text-chilli-700">Save 10% OFF</td>
-                        <td className="p-2.5 text-stone-600">Maximum basket size & retention</td>
-                      </tr>
-                      <tr className="bg-stone-50">
-                        <td className="p-2.5 text-stone-500">Single Jar (1 Jar)</td>
-                        <td className="p-2.5 text-stone-500">Standard single purchase</td>
-                        <td className="p-2.5 text-stone-500">0% (Full Price)</td>
-                        <td className="p-2.5 text-stone-500">Full standard retail margin</td>
+                        <td className="p-2.5 font-bold text-stone-950">
+                          {selectedParcelOrder.product_title}
+                          <span className="block text-[10px] text-stone-500 font-normal">
+                            Brand: {profile.business_name} · Airtight packaging
+                          </span>
+                        </td>
+                        <td className="p-2.5 font-mono text-stone-800">{selectedParcelOrder.weight_grams}g</td>
+                        <td className="p-2.5 text-center font-black font-mono text-sm">{selectedParcelOrder.quantity}</td>
+                        <td className="p-2.5 text-right font-black font-mono text-stone-950">PREPAID</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
 
-              {/* Recipe Standards & Hygiene */}
-              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
-                <h3 className="font-serif font-bold text-stone-900 text-sm">
-                  3. Recipe Authenticity & Ingredient Declarations
-                </h3>
-                <p>
-                  Every jar listed on Wangs must celebrate authentic culinary traditions. Pure cold-pressed oils and natural brines must be used. Synthetic chemical preservatives (such as sodium benzoate exceeding permissible limits) or artificial food dyes are prohibited. Listings must state all ingredients, net weights (250g / 500g standard), and allergen advisories clearly.
-                </p>
-              </div>
+              {/* Customer Unboxing QR (Bottom) */}
+              <div className="bg-gradient-to-r from-amber-50 to-cream-100 border-2 border-stone-900 rounded-xl p-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-stone-900">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white p-1.5 rounded-lg border-2 border-stone-900 shrink-0">
+                    <QRCodeSVG
+                      value={`${typeof window !== 'undefined' ? window.location.origin : 'https://wangs.in'}/rewards?order=${selectedParcelOrder.order_number}`}
+                      size={96}
+                      level="M"
+                      margin={1}
+                      className="mx-auto"
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    <span className="text-[9px] font-mono font-black text-amber-950 bg-amber-200 border border-amber-400 px-2 py-0.5 rounded uppercase inline-block">
+                      CUSTOMER UNBOXING QR
+                    </span>
+                    <h4 className="font-serif font-black text-stone-950 text-sm leading-tight pt-0.5">
+                      Scan Upon Delivery to Claim Reward
+                    </h4>
+                    <p className="text-[10px] text-stone-700 leading-tight">
+                      Customer receives instant Wangs cash points into their wallet upon unboxing scan.
+                    </p>
+                  </div>
+                </div>
 
-              {/* FSSAI Licensing */}
-              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
-                <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-1.5">
-                  <ShieldCheck size={16} className="text-forest-800" />
-                  4. Mandatory FSSAI Food Licensing & Compliance
-                </h3>
-                <p>
-                  Under Food Safety and Standards Authority of India (FSSAI) regulations, all sellers must hold an active 14-digit FSSAI license or registration. This number must be printed on every product label and registered in your seller profile. Jars must bear clear batch numbers, manufacturing dates, and Best-Before dates (minimum 6 months shelf life).
-                </p>
-              </div>
-
-              {/* Packaging & Dispatch SLAs */}
-              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
-                <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-1.5">
-                  <Truck size={16} className="text-forest-800" />
-                  5. Insulated Glass Packaging & Air Cargo SLAs
-                </h3>
-                <p>
-                  Pickles are shipped nationwide in food-grade glass jars. To eliminate leakage during air cargo pressure changes, jars must feature airtight induction foil seals or shrink-wrapped neck bands. Each jar must be wrapped with at least 3 layers of 10mm bubble wrap or honeycomb cushioning. Multi-jar bundles must include corrugated divider inserts. Orders must be packed and ready for courier pickup within <strong>24 to 48 business hours</strong>.
-                </p>
-              </div>
-
-              {/* Commercials & Settlements */}
-              <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-2xs space-y-2">
-                <h3 className="font-serif font-bold text-stone-900 text-sm">
-                  6. Commercial Terms, 10% Commission & Weekly Settlements
-                </h3>
-                <p>
-                  A standard 10% platform commission is automatically deducted on retail line items at order snapshot. The seller's listed base product price payout is protected. Settlements are disbursed weekly via direct NEFT/RTGS bank transfer to your verified account.
-                </p>
-              </div>
-
-              {/* Support & Escalation */}
-              <div className="p-4 bg-forest-50/70 rounded-2xl border border-forest-200 text-forest-950 space-y-1.5">
-                <h3 className="font-serif font-bold text-sm">
-                  7. Official Seller Support Desk
-                </h3>
-                <p className="text-xs text-forest-900">
-                  For catalog assistance, packaging inquiries, or payout questions, contact our dedicated seller support desk:
-                </p>
-                <div className="flex flex-wrap items-center gap-4 pt-1 font-semibold text-xs">
-                  <span className="flex items-center gap-1.5"><Mail size={12} /> Email: <strong>wangssupport@gmail.com</strong></span>
-                  <span className="flex items-center gap-1.5"><Store size={12} /> Portal: <strong>https://wangs.in/manufacturer</strong></span>
+                <div className="text-right shrink-0">
+                  <span className="text-[9px] font-mono text-stone-500 block">Standard Delivery SLA</span>
+                  <span className="font-bold text-xs text-stone-900">2-4 Business Days</span>
                 </div>
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-stone-100 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-stone-200">
+            <div className="pt-2 flex items-center justify-between no-print text-xs">
+              <span className="text-stone-500">
+                Print via any standard laser or thermal sticker printer.
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedParcelOrder(null)}
+                className="px-4 py-2 bg-stone-200 hover:bg-stone-300 text-stone-800 rounded-xl font-bold transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =====================================================================
+          SELLER RULES & POLICY HANDBOOK MODAL
+         ===================================================================== */}
+      {showSellerRulesModal && (
+        <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full my-auto shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-fade-in text-xs">
+            <div className="p-4 sm:p-5 bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white flex items-center justify-between border-b border-amber-500/30 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center shadow-xs shrink-0 font-bold">
+                  <FileText size={20} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-base sm:text-lg text-cream-50 leading-tight">
+                    Wangs Artisan Seller Rules &amp; Operations Handbook
+                  </h3>
+                  <p className="text-[11px] text-cream-200 mt-0.5">
+                    Official Seller Policy · Commercial Terms · Packaging Standards · Quality SLAs
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSellerRulesModal(false)}
+                className="p-2 text-stone-300 hover:text-white hover:bg-white/10 rounded-xl transition-colors cursor-pointer"
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-4 text-stone-700 leading-relaxed">
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                <h3 className="font-serif font-bold text-stone-950 text-sm flex items-center gap-1.5">
+                  <AlertTriangle size={16} className="text-amber-800" />
+                  1. Mandatory Pricing Floor Policy (Above ₹100 per Product)
+                </h3>
+                <p>
+                  To preserve artisanal quality and protect producer profitability, <strong>every product listed on Wangs must be priced strictly above ₹100</strong> (minimum retail selling price of ₹101). Listings priced at or below ₹100 are rejected automatically by platform validation.
+                </p>
+              </div>
+
+              <div className="p-4 bg-cream-100/70 border border-amber-300/80 rounded-2xl space-y-2">
+                <h3 className="font-serif font-bold text-stone-950 text-sm flex items-center gap-1.5">
+                  <Sparkles size={16} className="text-amber-800" />
+                  2. Flexible Brand Bundle Program (2–4 Items · Save 10%)
+                </h3>
+                <p>
+                  Shoppers may curate bundles of 2 to 4 recipes from your brand catalog with a flat 10% discount. Customers have complete freedom to mix and match flavors from your kitchen.
+                </p>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-1.5">
+                  <ShieldCheck size={16} className="text-forest-800" />
+                  3. Food Safety, Ingredients &amp; FSSAI Licensing
+                </h3>
+                <p>
+                  All sellers must hold an active 14-digit FSSAI license. Pickles must use traditional fermentation, curing, and cold-pressed mustard oil. Chemical preservatives and artificial dyes are prohibited.
+                </p>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm flex items-center gap-1.5">
+                  <Truck size={16} className="text-forest-800" />
+                  4. Air Cargo Packaging &amp; Dispatch SLAs
+                </h3>
+                <p>
+                  Packages must feature leak-proof seals with shock-absorbing bubble wrap. Orders must be packed and ready for courier pickup within <strong>24 to 48 business hours</strong> of notification.
+                </p>
+              </div>
+
+              <div className="p-4 bg-white rounded-2xl border border-stone-200 space-y-2">
+                <h3 className="font-serif font-bold text-stone-900 text-sm">
+                  5. Commercial Terms &amp; Weekly Payout Disbursements
+                </h3>
+                <p>
+                  Platform commission ({commissionRate}%) is deducted upon completed order fulfillment. Weekly net settlements are transferred automatically to your verified bank account via NEFT/RTGS.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-stone-50 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-stone-200 shrink-0">
               <span className="text-[11px] text-stone-500 font-mono">
-                WANGS ARTISAN SELLER POLICY · OCTOBER 2026 EDITION
+                WANGS ARTISAN SELLER POLICY · 2026 EDITION
               </span>
               <div className="flex items-center gap-2">
                 <a
@@ -2832,12 +3143,12 @@ export default function ManufacturerPortalPage() {
                   download="wangs_seller_rules.pdf"
                   className="px-4 py-2 bg-forest-900 hover:bg-forest-950 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-colors"
                 >
-                  <Download size={14} /> Download PDF (16.5 KB)
+                  <Download size={14} /> Download PDF
                 </a>
                 <button
                   type="button"
                   onClick={() => setShowSellerRulesModal(false)}
-                  className="px-4 py-2 bg-white hover:bg-stone-50 border border-stone-300 text-stone-700 font-bold text-xs rounded-xl transition-colors"
+                  className="px-4 py-2 bg-white hover:bg-stone-100 border border-stone-300 text-stone-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
                 >
                   Close Handbook
                 </button>
