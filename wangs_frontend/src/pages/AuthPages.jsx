@@ -14,11 +14,16 @@ export default function AuthPage() {
   // Redirect if already authenticated
   useEffect(() => {
     if (user) {
+      const redirectUrl = searchParams.get('redirect');
+      if (redirectUrl) {
+        navigate(redirectUrl, { replace: true });
+        return;
+      }
       if (user.role === 'ADMIN' || user.is_staff) navigate('/admin', { replace: true });
       else if (user.role === 'MANUFACTURER') navigate('/manufacturer', { replace: true });
       else navigate('/account', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, searchParams]);
 
   const [isLogin, setIsLogin] = useState(searchParams.get('tab') !== 'register');
   const [showForgotPassword, setShowForgotPassword] = useState(searchParams.get('tab') === 'forgot-password');

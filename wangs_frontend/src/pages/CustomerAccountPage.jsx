@@ -169,14 +169,25 @@ export default function CustomerAccountPage() {
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
-      navigate('/login');
+      const params = new URLSearchParams(window.location.search);
+      const unboxingParam = params.get('unboxing') || params.get('token') || params.get('scan');
+      if (unboxingParam) {
+        sessionStorage.setItem('pending_unboxing', unboxingParam);
+        navigate(`/login?redirect=${encodeURIComponent('/account?unboxing=' + unboxingParam)}`);
+      } else {
+        navigate('/login');
+      }
       return;
     }
     loadData();
 
     // Check if landing with an unboxing, scan, or token query param
     const params = new URLSearchParams(window.location.search);
-    const unboxingParam = params.get('unboxing') || params.get('token') || params.get('scan');
+    const storedUnboxing = sessionStorage.getItem('pending_unboxing');
+    if (storedUnboxing) {
+      sessionStorage.removeItem('pending_unboxing');
+    }
+    const unboxingParam = params.get('unboxing') || params.get('token') || params.get('scan') || storedUnboxing;
     if (unboxingParam) {
       setAutoClaimToken(unboxingParam);
       setShowScanModal(true);

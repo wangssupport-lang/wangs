@@ -1513,9 +1513,11 @@ class WangsRewardsSystemTests(TestCase):
             item = CartItem.objects.create(cart=cart, product=p, quantity=qty)
             cart_items.append(item)
 
+        cust_name = customer.get_full_name() if customer else 'Guest Shopper'
+        cust_email = customer.email if customer else 'guest@example.com'
         order = OrderService.create_order_from_cart(
             user=customer,
-            customer_details={'name': customer.get_full_name(), 'email': customer.email, 'phone': '9876543210'},
+            customer_details={'name': cust_name, 'email': cust_email, 'phone': '9876543210'},
             shipping_details={'address_line1': 'Pantry Road', 'city': 'Dimapur', 'state': 'Nagaland', 'postal_code': '797112'},
             cart_items=cart_items,
             payment_method='RAZORPAY_TEST'
@@ -1684,6 +1686,38 @@ class WangsRewardsSystemTests(TestCase):
         wallet = CustomerRewardWallet.objects.get(user=self.customer1)
         self.assertEqual(wallet.balance, 5)
         self.assertEqual(wallet.total_earned, 5)
+
+    def test_parcel_unboxing_qr_one_time_use_and_guest_claim(self):
+        """Parcel QR unboxing can be claimed by customer, awards 1 credit, and cannot be reused"""
+        # Create guest order with no user
+        order = self._create_test_order(None, [(self.product1, 2)])
+        order.customer_email = self.customer1.email
+        order.save(update_fields=['customer_email'])
+
+        self.client.force_authenticate(user=self.customer1)
+        unboxing_url = f"https://wangs.in/account?unboxing={order.order_number}"
+
+        # 1. First scan awards 1 credit
+        resp1 = self.client.post('/api/rewards/scan/', {'token': unboxing_url}, format='json')
+        self.assertEqual(resp1.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp1.data['reward_awarded'])
+        self.assertEqual(resp1.data['credits_awarded'], 1)
+        self.assertEqual(resp1.data['current_balance'], 1)
+
+        wallet = CustomerRewardWallet.objects.get(user=self.customer1)
+        self.assertEqual(wallet.balance, 1)
+
+        # 2. Re-scanning the same parcel QR cannot be used again
+        resp2 = self.client.post('/api/rewards/scan/', {'token': unboxing_url}, format='json')
+        self.assertEqual(resp2.status_code, status.HTTP_200_OK)
+        self.assertTrue(resp2.data['already_claimed'])
+        self.assertFalse(resp2.data['reward_awarded'])
+        self.assertEqual(resp2.data['credits_awarded'], 0)
+        self.assertIn("already been scanned and redeemed", resp2.data['message'])
+
+        # Balance remains 1
+        wallet.refresh_from_db()
+        self.assertEqual(wallet.balance, 1)
 
     def test_checkout_credit_redemption(self):
         """Customer with 5 credits redeems 3 credits at checkout -> ₹3 discount applied and 3 credits deducted"""

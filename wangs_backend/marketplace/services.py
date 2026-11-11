@@ -463,21 +463,31 @@ class RewardService:
             order.save(update_fields=['status', 'updated_at'])
             order.items.all().update(fulfillment_status=OrderItem.FulfillmentStatus.DELIVERED)
 
-        # 3. If Customer QR Scan, update ProductQRCode claimed status
+        # 3. Determine the target customer user to receive the credits
+        if source == DeliveryConfirmation.Source.COURIER:
+            target_customer = order.user or unit.customer
+        else:
+            target_customer = order.user or unit.customer or (confirmed_by_user if (confirmed_by_user and confirmed_by_user.is_authenticated) else None)
+
         if source == DeliveryConfirmation.Source.CUSTOMER_QR and hasattr(unit, 'qr_code'):
             qr = unit.qr_code
             if not qr.is_claimed:
                 qr.is_claimed = True
                 qr.claimed_at = timezone.now()
-                qr.claimed_by = confirmed_by_user if (confirmed_by_user and confirmed_by_user.is_authenticated) else None
+                qr.claimed_by = target_customer
                 qr.save(update_fields=['is_claimed', 'claimed_at', 'claimed_by'])
 
-        # 4. Check if reward was already awarded
-        if unit.reward_awarded:
+        # 4. Check if reward was already awarded and credited
+        has_earned_transaction = RewardTransaction.objects.filter(
+            unit=unit,
+            transaction_type=RewardTransaction.Type.EARN
+        ).exists()
+
+        if (unit.reward_awarded and has_earned_transaction) or (hasattr(unit, 'qr_code') and unit.qr_code.is_claimed and has_earned_transaction):
             unit.save(update_fields=['is_delivered', 'status', 'delivered_at'])
             wallet = None
-            if order.user:
-                wallet, _ = CustomerRewardWallet.objects.get_or_create(user=order.user)
+            if target_customer:
+                wallet = CustomerRewardWallet.objects.filter(user=target_customer).first()
             return {
                 'success': True,
                 'already_claimed': True,
@@ -527,11 +537,18 @@ class RewardService:
 
         # 7. Award 1 Wangs Credit to Customer Wallet
         credits_to_award = reward_settings.credits_per_unit or 1
-        customer_user = order.user
         new_balance = 0
 
-        if customer_user:
-            wallet, _ = CustomerRewardWallet.objects.select_for_update().get_or_create(user=customer_user)
+        if target_customer:
+            # Associate order and unit if guest checkout
+            if not order.user:
+                order.user = target_customer
+                order.save(update_fields=['user', 'updated_at'])
+            if not unit.customer:
+                unit.customer = target_customer
+                unit.save(update_fields=['customer'])
+
+            wallet, _ = CustomerRewardWallet.objects.select_for_update().get_or_create(user=target_customer)
             wallet.balance += credits_to_award
             wallet.total_earned += credits_to_award
             wallet.save(update_fields=['balance', 'total_earned', 'updated_at'])
@@ -540,7 +557,7 @@ class RewardService:
             # Maintain immutable transaction history
             RewardTransaction.objects.create(
                 wallet=wallet,
-                user=customer_user,
+                user=target_customer,
                 transaction_type=RewardTransaction.Type.EARN,
                 credits=credits_to_award,
                 balance_after=new_balance,
@@ -553,6 +570,13 @@ class RewardService:
         unit.reward_awarded = True
         unit.reward_awarded_at = timezone.now()
         unit.save(update_fields=['is_delivered', 'status', 'delivered_at', 'reward_awarded', 'reward_awarded_at'])
+
+        if hasattr(unit, 'qr_code'):
+            qr = unit.qr_code
+            qr.is_claimed = True
+            qr.claimed_at = timezone.now()
+            qr.claimed_by = target_customer
+            qr.save(update_fields=['is_claimed', 'claimed_at', 'claimed_by'])
 
         # If all units in this order are delivered, set order status to DELIVERED
         if not order.units.exclude(id=unit.id).filter(is_delivered=False).exists():
@@ -615,14 +639,32 @@ class RewardService:
                 order = Order.objects.filter(order_number__iexact=order_number).first()
                 if order:
                     RewardService.ensure_order_units_and_qrs(order)
-                    # Find first unclaimed/undelivered unit with a QR code
-                    unclaimed_unit = order.units.select_related('qr_code', 'order', 'customer').filter(is_delivered=False).first()
+
+                    # Check if unboxing reward has already been claimed and credited for this order
+                    has_order_reward_tx = RewardTransaction.objects.filter(order=order, transaction_type=RewardTransaction.Type.EARN).exists()
+
+                    if has_order_reward_tx:
+                        claimed_unit = order.units.filter(qr_code__is_claimed=True).first() or order.units.first()
+                        wallet = CustomerRewardWallet.objects.filter(user=customer_user).first() if (customer_user and customer_user.is_authenticated) else None
+                        return {
+                            'success': True,
+                            'already_claimed': True,
+                            'reward_awarded': False,
+                            'credits_awarded': 0,
+                            'current_balance': wallet.balance if wallet else 0,
+                            'message': 'This parcel QR code has already been scanned and redeemed. Each parcel QR code can only be claimed once.',
+                            'product_name': claimed_unit.product_title if claimed_unit else 'Order Parcel',
+                            'order_number': order.order_number,
+                            'unit_uid': claimed_unit.unit_uid if claimed_unit else '',
+                            'confirmation_source': 'Customer QR Scan'
+                        }
+
+                    # Find first unclaimed unit to claim
+                    unclaimed_unit = order.units.select_related('qr_code', 'order', 'customer').filter(qr_code__is_claimed=False).first()
+                    if not unclaimed_unit:
+                        unclaimed_unit = order.units.select_related('qr_code', 'order', 'customer').first()
                     if unclaimed_unit and hasattr(unclaimed_unit, 'qr_code'):
                         qr = unclaimed_unit.qr_code
-                    else:
-                        first_unit = order.units.select_related('qr_code', 'order', 'customer').first()
-                        if first_unit and hasattr(first_unit, 'qr_code'):
-                            qr = first_unit.qr_code
 
         # 3. If still not found, check for unit UID (WNG-U-...)
         if not qr and 'WNG-U-' in clean_input.upper():
@@ -656,21 +698,44 @@ class RewardService:
         unit = qr.unit
         order = unit.order
 
-        # Ownership verification:
-        # "Verify that the QR code belongs to a product unit purchased by the logged-in customer."
+        # If direct token was already claimed and credited, prevent reuse immediately
+        if qr.is_claimed and RewardTransaction.objects.filter(unit=unit, transaction_type=RewardTransaction.Type.EARN).exists():
+            wallet = CustomerRewardWallet.objects.filter(user=customer_user).first() if (customer_user and customer_user.is_authenticated) else None
+            return {
+                'success': True,
+                'already_claimed': True,
+                'reward_awarded': False,
+                'credits_awarded': 0,
+                'current_balance': wallet.balance if wallet else 0,
+                'message': 'This QR code has already been used. Rewards have already been claimed.',
+                'product_name': unit.product_title,
+                'order_number': order.order_number,
+                'unit_uid': unit.unit_uid,
+                'confirmation_source': unit.get_confirmation_source_display()
+            }
+
+        # Ownership verification with robust phone/email/guest matching
+        def normalize_phone_num(p):
+            if not p:
+                return ''
+            digits = re.sub(r'\D', '', str(p))
+            return digits[-10:] if len(digits) >= 10 else digits
+
         is_owner = False
         if customer_user and customer_user.is_authenticated:
             if unit.customer_id == customer_user.id or order.user_id == customer_user.id:
                 is_owner = True
             elif order.customer_email and customer_user.email and order.customer_email.strip().lower() == customer_user.email.strip().lower():
                 is_owner = True
-            elif order.customer_phone and getattr(customer_user, 'phone_number', None) and order.customer_phone.replace(' ', '').replace('-', '') == customer_user.phone_number.replace(' ', '').replace('-', ''):
+            elif order.customer_phone and getattr(customer_user, 'phone_number', None) and normalize_phone_num(order.customer_phone) == normalize_phone_num(customer_user.phone_number):
                 is_owner = True
-            elif customer_user.is_superuser or customer_user.role == 'ADMIN':
+            elif customer_user.is_superuser or getattr(customer_user, 'role', '') == 'ADMIN':
                 is_owner = True
             elif order.user_id is None:
                 # Guest order being claimed by authenticated customer
                 is_owner = True
+                order.user = customer_user
+                order.save(update_fields=['user', 'updated_at'])
                 unit.customer = customer_user
                 unit.save(update_fields=['customer'])
 
@@ -680,7 +745,7 @@ class RewardService:
                 user=customer_user if (customer_user and customer_user.is_authenticated) else None,
                 ip_address=ip_address,
                 user_agent=user_agent,
-                reason=f"Unauthorized scan: User #{customer_user.id} ({customer_user.email}) attempted to claim unit #{unit.id} owned by User #{order.user_id} ({order.customer_email})"
+                reason=f"Unauthorized scan: User #{customer_user.id if customer_user else 'Anon'} attempted to claim unit #{unit.id}"
             )
             raise PermissionError("This QR code belongs to a product purchased by another customer. Rewards can only be claimed by the purchasing account.")
 

@@ -3,7 +3,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import {
   Camera, QrCode, X, CheckCircle2, AlertCircle, Sparkles,
   ArrowRight, RefreshCw, KeyRound, Check, Gift, Zap, ZapOff,
-  Image as ImageIcon, UploadCloud, RotateCcw
+  Image as ImageIcon, UploadCloud, RotateCcw, Lock, ShieldCheck
 } from 'lucide-react';
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
@@ -329,8 +329,14 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
           {scanResult ? (
             /* Confirmation Screen */
             <div className="text-center space-y-4 py-2">
-              <div className="w-16 h-16 mx-auto rounded-3xl flex items-center justify-center shadow-lg transition-transform animate-in zoom-in-90 bg-emerald-100 text-emerald-700 border-2 border-emerald-300">
-                {scanResult.reward_awarded ? (
+              <div className={`w-16 h-16 mx-auto rounded-3xl flex items-center justify-center shadow-lg transition-transform animate-in zoom-in-90 border-2 ${
+                scanResult.already_claimed
+                  ? 'bg-amber-100 text-amber-800 border-amber-300'
+                  : 'bg-emerald-100 text-emerald-700 border-emerald-300'
+              }`}>
+                {scanResult.already_claimed ? (
+                  <Lock size={32} className="text-amber-800" />
+                ) : scanResult.reward_awarded ? (
                   <Gift size={32} className="text-emerald-700 animate-bounce" />
                 ) : (
                   <CheckCircle2 size={32} className="text-emerald-700" />
@@ -340,11 +346,14 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
               <div className="space-y-1.5">
                 {scanResult.already_claimed ? (
                   <>
-                    <h4 className="font-serif font-bold text-lg text-amber-900">
-                      Already Redeemed
+                    <div className="inline-block px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black uppercase tracking-wider">
+                      One-Time Use Only
+                    </div>
+                    <h4 className="font-serif font-bold text-lg text-amber-950">
+                      QR Code Already Claimed &amp; Used
                     </h4>
-                    <p className="text-xs font-semibold text-stone-700 bg-amber-50 border border-amber-200 rounded-xl p-3">
-                      This QR code has already been confirmed. Rewards have already been credited to your wallet.
+                    <p className="text-xs font-semibold text-stone-700 bg-amber-50 border border-amber-200 rounded-xl p-3 leading-relaxed">
+                      {scanResult.message || 'This QR code has already been scanned and redeemed. Each package QR code can only be used once.'}
                     </p>
                   </>
                 ) : (
@@ -397,7 +406,7 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
                   onClick={handleReset}
                   className="flex-1 py-2.5 px-4 bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold rounded-xl text-xs transition-colors cursor-pointer"
                 >
-                  Scan Another Jar
+                  Scan Another Package
                 </button>
                 <button
                   type="button"
@@ -407,6 +416,26 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
                   Done
                 </button>
               </div>
+            </div>
+          ) : !user ? (
+            /* Unauthenticated Prompt */
+            <div className="p-6 bg-stone-50 border border-stone-200 rounded-2xl text-center space-y-4">
+              <div className="w-14 h-14 mx-auto rounded-2xl bg-forest-100 text-forest-900 flex items-center justify-center border border-forest-200">
+                <Lock size={26} />
+              </div>
+              <div className="space-y-1">
+                <h4 className="font-serif font-bold text-lg text-stone-900">Sign in to Claim Reward</h4>
+                <p className="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
+                  Please sign in with your Wangs account so we can credit 1 Wangs Credit to your rewards balance.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => requireAuth(() => {}, 'claim your delivery reward')}
+                className="w-full py-3 px-4 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition-all"
+              >
+                Sign In / Register to Claim
+              </button>
             </div>
           ) : (
             /* Active Scanner or Manual Form */
