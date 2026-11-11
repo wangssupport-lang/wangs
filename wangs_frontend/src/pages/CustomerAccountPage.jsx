@@ -245,6 +245,8 @@ export default function CustomerAccountPage() {
   const pendingUnitsCount = rewardWallet?.pending_confirmations_count ?? rewardWallet?.pending_units_count ?? 0;
   const purchasedUnitsList = rewardWallet?.purchased_units || rewardWallet?.wallet?.purchased_units || [];
   const transactionsList = rewardWallet?.transactions || rewardWallet?.recent_transactions || rewardWallet?.wallet?.recent_transactions || rewardWallet?.wallet?.transactions || [];
+  const creditRate = rewardWallet?.credit_value_rupees ? parseFloat(rewardWallet.credit_value_rupees) : (rewardWallet?.settings?.credit_value_rupees ? parseFloat(rewardWallet.settings.credit_value_rupees) : 0.10);
+  const equivalentRupees = (availableCredits * creditRate).toFixed(2);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -944,7 +946,7 @@ export default function CustomerAccountPage() {
                         <span className="text-lg font-bold text-amber-400">Credits</span>
                       </div>
                       <span className="text-xs text-stone-400 mt-1 block">
-                        Worth ₹{availableCredits}.00 instant discount on checkout (1 Credit = ₹1)
+                        Worth ₹{equivalentRupees} instant discount on checkout (10 Credits = ₹1)
                       </span>
                     </div>
                   </div>

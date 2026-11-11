@@ -26,7 +26,7 @@ export default function AdminRewardsTab() {
   // Settings State
   const [settingsForm, setSettingsForm] = useState({
     is_active: true,
-    monetary_value_per_credit_inr: '1.00',
+    monetary_value_per_credit_inr: '0.10',
     max_redemption_percentage: 100,
     min_order_value_to_redeem: '0.00',
     award_credits_on_credit_portion: false,
@@ -65,8 +65,8 @@ export default function AdminRewardsTab() {
       setOverview(ov);
       if (ov?.settings) {
         setSettingsForm({
-          is_active: ov.settings.is_active,
-          monetary_value_per_credit_inr: ov.settings.monetary_value_per_credit_inr,
+          is_active: ov.settings.is_active ?? ov.settings.is_enabled ?? true,
+          monetary_value_per_credit_inr: ov.settings.monetary_value_per_credit_inr ?? ov.settings.credit_value_rupees ?? '0.10',
           max_redemption_percentage: ov.settings.max_redemption_percentage,
           min_order_value_to_redeem: ov.settings.min_order_value_to_redeem,
           award_credits_on_credit_portion: ov.settings.award_credits_on_credit_portion,
@@ -207,7 +207,7 @@ export default function AdminRewardsTab() {
                 </span>
               </div>
               <p className="text-xs text-stone-400 mt-0.5">
-                Cryptographically secure QR codes per product unit · Dual-method delivery verification · 1 Credit = ₹1.00 checkout discount
+                Cryptographically secure QR codes per product unit · Dual-method delivery verification · 10 Credits = ₹1.00 checkout discount
               </p>
             </div>
           </div>
@@ -230,9 +230,11 @@ export default function AdminRewardsTab() {
           <div className="bg-stone-800/80 p-4 rounded-2xl border border-stone-700/60 space-y-1">
             <span className="text-[10px] uppercase font-bold text-stone-400 tracking-wider block">Total Credits Issued</span>
             <span className="font-serif font-black text-2xl text-emerald-400 block">
-              {overview?.stats?.total_credits_earned || 0}
+              {overview?.stats?.total_credits_earned || overview?.metrics?.total_credits_earned || 0}
             </span>
-            <span className="text-[10px] text-stone-400 block">Worth ₹{overview?.stats?.total_credits_earned || 0}</span>
+            <span className="text-[10px] text-stone-400 block">
+              Worth ₹{(((overview?.stats?.total_credits_earned || overview?.metrics?.total_credits_earned || 0) * (parseFloat(settingsForm.monetary_value_per_credit_inr) || 0.10))).toFixed(2)}
+            </span>
           </div>
 
           <div className="bg-stone-800/80 p-4 rounded-2xl border border-stone-700/60 space-y-1">
@@ -523,7 +525,7 @@ export default function AdminRewardsTab() {
                   onChange={(e) => setSettingsForm({ ...settingsForm, monetary_value_per_credit_inr: e.target.value })}
                   className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-bold text-stone-900 focus:outline-none focus:ring-1 focus:ring-stone-900"
                 />
-                <span className="text-[10px] text-stone-400 mt-1 block">Default: ₹1.00 per credit</span>
+                <span className="text-[10px] text-stone-400 mt-1 block">Default: ₹0.10 per credit (10 Credits = ₹1.00)</span>
               </div>
 
               <div>

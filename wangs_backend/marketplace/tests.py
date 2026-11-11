@@ -1439,7 +1439,7 @@ class WangsRewardsSystemTests(TestCase):
         )
         self.reward_settings = RewardSettings.get_settings()
         self.reward_settings.is_enabled = True
-        self.reward_settings.credit_value_rupees = Decimal('1.00')
+        self.reward_settings.credit_value_rupees = Decimal('0.10')
         self.reward_settings.credits_per_unit = 1
         self.reward_settings.save()
 
@@ -1720,9 +1720,9 @@ class WangsRewardsSystemTests(TestCase):
         self.assertEqual(wallet.balance, 1)
 
     def test_checkout_credit_redemption(self):
-        """Customer with 5 credits redeems 3 credits at checkout -> ₹3 discount applied and 3 credits deducted"""
+        """Customer with 50 credits redeems 30 credits at checkout (10 credits = ₹1) -> ₹3 discount applied and 30 credits deducted"""
         wallet = CustomerRewardWallet.objects.create(
-            user=self.customer1, balance=5, total_earned=5, total_redeemed=0
+            user=self.customer1, balance=50, total_earned=50, total_redeemed=0
         )
 
         cart = Cart.objects.create(user=self.customer1)
@@ -1733,10 +1733,10 @@ class WangsRewardsSystemTests(TestCase):
             customer_details={'name': 'Shopper One', 'email': self.customer1.email, 'phone': '9876543210'},
             shipping_details={'address_line1': 'Pantry Road', 'city': 'Dimapur', 'state': 'Nagaland', 'postal_code': '797112'},
             cart_items=[item],
-            credits_to_redeem=3
+            credits_to_redeem=30
         )
 
-        self.assertEqual(order.credits_redeemed, 3)
+        self.assertEqual(order.credits_redeemed, 30)
         self.assertEqual(order.credit_discount_amount, Decimal('3.00'))
 
         # Expected total: items_subtotal (250) + platform_fee (5) + delivery (0 free) - credit_discount (3) = 252.00
@@ -1744,12 +1744,12 @@ class WangsRewardsSystemTests(TestCase):
         self.assertEqual(order.total_amount, expected_total)
 
         wallet.refresh_from_db()
-        self.assertEqual(wallet.balance, 2)
-        self.assertEqual(wallet.total_redeemed, 3)
+        self.assertEqual(wallet.balance, 20)
+        self.assertEqual(wallet.total_redeemed, 30)
 
         redeem_tx = RewardTransaction.objects.filter(user=self.customer1, transaction_type='REDEEM').first()
         self.assertIsNotNone(redeem_tx)
-        self.assertEqual(redeem_tx.credits, -3)
+        self.assertEqual(redeem_tx.credits, -30)
 
     def test_admin_manual_balance_adjustment(self):
         """Admin can manually adjust wallet balance with audit reason"""

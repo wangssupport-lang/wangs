@@ -1252,10 +1252,16 @@ class StorefrontNoticeSerializer(serializers.ModelSerializer):
 
 
 class RewardSettingsSerializer(serializers.ModelSerializer):
+    monetary_value_per_credit_inr = serializers.DecimalField(
+        source='credit_value_rupees', max_digits=6, decimal_places=2, required=False
+    )
+    is_active = serializers.BooleanField(source='is_enabled', required=False)
+
     class Meta:
         model = RewardSettings
         fields = [
-            'id', 'is_enabled', 'credit_value_rupees', 'credits_per_unit',
+            'id', 'is_enabled', 'is_active', 'credit_value_rupees',
+            'monetary_value_per_credit_inr', 'credits_per_unit',
             'max_redemption_percentage', 'max_credits_per_order', 'updated_at'
         ]
 
@@ -1298,7 +1304,7 @@ class CustomerRewardWalletSerializer(serializers.ModelSerializer):
 
     def get_monetary_value(self, obj):
         rate = RewardSettings.get_settings().credit_value_rupees
-        return Decimal(str(obj.balance)) * rate
+        return (Decimal(str(obj.balance)) * rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 
     def get_recent_transactions(self, obj):
         txs = obj.transactions.all()[:50]

@@ -785,8 +785,8 @@ class RewardSettings(models.Model):
     credit_value_rupees = models.DecimalField(
         max_digits=6,
         decimal_places=2,
-        default=Decimal('1.00'),
-        help_text="Monetary value in ₹ per 1 Wangs Credit (default ₹1.00)"
+        default=Decimal('0.10'),
+        help_text="Monetary value in ₹ per 1 Wangs Credit (default ₹0.10, i.e. 10 credits = ₹1.00)"
     )
     credits_per_unit = models.PositiveIntegerField(
         default=1,
@@ -814,7 +814,7 @@ class RewardSettings(models.Model):
         return setting
 
     def __str__(self):
-        return f"Reward Settings (1 Credit = ₹{self.credit_value_rupees}, Enabled: {self.is_enabled})"
+        return f"Reward Settings (10 Credits = ₹{self.credit_value_rupees * 10}, Enabled: {self.is_enabled})"
 
 
 class CustomerRewardWallet(models.Model):

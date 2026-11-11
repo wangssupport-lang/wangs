@@ -163,10 +163,11 @@ export default function CheckoutPage() {
 
   const rawTotal = parseFloat(summary.total_amount) || 0;
   const availableCredits = rewardWallet?.available_credits ?? rewardWallet?.balance ?? rewardWallet?.wallet?.balance ?? 0;
-  const maxRedeemableCredits = Math.min(availableCredits, Math.floor(rawTotal));
+  const creditRate = rewardWallet?.credit_value_rupees ? parseFloat(rewardWallet.credit_value_rupees) : (rewardWallet?.settings?.credit_value_rupees ? parseFloat(rewardWallet.settings.credit_value_rupees) : 0.10);
+  const maxRedeemableCredits = Math.min(availableCredits, Math.floor(rawTotal / (creditRate || 0.10)));
   const safeCreditsToRedeem = Math.min(Math.max(0, parseInt(creditsToRedeem, 10) || 0), maxRedeemableCredits);
-  const creditDiscount = safeCreditsToRedeem * 1;
-  const finalPayableAmount = Math.max(0, rawTotal - creditDiscount);
+  const creditDiscount = Number((safeCreditsToRedeem * creditRate).toFixed(2));
+  const finalPayableAmount = Math.max(0, Number((rawTotal - creditDiscount).toFixed(2)));
 
   if (!items.length && !pendingOrder) {
     return (
@@ -456,7 +457,7 @@ export default function CheckoutPage() {
                         Redeem Wangs Rewards Credits
                       </h3>
                       <p className="text-[11px] text-stone-500">
-                        Use your earned credits for an instant discount (1 Credit = ₹1).
+                        Use your earned credits for an instant discount (10 Credits = ₹1).
                       </p>
                     </div>
                   </div>
@@ -506,7 +507,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-stone-600 bg-white/70 p-3 rounded-xl border border-amber-100">
-                    <span>Maximum redeemable: <strong>{maxRedeemableCredits} Credits</strong></span>
+                    <span>Maximum redeemable: <strong>{maxRedeemableCredits} Credits (₹{(maxRedeemableCredits * creditRate).toFixed(2)})</strong></span>
                     {safeCreditsToRedeem > 0 && (
                       <span className="font-bold text-emerald-700">
                         Discount Applied: -₹{creditDiscount.toFixed(2)}
