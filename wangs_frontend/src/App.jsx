@@ -19,13 +19,54 @@ import OrderSuccessPage from './pages/OrderSuccessPage';
 import AuthPage from './pages/AuthPages';
 import MaintenancePage from './pages/MaintenancePage';
 
-const CheckoutPage = React.lazy(() => import('./pages/CheckoutPage'));
-const CustomerAccountPage = React.lazy(() => import('./pages/CustomerAccountPage'));
-const ManufacturerPortalPage = React.lazy(() => import('./pages/ManufacturerPortalPage'));
-const ManufacturerRegisterPage = React.lazy(() => import('./pages/ManufacturerRegisterPage'));
-const AdminDashboardPage = React.lazy(() => import('./pages/AdminDashboardPage'));
-const DeliveryPage = React.lazy(() => import('./pages/DeliveryPage'));
-const RewardsScanPage = React.lazy(() => import('./pages/RewardsScanPage'));
+// Auto-recovery wrapper for lazy loaded routes when new deployments change bundle hashes
+function lazyWithRetry(componentImport) {
+  return React.lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      const msg = String(error?.message || error || '');
+      const isChunkError =
+        msg.includes('dynamically imported module') ||
+        msg.includes('Loading chunk') ||
+        msg.includes('Failed to fetch') ||
+        msg.includes('error loading dynamically imported module');
+
+      if (isChunkError && typeof window !== 'undefined') {
+        const lastReload = window.sessionStorage.getItem('wangs_chunk_reload');
+        const now = Date.now();
+        // Reload once if we haven't reloaded in the last 10 seconds
+        if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+          window.sessionStorage.setItem('wangs_chunk_reload', String(now));
+          window.location.reload();
+          return new Promise(() => {}); // Hold until reload
+        }
+      }
+      throw error;
+    }
+  });
+}
+
+// Global Vite preload error listener for seamless background refresh upon new version
+if (typeof window !== 'undefined') {
+  window.addEventListener('vite:preloadError', (event) => {
+    event.preventDefault();
+    const lastReload = window.sessionStorage.getItem('wangs_preload_reload');
+    const now = Date.now();
+    if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+      window.sessionStorage.setItem('wangs_preload_reload', String(now));
+      window.location.reload();
+    }
+  });
+}
+
+const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage'));
+const CustomerAccountPage = lazyWithRetry(() => import('./pages/CustomerAccountPage'));
+const ManufacturerPortalPage = lazyWithRetry(() => import('./pages/ManufacturerPortalPage'));
+const ManufacturerRegisterPage = lazyWithRetry(() => import('./pages/ManufacturerRegisterPage'));
+const AdminDashboardPage = lazyWithRetry(() => import('./pages/AdminDashboardPage'));
+const DeliveryPage = lazyWithRetry(() => import('./pages/DeliveryPage'));
+const RewardsScanPage = lazyWithRetry(() => import('./pages/RewardsScanPage'));
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -152,41 +193,53 @@ class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     console.error('Unhandled app error:', error, errorInfo);
+    const msg = String(error?.message || error || '');
+    const isChunkError =
+      msg.includes('dynamically imported module') ||
+      msg.includes('Loading chunk') ||
+      msg.includes('Failed to fetch') ||
+      msg.includes('error loading dynamically imported module');
+
+    // Automatic silent reload for chunk/cache mismatches after new deployments
+    if (isChunkError && typeof window !== 'undefined') {
+      const lastReload = window.sessionStorage.getItem('wangs_boundary_reload');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 8000) {
+        window.sessionStorage.setItem('wangs_boundary_reload', String(now));
+        window.location.reload();
+      }
+    }
   }
 
   render() {
     if (this.state.hasError) {
       return (
         <div className="min-h-[70vh] flex items-center justify-center px-4 py-16 bg-cream-50 text-center">
-          <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-stone-200 shadow-xl space-y-4">
-            <h2 className="font-serif text-xl font-bold text-stone-900">Something went wrong</h2>
-            <p className="text-xs text-stone-500">
-              An unexpected error occurred while loading this view. You can refresh or return to the storefront.
+          <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-stone-200/90 shadow-xl space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-100 text-amber-900 flex items-center justify-center">
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </div>
+            <h2 className="font-serif text-xl font-bold text-stone-900">Please Reload to Continue</h2>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              Wangs has recently updated. Please refresh your browser window to load the latest marketplace view.
             </p>
-            {this.state.error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-left overflow-auto max-h-48">
-                <p className="text-[11px] font-mono font-bold text-red-700 break-words">
-                  {this.state.error?.message || String(this.state.error)}
-                </p>
-                {this.state.error?.stack && (
-                  <pre className="text-[9px] font-mono text-red-600/80 mt-1 whitespace-pre-wrap">
-                    {this.state.error.stack.split('\n').slice(0, 4).join('\n')}
-                  </pre>
-                )}
-              </div>
-            )}
-            <div className="flex gap-2 justify-center pt-2">
+            <div className="flex gap-2.5 justify-center pt-2">
               <button
-                onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow cursor-pointer transition-colors"
+                onClick={() => {
+                  this.setState({ hasError: false, error: null });
+                  window.location.reload();
+                }}
+                className="px-5 py-2.5 bg-forest-900 hover:bg-forest-950 text-white rounded-xl text-xs font-bold shadow transition-colors cursor-pointer"
               >
                 Reload View
               </button>
               <a
                 href="/"
-                className="px-4 py-2 bg-stone-100 text-stone-700 rounded-xl text-xs font-bold border border-stone-200 cursor-pointer"
+                className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs font-bold border border-stone-200 transition-colors cursor-pointer"
               >
-                Home
+                Storefront
               </a>
             </div>
           </div>
