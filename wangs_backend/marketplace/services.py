@@ -24,7 +24,7 @@ def quantize_amount(val):
 
 class FinancialCalculator:
     @staticmethod
-    def calculate_order_financials(cart_items, coupon=None, commission_setting=None):
+    def calculate_order_financials(cart_items, coupon=None, commission_setting=None, shipping_details=None, requested_method=None):
         """
         Computes the complete, validated breakdown according to Wangs financial rules:
         - items_subtotal = sum(product.price * qty)
@@ -93,9 +93,21 @@ class FinancialCalculator:
         # Platform fee
         platform_fee = quantize_amount(commission_setting.customer_platform_fee)
 
-        # Delivery fee: Zero customer delivery charge (Nationwide Free Delivery for all customers)
-        # Logistics is built into seller's listing price equation (Base + Commission + Delivery = Customer Price)
+        # Delivery fee calculation via DeliveryCalculator if destination provided
+        shipping_quote = None
         delivery_fee = Decimal('0.00')
+        if shipping_details and shipping_details.get('postal_code'):
+            from .delivery_service import DeliveryCalculator
+            shipping_quote = DeliveryCalculator.calculate_delivery_quote(
+                cart_items=cart_items,
+                postal_code=shipping_details.get('postal_code'),
+                city=shipping_details.get('city', ''),
+                state=shipping_details.get('state', ''),
+                requested_method=requested_method
+            )
+            if not shipping_quote['is_deliverable']:
+                raise ValueError(shipping_quote.get('error_message') or 'Delivery not available for this location')
+            delivery_fee = quantize_amount(Decimal(str(shipping_quote['total_delivery_fee'])))
 
         total_amount = quantize_amount(items_subtotal - discount_amount + platform_fee + delivery_fee)
 
@@ -108,13 +120,14 @@ class FinancialCalculator:
             'platform_commission_total': platform_commission_total,
             'manufacturer_payout_total': manufacturer_payout_total,
             'lines': line_breakdowns,
+            'shipping_quote': shipping_quote,
         }
 
 
 class OrderService:
     @staticmethod
     @transaction.atomic
-    def create_order_from_cart(user, customer_details, shipping_details, cart_items, coupon=None, payment_method='RAZORPAY_TEST', credits_to_redeem=0):
+    def create_order_from_cart(user, customer_details, shipping_details, cart_items, coupon=None, payment_method='RAZORPAY_TEST', credits_to_redeem=0, requested_method=None):
         """
         Atomically validates stock, computes financials, applies Wangs Rewards credits,
         deducts stock, saves immutable snapshots of Order and OrderItems, and generates
@@ -129,7 +142,21 @@ class OrderService:
                 raise ValueError(f"Insufficient stock for '{product.title}'. Only {product.stock_quantity} left in stock.")
 
         commission_setting = CommissionSetting.get_current()
-        calc = FinancialCalculator.calculate_order_financials(cart_items, coupon, commission_setting)
+        calc = FinancialCalculator.calculate_order_financials(
+            cart_items=cart_items,
+            coupon=coupon,
+            commission_setting=commission_setting,
+            shipping_details=shipping_details,
+            requested_method=requested_method or shipping_details.get('delivery_method')
+        )
+
+        shipping_quote = calc.get('shipping_quote') or {}
+        breakdown_items = shipping_quote.get('fulfillment_breakdown') or []
+        primary_courier = breakdown_items[0].get('courier_name') if breakdown_items else 'SwiftZone Express'
+        applied_rate_id = breakdown_items[0].get('rate_id') if breakdown_items else None
+        estimated_delivery = shipping_quote.get('estimated_delivery') or '1–2 Business Days'
+        package_count = shipping_quote.get('total_packages', 1)
+        selected_method_name = shipping_details.get('delivery_method') or (breakdown_items[0].get('delivery_method_display') if breakdown_items else 'Standard Delivery')
 
         # Wangs Rewards: Credit Redemption at checkout
         credit_discount = Decimal('0.00')
@@ -139,10 +166,6 @@ class OrderService:
             reward_settings = RewardSettings.get_settings()
             if reward_settings.is_enabled:
                 wallet, _ = CustomerRewardWallet.objects.select_for_update().get_or_create(user=user)
-                # Maximum credits redeemable cannot exceed:
-                # 1. user's current wallet balance
-                # 2. configured max_credits_per_order
-                # 3. max order value allowed by max_redemption_percentage
                 max_rupees_discount = (calc['total_amount'] * Decimal(str(reward_settings.max_redemption_percentage))) / Decimal('100.00')
                 max_credits_from_total = int(max_rupees_discount / reward_settings.credit_value_rupees)
 
@@ -184,6 +207,12 @@ class OrderService:
             status=Order.Status.PENDING,
             payment_status=Order.PaymentStatus.PENDING,
             payment_method=payment_method,
+            courier_partner=primary_courier,
+            shipping_rate_id=applied_rate_id,
+            shipping_delivery_method=selected_method_name,
+            shipping_estimated_delivery=estimated_delivery,
+            shipping_package_count=package_count,
+            shipping_breakdown=shipping_quote,
         )
 
         for line in calc['lines']:

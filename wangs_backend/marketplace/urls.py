@@ -27,7 +27,16 @@ from .views import (
     AdminRewardOverviewView, AdminRewardQRListView, AdminRewardPrintLabelsView,
     AdminRewardSettingsView, AdminRewardRevokeQRView, AdminRewardAdjustBalanceView,
     AdminRewardSuspiciousLogsView, AdminRewardExportTransactionsView,
-    PublicCommunityReviewsView
+    PublicCommunityReviewsView,
+    CheckoutShippingQuoteView,
+    AdminDeliveryOverviewView, AdminCourierServiceListCreateView, AdminCourierServiceDetailView,
+    AdminDeliveryZoneListCreateView, AdminDeliveryZoneDetailView,
+    AdminDeliveryRateListCreateView, AdminDeliveryRateDetailView,
+    AdminDeliveryRateToggleLockView, AdminDeliveryRateApproveView,
+    AdminApplyPresetsView, AdminShippingPromotionListCreateView,
+    AdminShippingPromotionDetailView, AdminToggleMfgRateApprovalRequirementView,
+    ManufacturerDeliveryRateListCreateView, ManufacturerDeliveryRateDetailView,
+    ManufacturerDeliveryQuotePreviewView, ManufacturerShippingHistoryView
 )
 
 router = DefaultRouter()
@@ -67,6 +76,7 @@ urlpatterns = [
     # Cart & Checkout
     path('cart/', CartView.as_view(), name='cart'),
     path('checkout/quote/', CheckoutQuoteView.as_view(), name='checkout-quote'),
+    path('checkout/shipping-quote/', CheckoutShippingQuoteView.as_view(), name='checkout-shipping-quote'),
     path('checkout/create-order/', CreateOrderView.as_view(), name='create-order'),
     path('payments/verify/', VerifyPaymentView.as_view(), name='payment-verify'),
     path('orders/lookup/<str:order_number>/', OrderLookupView.as_view(), name='order-lookup'),
@@ -93,12 +103,31 @@ urlpatterns = [
     path('admin/couriers/<int:pk>/suspend/', AdminCourierSuspendView.as_view(), name='admin-couriers-suspend'),
     path('admin/couriers/<int:pk>/reactivate/', AdminCourierReactivateView.as_view(), name='admin-couriers-reactivate'),
     path('admin/couriers/<int:pk>/assign-order/', AdminCourierAssignOrderView.as_view(), name='admin-couriers-assign-order'),
-    
-    # Manufacturer Portal
+
+    # Admin Delivery & Shipping Management
+    path('admin/delivery/overview/', AdminDeliveryOverviewView.as_view(), name='admin-delivery-overview'),
+    path('admin/delivery/couriers/', AdminCourierServiceListCreateView.as_view(), name='admin-delivery-couriers'),
+    path('admin/delivery/couriers/<int:pk>/', AdminCourierServiceDetailView.as_view(), name='admin-delivery-courier-detail'),
+    path('admin/delivery/zones/', AdminDeliveryZoneListCreateView.as_view(), name='admin-delivery-zones'),
+    path('admin/delivery/zones/<int:pk>/', AdminDeliveryZoneDetailView.as_view(), name='admin-delivery-zone-detail'),
+    path('admin/delivery/rates/', AdminDeliveryRateListCreateView.as_view(), name='admin-delivery-rates'),
+    path('admin/delivery/rates/<int:pk>/', AdminDeliveryRateDetailView.as_view(), name='admin-delivery-rate-detail'),
+    path('admin/delivery/rates/<int:pk>/toggle-lock/', AdminDeliveryRateToggleLockView.as_view(), name='admin-delivery-rate-toggle-lock'),
+    path('admin/delivery/rates/<int:pk>/approve/', AdminDeliveryRateApproveView.as_view(), name='admin-delivery-rate-approve'),
+    path('admin/delivery/presets/apply/', AdminApplyPresetsView.as_view(), name='admin-delivery-apply-presets'),
+    path('admin/delivery/promotions/', AdminShippingPromotionListCreateView.as_view(), name='admin-delivery-promotions'),
+    path('admin/delivery/promotions/<int:pk>/', AdminShippingPromotionDetailView.as_view(), name='admin-delivery-promotion-detail'),
+    path('admin/delivery/toggle-mfg-approval/', AdminToggleMfgRateApprovalRequirementView.as_view(), name='admin-delivery-toggle-mfg-approval'),
+
+    # Manufacturer Portal & Delivery Management
     path('manufacturer/register/', ManufacturerRegisterView.as_view(), name='mfg-register'),
     path('manufacturer/profile/', ManufacturerProfileView.as_view(), name='mfg-profile'),
     path('manufacturer/orders/', ManufacturerOrdersView.as_view(), name='mfg-orders'),
     path('manufacturer/financials/', ManufacturerFinancialsView.as_view(), name='mfg-financials'),
+    path('manufacturer/delivery/rates/', ManufacturerDeliveryRateListCreateView.as_view(), name='mfg-delivery-rates'),
+    path('manufacturer/delivery/rates/<int:pk>/', ManufacturerDeliveryRateDetailView.as_view(), name='mfg-delivery-rate-detail'),
+    path('manufacturer/delivery/quote-preview/', ManufacturerDeliveryQuotePreviewView.as_view(), name='mfg-delivery-quote-preview'),
+    path('manufacturer/delivery/shipping-history/', ManufacturerShippingHistoryView.as_view(), name='mfg-delivery-shipping-history'),
     path('seller/rules-pdf/', SellerRulesPDFView.as_view(), name='seller-rules-pdf'),
     
     # Platform Settings & Maintenance

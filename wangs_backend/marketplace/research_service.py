@@ -455,7 +455,7 @@ def generate_research_pdf():
     kpis = [
         ("TOTAL REGISTERED USERS", str(stats['total_users']), f"{stats['total_customers']} Shoppers"),
         ("APPROVED ARTISAN SELLERS", str(stats['total_approved_sellers']), f"{stats['total_sellers_registered']} Total Applicants"),
-        ("ACTIVE CATALOG PRODUCTS", str(stats['total_active_products']), f"{stats['total_products']} Jars Cataloged"),
+        ("ACTIVE CATALOG PRODUCTS", str(stats['total_active_products']), f"{stats['total_products']} Products Cataloged"),
         ("TOTAL MARKETPLACE GMV", f"Rs. {int(stats['total_gmv']):,}", f"AOV: Rs. {int(stats['avg_customer_spend'])}"),
     ]
 
@@ -601,7 +601,7 @@ def generate_research_pdf():
     canvas.text(160, y - 13, 'F2', 8, "District / State", r=1, g=1, b=1)
     canvas.text(260, y - 13, 'F2', 8, "FSSAI License", r=1, g=1, b=1)
     canvas.text(355, y - 13, 'F2', 8, "Status", r=1, g=1, b=1)
-    canvas.text(410, y - 13, 'F2', 8, "Live Jars", r=1, g=1, b=1)
+    canvas.text(410, y - 13, 'F2', 8, "Live Products", r=1, g=1, b=1)
     canvas.text(470, y - 13, 'F2', 8, "Dispatched (GMV)", r=1, g=1, b=1)
     y -= 19
 
@@ -621,7 +621,7 @@ def generate_research_pdf():
 
         canvas.text(355, y - 14, 'F2', 7.5, s['status'], r=0.1 if s['status'] == 'APPROVED' else 0.7, g=0.45 if s['status'] == 'APPROVED' else 0.3, b=0.1)
         canvas.text(410, y - 14, 'F1', 8, f"{s['active_products_count']} active ({s['products_count']})", r=0.2, g=0.2, b=0.2)
-        canvas.text(470, y - 14, 'F2', 8, f"{s['units_sold']} jars (Rs. {int(s['revenue']):,})", r=0.06, g=0.25, b=0.12)
+        canvas.text(470, y - 14, 'F2', 8, f"{s['units_sold']} units (Rs. {int(s['revenue']):,})", r=0.06, g=0.25, b=0.12)
 
         y -= row_h
         if y < 65:
@@ -669,7 +669,7 @@ def generate_research_pdf():
 
         stars_txt = f"{p['avg_rating']}★ ({p['reviews_count']})"
         canvas.text(405, y - 14, 'F2', 8, stars_txt, r=0.8, g=0.5, b=0.05)
-        canvas.text(470, y - 14, 'F2', 8, f"{p['units_sold']} jars (Rs. {int(p['revenue']):,})", r=0.06, g=0.25, b=0.12)
+        canvas.text(470, y - 14, 'F2', 8, f"{p['units_sold']} units (Rs. {int(p['revenue']):,})", r=0.06, g=0.25, b=0.12)
 
         y -= row_h
         if y < 65:

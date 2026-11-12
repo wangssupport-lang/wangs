@@ -81,7 +81,7 @@ const getShipmentMilestones = (order) => {
       detail: 'Online order paid and artisan seller notified for batch preparation.'
     },
     {
-      stage: 'Artisan Batch Preparation & Jar Sealing',
+      stage: 'Artisan Batch Preparation & Package Sealing',
       location: 'Artisan Workshop & Packing Hub, Regional Heritage Facility',
       time: `${orderDateStr}, Afternoon`,
       status: 'completed',
@@ -636,7 +636,7 @@ export default function CustomerAccountPage() {
                                     {item.fulfillment_status}
                                   </span>
                                 </div>
-                                <p className="text-stone-500 text-[11px]">{item.weight_grams}g jar · Quantity: {item.quantity}</p>
+                                <p className="text-stone-500 text-[11px]">{item.weight_grams}g pack · Quantity: {item.quantity}</p>
                               </div>
                               <span className="font-bold text-stone-900 font-mono">₹{parseFloat(item.subtotal).toFixed(2)}</span>
                             </div>
@@ -993,7 +993,7 @@ export default function CustomerAccountPage() {
                       <span>Purchased Product Units &amp; Delivery Confirmation</span>
                     </h3>
                     <p className="text-stone-500 text-[11px] mt-0.5">
-                      Every individual jar unit receives a unique QR code. Confirmation by customer QR scan or courier awards 1 credit.
+                      Every individual product unit receives a unique QR code. Confirmation by customer QR scan or courier awards 1 credit.
                     </p>
                   </div>
                   <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2.5 py-1 rounded-full">

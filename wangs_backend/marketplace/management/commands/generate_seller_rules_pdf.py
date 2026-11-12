@@ -185,7 +185,7 @@ def generate_seller_rules_pdf():
     canvas.rect(45, 715, 505, 85, fill=True, stroke=True)
 
     canvas.text(60, 775, 'F2', 17, "Artisan Seller Policy & Compliance Handbook", 0.086, 0.220, 0.173)
-    canvas.text(60, 757, 'F1', 10.5, "Standard Operating Procedures, Multi-Jar Bundles, Packaging & Regulatory SLAs", 0.35, 0.35, 0.35)
+    canvas.text(60, 757, 'F1', 10.5, "Standard Operating Procedures, Multi-Pack Bundles, Packaging & Regulatory SLAs", 0.35, 0.35, 0.35)
     canvas.text(60, 730, 'F2', 8.5, "APPLICABLE TO: All Verified Regional Food Producers & Handcrafted Pickle Brands", 0.851, 0.467, 0.024)
     canvas.text(370, 730, 'F1', 8.5, "Effective Date: October 2026 | Platform Edition", 0.4, 0.4, 0.4)
 
@@ -223,10 +223,10 @@ def generate_seller_rules_pdf():
 
     rule_bullets = [
         ("Same Brand Only:", "Bundles are formed exclusively from items belonging to your brand catalog. Cross-brand mixing is not permitted in brand bundles."),
-        ("Flexible 2 to 4 Jars Limit:", "Customers have full flexibility to cut (remove) or add recipes from your brand. The bundle size is strictly bounded between a minimum of 2 jars and a maximum of 4 jars."),
+        ("Flexible 2 to 4 Items Limit:", "Customers have full flexibility to cut (remove) or add recipes from your brand. The bundle size is strictly bounded between a minimum of 2 items and a maximum of 4 items."),
         ("Flat 10% Bundle Discount:", "When a customer selects between 2 and 4 items from your brand, an automated 10% discount is applied across the combined subtotal at checkout."),
         ("Catalog Depth Requirement:", "Sellers are strongly advised to keep at least 2 to 4 complementary recipes active in stock so customers can enjoy full bundle customization."),
-        ("Packaging Incentive:", "All 2-4 jar bundles automatically qualify for priority cushioned packaging and subsidized nationwide express air cargo dispatch.")
+        ("Packaging Incentive:", "All 2-4 item bundles automatically qualify for priority cushioned packaging and subsidized nationwide express air cargo dispatch.")
     ]
 
     for title, desc in rule_bullets:
@@ -252,10 +252,10 @@ def generate_seller_rules_pdf():
 
     # Table Rows
     rows = [
-        ("Duo Bundle (2 Jars)", "Any 2 recipes from same brand", "Flat 10% OFF Subtotal", "Doubles average order volume"),
-        ("Tasting Trio (3 Jars)", "Any 3 recipes from same brand", "Flat 10% OFF Subtotal", "Triples recipe discovery"),
-        ("Family Pack (4 Jars - Max)", "Any 4 recipes from same brand", "Flat 10% OFF Subtotal", "Maximum basket size & repeat loyalty"),
-        ("Single Jar (1 Jar)", "Individual jar purchase", "0% (Full Margin)", "Standard retail margin baseline")
+        ("Duo Bundle (2 Packs)", "Any 2 recipes from same brand", "Flat 10% OFF Subtotal", "Doubles average order volume"),
+        ("Tasting Trio (3 Packs)", "Any 3 recipes from same brand", "Flat 10% OFF Subtotal", "Triples recipe discovery"),
+        ("Family Pack (4 Packs - Max)", "Any 4 recipes from same brand", "Flat 10% OFF Subtotal", "Maximum basket size & repeat loyalty"),
+        ("Single Pack (1 Unit)", "Individual item purchase", "0% (Full Margin)", "Standard retail margin baseline")
     ]
 
     for idx, (col1, col2, col3, col4) in enumerate(rows):
@@ -269,7 +269,7 @@ def generate_seller_rules_pdf():
         y -= 16
 
     y -= 10
-    canvas.text(45, y, 'F3', 8, "* Note: Bundle discount is restricted strictly to 2-4 items. Single jars do not qualify for bundle discount.", 0.45, 0.45, 0.45)
+    canvas.text(45, y, 'F3', 8, "* Note: Bundle discount is restricted strictly to 2-4 items. Single units do not qualify for bundle discount.", 0.45, 0.45, 0.45)
 
     # ==========================================
     # PAGE 2: COMPLIANCE, QUALITY & PACKAGING
@@ -309,7 +309,7 @@ def generate_seller_rules_pdf():
 
     fssai_points = [
         "Maintain active, unexpired FSSAI registration throughout the listing lifecycle.",
-        "Print the official 14-digit FSSAI registration number and logo prominently on every product jar label.",
+        "Print the official 14-digit FSSAI registration number and logo prominently on every product container label.",
         "Provide clear batch numbers, manufacturing dates, and Best-Before dates (minimum 6 months shelf life).",
         "Disclose mandatory allergen advisories (mustard seeds, crustacean prawn, soy, or fish extracts)."
     ]
@@ -325,7 +325,7 @@ def generate_seller_rules_pdf():
     y -= 18
 
     p5 = (
-        "Because Wangs ships handcrafted glass pickle jars nationwide via express air cargo, package integrity "
+        "Because Wangs ships handcrafted glass pickle containers nationwide via express air cargo, package integrity "
         "is critical to eliminate transit breakage and oil leakage. Sellers must adhere to the following dispatch standards:"
     )
     y = canvas.paragraph(45, y, p5, 'F1', 9.5, 13.5, 505, 0.2, 0.2, 0.2)
@@ -338,13 +338,13 @@ def generate_seller_rules_pdf():
     canvas.rect(45, y - 110, 505, 110, fill=True, stroke=True)
 
     py = y - 16
-    canvas.text(60, py, 'F2', 10, "GLASS JAR PACKAGING & DISPATCH REQUIREMENTS", 0.086, 0.220, 0.173)
+    canvas.text(60, py, 'F2', 10, "GLASS CONTAINER PACKAGING & DISPATCH REQUIREMENTS", 0.086, 0.220, 0.173)
     py -= 16
 
     pack_specs = [
-        ("Induction / Foil Sealing:", "Every glass jar must feature an airtight induction foil seal or shrink-wrapped neck cap to prevent oil seepage under cargo air pressure changes."),
-        ("Multi-Layer Cushioning:", "Wrap individual jars in minimum 3 layers of 10mm bubble wrap or honeycomb paper cushioning prior to boxing."),
-        ("Multi-Jar Divider Cartons:", "Bundles of 2 to 4 jars must utilize corrugated divider inserts separating each jar by at least 15mm of cushioned barrier."),
+        ("Induction / Foil Sealing:", "Every glass container must feature an airtight induction foil seal or shrink-wrapped neck cap to prevent oil seepage under cargo air pressure changes."),
+        ("Multi-Layer Cushioning:", "Wrap individual containers in minimum 3 layers of 10mm bubble wrap or honeycomb paper cushioning prior to boxing."),
+        ("Multi-Unit Divider Cartons:", "Bundles of 2 to 4 units must utilize corrugated divider inserts separating each container by at least 15mm of cushioned barrier."),
         ("Fulfillment SLA (24-48 Hours):", "Orders must be packaged, labeled with Wangs cargo slips, and ready for courier pickup within 24-48 business hours of order placement.")
     ]
 

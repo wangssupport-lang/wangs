@@ -15,6 +15,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import AdminRewardsTab from '../components/AdminRewardsTab';
 import AdminCouriersTab from '../components/AdminCouriersTab';
+import AdminDeliveryTab from '../components/AdminDeliveryTab';
 
 const extractList = (data) => {
   if (!data) return [];
@@ -131,16 +132,16 @@ const MarketplaceVolumeStatsChart = React.memo(function MarketplaceVolumeStatsCh
   const [hoveredPointIdx, setHoveredPointIdx] = useState(null);
 
   // Determine active metric series
-  let series1Label = 'Delivered / Ordered Jars';
+  let series1Label = 'Delivered / Ordered Units';
   let series2Label = 'Paid Orders';
-  let getSeries1Val = (p) => p.jarsCount;
+  let getSeries1Val = (p) => p.unitsCount;
   let getSeries2Val = (p) => p.paidOrdersCount;
   let isCurrency = false;
 
   if (chartMetric === 'orders') {
-    series1Label = 'Ordered Jars';
+    series1Label = 'Ordered Units';
     series2Label = 'Paid Orders';
-    getSeries1Val = (p) => p.jarsCount;
+    getSeries1Val = (p) => p.unitsCount;
     getSeries2Val = (p) => p.paidOrdersCount;
     isCurrency = false;
   } else if (chartMetric === 'revenue') {
@@ -206,7 +207,7 @@ const MarketplaceVolumeStatsChart = React.memo(function MarketplaceVolumeStatsCh
   const activePoint = realChartData[activeIdx] || realChartData[0] || {};
 
   const tooltipText = chartMetric === 'orders'
-    ? `${activePoint.paidOrdersCount || 0} Orders | ${activePoint.jarsCount || 0} Jars`
+    ? `${activePoint.paidOrdersCount || 0} Orders | ${activePoint.unitsCount || 0} Units`
     : chartMetric === 'revenue'
     ? `₹${(activePoint.gmv || 0).toLocaleString('en-IN')} GMV | ₹${(activePoint.platformRev || 0).toLocaleString('en-IN')} Fee`
     : `${activePoint.inflowCount || 0} Producers | ${activePoint.userSignupsCount || 0} Users`;
@@ -223,7 +224,7 @@ const MarketplaceVolumeStatsChart = React.memo(function MarketplaceVolumeStatsCh
             Marketplace Volume Stats
           </h3>
           <p className="text-xs text-slate-500">
-            {chartMetric === 'orders' && 'Real-time order volume and jars fulfilled across all brand sellers'}
+            {chartMetric === 'orders' && 'Real-time order volume and units fulfilled across all brand sellers'}
             {chartMetric === 'revenue' && 'Real transaction gross merchandise value and net platform fees'}
             {chartMetric === 'inflow' && 'Real producer onboarding velocity and customer registration inflow'}
           </p>
@@ -442,6 +443,7 @@ const tabTitles = {
   orders: 'Orders Management',
   rewards: 'Wangs Rewards Loyalty',
   couriers: 'Couriers & Delivery Fleet',
+  shipping_delivery: 'Shipping & Delivery Management',
   notices: 'Notice Ribbon Announcements',
   banners: 'Hero Promo Banners',
   categories: 'Catalog Categories',
@@ -537,7 +539,7 @@ export default function AdminDashboardPage() {
   const [editingBannerId, setEditingBannerId] = useState(null);
   const [bannerForm, setBannerForm] = useState({
     title: 'The Great Achar Season',
-    subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.',
+    subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.',
     badge_text: 'FRESH BATCH LIVE',
     coupon_code: 'ACHAR15',
     cta_text: 'Shop Now',
@@ -1139,7 +1141,7 @@ export default function AdminDashboardPage() {
     setBannerImagePreview('');
     setBannerForm({
       title: 'The Great Achar Season',
-      subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.',
+      subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.',
       badge_text: 'FRESH BATCH LIVE',
       coupon_code: 'ACHAR15',
       cta_text: 'Shop Now',
@@ -1512,8 +1514,8 @@ export default function AdminDashboardPage() {
     return totalQty >= 2 || items.some((i) => (i.quantity || 1) >= 2);
   });
   const adminBundlePercentage = ordersList.length > 0 ? Math.round((adminBundleOrders.length / ordersList.length) * 100) : 0;
-  const adminTotalJars = ordersList.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.quantity || 1), 0), 0);
-  const adminAvgBasketSize = ordersList.length > 0 && adminTotalJars > 0 ? (adminTotalJars / ordersList.length).toFixed(1) : '0.0';
+  const adminTotalUnits = ordersList.reduce((sum, o) => sum + (o.items || []).reduce((s, i) => s + (i.quantity || 1), 0), 0);
+  const adminAvgBasketSize = ordersList.length > 0 && adminTotalUnits > 0 ? (adminTotalUnits / ordersList.length).toFixed(1) : '0.0';
   const totalOrdersCount = Number(metrics?.total_orders ?? ordersList.length);
   const deliveredOrdersCount = Number(metrics?.delivered_orders ?? ordersList.filter((o) => o.status === 'DELIVERED').length);
   const adminDeliveryRate = totalOrdersCount > 0
@@ -1570,11 +1572,11 @@ export default function AdminDashboardPage() {
       const bPaidOrders = bOrders.filter((o) => o.payment_status === 'PAID');
       const bDeliveredOrders = bOrders.filter((o) => o.status === 'DELIVERED');
 
-      const jarsInOrders = bOrders.reduce((sum, o) => {
+      const unitsInOrders = bOrders.reduce((sum, o) => {
         return sum + (o.items || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0);
       }, 0);
 
-      const deliveredJars = bDeliveredOrders.reduce((sum, o) => {
+      const deliveredUnits = bDeliveredOrders.reduce((sum, o) => {
         return sum + (o.items || []).reduce((s, it) => s + (Number(it.quantity) || 1), 0);
       }, 0);
 
@@ -1610,8 +1612,8 @@ export default function AdminDashboardPage() {
         ordersCount: bOrders.length,
         paidOrdersCount: bPaidOrders.length,
         deliveredOrdersCount: bDeliveredOrders.length,
-        jarsCount: jarsInOrders,
-        deliveredJarsCount: deliveredJars,
+        unitsCount: unitsInOrders,
+        deliveredUnitsCount: deliveredUnits,
         gmv: Math.round(gmv * 100) / 100,
         platformRev: Math.round(platformRev * 100) / 100,
         inflowCount: bMfgs,
@@ -1628,8 +1630,8 @@ export default function AdminDashboardPage() {
         ordersCount: item.orders_count || 0,
         paidOrdersCount: item.paid_orders_count || 0,
         deliveredOrdersCount: item.delivered_orders_count || 0,
-        jarsCount: item.total_jars || 0,
-        deliveredJarsCount: item.delivered_jars || 0,
+        unitsCount: item.total_units || 0,
+        deliveredUnitsCount: item.delivered_units || 0,
         gmv: item.gmv || 0,
         platformRev: item.platform_revenue || 0,
         inflowCount: item.producer_inflow || 0,
@@ -1818,6 +1820,11 @@ export default function AdminDashboardPage() {
           count: couriersList.length,
           badge: pendingCouriers.length,
           isAlert: pendingCouriers.length > 0
+        },
+        {
+          id: 'shipping_delivery',
+          label: 'Shipping & Delivery',
+          icon: Package,
         }
       ]
     },
@@ -2124,7 +2131,7 @@ export default function AdminDashboardPage() {
                           <strong className="text-purple-900">{d.business_name || notif.username}</strong> uploaded recipe: <span className="text-emerald-950 font-black">"{d.product_title}"</span>
                         </p>
                         <p className="text-[11px] text-stone-600">
-                          Customer Price: <span className="font-bold text-purple-900">₹{d.price}</span> (Base Payout: ₹{d.base_price}) · Stock: <span className="font-bold text-stone-800">{d.stock_quantity}</span> jars · Category: {d.category} · Time: {new Date(notif.created_at).toLocaleString()}
+                          Customer Price: <span className="font-bold text-purple-900">₹{d.price}</span> (Base Payout: ₹{d.base_price}) · Stock: <span className="font-bold text-stone-800">{d.stock_quantity}</span> units · Category: {d.category} · Time: {new Date(notif.created_at).toLocaleString()}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -2241,7 +2248,7 @@ export default function AdminDashboardPage() {
               </h2>
               <p className="text-[11px] text-emerald-100/90 mt-2 flex items-center gap-1.5">
                 <Sparkles size={12} className="text-amber-300" />
-                <span>{metrics?.total_items_sold_all_sellers || adminTotalJars} jars across India</span>
+                <span>{metrics?.total_items_sold_all_sellers || adminTotalUnits} units across India</span>
               </p>
             </div>
 
@@ -2258,7 +2265,7 @@ export default function AdminDashboardPage() {
                   Verified
                 </span>
               </div>
-              <p className="text-xs font-semibold text-lime-100 uppercase tracking-wider">Active Brands & Jars</p>
+              <p className="text-xs font-semibold text-lime-100 uppercase tracking-wider">Active Brands & Catalog</p>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mt-1 text-white">
                 {metrics?.active_manufacturers ?? manufacturersList.length}
               </h2>
@@ -2331,7 +2338,7 @@ export default function AdminDashboardPage() {
                   <div className="text-sm font-black text-purple-600">
                     {adminBundlePercentage}%
                   </div>
-                  <div className="text-[10px] font-semibold text-slate-500">Multi-Jars</div>
+                  <div className="text-[10px] font-semibold text-slate-500">Multi-Pack</div>
                 </div>
                 <div>
                   <div className="text-sm font-black text-amber-600">
@@ -2471,7 +2478,7 @@ export default function AdminDashboardPage() {
               <div className="bg-forest-900/80 p-3.5 rounded-2xl border border-forest-800/80">
                 <span className="text-forest-300 text-[11px] block">Total Items Sold (All Sellers)</span>
                 <span className="text-xl font-bold text-amber-300 mt-0.5 block">{metrics?.total_items_sold_all_sellers || 0}</span>
-                <span className="text-[10px] text-stone-400">Jars sold across marketplace</span>
+                <span className="text-[10px] text-stone-400">Units sold across marketplace</span>
               </div>
             </div>
           </div>
@@ -2755,7 +2762,7 @@ export default function AdminDashboardPage() {
 
             <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
               <span className="text-xs text-slate-500 font-medium">Total Items Sold</span>
-              <p className="text-2xl font-serif font-bold text-slate-900 mt-1">{metrics?.total_items_sold_all_sellers || 0} jars</p>
+              <p className="text-2xl font-serif font-bold text-slate-900 mt-1">{metrics?.total_items_sold_all_sellers || 0} units</p>
               <span className="text-[10px] text-amber-600 font-medium">Across all artisan categories</span>
             </div>
 
@@ -2799,19 +2806,19 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
               <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200/80 space-y-1">
-                <span className="text-purple-900 font-bold block">Bundle Orders (2+ Jars)</span>
+                <span className="text-purple-900 font-bold block">Bundle Orders (2+ Units)</span>
                 <p className="text-2xl font-serif font-black text-purple-950 mt-1">
                   {adminBundleOrders.length} <span className="text-xs font-sans font-normal text-purple-700">({adminBundlePercentage}%)</span>
                 </p>
-                <p className="text-[11px] text-purple-800">Orders containing multiple jars or curated bundles</p>
+                <p className="text-[11px] text-purple-800">Orders containing multiple units or curated bundles</p>
               </div>
 
               <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200/80 space-y-1">
                 <span className="text-amber-900 font-bold block">Average Basket Size</span>
                 <p className="text-2xl font-serif font-black text-amber-950 mt-1">
-                  {adminAvgBasketSize} <span className="text-xs font-sans font-normal text-amber-700">jars/order</span>
+                  {adminAvgBasketSize} <span className="text-xs font-sans font-normal text-amber-700">units/order</span>
                 </p>
-                <p className="text-[11px] text-amber-800">+42% volume uplift vs single-jar baseline</p>
+                <p className="text-[11px] text-amber-800">+42% volume uplift vs single-unit baseline</p>
               </div>
 
               <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200/80 space-y-1">
@@ -3182,7 +3189,7 @@ export default function AdminDashboardPage() {
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="e.g. Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars."
+                      placeholder="e.g. Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels."
                       value={bannerForm.subtitle}
                       onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
                       className="w-full px-3 py-2 border border-stone-300 rounded-lg text-xs focus:ring-1 focus:ring-forest-800"
@@ -5181,7 +5188,7 @@ export default function AdminDashboardPage() {
                   <span>Seller Authorization Inbound Requests ({sellerRequests.length})</span>
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Prospective producers requesting permission to list jars on Wangs
+                  Prospective producers requesting permission to list products on Wangs
                 </p>
               </div>
             </div>
@@ -5314,7 +5321,7 @@ export default function AdminDashboardPage() {
             </div>
             <div className="bg-forest-900 text-white p-4 rounded-xl border border-forest-800 shadow-xs">
               <span className="text-cream-300 block">Total Items Sold (All Sellers)</span>
-              <span className="text-xl font-bold text-white mt-0.5 block">{metrics?.total_items_sold_all_sellers || 0} jars</span>
+              <span className="text-xl font-bold text-white mt-0.5 block">{metrics?.total_items_sold_all_sellers || 0} units</span>
               <span className="text-[10px] text-amber-300 font-medium">Total volume sold</span>
             </div>
             <div className="bg-white p-4 rounded-xl border border-stone-200 shadow-xs">
@@ -5460,7 +5467,7 @@ export default function AdminDashboardPage() {
                           <span className="text-[10px] text-emerald-700 font-semibold">{m.active_products_count || 0} active in catalog</span>
                         </td>
                         <td className="p-3.5">
-                          <span className="font-bold text-purple-950 block">{m.total_items_sold || 0} jars</span>
+                          <span className="font-bold text-purple-950 block">{m.total_items_sold || 0} units</span>
                           <span className="text-[10px] text-slate-500">items sold</span>
                         </td>
                         <td className="p-3.5">
@@ -5660,7 +5667,7 @@ export default function AdminDashboardPage() {
                           const isBundle = totalJars >= 2 || ordItems.some((i) => (i.quantity || 1) >= 2);
                           return isBundle ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5">
-                              <Sparkles size={9} /> Bundle ({totalJars} jars)
+                              <Sparkles size={9} /> Bundle ({totalJars} units)
                             </span>
                           ) : null;
                         })()}
@@ -5718,6 +5725,9 @@ export default function AdminDashboardPage() {
 
       {/* Tab: Courier Fleet Management */}
       {activeTab === 'couriers' && <AdminCouriersTab />}
+
+      {/* Tab: Shipping & Delivery Management */}
+      {activeTab === 'shipping_delivery' && <AdminDeliveryTab toast={toast} />}
 
       {/* Tab 5: Commission & Fee Management */}
       {activeTab === 'commission' && (
@@ -5858,7 +5868,7 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900">Tier 1: Single Jar</span>
+                  <span className="font-bold text-stone-900">Tier 1: Single Unit</span>
                   <span className="text-[10px] font-mono bg-white px-2 py-0.5 rounded border border-stone-200">0% Discount</span>
                 </div>
                 <p className="text-stone-600 text-[11px] leading-relaxed">
@@ -5868,7 +5878,7 @@ export default function AdminDashboardPage() {
 
               <div className="p-4 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900">Tier 2: Flexible Brand Bundle (2–4 Jars)</span>
+                  <span className="font-bold text-stone-900">Tier 2: Flexible Brand Bundle (2–4 Units)</span>
                   <span className="text-[10px] font-mono bg-amber-500 text-stone-950 font-bold px-2 py-0.5 rounded">10% Bundle OFF</span>
                 </div>
                 <p className="text-stone-700 text-[11px] leading-relaxed">
@@ -5878,11 +5888,11 @@ export default function AdminDashboardPage() {
 
               <div className="p-4 bg-purple-50/70 rounded-xl border border-purple-200 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-stone-900">Tier 3: Multi-Jar Cargo Care</span>
+                  <span className="font-bold text-stone-900">Tier 3: Multi-Unit Cargo Care</span>
                   <span className="text-[10px] font-mono bg-purple-700 text-white font-bold px-2 py-0.5 rounded">All Bundles</span>
                 </div>
                 <p className="text-stone-700 text-[11px] leading-relaxed">
-                  Shock-proof insulated packaging and air cargo dispatch automatically applied across all verified multi-jar bundles.
+                  Shock-proof insulated packaging and air cargo dispatch automatically applied across all verified multi-unit bundles.
                 </p>
               </div>
             </div>
@@ -6063,11 +6073,11 @@ export default function AdminDashboardPage() {
                     Artisan Seller Ecosystem
                   </h3>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Audits verified regional food producers, FSSAI regulatory compliance, active jar catalog depth, units dispatched, and gross earnings.
+                    Audits verified regional food producers, FSSAI regulatory compliance, active product catalog depth, units dispatched, and gross earnings.
                   </p>
                 </div>
                 <div className="p-3 bg-stone-50 rounded-xl border border-stone-100 text-[11px] text-stone-600 space-y-1">
-                  <p>• <strong>Included Fields:</strong> Brand Name, District, FSSAI Number, Status, Verification, Active Jars, Units Sold, Gross GMV.</p>
+                  <p>• <strong>Included Fields:</strong> Brand Name, District, FSSAI Number, Status, Verification, Active Products, Units Sold, Gross GMV.</p>
                   <p>• <strong>Current Records:</strong> {manufacturersList.length} producer profiles.</p>
                 </div>
               </div>
@@ -6905,7 +6915,7 @@ export default function AdminDashboardPage() {
             <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-red-900 text-xs space-y-1">
               <p className="font-bold">Target Account: {banModalUser.first_name || banModalUser.username} ({banModalUser.email})</p>
               <p className="text-[11px] text-red-700">
-                Account Role: <strong>{banModalUser.role}</strong>. Banning will immediately block login access, invalidate active sessions, and automatically hide any listed jars if this user is a seller.
+                Account Role: <strong>{banModalUser.role}</strong>. Banning will immediately block login access, invalidate active sessions, and automatically hide any listed products if this user is a seller.
               </p>
             </div>
 

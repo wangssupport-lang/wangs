@@ -640,7 +640,7 @@ export default function AdminRewardsTab() {
               <textarea
                 rows={3}
                 required
-                placeholder="Describe why this correction was made (e.g. Customer support goodwill for damaged jar transit delay)..."
+                placeholder="Describe why this correction was made (e.g. Customer support goodwill for damaged item transit delay)..."
                 value={adjustForm.audit_reason}
                 onChange={(e) => setAdjustForm({ ...adjustForm, audit_reason: e.target.value })}
                 className="w-full p-3 bg-stone-50 border border-stone-200 rounded-xl font-medium focus:outline-none focus:ring-1 focus:ring-stone-900"
@@ -840,7 +840,7 @@ export default function AdminRewardsTab() {
                 required
                 value={revokeReason}
                 onChange={(e) => setRevokeReason(e.target.value)}
-                placeholder="e.g. Broken jar in transit, order cancelled, packaging re-print..."
+                placeholder="e.g. Damaged packaging in transit, order cancelled, packaging re-print..."
                 className="w-full p-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-red-600"
               />
             </div>

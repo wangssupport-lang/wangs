@@ -249,7 +249,7 @@ export default function RewardsScanPage() {
 
             <div className="space-y-1.5">
               <h2 className="font-serif font-bold text-xl text-stone-900">
-                Ready to Scan Your Jar?
+                Ready to Scan Your Product?
               </h2>
               <p className="text-xs text-stone-500 max-w-sm mx-auto">
                 Open your device camera or enter the QR code manually to confirm delivery and earn 1 Wangs Credit per unit.

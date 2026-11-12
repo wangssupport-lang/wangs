@@ -32,7 +32,7 @@ function ProductCard({ product }) {
         try {
           await addToCart(product.id, 1);
           setAdded(true);
-          toast.success(`Added ${product.title} to Jar Bag`);
+          toast.success(`Added ${product.title} to Bag`);
           setTimeout(() => setAdded(false), 1500);
         } catch (err) {
           toast.error(err.message || 'Could not add to cart');
@@ -47,7 +47,7 @@ function ProductCard({ product }) {
     try {
       await addToCart(product.id, 1);
       setAdded(true);
-      toast.success(`Added ${product.title} to Jar Bag`);
+      toast.success(`Added ${product.title} to Bag`);
       setTimeout(() => setAdded(false), 1500);
     } catch (err) {
       toast.error(err.message || 'Could not add to cart');
@@ -112,7 +112,7 @@ function ProductCard({ product }) {
 
   const brandName = product.manufacturer?.business_name || product.brand?.name || 'Heritage Kitchen';
   const provenance = product.origin_district || product.origin_state || product.manufacturer?.location_district || 'Sun-Cured Terroir';
-  const weightText = product.weight_grams ? `${product.weight_grams}g` : '350g Jar';
+  const weightText = product.weight_grams ? `${product.weight_grams}g` : '350g Pack';
 
   // Heat meter representation
   const spiceRating = product.heat_level || (product.spice_level ? String(product.spice_level) : 'MEDIUM');
@@ -224,7 +224,7 @@ function ProductCard({ product }) {
               <span>Small Batch Cure</span>
             </span>
             <span className="font-semibold text-outline truncate">
-              {product.weight_grams ? `${product.weight_grams}g Jar` : 'Glass Jar'}
+              {product.weight_grams ? `${product.weight_grams}g Pack` : 'Glass Container'}
             </span>
           </div>
 
@@ -280,7 +280,7 @@ function ProductCard({ product }) {
             {added ? (
               <>
                 <Check size={17} />
-                <span>Added to Jar Bag</span>
+                <span>Added to Bag</span>
               </>
             ) : adding ? (
               <span className="animate-pulse">Adding...</span>

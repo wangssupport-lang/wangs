@@ -398,12 +398,12 @@ export default function ProductListPage() {
                 <div className="space-y-1.5">
                   <h3 className="font-serif font-bold text-lg sm:text-xl text-on-surface">
                     {categoryParam
-                      ? 'Fresh Batches Curing in Earthenware Jars'
+                      ? 'Fresh Batches Curing in Traditional Vessels'
                       : 'No matching pickles found'}
                   </h3>
                   <p className="text-xs text-on-surface-variant max-w-md mx-auto leading-relaxed">
                     {categoryParam
-                      ? 'Our artisan kitchens are currently curing small-batches for this collection. In the meantime, discover all available heirloom jars ready for dispatch across India below!'
+                      ? 'Our artisan kitchens are currently curing small-batches for this collection. In the meantime, discover all available heirloom recipes ready for dispatch across India below!'
                       : 'Try clearing selected spice or dietary filters to view all handcrafted items.'}
                   </p>
                 </div>

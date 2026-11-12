@@ -26,7 +26,7 @@ DEFAULT_STOREFRONT_NOTICES = [
         "is_active": True,
     },
     {
-        "text": "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week",
+        "text": "Over 1,480+ heirloom packs cured & dispatched to connoisseurs across India this week",
         "highlight": "High Demand",
         "badge_color": "bg-white/20 text-white border border-white/30",
         "link": "/products",

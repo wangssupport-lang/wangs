@@ -1325,7 +1325,7 @@ export default function ManufacturerRegisterPage() {
                   <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-start gap-2.5">
                     <ShieldCheck size={18} className="text-emerald-600 shrink-0 mt-0.5" />
                     <div className="text-[11px] text-stone-600 leading-relaxed">
-                      <strong className="text-stone-900">100% Authentic Curation Guarantee:</strong> All jars sold under your label are dispatched with food-grade sealing and batch testing compliance.
+                      <strong className="text-stone-900">100% Authentic Curation Guarantee:</strong> All products sold under your label are dispatched with food-grade sealing and batch testing compliance.
                     </div>
                   </div>
 
@@ -1363,7 +1363,7 @@ export default function ManufacturerRegisterPage() {
                   <div className="p-3.5 bg-amber-50/70 border border-amber-200 rounded-xl text-stone-700">
                     <p className="font-semibold text-stone-900">Step 3: Payout Settlement & Bank Passbook Verification</p>
                     <p className="text-[11px] text-stone-500 mt-0.5">
-                      Weekly earnings from your sold jars are directly transferred via NEFT/RTGS into this verified account.
+                      Weekly earnings from your sold products are directly transferred via NEFT/RTGS into this verified account.
                     </p>
                   </div>
 

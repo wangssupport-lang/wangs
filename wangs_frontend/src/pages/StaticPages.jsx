@@ -41,7 +41,7 @@ export function AboutPage() {
         <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30 text-xs sm:text-sm space-y-3">
           <h3 className="font-serif font-bold text-base text-on-surface">Marketplace Standards</h3>
           <p>
-            Wangs provides direct nationwide logistics, transparent 0% seller commission for early artisanal partners, and tamper-evident packaging for certified artisanal food entrepreneurs. Every glass jar is sealed with food-grade safety film and shipped via zero-leak express logistics.
+            Wangs provides direct nationwide logistics, transparent 0% seller commission for early artisanal partners, and tamper-evident packaging for certified artisanal food entrepreneurs. Every container is sealed with food-grade safety film and shipped via zero-leak express logistics.
           </p>
         </div>
       </div>
@@ -100,7 +100,7 @@ export function ShippingPage() {
       <h1 className="font-serif text-3xl font-bold text-stone-900">Shipping & Delivery Policy</h1>
       <div className="space-y-4">
         <p>
-          Our artisanal pickles are prepared in small batches and securely packed in tempered glass jars. To ensure maximum freshness and prevent oil seepage, all glass jars are bubble-wrapped, sealed in food-grade shrink wrap, and packed in reinforced corrugated shipping boxes.
+          Our artisanal pickles are prepared in small batches and securely packed in tempered glass containers. To ensure maximum freshness and prevent oil seepage, all glass containers are bubble-wrapped, sealed in food-grade shrink wrap, and packed in reinforced corrugated shipping boxes.
         </p>
         <div className="bg-cream-100 p-5 rounded-xl border border-stone-200 space-y-2">
           <h3 className="font-bold text-stone-900 text-sm">Estimated Delivery Timelines:</h3>
@@ -191,7 +191,7 @@ export function RefundsPage() {
             <ul className="space-y-2 text-xs text-stone-600">
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
-                <span><strong>Severe Transit Breakage:</strong> Glass jar or vacuum pouch arrived cracked, broken, or crushed during courier transport.</span>
+                <span><strong>Severe Transit Breakage:</strong> Glass container or vacuum pouch arrived cracked, broken, or crushed during courier transport.</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check size={14} className="text-emerald-600 shrink-0 mt-0.5" />
@@ -252,7 +252,7 @@ export function RefundsPage() {
             <strong>Manufacturer Decision:</strong> The manufacturer reviews the genuine evidence and decides whether to approve a refund or dispatch an immediate replacement.
           </li>
           <li>
-            <strong>Resolution Execution:</strong> If the manufacturer authorizes the refund, the amount is credited directly to your original payment method (reflecting in 5–7 banking days). If the manufacturer authorizes a replacement, a fresh jar is dispatched at zero cost.
+            <strong>Resolution Execution:</strong> If the manufacturer authorizes the refund, the amount is credited directly to your original payment method (reflecting in 5–7 banking days). If the manufacturer authorizes a replacement, a fresh item is dispatched at zero cost.
           </li>
         </ol>
       </div>

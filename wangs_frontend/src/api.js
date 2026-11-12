@@ -457,5 +457,38 @@ export const api = {
   deleteAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/`, { method: 'DELETE' }),
   toggleAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/toggle_active/`, { method: 'POST' }),
   resetAdminStorefrontNotices: () => apiRequest('/admin/storefront-notices/reset_defaults/', { method: 'POST' }),
+
+  // Delivery & Shipping Management System
+  getShippingQuote: (params) => apiRequest('/checkout/shipping-quote/', { method: 'POST', body: JSON.stringify(params) }),
+  getAdminDeliveryOverview: () => apiRequest('/admin/delivery/overview/'),
+  getAdminCouriers: () => apiRequest('/admin/delivery/couriers/'),
+  createAdminCourier: (body) => apiRequest('/admin/delivery/couriers/', { method: 'POST', body: JSON.stringify(body) }),
+  updateAdminCourier: (id, body) => apiRequest(`/admin/delivery/couriers/${id}/`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteAdminCourier: (id) => apiRequest(`/admin/delivery/couriers/${id}/`, { method: 'DELETE' }),
+  getAdminDeliveryZones: () => apiRequest('/admin/delivery/zones/'),
+  createAdminDeliveryZone: (body) => apiRequest('/admin/delivery/zones/', { method: 'POST', body: JSON.stringify(body) }),
+  updateAdminDeliveryZone: (id, body) => apiRequest(`/admin/delivery/zones/${id}/`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteAdminDeliveryZone: (id) => apiRequest(`/admin/delivery/zones/${id}/`, { method: 'DELETE' }),
+  getAdminDeliveryRates: (params) => apiRequest('/admin/delivery/rates/' + (params ? '?' + new URLSearchParams(params).toString() : '')),
+  createAdminDeliveryRate: (body) => apiRequest('/admin/delivery/rates/', { method: 'POST', body: JSON.stringify(body) }),
+  updateAdminDeliveryRate: (id, body) => apiRequest(`/admin/delivery/rates/${id}/`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteAdminDeliveryRate: (id) => apiRequest(`/admin/delivery/rates/${id}/`, { method: 'DELETE' }),
+  toggleLockAdminDeliveryRate: (id) => apiRequest(`/admin/delivery/rates/${id}/toggle-lock/`, { method: 'POST' }),
+  approveAdminDeliveryRate: (id, body) => apiRequest(`/admin/delivery/rates/${id}/approve/`, { method: 'POST', body: JSON.stringify(body) }),
+  applyAdminDeliveryPresets: (activate = true) => apiRequest('/admin/delivery/presets/apply/', { method: 'POST', body: JSON.stringify({ activate }) }),
+  getAdminShippingPromotions: () => apiRequest('/admin/delivery/promotions/'),
+  createAdminShippingPromotion: (body) => apiRequest('/admin/delivery/promotions/', { method: 'POST', body: JSON.stringify(body) }),
+  updateAdminShippingPromotion: (id, body) => apiRequest(`/admin/delivery/promotions/${id}/`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteAdminShippingPromotion: (id) => apiRequest(`/admin/delivery/promotions/${id}/`, { method: 'DELETE' }),
+  toggleAdminMfgRateApproval: () => apiRequest('/admin/delivery/toggle-mfg-approval/', { method: 'POST' }),
+
+  // Manufacturer Delivery Management
+  getManufacturerDeliveryRates: () => apiRequest('/manufacturer/delivery/rates/'),
+  createManufacturerDeliveryRate: (body) => apiRequest('/manufacturer/delivery/rates/', { method: 'POST', body: JSON.stringify(body) }),
+  updateManufacturerDeliveryRate: (id, body) => apiRequest(`/manufacturer/delivery/rates/${id}/`, { method: 'PUT', body: JSON.stringify(body) }),
+  deleteManufacturerDeliveryRate: (id) => apiRequest(`/manufacturer/delivery/rates/${id}/`, { method: 'DELETE' }),
+  previewManufacturerDeliveryQuote: (body) => apiRequest('/manufacturer/delivery/quote-preview/', { method: 'POST', body: JSON.stringify(body) }),
+  getManufacturerShippingHistory: () => apiRequest('/manufacturer/delivery/shipping-history/'),
+
   refreshToken: (refresh) => apiRequest('/auth/token/refresh/', { method: 'POST', body: JSON.stringify({ refresh }) }),
 };

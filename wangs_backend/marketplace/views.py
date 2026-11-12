@@ -29,7 +29,8 @@ from .models import (
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
     ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner, StorefrontNotice,
     RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode, DeliveryConfirmation,
-    RewardTransaction, SuspiciousScanLog
+    RewardTransaction, SuspiciousScanLog,
+    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion
 )
 from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, AddressSerializer, CustomerProfileSerializer,
@@ -42,10 +43,12 @@ from .serializers import (
     BrandSerializer, HeroBannerSerializer, StorefrontNoticeSerializer,
     OrderUnitSerializer, ProductQRCodeSerializer, DeliveryConfirmationSerializer,
     CustomerRewardWalletSerializer, RewardTransactionSerializer, RewardSettingsSerializer,
-    SuspiciousScanLogSerializer
+    SuspiciousScanLogSerializer,
+    CourierServiceSerializer, DeliveryZoneSerializer, DeliveryRateSerializer, ShippingPromotionSerializer
 )
 from .permissions import IsAdminUserRole, IsManufacturerUser, IsApprovedManufacturer, IsApprovedCourierUser
 from .services import FinancialCalculator, OrderService, PaymentService, SettlementService, RewardService
+from .delivery_service import DeliveryService, DeliveryCalculator
 from .resend_service import (
     send_otp_email, send_courier_approval_email, send_courier_rejection_email,
     send_courier_suspension_email, send_admin_new_courier_registration_email
@@ -1023,6 +1026,11 @@ class CheckoutQuoteView(views.APIView):
     def post(self, request):
         cart = get_or_create_cart(request)
         coupon_code = request.data.get('coupon_code', '').strip().upper()
+        postal_code = request.data.get('postal_code') or request.data.get('shipping_postal_code', '').strip()
+        city = request.data.get('city') or request.data.get('shipping_city', '').strip()
+        state = request.data.get('state') or request.data.get('shipping_state', '').strip()
+        delivery_method = request.data.get('delivery_method') or request.data.get('shipping_delivery_method', '')
+
         coupon = None
         if coupon_code:
             coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
@@ -1031,16 +1039,63 @@ class CheckoutQuoteView(views.APIView):
         if not items.exists():
             return Response({'detail': 'Cart is empty'}, status=400)
 
-        calc = FinancialCalculator.calculate_order_financials(items, coupon=coupon)
-        return Response({
-            'items_subtotal': str(calc['items_subtotal']),
-            'customer_platform_fee': str(calc['customer_platform_fee']),
-            'delivery_fee': str(calc['delivery_fee']),
-            'discount_amount': str(calc['discount_amount']),
-            'total_amount': str(calc['total_amount']),
-            'coupon_applied': coupon.code if coupon else None,
-            'items_count': sum(i.quantity for i in items)
-        })
+        shipping_details = None
+        if postal_code:
+            shipping_details = {
+                'postal_code': postal_code,
+                'city': city,
+                'state': state,
+                'delivery_method': delivery_method
+            }
+
+        try:
+            calc = FinancialCalculator.calculate_order_financials(
+                items,
+                coupon=coupon,
+                shipping_details=shipping_details,
+                requested_method=delivery_method or None
+            )
+            return Response({
+                'is_deliverable': True,
+                'items_subtotal': str(calc['items_subtotal']),
+                'customer_platform_fee': str(calc['customer_platform_fee']),
+                'delivery_fee': str(calc['delivery_fee']),
+                'discount_amount': str(calc['discount_amount']),
+                'total_amount': str(calc['total_amount']),
+                'coupon_applied': coupon.code if coupon else None,
+                'items_count': sum(i.quantity for i in items),
+                'shipping_quote': calc.get('shipping_quote')
+            })
+        except ValueError as exc:
+            return Response({
+                'is_deliverable': False,
+                'detail': str(exc),
+                'error_message': 'Delivery not available for this location'
+            }, status=400)
+
+
+class CheckoutShippingQuoteView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        cart = get_or_create_cart(request)
+        items = cart.items.all().select_related('product', 'product__manufacturer')
+        if not items.exists():
+            return Response({'detail': 'Cart is empty'}, status=400)
+
+        postal_code = request.data.get('postal_code', '').strip()
+        city = request.data.get('city', '').strip()
+        state = request.data.get('state', '').strip()
+        delivery_method = request.data.get('delivery_method', '').strip() or None
+
+        quote = DeliveryCalculator.calculate_delivery_quote(
+            cart_items=items,
+            postal_code=postal_code,
+            city=city,
+            state=state,
+            requested_method=delivery_method
+        )
+        return Response(quote)
 
 
 class CreateOrderView(views.APIView):
@@ -1073,6 +1128,7 @@ class CreateOrderView(views.APIView):
             'city': data['shipping_city'],
             'state': data['shipping_state'],
             'postal_code': data['shipping_postal_code'],
+            'delivery_method': data.get('shipping_delivery_method', 'Standard Delivery'),
         }
 
         try:
@@ -1083,7 +1139,8 @@ class CreateOrderView(views.APIView):
                 cart_items=items,
                 coupon=coupon,
                 payment_method=request.data.get('payment_method', 'RAZORPAY_TEST'),
-                credits_to_redeem=data.get('credits_to_redeem', 0)
+                credits_to_redeem=data.get('credits_to_redeem', 0),
+                requested_method=data.get('shipping_delivery_method')
             )
             cart.items.all().delete()
             payment_intent = PaymentService.create_mock_or_razorpay_order(order)
@@ -1297,6 +1354,11 @@ class DeliveryOrderLookupView(views.APIView):
             'tracking_number': order.tracking_number,
             'courier_partner': order.courier_partner,
             'dispatch_notes': order.dispatch_notes,
+            'shipping_delivery_method': order.shipping_delivery_method,
+            'shipping_estimated_delivery': order.shipping_estimated_delivery,
+            'shipping_package_count': order.shipping_package_count,
+            'shipping_breakdown': order.shipping_breakdown,
+            'delivery_fee': str(order.delivery_fee),
             'created_at': order.created_at.isoformat(),
             'updated_at': order.updated_at.isoformat(),
             'items': items_data,
@@ -2353,8 +2415,8 @@ class AdminMetricsView(views.APIView):
             b_paid_orders = [o for o in b_orders if o.payment_status == Order.PaymentStatus.PAID]
             b_delivered_orders = [o for o in b_orders if o.status == Order.Status.DELIVERED]
 
-            b_jars_sum = sum(sum(it.quantity for it in o.items.all()) for o in b_orders)
-            b_delivered_jars = sum(sum(it.quantity for it in o.items.all()) for o in b_delivered_orders)
+            b_units_sum = sum(sum(it.quantity for it in o.items.all()) for o in b_orders)
+            b_delivered_units = sum(sum(it.quantity for it in o.items.all()) for o in b_delivered_orders)
             b_gmv = sum(o.total_amount for o in b_paid_orders)
             b_rev_total = sum(
                 (o.platform_commission_total or Decimal('0.00')) + (o.customer_platform_fee or Decimal('0.00'))
@@ -2372,8 +2434,8 @@ class AdminMetricsView(views.APIView):
                 'orders_count': len(b_orders),
                 'paid_orders_count': len(b_paid_orders),
                 'delivered_orders_count': len(b_delivered_orders),
-                'total_jars': int(b_jars_sum),
-                'delivered_jars': int(b_delivered_jars),
+                'total_units': int(b_units_sum),
+                'delivered_units': int(b_delivered_units),
                 'gmv': float(b_gmv),
                 'platform_revenue': float(b_rev_total),
                 'producer_inflow': b_producers,
@@ -3392,6 +3454,10 @@ class AdminResearchReportView(views.APIView):
             response['Content-Disposition'] = f'attachment; filename="wangs_research_report_{today_str}.pdf"'
             return response
 
+
+
+
+
         elif req_format == 'csv':
             csv_content = generate_research_csv(dataset_type)
             try:
@@ -3403,6 +3469,10 @@ class AdminResearchReportView(views.APIView):
             filename = f"wangs_{dataset_type}_research_{today_str}.csv"
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
             return response
+
+
+
+
 
         else:
             data = get_research_data()
@@ -3428,7 +3498,7 @@ class HeroBannerViewSet(viewsets.ReadOnlyModelViewSet):
         if not qs.exists():
             default_banner = HeroBanner.objects.create(
                 title="The Great Achar Season",
-                subtitle="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+                subtitle="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
                 badge_text="FRESH BATCH LIVE",
                 coupon_code="ACHAR15",
                 cta_text="Shop Now",
@@ -3509,7 +3579,7 @@ DEFAULT_STOREFRONT_NOTICES = [
         "is_active": True,
     },
     {
-        "text": "Over 1,480+ heirloom jars cured & dispatched to connoisseurs across India this week",
+        "text": "Over 1,480+ heirloom packs cured & dispatched to connoisseurs across India this week",
         "highlight": "High Demand",
         "badge_color": "bg-white/20 text-white border border-white/30",
         "link": "/products",
@@ -3989,5 +4059,479 @@ class AdminRewardExportTransactionsView(views.APIView):
                 t.audit_reason
             ])
         return response
+
+
+# =============================================================================
+# DELIVERY & SHIPPING MANAGEMENT VIEWS
+# =============================================================================
+
+# --- ADMIN VIEWS ---
+
+class AdminDeliveryOverviewView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        rates = DeliveryRate.objects.select_related('courier', 'zone', 'manufacturer', 'product', 'created_by').all()
+        couriers = CourierService.objects.all()
+        zones = DeliveryZone.objects.all()
+        promos = ShippingPromotion.objects.select_related('zone').all()
+        setting = CommissionSetting.get_current()
+
+        stats = {
+            'total_rates': rates.count(),
+            'active_rates': rates.filter(is_active=True).count(),
+            'locked_rates': rates.filter(is_locked=True).count(),
+            'pending_approvals': rates.filter(approval_status=DeliveryRate.ApprovalStatus.PENDING).count(),
+            'total_couriers': couriers.count(),
+            'total_zones': zones.count(),
+            'total_promotions': promos.count(),
+        }
+
+        return Response({
+            'stats': stats,
+            'require_mfg_rate_approval': setting.require_mfg_rate_approval,
+            'couriers': CourierServiceSerializer(couriers, many=True).data,
+            'zones': DeliveryZoneSerializer(zones, many=True).data,
+            'rates': DeliveryRateSerializer(rates, many=True).data,
+            'promotions': ShippingPromotionSerializer(promos, many=True).data,
+        })
+
+
+class AdminCourierServiceListCreateView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        couriers = CourierService.objects.all()
+        return Response(CourierServiceSerializer(couriers, many=True).data)
+
+    def post(self, request):
+        serializer = CourierServiceSerializer(data=request.data)
+        if serializer.is_valid():
+            courier = serializer.save()
+            return Response(CourierServiceSerializer(courier).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminCourierServiceDetailView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get_object(self, pk):
+        return get_object_or_404(CourierService, pk=pk)
+
+    def get(self, request, pk):
+        courier = self.get_object(pk)
+        return Response(CourierServiceSerializer(courier).data)
+
+    def put(self, request, pk):
+        courier = self.get_object(pk)
+        serializer = CourierServiceSerializer(courier, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated = serializer.save()
+            return Response(CourierServiceSerializer(updated).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        courier = self.get_object(pk)
+        courier.delete()
+        return Response({'detail': f'Courier service {courier.name} removed.'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminDeliveryZoneListCreateView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        zones = DeliveryZone.objects.all()
+        return Response(DeliveryZoneSerializer(zones, many=True).data)
+
+    def post(self, request):
+        serializer = DeliveryZoneSerializer(data=request.data)
+        if serializer.is_valid():
+            zone = serializer.save()
+            return Response(DeliveryZoneSerializer(zone).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminDeliveryZoneDetailView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get_object(self, pk):
+        return get_object_or_404(DeliveryZone, pk=pk)
+
+    def get(self, request, pk):
+        zone = self.get_object(pk)
+        return Response(DeliveryZoneSerializer(zone).data)
+
+    def put(self, request, pk):
+        zone = self.get_object(pk)
+        serializer = DeliveryZoneSerializer(zone, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated = serializer.save()
+            return Response(DeliveryZoneSerializer(updated).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        zone = self.get_object(pk)
+        zone.delete()
+        return Response({'detail': f'Zone {zone.name} removed.'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminDeliveryRateListCreateView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        qs = DeliveryRate.objects.select_related('courier', 'zone', 'manufacturer', 'product', 'created_by').all()
+        scope = request.query_params.get('scope')
+        if scope:
+            qs = qs.filter(scope=scope)
+        zone_id = request.query_params.get('zone')
+        if zone_id:
+            qs = qs.filter(zone_id=zone_id)
+        courier_id = request.query_params.get('courier')
+        if courier_id:
+            qs = qs.filter(courier_id=courier_id)
+        mfg_id = request.query_params.get('manufacturer')
+        if mfg_id:
+            qs = qs.filter(manufacturer_id=mfg_id)
+        is_locked = request.query_params.get('is_locked')
+        if is_locked is not None:
+            qs = qs.filter(is_locked=is_locked.lower() in ('true', '1'))
+        approval_status = request.query_params.get('approval_status')
+        if approval_status:
+            qs = qs.filter(approval_status=approval_status)
+
+        return Response(DeliveryRateSerializer(qs, many=True).data)
+
+    def post(self, request):
+        data = request.data.copy()
+        serializer = DeliveryRateSerializer(data=data)
+        if serializer.is_valid():
+            rate = serializer.save(
+                created_by=request.user,
+                approval_status=DeliveryRate.ApprovalStatus.APPROVED
+            )
+            return Response(DeliveryRateSerializer(rate).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminDeliveryRateDetailView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get_object(self, pk):
+        return get_object_or_404(DeliveryRate, pk=pk)
+
+    def get(self, request, pk):
+        rate = self.get_object(pk)
+        return Response(DeliveryRateSerializer(rate).data)
+
+    def put(self, request, pk):
+        rate = self.get_object(pk)
+        serializer = DeliveryRateSerializer(rate, data=request.data, partial=True)
+        if serializer.is_valid():
+            rate.version += 1
+            rate.updated_by = request.user
+            updated = serializer.save()
+            return Response(DeliveryRateSerializer(updated).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        rate = self.get_object(pk)
+        rate.delete()
+        return Response({'detail': f'Delivery rate {rate.title} deleted.'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminDeliveryRateToggleLockView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request, pk):
+        rate = get_object_or_404(DeliveryRate, pk=pk)
+        rate.is_locked = not rate.is_locked
+        rate.updated_by = request.user
+        rate.save(update_fields=['is_locked', 'updated_by', 'updated_at'])
+        action = "locked" if rate.is_locked else "unlocked"
+        return Response({
+            'detail': f"Delivery rate '{rate.title}' has been {action}.",
+            'is_locked': rate.is_locked,
+            'rate': DeliveryRateSerializer(rate).data
+        })
+
+
+class AdminDeliveryRateApproveView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request, pk):
+        rate = get_object_or_404(DeliveryRate, pk=pk)
+        action_type = request.data.get('action', 'approve').lower()
+        reason = request.data.get('reason', '').strip()
+
+        if action_type == 'approve':
+            rate.approval_status = DeliveryRate.ApprovalStatus.APPROVED
+            rate.is_active = True
+            rate.rejection_reason = ''
+        elif action_type == 'reject':
+            rate.approval_status = DeliveryRate.ApprovalStatus.REJECTED
+            rate.is_active = False
+            rate.rejection_reason = reason
+        else:
+            return Response({'detail': 'Invalid approval action.'}, status=400)
+
+        rate.updated_by = request.user
+        rate.save(update_fields=['approval_status', 'is_active', 'rejection_reason', 'updated_by', 'updated_at'])
+
+        return Response({
+            'detail': f"Delivery rate '{rate.title}' is now {rate.approval_status}.",
+            'rate': DeliveryRateSerializer(rate).data
+        })
+
+
+class AdminApplyPresetsView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request):
+        activate = request.data.get('activate', True)
+        res = DeliveryService.seed_swiftzone_and_partner_presets(admin_user=request.user, activate=activate)
+        return Response({
+            'detail': 'SwiftZone and partner delivery presets loaded successfully.',
+            'summary': res
+        })
+
+
+class AdminShippingPromotionListCreateView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        promos = ShippingPromotion.objects.select_related('zone').all()
+        return Response(ShippingPromotionSerializer(promos, many=True).data)
+
+    def post(self, request):
+        serializer = ShippingPromotionSerializer(data=request.data)
+        if serializer.is_valid():
+            promo = serializer.save()
+            return Response(ShippingPromotionSerializer(promo).data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class AdminShippingPromotionDetailView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get_object(self, pk):
+        return get_object_or_404(ShippingPromotion, pk=pk)
+
+    def put(self, request, pk):
+        promo = self.get_object(pk)
+        serializer = ShippingPromotionSerializer(promo, data=request.data, partial=True)
+        if serializer.is_valid():
+            updated = serializer.save()
+            return Response(ShippingPromotionSerializer(updated).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        promo = self.get_object(pk)
+        promo.delete()
+        return Response({'detail': 'Promotion deleted.'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class AdminToggleMfgRateApprovalRequirementView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def post(self, request):
+        setting = CommissionSetting.get_current()
+        setting.require_mfg_rate_approval = not setting.require_mfg_rate_approval
+        setting.save(update_fields=['require_mfg_rate_approval', 'updated_at'])
+        state_str = "ENABLED" if setting.require_mfg_rate_approval else "DISABLED"
+        return Response({
+            'detail': f"Admin review & approval for manufacturer rates is now {state_str}.",
+            'require_mfg_rate_approval': setting.require_mfg_rate_approval
+        })
+
+
+# --- MANUFACTURER VIEWS ---
+
+class ManufacturerDeliveryRateListCreateView(views.APIView):
+    permission_classes = [IsApprovedManufacturer]
+
+    def get(self, request):
+        profile = request.user.manufacturer_profile
+        own_rates = DeliveryRate.objects.filter(manufacturer=profile).select_related('courier', 'zone', 'product')
+        # Also return active admin baseline rates so manufacturer can see available options
+        admin_rates = DeliveryRate.objects.filter(
+            is_active=True,
+            scope__in=[DeliveryRate.Scope.ZONE_DEFAULT, DeliveryRate.Scope.ADMIN_DEFAULT]
+        ).select_related('courier', 'zone')
+        
+        zones = DeliveryZone.objects.filter(is_active=True)
+        couriers = CourierService.objects.filter(is_active=True)
+        products = Product.objects.filter(manufacturer=profile, is_active=True)
+
+        return Response({
+            'own_rates': DeliveryRateSerializer(own_rates, many=True).data,
+            'admin_baseline_rates': DeliveryRateSerializer(admin_rates, many=True).data,
+            'zones': DeliveryZoneSerializer(zones, many=True).data,
+            'couriers': CourierServiceSerializer(couriers, many=True).data,
+            'products': [{'id': p.id, 'title': p.title, 'weight_grams': p.weight_grams, 'price': str(p.price)} for p in products]
+        })
+
+    def post(self, request):
+        profile = request.user.manufacturer_profile
+        data = request.data.copy()
+
+        # Enforce scope: manufacturers can configure PRODUCT_SPECIFIC or MANUFACTURER_ZONE
+        product_id = data.get('product') or data.get('product_id')
+        if product_id:
+            product = get_object_or_404(Product, pk=product_id, manufacturer=profile)
+            data['product'] = product.id
+            data['scope'] = DeliveryRate.Scope.PRODUCT_SPECIFIC
+            if not data.get('title'):
+                data['title'] = f"{product.title} Delivery Rate"
+        else:
+            data['scope'] = DeliveryRate.Scope.MANUFACTURER_ZONE
+
+        # Manufacturers cannot set is_locked
+        data['is_locked'] = False
+        data['manufacturer'] = profile.id
+
+        # Check approval requirement
+        setting = CommissionSetting.get_current()
+        status_to_set = DeliveryRate.ApprovalStatus.PENDING if setting.require_mfg_rate_approval else DeliveryRate.ApprovalStatus.APPROVED
+
+        # If a product-specific rate already exists for this manufacturer and product, update it
+        existing_rate = None
+        if product_id:
+            existing_rate = DeliveryRate.objects.filter(
+                manufacturer=profile,
+                product_id=product.id,
+                scope=DeliveryRate.Scope.PRODUCT_SPECIFIC
+            ).first()
+
+        if existing_rate:
+            if existing_rate.is_locked:
+                return Response(
+                    {'detail': 'This product delivery rate has been locked by Wangs Platform Admin.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            serializer = DeliveryRateSerializer(existing_rate, data=data, partial=True)
+        else:
+            serializer = DeliveryRateSerializer(data=data)
+
+        if serializer.is_valid():
+            rate = serializer.save(
+                manufacturer=profile,
+                created_by=request.user,
+                is_locked=False,
+                approval_status=status_to_set,
+                is_active=True if status_to_set == DeliveryRate.ApprovalStatus.APPROVED else False
+            )
+            return Response(DeliveryRateSerializer(rate).data, status=status.HTTP_201_CREATED if not existing_rate else status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ManufacturerDeliveryRateDetailView(views.APIView):
+    permission_classes = [IsApprovedManufacturer]
+
+    def get_object(self, request, pk):
+        profile = request.user.manufacturer_profile
+        return get_object_or_404(DeliveryRate, pk=pk, manufacturer=profile)
+
+    def get(self, request, pk):
+        rate = self.get_object(request, pk)
+        return Response(DeliveryRateSerializer(rate).data)
+
+    def put(self, request, pk):
+        rate = self.get_object(request, pk)
+        if rate.is_locked:
+            return Response({
+                'detail': 'This delivery rate is locked by Wangs Platform Admin and cannot be modified.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data.copy()
+        # Security: Manufacturers cannot unlock or reassign rates
+        data.pop('is_locked', None)
+        data.pop('manufacturer', None)
+        data.pop('scope', None)
+
+        serializer = DeliveryRateSerializer(rate, data=data, partial=True)
+        if serializer.is_valid():
+            rate.version += 1
+            rate.updated_by = request.user
+            updated = serializer.save()
+            return Response(DeliveryRateSerializer(updated).data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk):
+        rate = self.get_object(request, pk)
+        if rate.is_locked:
+            return Response({
+                'detail': 'This delivery rate is locked by Wangs Platform Admin and cannot be deleted.'
+            }, status=status.HTTP_403_FORBIDDEN)
+
+        rate.delete()
+        return Response({'detail': f'Rate {rate.title} deleted.'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class ManufacturerDeliveryQuotePreviewView(views.APIView):
+    permission_classes = [IsApprovedManufacturer]
+
+    def post(self, request):
+        profile = request.user.manufacturer_profile
+        product_id = request.data.get('product_id')
+        qty = int(request.data.get('quantity', 1))
+        postal_code = request.data.get('postal_code', '').strip()
+        city = request.data.get('city', '').strip()
+        method = request.data.get('delivery_method')
+
+        product = get_object_or_404(Product, pk=product_id, manufacturer=profile)
+
+        # Mock cart item for calculator
+        class MockItem:
+            def __init__(self, p, q):
+                self.product = p
+                self.quantity = q
+
+        mock_items = [MockItem(product, qty)]
+        quote = DeliveryCalculator.calculate_delivery_quote(
+            cart_items=mock_items,
+            postal_code=postal_code,
+            city=city,
+            requested_method=method
+        )
+        return Response(quote)
+
+
+class ManufacturerShippingHistoryView(views.APIView):
+    permission_classes = [IsApprovedManufacturer]
+
+    def get(self, request):
+        profile = request.user.manufacturer_profile
+        order_items = OrderItem.objects.filter(
+            manufacturer=profile
+        ).select_related('order', 'product').order_by('-order__created_at')[:100]
+
+        history = []
+        for item in order_items:
+            o = item.order
+            breakdown = o.shipping_breakdown or {}
+            mfg_groups = breakdown.get('fulfillment_breakdown', [])
+            mfg_info = next((g for g in mfg_groups if g.get('manufacturer_id') == profile.id), None)
+
+            history.append({
+                'order_number': o.order_number,
+                'order_date': o.created_at,
+                'product_title': item.product_title,
+                'quantity': item.quantity,
+                'weight_grams': item.weight_grams * item.quantity,
+                'destination_city': o.shipping_city,
+                'destination_postal_code': o.shipping_postal_code,
+                'courier_partner': o.courier_partner,
+                'tracking_number': o.tracking_number,
+                'shipping_delivery_method': o.shipping_delivery_method,
+                'shipping_estimated_delivery': o.shipping_estimated_delivery,
+                'shipping_package_count': o.shipping_package_count,
+                'order_delivery_fee': str(o.delivery_fee),
+                'mfg_group_delivery_fee': mfg_info.get('group_delivery_fee') if mfg_info else None,
+                'status': o.status,
+                'payment_status': o.payment_status,
+            })
+
+        return Response(history)
+
 
 

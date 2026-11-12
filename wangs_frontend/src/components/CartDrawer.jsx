@@ -69,10 +69,10 @@ export default function CartDrawer() {
               </div>
               <div>
                 <h2 className="font-serif font-bold text-lg text-on-surface leading-none">
-                  Your Jar Bag
+                  Your Shopping Bag
                 </h2>
                 <span className="text-[11px] text-on-surface-variant font-medium">
-                  {itemsCount} {itemsCount === 1 ? 'jar' : 'jars'} selected
+                  {itemsCount} {itemsCount === 1 ? 'item' : 'items'} selected
                 </span>
               </div>
             </div>

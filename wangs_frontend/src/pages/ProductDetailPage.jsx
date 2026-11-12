@@ -148,8 +148,8 @@ export default function ProductDetailPage() {
   const bundleTiers = [
     {
       id: 'single',
-      name: 'Single Jar',
-      sublabel: `1x ${baseWeight}g glass jar`,
+      name: 'Single Unit',
+      sublabel: `1x ${baseWeight}g pack`,
       quantity: 1,
       discountPct: 0,
       unitPrice: basePrice,
@@ -161,8 +161,8 @@ export default function ProductDetailPage() {
     },
     {
       id: 'duo',
-      name: 'Duo Pack (2 Jars)',
-      sublabel: `2x ${baseWeight}g jars · 8% OFF`,
+      name: 'Duo Pack (2 Units)',
+      sublabel: `2x ${baseWeight}g packs · 8% OFF`,
       quantity: 2,
       discountPct: 8,
       unitPrice: Math.round(basePrice * 0.92),
@@ -174,8 +174,8 @@ export default function ProductDetailPage() {
     },
     {
       id: 'trio',
-      name: 'Tasting Trio (3 Jars)',
-      sublabel: `3x ${baseWeight}g jars · 15% OFF`,
+      name: 'Tasting Trio (3 Units)',
+      sublabel: `3x ${baseWeight}g packs · 15% OFF`,
       quantity: 3,
       discountPct: 15,
       unitPrice: Math.round(basePrice * 0.85),
@@ -195,15 +195,15 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = async () => {
     if (!product || !isInStock || adding) return;
-    const totalJars = currentBundle.quantity * quantity;
+    const totalUnits = currentBundle.quantity * quantity;
 
     if (!user) {
       requireAuth(async () => {
         setAdding(true);
         try {
-          await addToCart(product.id, totalJars);
+          await addToCart(product.id, totalUnits);
           setAdded(true);
-          toast.success(`Added ${currentBundle.name} (${totalJars} jars) of ${product.title} to your basket!`);
+          toast.success(`Added ${currentBundle.name} (${totalUnits} units) of ${product.title} to your basket!`);
           setTimeout(() => setAdded(false), 2000);
         } catch (err) {
           toast.error(err.message || 'Could not add to cart');
@@ -216,9 +216,9 @@ export default function ProductDetailPage() {
 
     setAdding(true);
     try {
-      await addToCart(product.id, totalJars);
+      await addToCart(product.id, totalUnits);
       setAdded(true);
-      toast.success(`Added ${currentBundle.name} (${totalJars} jars) of ${product.title} to your basket!`);
+      toast.success(`Added ${currentBundle.name} (${totalUnits} units) of ${product.title} to your basket!`);
       setTimeout(() => setAdded(false), 2000);
     } catch (err) {
       toast.error(err.message || 'Could not add to cart');
@@ -229,12 +229,12 @@ export default function ProductDetailPage() {
 
   const handleBuyNow = async () => {
     if (!product || !isInStock) return;
-    const totalJars = currentBundle.quantity * quantity;
+    const totalUnits = currentBundle.quantity * quantity;
 
     if (!user) {
       requireAuth(async () => {
         try {
-          await addToCart(product.id, totalJars);
+          await addToCart(product.id, totalUnits);
           navigate('/checkout');
         } catch (err) {
           toast.error(err.message || 'Could not proceed to checkout');
@@ -244,7 +244,7 @@ export default function ProductDetailPage() {
     }
 
     try {
-      await addToCart(product.id, totalJars);
+      await addToCart(product.id, totalUnits);
       navigate('/checkout');
     } catch (err) {
       toast.error(err.message || 'Could not proceed to checkout');
@@ -293,7 +293,7 @@ export default function ProductDetailPage() {
         await addToCart(Number(pId), qty);
       }
       const bName = product.manufacturer?.business_name || 'Artisan Brand';
-      toast.success(`Added ${bundleItems.length}-Jar ${bName} Bundle (10% OFF) to your basket!`);
+      toast.success(`Added ${bundleItems.length}-Pack ${bName} Bundle (10% OFF) to your basket!`);
     } catch (err) {
       toast.error(err.message || 'Failed to add flexible brand bundle');
     } finally {
@@ -511,7 +511,7 @@ export default function ProductDetailPage() {
               <span className="font-bold text-stone-900 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
                 <Sparkles size={13} className="text-amber-500" /> Choose Quantity Bundle:
               </span>
-              <span className="text-stone-500 text-[11px]">Direct artisanal sealed glass jars</span>
+              <span className="text-stone-500 text-[11px]">Direct artisanal sealed packaging</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {bundleTiers.map((tier, idx) => (
@@ -593,7 +593,7 @@ export default function ProductDetailPage() {
               </div>
               <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1.5 rounded-xl border border-amber-200/50">
                 <Flame size={13} className="text-red-600 shrink-0" />
-                <span>Harvest Notice: <strong className="text-stone-950">Only 4 jars left</strong> in today's cure</span>
+                <span>Harvest Notice: <strong className="text-stone-950">Only 4 units left</strong> in today's cure</span>
               </div>
             </div>
 
@@ -621,7 +621,7 @@ export default function ProductDetailPage() {
                 <Sparkles size={13} />
               </span>
               <span>
-                <strong className="text-amber-200 font-semibold">Recommended Offer:</strong> Buy 2+ jars for instant bundle savings & cushioned packaging.
+                <strong className="text-amber-200 font-semibold">Recommended Offer:</strong> Buy 2+ units for instant bundle savings & cushioned packaging.
               </span>
             </div>
             <span className="text-[10px] text-red-200 font-mono hidden sm:inline">Tier Monitored</span>
@@ -665,7 +665,7 @@ export default function ProductDetailPage() {
                 <span className="text-xs text-stone-500 font-medium">
                   {product.stock_quantity > 0 ? (
                     <span className="text-emerald-700 font-bold flex items-center gap-1">
-                      <CheckCircle size={13} /> In Stock ({product.stock_quantity} jars available in fresh batch)
+                      <CheckCircle size={13} /> In Stock ({product.stock_quantity} units available in fresh batch)
                     </span>
                   ) : (
                     <span className="text-emerald-700 font-bold flex items-center gap-1">
@@ -693,7 +693,7 @@ export default function ProductDetailPage() {
                     <CheckCircle size={16} /> Added to Basket
                   </>
                 ) : adding ? (
-                  <span>Reserving jar...</span>
+                  <span>Reserving pack...</span>
                 ) : !isInStock ? (
                   <span>All Product Sold Out</span>
                 ) : (
@@ -820,7 +820,7 @@ export default function ProductDetailPage() {
                       Custom {product.manufacturer?.business_name || 'Brand'} Bundle
                     </h4>
                     <p className="text-[11px] text-stone-500">
-                      Mix 2 to 4 jars & get 10% off automatically
+                      Mix 2 to 4 packs & get 10% off automatically
                     </p>
                   </div>
                 </div>
@@ -851,7 +851,7 @@ export default function ProductDetailPage() {
                     <div className="aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1">
                       <img
                         src={item.primary_image_url || '/featured-pouches.png'}
-                        alt={item.title || 'Pickle Jar'}
+                        alt={item.title || 'Pickle Pack'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
@@ -875,7 +875,7 @@ export default function ProductDetailPage() {
                     <span className="w-6 h-6 rounded-full bg-stone-100 text-stone-600 font-bold text-xs flex items-center justify-center">
                       <Plus size={13} />
                     </span>
-                    <span className="text-[11px] font-bold text-stone-700">Add Jar</span>
+                    <span className="text-[11px] font-bold text-stone-700">Add Pack</span>
                     <span className="text-[9.5px] text-stone-400">
                       Slot {bundleItems.length + 1} of 4
                     </span>
@@ -970,10 +970,10 @@ export default function ProductDetailPage() {
                       <ShoppingBag size={14} />
                       <span>
                         {addingBrandBundle
-                          ? `Adding ${bundleItems.length}-Jar Bundle...`
+                          ? `Adding ${bundleItems.length}-Pack Bundle...`
                           : !isInStock
                           ? 'Sold Out'
-                          : `Add ${bundleItems.length}-Jar Bundle · ₹${disc}`}
+                          : `Add ${bundleItems.length}-Pack Bundle · ₹${disc}`}
                       </span>
                     </button>
                   </div>
@@ -1177,7 +1177,7 @@ export default function ProductDetailPage() {
 
               <div>
                 <label className="block text-stone-700 font-bold mb-1">
-                  Upload Photo of your Dish / Jar <span className="text-stone-400 font-normal">(Optional)</span>
+                  Upload Photo of your Dish / Pack <span className="text-stone-400 font-normal">(Optional)</span>
                 </label>
                 <div className="flex items-center gap-2">
                   <label className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg cursor-pointer text-stone-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors">

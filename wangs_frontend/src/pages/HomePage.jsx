@@ -121,7 +121,7 @@ export default function HomePage() {
         {
           id: 'default',
           title: "The Great Achar Season",
-          subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+          subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
           badge_text: "FRESH BATCH LIVE",
           coupon_code: "ACHAR15",
           cta_text: "Shop Now",
@@ -454,7 +454,7 @@ export default function HomePage() {
         if (id && typeof id === 'number') {
           await addToCart(id, 1);
         }
-        toast.success(`Added ${title} to Jar Bag`);
+        toast.success(`Added ${title} to Bag`);
       }, 'keep items in your cart');
       return;
     }
@@ -462,7 +462,7 @@ export default function HomePage() {
       if (id && typeof id === 'number') {
         await addToCart(id, 1);
       }
-      toast.success(`Added ${title} to Jar Bag`);
+      toast.success(`Added ${title} to Bag`);
     } catch (err) {
       toast.error('Added to cart');
     }
@@ -474,7 +474,7 @@ export default function HomePage() {
     ? (heroBanners[activeBannerIndex] || heroBanners[0])
     : {
         title: "The Great Achar Season",
-        subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+        subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
         badge_text: "FRESH BATCH LIVE",
         coupon_code: "ACHAR15",
         cta_text: "Shop Now",
@@ -718,7 +718,7 @@ export default function HomePage() {
                     14,200+
                   </span>
                   <span className="font-label-md text-xs text-on-surface-variant">
-                    Jars Delivered Pan-India
+                    Packs Delivered Pan-India
                   </span>
                 </div>
 
@@ -750,7 +750,7 @@ export default function HomePage() {
               <div className="relative bg-surface-container-highest rounded-3xl overflow-hidden shadow-xl p-3 border border-outline-variant/30">
                 <img
                   src="/images/stitch/stitch_3_d0bc312725.jpg"
-                  alt="Traditional Indian raw mango pickle achar inside glazed ceramic martaban earthen jar under warm golden sun"
+                  alt="Traditional Indian raw mango pickle achar inside glazed ceramic martaban earthen vessel under warm golden sun"
                   className="w-full h-[420px] object-cover rounded-2xl shadow-md"
                 />
 
@@ -767,7 +767,7 @@ export default function HomePage() {
                   </div>
                   <div>
                     <p className="font-label-sm text-[10px] uppercase tracking-wider text-secondary-fixed-dim font-bold">Terroir Fermentation</p>
-                    <p className="font-title-md text-xs font-semibold leading-tight">21-Day Earthen Jar Maturation</p>
+                    <p className="font-title-md text-xs font-semibold leading-tight">21-Day Earthen Vessel Maturation</p>
                   </div>
                 </div>
               </div>
@@ -1399,7 +1399,7 @@ export default function HomePage() {
                         {/* Quantity and Price Justification Metric */}
                         <div className="flex items-center justify-between text-[10px] mt-1 pt-0.5">
                           <span className="font-bold text-tertiary bg-surface-container px-1.5 py-0.5 rounded">
-                            {weight}g Jar
+                            {weight}g Pack
                           </span>
                           <span className="text-outline font-semibold">
                             ₹{costPer100g}/100g

@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                     "subtitle",
                     models.TextField(
                         blank=True,
-                        default="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.",
+                        default="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
                     ),
                 ),
                 (

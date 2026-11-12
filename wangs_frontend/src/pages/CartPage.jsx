@@ -127,7 +127,7 @@ export default function CartPage() {
         <div>
           <span className="text-xs font-bold tracking-wider uppercase text-primary">Artisan Cart</span>
           <h1 className="font-serif text-3xl sm:text-4xl font-bold text-on-surface mt-1">
-            Shopping Basket ({itemsCount} {itemsCount === 1 ? 'jar' : 'jars'})
+            Shopping Basket ({itemsCount} {itemsCount === 1 ? 'item' : 'items'})
           </h1>
         </div>
 

@@ -13,7 +13,8 @@ from .models import (
     EmailOTP, MaintenanceSubscriber, AuditLog,
     RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
     DeliveryConfirmation, RewardTransaction, SuspiciousScanLog,
-    CourierProfile, CourierDeliveryScanLog
+    CourierProfile, CourierDeliveryScanLog,
+    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion
 )
 from .services import FinancialCalculator, OrderService, PaymentService, RewardService
 
@@ -25,6 +26,15 @@ class WangsFinancialAndOrderTests(TestCase):
             customer_platform_fee=Decimal('5.00'),
             default_delivery_fee=Decimal('50.00'),
             free_delivery_threshold=Decimal('999.00')
+        )
+        DeliveryRate.objects.create(
+            title='Platform Default Test Rate',
+            scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+            delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+            base_rate=Decimal('0.00'),
+            per_package_rate=Decimal('0.00'),
+            is_active=True,
+            approval_status=DeliveryRate.ApprovalStatus.APPROVED
         )
 
         # Setup Arenla Heritage Manufacturer Account
@@ -1437,6 +1447,15 @@ class WangsRewardsSystemTests(TestCase):
             default_delivery_fee=Decimal('50.00'),
             free_delivery_threshold=Decimal('999.00')
         )
+        DeliveryRate.objects.create(
+            title='Platform Default Test Rate',
+            scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+            delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+            base_rate=Decimal('0.00'),
+            per_package_rate=Decimal('0.00'),
+            is_active=True,
+            approval_status=DeliveryRate.ApprovalStatus.APPROVED
+        )
         self.reward_settings = RewardSettings.get_settings()
         self.reward_settings.is_enabled = True
         self.reward_settings.credit_value_rupees = Decimal('0.10')
@@ -1824,6 +1843,15 @@ class WangsCourierSystemTests(TestCase):
             customer_platform_fee=Decimal('5.00'),
             default_delivery_fee=Decimal('50.00'),
             free_delivery_threshold=Decimal('999.00')
+        )
+        DeliveryRate.objects.create(
+            title='Platform Default Test Rate',
+            scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+            delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+            base_rate=Decimal('0.00'),
+            per_package_rate=Decimal('0.00'),
+            is_active=True,
+            approval_status=DeliveryRate.ApprovalStatus.APPROVED
         )
         self.mfg_user = User.objects.create_user(
             username='mfg_runner',
@@ -2286,4 +2314,481 @@ class WangsCourierSystemTests(TestCase):
         self.assertEqual(patch_recip, 'akamla_cust@wangs.in')
         self.assertIn('Dispatched', patch_sub)
         self.assertIn('WNG-AWB-TEST123', patch_html)
+
+
+class DeliveryChargeManagementTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+
+        # Admin user
+        self.admin = User.objects.create_user(
+            username='platform_admin',
+            email='admin@wangs.in',
+            password='adminpassword',
+            role=User.Role.ADMIN,
+            is_staff=True,
+            is_superuser=True
+        )
+
+        # Manufacturer A
+        self.mfg_user_a = User.objects.create_user(
+            username='mfg_a_user',
+            email='mfg_a@wangs.in',
+            password='password123',
+            role=User.Role.MANUFACTURER
+        )
+        self.mfg_a = ManufacturerProfile.objects.create(
+            user=self.mfg_user_a,
+            business_name="Arenla Heritage Kitchen",
+            slug='arenla-heritage-kitchen',
+            location_district='Kohima, Nagaland',
+            contact_email='mfg_a@wangs.in',
+            contact_phone='9862000001',
+            business_address='Main Town, Kohima',
+            postal_code='797001',
+            status=ManufacturerProfile.Status.APPROVED
+        )
+
+        # Manufacturer B
+        self.mfg_user_b = User.objects.create_user(
+            username='mfg_b_user',
+            email='mfg_b@wangs.in',
+            password='password123',
+            role=User.Role.MANUFACTURER
+        )
+        self.mfg_b = ManufacturerProfile.objects.create(
+            user=self.mfg_user_b,
+            business_name="Nagaland Smokehouse Co",
+            slug='nagaland-smokehouse-co',
+            location_district='Dimapur, Nagaland',
+            contact_email='mfg_b@wangs.in',
+            contact_phone='9862000002',
+            business_address='Circular Road, Dimapur',
+            postal_code='797112',
+            status=ManufacturerProfile.Status.APPROVED
+        )
+
+        # Category & Products
+        self.category = Category.objects.create(name='Pickles', slug='pickles')
+        self.product_a = Product.objects.create(
+            manufacturer=self.mfg_a,
+            category=self.category,
+            title='King Chilli Pork Pickle',
+            slug='king-chilli-pork-pickle',
+            short_description='Authentic wood-smoked pork',
+            description='Detailed pork pickle description',
+            price=Decimal('250.00'),
+            base_price=Decimal('200.00'),
+            weight_grams=250,
+            stock_quantity=50,
+            status=Product.Status.APPROVED,
+            is_active=True
+        )
+        self.product_b = Product.objects.create(
+            manufacturer=self.mfg_b,
+            category=self.category,
+            title='Smoked Beef Axone Pickle',
+            slug='smoked-beef-axone-pickle',
+            short_description='Spicy fermented soybean pickle',
+            description='Detailed beef pickle description',
+            price=Decimal('280.00'),
+            base_price=Decimal('220.00'),
+            weight_grams=300,
+            stock_quantity=50,
+            status=Product.Status.APPROVED,
+            is_active=True
+        )
+
+        # Customer User
+        self.customer = User.objects.create_user(
+            username='test_customer',
+            email='customer@example.com',
+            password='custpassword',
+            role=User.Role.CUSTOMER
+        )
+
+        # Courier Driver
+        self.courier_user = User.objects.create_user(
+            username='swift_driver',
+            email='driver@swiftzone.in',
+            password='driverpassword',
+            role=User.Role.COURIER
+        )
+        self.courier_profile = CourierProfile.objects.create(
+            user=self.courier_user,
+            full_name='Vizo Angami',
+            phone_number='9876543210',
+            status=CourierProfile.Status.APPROVED,
+            is_active=True
+        )
+
+        # Seed initial zones and courier services
+        from .delivery_service import DeliveryService
+        DeliveryService.seed_swiftzone_and_partner_presets(admin_user=self.admin, activate=True)
+        self.swiftzone = CourierService.objects.get(code='SWIFTZONE')
+        self.zone_kohima = DeliveryZone.objects.get(code='KOHIMA_LOCAL')
+        self.zone_dimapur = DeliveryZone.objects.get(code='DIMAPUR_CHUMOUKEDIMA')
+
+    def test_admin_delivery_rate_crud_and_presets(self):
+        """Admin can create, edit, lock, and delete delivery rates and presets."""
+        self.client.force_authenticate(user=self.admin)
+
+        # 1. Admin creates rate
+        resp = self.client.post('/api/admin/delivery/rates/', {
+            'title': 'Admin Special Kohima Flat',
+            'scope': DeliveryRate.Scope.ZONE_DEFAULT,
+            'courier': self.swiftzone.id,
+            'zone': self.zone_kohima.id,
+            'delivery_method': 'STANDARD',
+            'base_rate': '75.00',
+            'per_package_rate': '75.00',
+            'is_locked': True,
+            'is_active': True,
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        rate_id = resp.data['id']
+        self.assertTrue(resp.data['is_locked'])
+
+        # 2. Toggle lock
+        toggle_resp = self.client.post(f'/api/admin/delivery/rates/{rate_id}/toggle-lock/')
+        self.assertEqual(toggle_resp.status_code, 200)
+        self.assertFalse(toggle_resp.data['is_locked'])
+
+        # 3. Edit rate
+        put_resp = self.client.put(f'/api/admin/delivery/rates/{rate_id}/', {
+            'base_rate': '70.00'
+        }, format='json')
+        self.assertEqual(put_resp.status_code, 200)
+        self.assertEqual(put_resp.data['base_rate'], '70.00')
+
+        # 4. Delete rate
+        del_resp = self.client.delete(f'/api/admin/delivery/rates/{rate_id}/')
+        self.assertEqual(del_resp.status_code, 204)
+
+    def test_manufacturer_rate_creation_and_ownership_enforcement(self):
+        """Manufacturer can configure rates for own products/destinations, but not others."""
+        # 1. Manufacturer A creates rate for own product A
+        self.client.force_authenticate(user=self.mfg_user_a)
+        resp = self.client.post('/api/manufacturer/delivery/rates/', {
+            'title': 'Arenla Pork Special Dimapur',
+            'product': self.product_a.id,
+            'zone': self.zone_dimapur.id,
+            'delivery_method': 'STANDARD',
+            'base_rate': '95.00',
+            'per_package_rate': '95.00',
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(resp.data['manufacturer'], self.mfg_a.id)
+        self.assertFalse(resp.data['is_locked'])
+        rate_id = resp.data['id']
+
+        # 2. Manufacturer A tries to create rate for Manufacturer B's product -> 404/Forbidden
+        fail_resp = self.client.post('/api/manufacturer/delivery/rates/', {
+            'title': 'Hacked Rate for Other Seller',
+            'product': self.product_b.id,
+            'zone': self.zone_dimapur.id,
+            'base_rate': '10.00',
+        }, format='json')
+        self.assertEqual(fail_resp.status_code, 404)
+
+        # 3. Manufacturer B tries to edit Manufacturer A's rate -> 404/Forbidden
+        self.client.force_authenticate(user=self.mfg_user_b)
+        tamper_resp = self.client.put(f'/api/manufacturer/delivery/rates/{rate_id}/', {
+            'base_rate': '20.00'
+        }, format='json')
+        self.assertEqual(tamper_resp.status_code, 404)
+
+    def test_admin_locked_rates_cannot_be_overridden_or_deleted_by_manufacturer(self):
+        """When an admin locks a rate, the manufacturer cannot edit or delete it."""
+        # Admin creates locked rate for Manufacturer A's product
+        self.client.force_authenticate(user=self.admin)
+        resp = self.client.post('/api/admin/delivery/rates/', {
+            'title': 'Admin Enforced Price Floor for Pork',
+            'scope': DeliveryRate.Scope.PRODUCT_SPECIFIC,
+            'product': self.product_a.id,
+            'manufacturer': self.mfg_a.id,
+            'delivery_method': 'STANDARD',
+            'base_rate': '120.00',
+            'per_package_rate': '120.00',
+            'is_locked': True,
+            'is_active': True,
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        locked_rate_id = resp.data['id']
+
+        # Manufacturer A attempts to update the locked rate
+        self.client.force_authenticate(user=self.mfg_user_a)
+        edit_resp = self.client.put(f'/api/manufacturer/delivery/rates/{locked_rate_id}/', {
+            'base_rate': '50.00'
+        }, format='json')
+        self.assertEqual(edit_resp.status_code, 403)
+        self.assertIn('locked by Wangs Platform Admin', edit_resp.data['detail'])
+
+        # Manufacturer A attempts to delete the locked rate
+        del_resp = self.client.delete(f'/api/manufacturer/delivery/rates/{locked_rate_id}/')
+        self.assertEqual(del_resp.status_code, 403)
+        self.assertIn('locked by Wangs Platform Admin', del_resp.data['detail'])
+
+    def test_five_tier_delivery_rate_priority(self):
+        """
+        Verify the exact priority hierarchy:
+        1. Admin-locked product rate
+        2. Manufacturer product rate
+        3. Admin-locked manufacturer zone rate
+        4. Manufacturer zone rate
+        5. Admin default rate
+        """
+        from .delivery_service import DeliveryCalculator
+
+        # Clear existing seeded rates to test the 5-tier isolation cleanly
+        DeliveryRate.objects.all().delete()
+
+        # Create all 5 tiers for Product A in Kohima Zone
+        # Tier 5: Admin Default
+        tier5 = DeliveryRate.objects.create(
+            title='Tier 5 Admin Default',
+            scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+            base_rate=Decimal('50.00'),
+            is_locked=False,
+            is_active=True
+        )
+
+        # Check resolution without higher tiers -> Tier 5
+        rate = DeliveryCalculator.find_applicable_rate_for_item(self.product_a, zone=self.zone_kohima)
+        self.assertEqual(rate.id, tier5.id)
+
+        # Tier 4: Manufacturer Destination Rate
+        tier4 = DeliveryRate.objects.create(
+            title='Tier 4 Mfg Zone Rate',
+            scope=DeliveryRate.Scope.MANUFACTURER_ZONE,
+            manufacturer=self.mfg_a,
+            zone=self.zone_kohima,
+            base_rate=Decimal('60.00'),
+            is_locked=False,
+            is_active=True
+        )
+        rate = DeliveryCalculator.find_applicable_rate_for_item(self.product_a, zone=self.zone_kohima)
+        self.assertEqual(rate.id, tier4.id)
+
+        # Tier 3: Admin-Locked Manufacturer / Zone Rate
+        tier3 = DeliveryRate.objects.create(
+            title='Tier 3 Admin Locked Zone Rate',
+            scope=DeliveryRate.Scope.MANUFACTURER_ZONE,
+            manufacturer=self.mfg_a,
+            zone=self.zone_kohima,
+            base_rate=Decimal('70.00'),
+            is_locked=True,
+            is_active=True
+        )
+        rate = DeliveryCalculator.find_applicable_rate_for_item(self.product_a, zone=self.zone_kohima)
+        self.assertEqual(rate.id, tier3.id)
+
+        # Tier 2: Manufacturer Product-Specific Rate
+        tier2 = DeliveryRate.objects.create(
+            title='Tier 2 Mfg Product Rate',
+            scope=DeliveryRate.Scope.PRODUCT_SPECIFIC,
+            product=self.product_a,
+            manufacturer=self.mfg_a,
+            base_rate=Decimal('80.00'),
+            is_locked=False,
+            is_active=True
+        )
+        rate = DeliveryCalculator.find_applicable_rate_for_item(self.product_a, zone=self.zone_kohima)
+        self.assertEqual(rate.id, tier2.id)
+
+        # Tier 1: Admin-Locked Product-Specific Rate
+        tier1 = DeliveryRate.objects.create(
+            title='Tier 1 Admin Locked Product Rate',
+            scope=DeliveryRate.Scope.PRODUCT_SPECIFIC,
+            product=self.product_a,
+            base_rate=Decimal('90.00'),
+            is_locked=True,
+            is_active=True
+        )
+        rate = DeliveryCalculator.find_applicable_rate_for_item(self.product_a, zone=self.zone_kohima)
+        self.assertEqual(rate.id, tier1.id)
+
+    def test_weight_surcharge_calculation_kohima_dimapur(self):
+        """
+        SwiftZone Local rule:
+        First 1 kg included. ₹6 for every additional 100 g or part thereof.
+        """
+        from .delivery_service import DeliveryCalculator
+
+        # Create rate: Base ₹80, included 1000g, ₹6 per 100g
+        rate = DeliveryRate.objects.create(
+            title='Kohima Standard',
+            scope=DeliveryRate.Scope.ZONE_DEFAULT,
+            courier=self.swiftzone,
+            zone=self.zone_kohima,
+            delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+            base_rate=Decimal('80.00'),
+            per_package_rate=Decimal('80.00'),
+            included_weight_grams=1000,
+            additional_weight_rate=Decimal('6.00'),
+            additional_weight_step_grams=100,
+            is_active=True
+        )
+
+        # 1. Weight 900g (within 1kg) -> Surcharge ₹0
+        self.assertEqual(rate.calculate_weight_surcharge(900), Decimal('0.00'))
+
+        # 2. Weight 1000g -> Surcharge ₹0
+        self.assertEqual(rate.calculate_weight_surcharge(1000), Decimal('0.00'))
+
+        # 3. Weight 1250g -> Extra 250g. Part thereof = 3 steps (100g, 100g, 50g) = 3 * ₹6 = ₹18.00
+        self.assertEqual(rate.calculate_weight_surcharge(1250), Decimal('18.00'))
+
+        # 4. Weight 1500g -> Extra 500g = 5 steps * ₹6 = ₹30.00
+        self.assertEqual(rate.calculate_weight_surcharge(1500), Decimal('30.00'))
+
+    def test_multi_manufacturer_order_separate_packaging(self):
+        """
+        Orders containing multiple manufacturers must calculate packaging separately
+        for each fulfillment group, bundle items appropriately, and display combined total.
+        """
+        self.client.force_authenticate(user=self.customer)
+
+        # Add Product A (Mfg A) and Product B (Mfg B) to Cart
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, product=self.product_a, quantity=2) # 2x250g = 500g
+        CartItem.objects.create(cart=cart, product=self.product_b, quantity=1) # 1x300g = 300g
+
+        # Quote to Kohima (797001)
+        resp = self.client.post('/api/checkout/shipping-quote/', {
+            'postal_code': '797001',
+            'city': 'Kohima'
+        }, format='json')
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.data['is_deliverable'])
+        # Must have 2 fulfillment breakdowns (one for each manufacturer)
+        breakdown = resp.data['fulfillment_breakdown']
+        self.assertEqual(len(breakdown), 2)
+
+        mfg_names = [b['manufacturer_name'] for b in breakdown]
+        self.assertIn(self.mfg_a.business_name, mfg_names)
+        self.assertIn(self.mfg_b.business_name, mfg_names)
+
+        # Total packages = 1 box for Mfg A + 1 box for Mfg B = 2 boxes
+        self.assertEqual(resp.data['total_packages'], 2)
+
+    def test_unsupported_destination_shows_error_and_blocks_checkout(self):
+        """If destination PIN has no deliverable rates, display informative error and reject order."""
+        self.client.force_authenticate(user=self.customer)
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, product=self.product_a, quantity=1)
+
+        # Deactivate all rates temporarily to simulate unserviced region
+        DeliveryRate.objects.all().update(is_active=False)
+
+        # Quote request
+        quote_resp = self.client.post('/api/checkout/shipping-quote/', {
+            'postal_code': '999999',
+            'city': 'Unknown Remote Territory'
+        }, format='json')
+        self.assertEqual(quote_resp.status_code, 200)
+        self.assertFalse(quote_resp.data['is_deliverable'])
+        self.assertEqual(quote_resp.data['error_message'], 'Delivery not available for this location')
+
+        # Checkout attempt must be rejected with 400
+        order_resp = self.client.post('/api/checkout/create-order/', {
+            'customer_name': 'Test Cust',
+            'customer_email': 'cust@example.com',
+            'customer_phone': '9876543210',
+            'shipping_address_line1': 'Unserviced Remote Village',
+            'shipping_city': 'Unknown Remote Territory',
+            'shipping_state': 'Remote',
+            'shipping_postal_code': '999999',
+            'payment_method': 'COD'
+        }, format='json')
+
+        self.assertEqual(order_resp.status_code, 400)
+        self.assertIn('Delivery not available for this location', order_resp.data['detail'])
+
+    def test_historical_shipping_snapshot_preserved_on_order(self):
+        """Historical shipping charges and rate snapshots remain immutable when rates are updated later."""
+        self.client.force_authenticate(user=self.customer)
+        cart = Cart.objects.create(user=self.customer)
+        CartItem.objects.create(cart=cart, product=self.product_a, quantity=1)
+
+        # Ensure active rate exists
+        rate = DeliveryRate.objects.filter(
+            zone=self.zone_kohima,
+            delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+            is_active=True
+        ).first()
+        if not rate:
+            rate = DeliveryRate.objects.create(
+                title='Kohima Standard Initial',
+                scope=DeliveryRate.Scope.ZONE_DEFAULT,
+                zone=self.zone_kohima,
+                courier=self.swiftzone,
+                delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+                base_rate=Decimal('80.00'),
+                per_package_rate=Decimal('80.00'),
+                is_active=True
+            )
+
+        # Place order
+        order_resp = self.client.post('/api/checkout/create-order/', {
+            'customer_name': 'Snapshot Customer',
+            'customer_email': 'snap@example.com',
+            'customer_phone': '9876500000',
+            'shipping_address_line1': 'Lower Chandmari, Kohima',
+            'shipping_city': 'Kohima',
+            'shipping_state': 'Nagaland',
+            'shipping_postal_code': '797001',
+            'payment_method': 'COD'
+        }, format='json')
+
+        self.assertEqual(order_resp.status_code, 201)
+        order_num = order_resp.data['order']['order_number']
+        order = Order.objects.get(order_number=order_num)
+        original_fee = order.delivery_fee
+
+        # Later, rate is updated or modified
+        rate.base_rate = Decimal('250.00')
+        rate.version += 1
+        rate.save()
+
+        # Reload order from database: snapshot fields must remain intact
+        order.refresh_from_db()
+        self.assertEqual(order.delivery_fee, original_fee)
+        self.assertEqual(order.shipping_package_count, 1)
+        self.assertTrue('fulfillment_breakdown' in order.shipping_breakdown)
+
+    def test_courier_portal_order_lookup_displays_shipping_details(self):
+        """Courier driver can look up order and see delivery details without breaking QR scanning."""
+        # Create an order
+        order = Order.objects.create(
+            order_number='WNG-20261112-COURIERTEST',
+            customer_name='Imti Ao',
+            customer_email='imti@example.com',
+            customer_phone='9436011111',
+            shipping_address_line1='Duncan Bosti, Dimapur',
+            shipping_city='Dimapur',
+            shipping_state='Nagaland',
+            shipping_postal_code='797112',
+            items_subtotal=Decimal('250.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('110.00'),
+            total_amount=Decimal('365.00'),
+            platform_commission_total=Decimal('25.00'),
+            manufacturer_payout_total=Decimal('225.00'),
+            courier_partner='SwiftZone Express',
+            shipping_delivery_method='Standard Delivery (1-2 business days)',
+            shipping_estimated_delivery='1–2 Business Days',
+            shipping_package_count=1,
+            status=Order.Status.PROCESSING
+        )
+
+        self.client.force_authenticate(user=self.courier_user)
+        lookup_resp = self.client.get(f'/api/delivery/order/{order.order_number}/')
+        self.assertEqual(lookup_resp.status_code, 200)
+        self.assertEqual(lookup_resp.data['order_number'], order.order_number)
+        self.assertEqual(lookup_resp.data['courier_partner'], 'SwiftZone Express')
+        self.assertEqual(lookup_resp.data['shipping_package_count'], 1)
+        self.assertEqual(lookup_resp.data['shipping_delivery_method'], 'Standard Delivery (1-2 business days)')
+
 

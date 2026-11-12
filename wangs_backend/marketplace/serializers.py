@@ -18,7 +18,8 @@ from .models import (
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
     ManufacturerSettlement, Coupon, AuditLog, HeroBanner, StorefrontNotice,
     RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
-    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog
+    DeliveryConfirmation, RewardTransaction, SuspiciousScanLog,
+    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion
 )
 
 
@@ -1118,12 +1119,16 @@ class OrderSerializer(serializers.ModelSerializer):
             'total_amount', 'platform_commission_total',
             'manufacturer_payout_total', 'coupon_code', 'status',
             'payment_status', 'payment_method', 'tracking_number', 'courier_partner', 'dispatch_notes',
+            'shipping_rate', 'shipping_delivery_method', 'shipping_estimated_delivery',
+            'shipping_package_count', 'shipping_breakdown',
             'items', 'units', 'created_at', 'updated_at'
         ]
         read_only_fields = [
             'id', 'order_number', 'items_subtotal', 'customer_platform_fee',
             'delivery_fee', 'discount_amount', 'credits_redeemed', 'credit_discount_amount',
             'total_amount', 'platform_commission_total', 'manufacturer_payout_total',
+            'shipping_rate', 'shipping_delivery_method', 'shipping_estimated_delivery',
+            'shipping_package_count', 'shipping_breakdown',
             'created_at', 'updated_at'
         ]
 
@@ -1137,6 +1142,8 @@ class OrderCreateSerializer(serializers.Serializer):
     shipping_city = serializers.CharField(max_length=100)
     shipping_state = serializers.CharField(max_length=100)
     shipping_postal_code = serializers.CharField(max_length=10)
+    shipping_delivery_method = serializers.CharField(max_length=80, required=False, default='Standard Delivery')
+    shipping_rate_id = serializers.IntegerField(required=False, allow_null=True)
     coupon_code = serializers.CharField(max_length=30, required=False, allow_blank=True)
     credits_to_redeem = serializers.IntegerField(required=False, default=0, min_value=0)
     session_key = serializers.CharField(max_length=64, required=False, allow_blank=True)
@@ -1324,4 +1331,70 @@ class SuspiciousScanLogSerializer(serializers.ModelSerializer):
             'id', 'token_attempted', 'user', 'username',
             'ip_address', 'user_agent', 'reason', 'created_at'
         ]
+
+
+# =============================================================================
+# DELIVERY & SHIPPING MANAGEMENT SERIALIZERS
+# =============================================================================
+
+class CourierServiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CourierService
+        fields = [
+            'id', 'name', 'code', 'description', 'pickup_origin',
+            'pickup_charge', 'tracking_url_template', 'is_active',
+            'display_order', 'created_at', 'updated_at'
+        ]
+
+
+class DeliveryZoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DeliveryZone
+        fields = [
+            'id', 'name', 'code', 'description', 'state',
+            'cities', 'postal_codes', 'is_active', 'display_order',
+            'created_at', 'updated_at'
+        ]
+
+
+class DeliveryRateSerializer(serializers.ModelSerializer):
+    scope_display = serializers.CharField(source='get_scope_display', read_only=True)
+    delivery_method_display = serializers.CharField(source='get_delivery_method_display', read_only=True)
+    courier_name = serializers.CharField(source='courier.name', read_only=True)
+    zone_name = serializers.CharField(source='zone.name', read_only=True)
+    manufacturer_name = serializers.CharField(source='manufacturer.business_name', read_only=True)
+    product_title = serializers.CharField(source='product.title', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+
+    class Meta:
+        model = DeliveryRate
+        fields = [
+            'id', 'title', 'scope', 'scope_display',
+            'courier', 'courier_name',
+            'zone', 'zone_name',
+            'manufacturer', 'manufacturer_name',
+            'product', 'product_title',
+            'delivery_method', 'delivery_method_display',
+            'is_locked', 'is_active', 'approval_status', 'rejection_reason',
+            'base_rate', 'per_package_rate',
+            'max_items_per_package', 'max_weight_per_package_grams',
+            'included_weight_grams', 'additional_weight_rate', 'additional_weight_step_grams',
+            'is_free_delivery', 'min_order_amount_for_free_delivery',
+            'same_day_cutoff_time', 'scheduled_days_of_week', 'min_packages_for_anyday',
+            'estimated_delivery_days_min', 'estimated_delivery_days_max', 'estimated_delivery_note',
+            'version', 'created_by_username', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'version', 'created_by_username', 'created_at', 'updated_at']
+
+
+class ShippingPromotionSerializer(serializers.ModelSerializer):
+    zone_name = serializers.CharField(source='zone.name', read_only=True)
+
+    class Meta:
+        model = ShippingPromotion
+        fields = [
+            'id', 'name', 'promo_type', 'discount_value', 'min_spend',
+            'zone', 'zone_name', 'is_active', 'start_date', 'end_date', 'created_at'
+        ]
+
 

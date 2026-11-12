@@ -594,7 +594,7 @@ export default function ScanAndEarnModal({ isOpen, onClose, onSuccess, initialTo
                       className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-red-600/30 focus:border-red-600"
                     />
                     <p className="text-[10px] text-stone-500 mt-1.5 leading-relaxed">
-                      💡 Tip: You can enter the <strong>Order Number</strong> (e.g. <code className="font-mono bg-stone-100 px-1 py-0.5 rounded text-stone-700">WNG-20261111-XXXXXX</code>) printed on your parcel slip, or the token printed beneath the jar QR label.
+                      💡 Tip: You can enter the <strong>Order Number</strong> (e.g. <code className="font-mono bg-stone-100 px-1 py-0.5 rounded text-stone-700">WNG-20261111-XXXXXX</code>) printed on your parcel slip, or the token printed beneath the item QR label.
                     </p>
                   </div>
 

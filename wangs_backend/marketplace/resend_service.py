@@ -478,7 +478,7 @@ def send_seller_approval_email(user=None, manufacturer_profile=None, request=Non
                     <div style="margin-bottom:14px;padding-left:14px;border-left:3px solid #0e3820;">
                       <strong style="color:#1c1917;font-size:13px;">2. List Your Artisanal Products</strong>
                       <p style="margin:3px 0 0;color:#57534e;font-size:12px;line-height:1.5;">
-                        Upload high-resolution jar and packaging photography. Specify ingredients, net grams, spice level, and verify your FSSAI license compliance.
+                        Upload high-resolution product and packaging photography. Specify ingredients, net grams, spice level, and verify your FSSAI license compliance.
                       </p>
                     </div>
                     <div style="margin-bottom:14px;padding-left:14px;border-left:3px solid #0e3820;">
@@ -1059,7 +1059,7 @@ def send_admin_new_product_notification(product, profile):
                       </tr>
                       <tr>
                         <td style="padding:6px 0;color:#78716c;font-weight:600;">Pack Weight & Stock:</td>
-                        <td style="padding:6px 0;color:#1c1917;">{weight_grams}g · {stock_quantity} jars in stock</td>
+                        <td style="padding:6px 0;color:#1c1917;">{weight_grams}g · {stock_quantity} units in stock</td>
                       </tr>
                       <tr>
                         <td style="padding:6px 0;color:#78716c;font-weight:600;">Status:</td>
@@ -1472,7 +1472,7 @@ def send_manufacturer_order_notification(order, manufacturer_profile, items_for_
         <div style="background:#faf8f5;border:1px solid #e7dfd4;border-radius:14px;padding:20px;margin:24px 0;">
           <h3 style="font-size:13px;color:#0e3820;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;">📦 Next Steps to Fulfill</h3>
           <ol style="margin:0;padding-left:20px;font-size:13px;line-height:1.8;color:#57534e;">
-            <li>Package the requested jar(s)/pack(s) securely with tamper-evident seal.</li>
+            <li>Package the requested pack(s)/unit(s) securely with tamper-evident seal.</li>
             <li>Sign in to your <a href="{seller_portal_url}" style="color:#0e3820;font-weight:700;text-decoration:underline;">Seller Portal</a> to view and update the order status to <strong>Packed</strong>.</li>
             <li>A Wangs Express courier partner will arrive for parcel pickup and scan the delivery QR.</li>
           </ol>
@@ -1674,7 +1674,7 @@ def send_customer_delivery_status_email(order, status: str, item=None, tracking_
         <tr style="border-bottom:1px solid #f0ede6;">
           <td style="padding:12px 10px;font-size:13px;color:#1c1917;vertical-align:middle;">
             <strong style="color:#0e3820;display:block;font-size:13px;">{it.product_title}</strong>
-            <span style="font-size:11px;color:#78716c;">Pack: {it.weight_grams}g &middot; {it.quantity} {('Jar' if it.quantity == 1 else 'Jars')}</span>
+            <span style="font-size:11px;color:#78716c;">Pack: {it.weight_grams}g &middot; {it.quantity} {('Unit' if it.quantity == 1 else 'Units')}</span>
           </td>
           <td style="padding:12px 10px;font-size:12px;color:#57534e;vertical-align:middle;text-align:center;">
             <span style="font-size:11px;font-weight:700;color:{badge_color};background:{badge_bg};padding:3px 8px;border-radius:6px;border:1px solid {badge_border};">

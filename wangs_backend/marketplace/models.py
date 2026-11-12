@@ -422,6 +422,10 @@ class CommissionSetting(models.Model):
         default=False,
         help_text="When True, the 'Sell with Us' button appears in the footer. Controlled by Admin."
     )
+    require_mfg_rate_approval = models.BooleanField(
+        default=False,
+        help_text="Require admin review and approval before manufacturer delivery rates become active."
+    )
     is_maintenance_mode = models.BooleanField(
         default=False,
         help_text="When True, the public storefront shows a maintenance page to visitors. Admins can bypass."
@@ -578,6 +582,18 @@ class Order(models.Model):
     dispatch_notes = models.TextField(blank=True, default='')
     courier_partner = models.CharField(max_length=100, blank=True, default='India Post Air Cargo')
     tracking_number = models.CharField(max_length=100, blank=True, default='', help_text="Airway Bill (AWB) or Tracking number")
+
+    # Delivery Rate & Logistics Snapshot
+    shipping_rate = models.ForeignKey('DeliveryRate', null=True, blank=True, on_delete=models.SET_NULL, related_name='orders')
+    shipping_delivery_method = models.CharField(max_length=80, blank=True, default='Standard Delivery')
+    shipping_estimated_delivery = models.CharField(max_length=150, blank=True, default='')
+    shipping_package_count = models.PositiveIntegerField(default=1)
+    shipping_breakdown = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Itemized snapshot of manufacturer fulfillment groups, weights, base rate, surcharges, rate versions"
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -738,7 +754,7 @@ class MaintenanceSubscriber(models.Model):
 
 class HeroBanner(models.Model):
     title = models.CharField(max_length=200, blank=True, default="The Great Achar Season")
-    subtitle = models.TextField(blank=True, default="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay jars.")
+    subtitle = models.TextField(blank=True, default="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.")
     badge_text = models.CharField(max_length=100, blank=True, default="FRESH BATCH LIVE")
     coupon_code = models.CharField(max_length=50, blank=True, default="ACHAR15")
     cta_text = models.CharField(max_length=100, blank=True, default="Shop Now")
@@ -963,5 +979,213 @@ class SuspiciousScanLog(models.Model):
 
     def __str__(self):
         return f"Suspicious Scan: {self.token_attempted} - {self.reason}"
+
+
+# =============================================================================
+# DELIVERY & SHIPPING MANAGEMENT MODELS
+# =============================================================================
+
+class CourierService(models.Model):
+    name = models.CharField(max_length=120)
+    code = models.CharField(max_length=50, unique=True, help_text="e.g. SWIFTZONE, BLUEDART, INDIAPOST, BUS_SUMO")
+    description = models.TextField(blank=True, default='')
+    pickup_origin = models.CharField(max_length=100, default='Kohima')
+    pickup_charge = models.DecimalField(max_digits=8, decimal_places=2, default=Decimal('0.00'))
+    tracking_url_template = models.CharField(max_length=255, blank=True, default='')
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+
+class DeliveryZone(models.Model):
+    name = models.CharField(max_length=150)
+    code = models.CharField(max_length=60, unique=True, help_text="e.g. KOHIMA_LOCAL, DIMAPUR_CHUMOUKEDIMA, NORTH_EAST")
+    description = models.TextField(blank=True, default='')
+    state = models.CharField(max_length=100, default='Nagaland')
+    cities = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of matching cities/towns in lowercase/trimmed format, e.g. ['kohima']"
+    )
+    postal_codes = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of matching PIN codes or prefixes, e.g. ['797001', '797002']"
+    )
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['display_order', 'name']
+
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+    def matches_location(self, postal_code=None, city=None, state=None):
+        """Check if destination city or postal code matches this zone."""
+        postal_code = (postal_code or '').strip()
+        city = (city or '').strip().lower()
+        state = (state or '').strip().lower()
+
+        if postal_code and self.postal_codes:
+            for pin in self.postal_codes:
+                pin_clean = str(pin).strip()
+                if postal_code == pin_clean or postal_code.startswith(pin_clean):
+                    return True
+
+        if city and self.cities:
+            for c in self.cities:
+                if str(c).strip().lower() in city or city in str(c).strip().lower():
+                    return True
+
+        return False
+
+
+class DeliveryRate(models.Model):
+    class Scope(models.TextChoices):
+        ADMIN_DEFAULT = 'ADMIN_DEFAULT', 'Admin Platform Default'
+        ZONE_DEFAULT = 'ZONE_DEFAULT', 'Admin Zone Default'
+        MANUFACTURER_ZONE = 'MANUFACTURER_ZONE', 'Manufacturer Zone/Destination Rate'
+        PRODUCT_SPECIFIC = 'PRODUCT_SPECIFIC', 'Product-Specific Rate'
+
+    class DeliveryMethod(models.TextChoices):
+        STANDARD = 'STANDARD', 'Standard Delivery (1-2 business days)'
+        SAME_DAY = 'SAME_DAY', 'Same-Day Delivery'
+        EXPRESS = 'EXPRESS', 'Express Air Cargo'
+        BUS_SUMO = 'BUS_SUMO', 'Bus / Sumo Regional Service'
+
+    class ApprovalStatus(models.TextChoices):
+        APPROVED = 'APPROVED', 'Approved & Active'
+        PENDING = 'PENDING', 'Pending Admin Approval'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    title = models.CharField(max_length=200, blank=True, default='')
+    scope = models.CharField(max_length=30, choices=Scope.choices, default=Scope.ADMIN_DEFAULT)
+    
+    courier = models.ForeignKey(CourierService, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_rates')
+    zone = models.ForeignKey(DeliveryZone, on_delete=models.SET_NULL, null=True, blank=True, related_name='delivery_rates')
+    manufacturer = models.ForeignKey(ManufacturerProfile, on_delete=models.CASCADE, null=True, blank=True, related_name='delivery_rates')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True, blank=True, related_name='delivery_rates')
+    
+    delivery_method = models.CharField(max_length=30, choices=DeliveryMethod.choices, default=DeliveryMethod.STANDARD)
+    is_locked = models.BooleanField(
+        default=False,
+        help_text="Locked by Admin. When locked, manufacturers cannot edit, override, or delete this rate."
+    )
+    is_active = models.BooleanField(default=True)
+    approval_status = models.CharField(max_length=20, choices=ApprovalStatus.choices, default=ApprovalStatus.APPROVED)
+    rejection_reason = models.TextField(blank=True, default='')
+
+    # Pricing & Package parameters
+    base_rate = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        help_text="Base charge per package"
+    )
+    per_package_rate = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
+        help_text="Per-package rate applied per fulfillment box"
+    )
+    max_items_per_package = models.PositiveIntegerField(
+        default=4,
+        help_text="Maximum units of standard pickle containers that fit safely into 1 package box"
+    )
+    max_weight_per_package_grams = models.PositiveIntegerField(
+        default=1500,
+        help_text="Maximum weight capacity per package box before requiring an additional box"
+    )
+    included_weight_grams = models.PositiveIntegerField(
+        default=1000,
+        help_text="Weight included in base charge (e.g. 1000g = first 1 kg)"
+    )
+    additional_weight_rate = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal('6.00'),
+        help_text="Charge for each additional weight step above included weight (e.g. ₹6.00)"
+    )
+    additional_weight_step_grams = models.PositiveIntegerField(
+        default=100,
+        help_text="Step size in grams for additional weight charge (e.g. ₹6 for every 100g or part thereof)"
+    )
+    
+    # Free Delivery & Promotions
+    is_free_delivery = models.BooleanField(default=False)
+    min_order_amount_for_free_delivery = models.DecimalField(
+        max_digits=10, decimal_places=2, null=True, blank=True,
+        help_text="Subtotal threshold above which customer pays zero delivery"
+    )
+
+    # Cutoff times & Schedules
+    same_day_cutoff_time = models.TimeField(
+        null=True, blank=True,
+        help_text="Order placement cutoff for same-day delivery (e.g. 12:30 PM)"
+    )
+    scheduled_days_of_week = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Scheduled delivery days for single packages (e.g. ['MON', 'WED', 'FRI'])"
+    )
+    min_packages_for_anyday = models.PositiveIntegerField(
+        default=2,
+        help_text="Minimum packages required to deliver on any day instead of fixed weekly schedule"
+    )
+    estimated_delivery_days_min = models.PositiveIntegerField(default=1)
+    estimated_delivery_days_max = models.PositiveIntegerField(default=2)
+    estimated_delivery_note = models.CharField(max_length=200, blank=True, default='')
+
+    # Versioning & Audit
+    version = models.PositiveIntegerField(default=1)
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='created_delivery_rates')
+    updated_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='updated_delivery_rates')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-is_locked', '-created_at']
+
+    def __str__(self):
+        lock_str = " [ADMIN LOCKED]" if self.is_locked else ""
+        return f"{self.title or self.get_scope_display()} - {self.get_delivery_method_display()} (₹{self.base_rate}){lock_str}"
+
+    def calculate_weight_surcharge(self, weight_grams):
+        """Calculates weight surcharge above included_weight_grams."""
+        if weight_grams <= self.included_weight_grams or self.additional_weight_rate <= Decimal('0.00'):
+            return Decimal('0.00')
+        extra_grams = weight_grams - self.included_weight_grams
+        step = max(1, self.additional_weight_step_grams)
+        # Part thereof: integer ceiling division
+        num_steps = (extra_grams + step - 1) // step
+        return Decimal(str(num_steps)) * self.additional_weight_rate
+
+
+class ShippingPromotion(models.Model):
+    class PromoType(models.TextChoices):
+        FREE_SHIPPING = 'FREE_SHIPPING', 'Free Shipping'
+        FLAT_DISCOUNT = 'FLAT_DISCOUNT', 'Flat Shipping Discount'
+        PERCENT_DISCOUNT = 'PERCENT_DISCOUNT', 'Percentage Shipping Discount'
+
+    name = models.CharField(max_length=150)
+    promo_type = models.CharField(max_length=30, choices=PromoType.choices, default=PromoType.FREE_SHIPPING)
+    discount_value = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    min_spend = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+    zone = models.ForeignKey(DeliveryZone, null=True, blank=True, on_delete=models.CASCADE, related_name='promotions')
+    is_active = models.BooleanField(default=True)
+    start_date = models.DateTimeField(null=True, blank=True)
+    end_date = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Promotion: {self.name} ({self.promo_type})"
+
 
 

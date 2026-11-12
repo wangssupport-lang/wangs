@@ -55,7 +55,7 @@ export default function BrandsPage() {
             Explore Verified Pickle Brands
           </h1>
           <p className="mt-3 max-w-xl text-sm leading-relaxed text-on-surface-variant sm:text-base">
-            Every jar carries a regional heritage story. Get to know the independent village kitchens and verified artisanal makers crafting authentic small-batch pickles.
+            Every recipe carries a regional heritage story. Get to know the independent village kitchens and verified artisanal makers crafting authentic small-batch pickles.
           </p>
         </div>
       </section>

@@ -29,6 +29,11 @@ export default function CheckoutPage() {
 
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('RAZORPAY_TEST');
+  const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState('STANDARD');
+  const [shippingQuote, setShippingQuote] = useState(null);
+  const [fetchingQuote, setFetchingQuote] = useState(false);
+  const [isDeliverable, setIsDeliverable] = useState(true);
+  const [deliveryError, setDeliveryError] = useState('');
   const [rewardWallet, setRewardWallet] = useState(null);
   const [creditsToRedeem, setCreditsToRedeem] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -89,6 +94,45 @@ export default function CheckoutPage() {
     }));
   };
 
+  const fetchShippingQuote = async (pin, city, state, method) => {
+    const postalCode = pin || formData.shipping_postal_code;
+    const destCity = city || formData.shipping_city;
+    const destState = state || formData.shipping_state;
+    const delivMethod = method || selectedDeliveryMethod;
+
+    if (!postalCode || postalCode.length < 3) return;
+
+    setFetchingQuote(true);
+    try {
+      const quote = await api.getShippingQuote({
+        postal_code: postalCode,
+        city: destCity,
+        state: destState,
+        delivery_method: delivMethod
+      });
+      if (quote.is_deliverable) {
+        setShippingQuote(quote);
+        setIsDeliverable(true);
+        setDeliveryError('');
+      } else {
+        setShippingQuote(null);
+        setIsDeliverable(false);
+        setDeliveryError(quote.error_message || 'Delivery not available for this location');
+      }
+    } catch (err) {
+      setIsDeliverable(false);
+      setDeliveryError(err.message || 'Delivery not available for this location');
+    } finally {
+      setFetchingQuote(false);
+    }
+  };
+
+  useEffect(() => {
+    if (formData.shipping_postal_code && formData.shipping_postal_code.length >= 3) {
+      fetchShippingQuote(formData.shipping_postal_code, formData.shipping_city, formData.shipping_state, selectedDeliveryMethod);
+    }
+  }, [formData.shipping_postal_code, formData.shipping_city, formData.shipping_state, selectedDeliveryMethod]);
+
   const handleCreateOrder = async (e) => {
     e.preventDefault();
     setErrorMessage('');
@@ -108,12 +152,18 @@ export default function CheckoutPage() {
       return;
     }
 
+    if (!isDeliverable) {
+      setErrorMessage(deliveryError || 'Delivery not available for this location. Please enter a serviceable destination.');
+      return;
+    }
+
     setLoading(true);
     try {
       const orderPayload = {
         ...formData,
         payment_method: selectedPaymentMethod,
         credits_to_redeem: safeCreditsToRedeem,
+        shipping_delivery_method: selectedDeliveryMethod,
       };
 
       const res = await api.createOrder(orderPayload);
@@ -161,7 +211,11 @@ export default function CheckoutPage() {
     total_amount: '0.00',
   };
 
-  const rawTotal = parseFloat(summary.total_amount) || 0;
+  const effectiveDeliveryFee = shippingQuote ? parseFloat(shippingQuote.total_delivery_fee) : (parseFloat(summary.delivery_fee) || 0);
+  const itemsSubtotal = parseFloat(summary.items_subtotal) || 0;
+  const platformFee = parseFloat(summary.customer_platform_fee) || 0;
+  const discountAmount = parseFloat(summary.discount_amount) || 0;
+  const rawTotal = Math.max(0, itemsSubtotal - discountAmount + platformFee + effectiveDeliveryFee);
   const availableCredits = rewardWallet?.available_credits ?? rewardWallet?.balance ?? rewardWallet?.wallet?.balance ?? 0;
   const creditRate = rewardWallet?.credit_value_rupees ? parseFloat(rewardWallet.credit_value_rupees) : (rewardWallet?.settings?.credit_value_rupees ? parseFloat(rewardWallet.settings.credit_value_rupees) : 0.10);
   const maxRedeemableCredits = Math.min(availableCredits, Math.floor(rawTotal / (creditRate || 0.10)));
@@ -444,6 +498,115 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Delivery Methods & Serviceability */}
+            <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/90 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <Truck size={18} className="text-forest-900" />
+                  <h3 className="font-serif font-bold text-sm text-stone-900">
+                    Delivery Method & Logistics
+                  </h3>
+                </div>
+                {fetchingQuote && (
+                  <span className="text-[11px] text-stone-500 font-mono flex items-center gap-1.5">
+                    <RefreshCw size={12} className="animate-spin text-forest-800" />
+                    Calculating rates...
+                  </span>
+                )}
+              </div>
+
+              {!isDeliverable && (
+                <div className="p-4 bg-red-50 border-2 border-red-300 rounded-2xl text-xs text-red-900 space-y-1.5">
+                  <div className="flex items-center gap-2 font-bold text-sm text-red-700">
+                    <AlertCircle size={18} className="shrink-0" />
+                    <span>Delivery not available for this location</span>
+                  </div>
+                  <p className="text-red-800 leading-relaxed">
+                    {deliveryError || `We do not currently deliver to ${formData.shipping_city || 'PIN ' + formData.shipping_postal_code}. Please choose a serviceable address or contact Wangs support.`}
+                  </p>
+                </div>
+              )}
+
+              {/* Delivery Method Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <label className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
+                  selectedDeliveryMethod === 'STANDARD' ? 'border-forest-900 bg-forest-50/40 ring-1 ring-forest-900' : 'border-stone-200 hover:border-stone-300'
+                }`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-bold text-stone-900 block font-serif">Standard Delivery</span>
+                      <span className="text-[11px] text-stone-500 block pt-0.5">
+                        {shippingQuote?.estimated_delivery || '1–2 Business Days'}
+                      </span>
+                    </div>
+                    <input
+                      type="radio"
+                      name="delivery_method_choice"
+                      value="STANDARD"
+                      checked={selectedDeliveryMethod === 'STANDARD'}
+                      onChange={() => setSelectedDeliveryMethod('STANDARD')}
+                      className="text-forest-900 mt-1"
+                    />
+                  </div>
+                  <span className="text-[10px] text-stone-400 font-mono pt-2 block">
+                    SwiftZone / Partner Network
+                  </span>
+                </label>
+
+                <label className={`p-3.5 rounded-2xl border cursor-pointer transition-all flex flex-col justify-between ${
+                  selectedDeliveryMethod === 'SAME_DAY' ? 'border-forest-900 bg-forest-50/40 ring-1 ring-forest-900' : 'border-stone-200 hover:border-stone-300'
+                }`}>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <span className="font-bold text-stone-900 block font-serif">Same-Day Priority</span>
+                      <span className="text-[11px] text-stone-500 block pt-0.5">
+                        Today Evening Delivery (Order before 12:30 PM)
+                      </span>
+                    </div>
+                    <input
+                      type="radio"
+                      name="delivery_method_choice"
+                      value="SAME_DAY"
+                      checked={selectedDeliveryMethod === 'SAME_DAY'}
+                      onChange={() => setSelectedDeliveryMethod('SAME_DAY')}
+                      className="text-forest-900 mt-1"
+                    />
+                  </div>
+                  <span className="text-[10px] text-stone-400 font-mono pt-2 block">
+                    Kohima & Dimapur corridor
+                  </span>
+                </label>
+              </div>
+
+              {/* Multi-Manufacturer Package Packing Details */}
+              {shippingQuote?.fulfillment_breakdown && shippingQuote.fulfillment_breakdown.length > 0 && (
+                <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 text-xs space-y-2">
+                  <div className="flex items-center justify-between text-stone-700 font-bold">
+                    <span>Package Breakdown ({shippingQuote.total_packages} Box{shippingQuote.total_packages > 1 ? 'es' : ''})</span>
+                    <span className="font-serif font-bold text-forest-900">₹{shippingQuote.total_delivery_fee}</span>
+                  </div>
+                  <div className="space-y-1.5 divide-y divide-stone-200/60 text-[11px] text-stone-600">
+                    {shippingQuote.fulfillment_breakdown.map((fb, idx) => (
+                      <div key={idx} className="pt-1.5 flex items-center justify-between">
+                        <div>
+                          <span className="font-bold text-stone-900">{fb.manufacturer_name}</span>
+                          <span className="text-[10px] text-stone-500 block">
+                            {fb.packages_count} box ({fb.total_weight_grams}g) · via {fb.courier_name}
+                          </span>
+                          {fb.schedule_note && (
+                            <span className="text-[10px] text-amber-700 block">{fb.schedule_note}</span>
+                          )}
+                        </div>
+                        <span className="font-bold text-stone-800 font-serif">
+                          {fb.is_free_delivery ? <span className="text-emerald-700">Free</span> : `₹${fb.group_delivery_fee}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Wangs Rewards Credits Redemption */}
             {user && availableCredits > 0 && (
               <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-red-50/70 p-6 sm:p-7 rounded-3xl border border-amber-200/80 shadow-artisan space-y-4">
@@ -552,11 +715,17 @@ export default function CheckoutPage() {
 
             <button
               type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-2xl shadow-lg shadow-red-600/20 hover:shadow-xl transition-all flex items-center justify-center gap-2 hover:scale-101 active:scale-99"
+              disabled={loading || !isDeliverable}
+              className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 ${
+                !isDeliverable
+                  ? 'bg-stone-400 cursor-not-allowed shadow-none'
+                  : 'bg-red-600 hover:bg-red-700 shadow-red-600/20 hover:shadow-xl hover:scale-101 active:scale-99 cursor-pointer'
+              }`}
             >
               {loading ? (
                 <span>Calculating order and locking inventory...</span>
+              ) : !isDeliverable ? (
+                <span>Delivery Not Available for this Location</span>
               ) : (
                 <>
                   <span>Place Order & Pay ₹{finalPayableAmount.toFixed(0)}</span>
@@ -608,13 +777,20 @@ export default function CheckoutPage() {
                 </span>
                 <span className="font-bold text-stone-900">₹{parseFloat(summary.customer_platform_fee).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Delivery Fee</span>
+              <div className="flex justify-between items-baseline">
+                <div>
+                  <span className="block">Delivery Fee</span>
+                  {shippingQuote?.total_packages && (
+                    <span className="text-[10px] text-stone-500 font-normal block">
+                      {shippingQuote.total_packages} package{shippingQuote.total_packages > 1 ? 's' : ''} ({shippingQuote.fulfillment_breakdown?.length || 1} kitchen{shippingQuote.fulfillment_breakdown?.length > 1 ? 's' : ''})
+                    </span>
+                  )}
+                </div>
                 <span className="font-bold text-stone-900">
-                  {parseFloat(summary.delivery_fee) === 0 ? (
-                    <span className="text-emerald-700 font-black uppercase text-[10px]">Free</span>
+                  {effectiveDeliveryFee === 0 ? (
+                    <span className="text-emerald-700 font-black uppercase text-[10px]">Free Delivery</span>
                   ) : (
-                    `₹${parseFloat(summary.delivery_fee).toFixed(2)}`
+                    `₹${effectiveDeliveryFee.toFixed(2)}`
                   )}
                 </span>
               </div>

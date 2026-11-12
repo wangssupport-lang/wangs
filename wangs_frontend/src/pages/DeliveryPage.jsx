@@ -1240,6 +1240,30 @@ export default function DeliveryPage() {
                   </p>
                 </div>
 
+                {/* Package & Logistics Details */}
+                <div className="p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-500">Courier Network:</span>
+                    <span className="font-bold text-stone-900">{order.courier_partner || 'SwiftZone Express'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-500">Delivery Method:</span>
+                    <span className="font-bold text-stone-800">{order.shipping_delivery_method || 'Standard Delivery'}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-stone-500">Packages:</span>
+                    <span className="font-mono font-bold text-stone-900">
+                      {order.shipping_package_count || 1} Box{(order.shipping_package_count || 1) > 1 ? 'es' : ''}
+                    </span>
+                  </div>
+                  {order.shipping_estimated_delivery && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-stone-500">Delivery Window:</span>
+                      <span className="text-stone-700 font-medium">{order.shipping_estimated_delivery}</span>
+                    </div>
+                  )}
+                </div>
+
                 {/* Dispatch Notes / Delivery Landmark */}
                 {order.dispatch_notes && (
                   <div className="p-2.5 bg-amber-50/70 border border-amber-200/80 rounded-xl text-[11px] text-amber-900">
@@ -1364,7 +1388,7 @@ export default function DeliveryPage() {
                       <div className="flex items-center gap-2 text-[11px] text-stone-600 pt-0.5">
                         <span className="font-semibold text-stone-900">Qty: {item.quantity}</span>
                         <span>·</span>
-                        <span>{item.weight_grams}g Jar</span>
+                        <span>{item.weight_grams}g Pack</span>
                       </div>
                       <div className="flex items-center justify-between gap-1 pt-1 font-mono">
                         <span className="text-[10px] text-stone-500">₹{item.unit_price} each</span>

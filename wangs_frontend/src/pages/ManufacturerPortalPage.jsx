@@ -13,6 +13,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
 import BrandCard from '../components/BrandCard';
+import ManufacturerDeliveryTab from '../components/ManufacturerDeliveryTab';
 import { compressImageFile, resolveProductImage } from '../utils/image';
 
 function getBrandInitials(name = '') {
@@ -107,9 +108,13 @@ export default function ManufacturerPortalPage() {
     storage_instructions: 'Store in cool dry place. Keep submerged in oil.',
     shelf_life: '9 Months',
     stock_quantity: '',
+    delivery_charge: '',
+    free_delivery_threshold: '',
     primary_image_url: '',
     images: ['', '', ''],
   });
+
+  const [productRates, setProductRates] = useState({});
 
   const commissionRate = parseFloat(profile?.commission_rate_override) || 10;
   const deliveryCharge = 50;
@@ -136,6 +141,14 @@ export default function ManufacturerPortalPage() {
     setSearchParams(params, { replace: true });
   };
 
+  const getEffectiveDeliveryFee = (chargeVal) => {
+    if (chargeVal !== '' && chargeVal !== null && chargeVal !== undefined) {
+      const parsed = parseFloat(chargeVal);
+      return isNaN(parsed) ? 80 : Math.max(0, parsed);
+    }
+    return 80; // Standard Kohima baseline default
+  };
+
   const handleBasePriceChange = (val) => {
     if (val === '') {
       setNewProd((prev) => ({ ...prev, base_price: '', price: '', mrp: '' }));
@@ -143,7 +156,8 @@ export default function ManufacturerPortalPage() {
     }
     const base = parseFloat(val) || 0;
     const comm = Math.round((base * commissionRate) / 100);
-    const actual = Math.max(101, Math.round(base + comm + deliveryCharge));
+    const dCharge = getEffectiveDeliveryFee(newProd.delivery_charge);
+    const actual = Math.max(101, Math.round(base + comm + dCharge));
     setNewProd((prev) => ({
       ...prev,
       base_price: val,
@@ -158,7 +172,8 @@ export default function ManufacturerPortalPage() {
       return;
     }
     const actual = parseFloat(val) || 0;
-    const withoutDelivery = Math.max(0, actual - deliveryCharge);
+    const dCharge = getEffectiveDeliveryFee(newProd.delivery_charge);
+    const withoutDelivery = Math.max(0, actual - dCharge);
     const base = Math.max(1, Math.round(withoutDelivery / (1 + commissionRate / 100)));
     setNewProd((prev) => ({
       ...prev,
@@ -168,19 +183,50 @@ export default function ManufacturerPortalPage() {
     }));
   };
 
+  const handleDeliveryChargeChange = (val) => {
+    const dCharge = getEffectiveDeliveryFee(val);
+    setNewProd((prev) => {
+      const base = parseFloat(prev.base_price) || 0;
+      let nextPrice = prev.price;
+      let nextMrp = prev.mrp;
+      if (base > 0) {
+        const comm = Math.round((base * commissionRate) / 100);
+        const actual = Math.max(101, Math.round(base + comm + dCharge));
+        nextPrice = String(actual);
+        nextMrp = prev.mrp && parseFloat(prev.mrp) > actual ? prev.mrp : String(actual + 50);
+      }
+      return {
+        ...prev,
+        delivery_charge: val,
+        price: nextPrice,
+        mrp: nextMrp,
+      };
+    });
+  };
+
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profData, prodsData, catsData, ordsData, finData] = await Promise.all([
+      const [profData, prodsData, catsData, ordsData, finData, ratesData] = await Promise.all([
         api.getManufacturerProfile(),
         api.getManufacturerProducts(),
         api.getCategories(),
         api.getManufacturerOrders(),
         api.getManufacturerFinancials(),
+        api.getManufacturerDeliveryRates().catch(() => ({ own_rates: [] })),
       ]);
       const rawProducts = Array.isArray(prodsData) ? prodsData : (prodsData?.results || []);
       const rawCategories = Array.isArray(catsData) ? catsData : (catsData?.results || []);
       const rawOrders = Array.isArray(ordsData) ? ordsData : (ordsData?.results || []);
+
+      const rateMap = {};
+      (ratesData?.own_rates || []).forEach((r) => {
+        const pId = typeof r.product === 'object' ? r.product?.id : r.product;
+        if (pId) {
+          rateMap[pId] = r;
+        }
+      });
+      setProductRates(rateMap);
 
       setProfile(profData);
       setProducts(rawProducts);
@@ -359,13 +405,36 @@ export default function ManufacturerPortalPage() {
       image_urls: cleanImages.slice(0, 3)
     };
     try {
+      let savedProd = null;
       if (editingProductId) {
-        await api.updateManufacturerProduct(editingProductId, payload);
+        savedProd = await api.updateManufacturerProduct(editingProductId, payload);
         toast.success(`"${newProd.title}" updated successfully!`);
       } else {
-        await api.createManufacturerProduct(payload);
+        savedProd = await api.createManufacturerProduct(payload);
         toast.success('Pickle batch published and is now live for sale on the marketplace!');
       }
+
+      // Automatically sync product-specific delivery charge
+      const targetProdId = editingProductId || savedProd?.id;
+      if (targetProdId && newProd.delivery_charge !== '' && newProd.delivery_charge !== null) {
+        const baseRate = Math.max(0, parseFloat(newProd.delivery_charge) || 0);
+        const freeThreshold = parseFloat(newProd.free_delivery_threshold) || 0;
+        try {
+          await api.createManufacturerDeliveryRate({
+            product: targetProdId,
+            product_id: targetProdId,
+            title: `${newProd.title} Delivery Charge`,
+            base_rate: baseRate,
+            per_package_rate: baseRate,
+            is_free_delivery: baseRate === 0,
+            min_order_amount_for_free_delivery: freeThreshold > 0 ? freeThreshold : 0,
+            is_active: true,
+          });
+        } catch (deliveryErr) {
+          console.warn('Delivery rate auto-sync notice:', deliveryErr);
+        }
+      }
+
       setShowAddProductModal(false);
       setEditingProductId(null);
       loadData();
@@ -406,7 +475,7 @@ export default function ManufacturerPortalPage() {
           ? prev.map((p) => (p.id === productId ? { ...p, stock_quantity: qty } : p))
           : prev
       );
-      toast.success(`Inventory stock updated to ${qty} jars`);
+      toast.success(`Inventory stock updated to ${qty} units`);
       if (quickStockModal?.id === productId) {
         setQuickStockModal(null);
       }
@@ -641,6 +710,8 @@ export default function ManufacturerPortalPage() {
       storage_instructions: 'Store in cool dry place. Keep submerged in oil.',
       shelf_life: '9 Months',
       stock_quantity: '',
+      delivery_charge: '80',
+      free_delivery_threshold: '',
       primary_image_url: '',
       images: ['', '', ''],
     });
@@ -656,6 +727,10 @@ export default function ManufacturerPortalPage() {
     while (existingImgs.length < 3) existingImgs.push('');
 
     const baseVal = p.base_price !== undefined && p.base_price !== null ? String(p.base_price) : '';
+    const existingRate = productRates[p.id];
+    const rateVal = existingRate?.base_rate !== undefined && existingRate?.base_rate !== null ? String(existingRate.base_rate) : '';
+    const threshVal = existingRate?.min_order_amount_for_free_delivery ? String(existingRate.min_order_amount_for_free_delivery) : '';
+
     setNewProd({
       title: p.title || '',
       category_id: p.category?.id || p.category_id || safeCategories[0]?.id || '',
@@ -673,6 +748,8 @@ export default function ManufacturerPortalPage() {
       storage_instructions: p.storage_instructions || 'Store in cool dry place. Keep submerged in oil.',
       shelf_life: p.shelf_life || '9 Months',
       stock_quantity: p.stock_quantity !== undefined && p.stock_quantity !== null ? String(p.stock_quantity) : '0',
+      delivery_charge: rateVal,
+      free_delivery_threshold: threshVal,
       primary_image_url: p.primary_image_url || '',
       images: existingImgs.slice(0, 3),
     });
@@ -680,7 +757,7 @@ export default function ManufacturerPortalPage() {
   };
 
   // Stock & Inventory Monitoring Calculations
-  const totalStockJars = safeProducts.reduce((sum, p) => sum + (parseInt(p.stock_quantity, 10) || 0), 0);
+  const totalStockUnits = safeProducts.reduce((sum, p) => sum + (parseInt(p.stock_quantity, 10) || 0), 0);
   const lowStockCount = safeProducts.filter((p) => (p.stock_quantity > 0 && p.stock_quantity <= 5)).length;
   const outOfStockCount = safeProducts.filter((p) => (!p.stock_quantity || p.stock_quantity <= 0)).length;
   const healthyStockCount = safeProducts.filter((p) => p.stock_quantity > 5).length;
@@ -710,8 +787,8 @@ export default function ManufacturerPortalPage() {
   // Bundle order metrics calculation
   const bundleOrdersCount = safeOrders.filter((o) => o.quantity >= 2).length;
   const bundlePercentage = safeOrders.length > 0 ? Math.round((bundleOrdersCount / safeOrders.length) * 100) : 0;
-  const totalJarsSold = safeOrders.reduce((sum, o) => sum + (o.quantity || 1), 0);
-  const avgBasketSize = safeOrders.length > 0 ? (totalJarsSold / safeOrders.length).toFixed(1) : '1.0';
+  const totalUnitsSold = safeOrders.reduce((sum, o) => sum + (o.quantity || 1), 0);
+  const avgBasketSize = safeOrders.length > 0 ? (totalUnitsSold / safeOrders.length).toFixed(1) : '1.0';
 
   return (
     <div className="min-h-screen bg-stone-50/60 pb-16">
@@ -886,6 +963,21 @@ export default function ManufacturerPortalPage() {
             </button>
 
             <button
+              onClick={() => handleTabChange('delivery')}
+              className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
+                activeTab === 'delivery'
+                  ? 'border-forest-900 text-forest-950 font-bold'
+                  : 'border-transparent text-stone-600 hover:text-stone-900'
+              }`}
+            >
+              <Truck size={15} className={activeTab === 'delivery' ? 'text-forest-900' : 'text-stone-400'} />
+              <span>Delivery Charges</span>
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                Rates & Sticker
+              </span>
+            </button>
+
+            <button
               onClick={() => handleTabChange('financials')}
               className={`pb-2.5 border-b-2 flex items-center gap-2 transition-all cursor-pointer ${
                 activeTab === 'financials'
@@ -932,6 +1024,34 @@ export default function ManufacturerPortalPage() {
            =================================================================== */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">
+            {/* Quick Delivery Charges Action Banner */}
+            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-4.5 rounded-2xl border border-amber-400/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/30">
+                  <Truck size={20} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-serif font-bold text-sm text-white">Delivery Charges & Courier Rates</h3>
+                    <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-black">
+                      Configurable
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-300 mt-0.5">
+                    Set product delivery fees, configure Kohima/Dimapur presets, and download official packaging stickers.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTabChange('delivery')}
+                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 self-start sm:self-auto flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Manage Delivery Charges</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+
             {/* Quick Action Alert Bar if Pending Orders exist */}
             {pendingOrders.length > 0 && (
               <div className="p-4 bg-gradient-to-r from-amber-50 via-amber-100/70 to-cream-100 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
@@ -964,7 +1084,7 @@ export default function ManufacturerPortalPage() {
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
                 <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Gross Sales</span>
                 <p className="text-2xl font-serif font-black text-stone-950">₹{financials?.total_sales || '0.00'}</p>
-                <span className="text-[10px] text-stone-500 block">Total jar order volume</span>
+                <span className="text-[10px] text-stone-500 block">Total product order volume</span>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
@@ -994,7 +1114,7 @@ export default function ManufacturerPortalPage() {
                 <p className="text-2xl font-serif font-black text-amber-950">
                   {bundleOrdersCount} <span className="text-xs font-sans font-normal text-amber-700">({bundlePercentage}%)</span>
                 </p>
-                <span className="text-[10px] text-amber-800 block">Avg basket: {avgBasketSize} jars</span>
+                <span className="text-[10px] text-amber-800 block">Avg basket: {avgBasketSize} units</span>
               </div>
             </div>
 
@@ -1019,8 +1139,8 @@ export default function ManufacturerPortalPage() {
                 <div className="space-y-3">
                   <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-stone-500 font-medium block">Total Jars in Stock</span>
-                      <span className="font-bold text-stone-900 text-base">{totalStockJars} jars</span>
+                      <span className="text-[11px] text-stone-500 font-medium block">Total Units in Stock</span>
+                      <span className="font-bold text-stone-900 text-base">{totalStockUnits} units</span>
                     </div>
                     <span className="p-2 bg-emerald-100 text-emerald-800 rounded-lg text-xs font-bold">
                       {safeProducts.length} listings
@@ -1029,7 +1149,7 @@ export default function ManufacturerPortalPage() {
 
                   <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-200 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-amber-800 font-medium block">Low Stock Alert (≤ 5 jars)</span>
+                      <span className="text-[11px] text-amber-800 font-medium block">Low Stock Alert (≤ 5 units)</span>
                       <span className="font-bold text-amber-950 text-base">{lowStockCount} recipes</span>
                     </div>
                     {lowStockCount > 0 ? (
@@ -1047,7 +1167,7 @@ export default function ManufacturerPortalPage() {
 
                   <div className="p-3 bg-red-50/60 rounded-xl border border-red-200 flex items-center justify-between">
                     <div>
-                      <span className="text-[11px] text-red-700 font-medium block">Out of Stock (0 jars)</span>
+                      <span className="text-[11px] text-red-700 font-medium block">Out of Stock (0 units)</span>
                       <span className="font-bold text-red-950 text-base">{outOfStockCount} recipes</span>
                     </div>
                     {outOfStockCount > 0 ? (
@@ -1077,7 +1197,7 @@ export default function ManufacturerPortalPage() {
                         Brand Bundle & Volume System
                       </h3>
                       <p className="text-xs text-stone-500">
-                        Shoppers curating 2–4 jars from your brand automatically save 10%
+                        Shoppers curating 2–4 items from your brand automatically save 10%
                       </p>
                     </div>
                   </div>
@@ -1093,7 +1213,7 @@ export default function ManufacturerPortalPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                   <div className="p-3.5 bg-stone-50 rounded-xl border border-stone-200 space-y-1">
-                    <span className="font-bold text-stone-900 block">1 Jar (Single Order)</span>
+                    <span className="font-bold text-stone-900 block">1 Unit (Single Order)</span>
                     <p className="text-stone-500 text-[11px] leading-relaxed">
                       Standard batch price. Full margin payout directly credited.
                     </p>
@@ -1104,7 +1224,7 @@ export default function ManufacturerPortalPage() {
 
                   <div className="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200 space-y-1">
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-stone-900 block">2–4 Jars Bundle</span>
+                      <span className="font-bold text-stone-900 block">2–4 Units Bundle</span>
                       <span className="bg-amber-600 text-white font-black text-[9px] px-1.5 py-0.2 rounded">10% OFF</span>
                     </div>
                     <p className="text-stone-700 text-[11px] leading-relaxed">
@@ -1121,7 +1241,7 @@ export default function ManufacturerPortalPage() {
                       <span className="bg-purple-700 text-white font-black text-[9px] px-1.5 py-0.2 rounded">Express</span>
                     </div>
                     <p className="text-stone-700 text-[11px] leading-relaxed">
-                      Cushioned packaging & courier dispatch labels built-in for multi-jar boxes.
+                      Cushioned packaging & courier dispatch labels built-in for multi-unit boxes.
                     </p>
                     <span className="inline-block mt-1 font-mono text-[10px] text-purple-800 bg-white px-2 py-0.5 rounded border border-purple-200">
                       Shock-Proof Shipping
@@ -1162,11 +1282,11 @@ export default function ManufacturerPortalPage() {
                           <span className="font-semibold text-stone-800">· {o.product_title}</span>
                           {o.quantity >= 3 ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200 inline-flex items-center gap-0.5">
-                              <Sparkles size={10} /> Trio Bundle ({o.quantity} jars)
+                              <Sparkles size={10} /> Trio Bundle ({o.quantity} units)
                             </span>
                           ) : o.quantity === 2 ? (
                             <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 inline-flex items-center gap-0.5">
-                              <Sparkles size={10} /> Duo Bundle (2 jars)
+                              <Sparkles size={10} /> Duo Bundle (2 units)
                             </span>
                           ) : null}
                         </div>
@@ -1223,8 +1343,8 @@ export default function ManufacturerPortalPage() {
               </div>
 
               <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-0.5">
-                <span className="text-stone-500 text-[11px] block font-medium">Total Jars in Stock</span>
-                <span className="text-xl font-serif font-black text-forest-950 block">{totalStockJars}</span>
+                <span className="text-stone-500 text-[11px] block font-medium">Total Units in Stock</span>
+                <span className="text-xl font-serif font-black text-forest-950 block">{totalStockUnits}</span>
                 <span className="text-[10px] text-emerald-700 font-semibold">Available for order</span>
               </div>
 
@@ -1237,7 +1357,7 @@ export default function ManufacturerPortalPage() {
               </div>
 
               <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-0.5">
-                <span className="text-stone-500 text-[11px] block font-medium">Out of Stock (0 jars)</span>
+                <span className="text-stone-500 text-[11px] block font-medium">Out of Stock (0 units)</span>
                 <span className={`text-xl font-serif font-black block ${outOfStockCount > 0 ? 'text-red-600' : 'text-stone-900'}`}>
                   {outOfStockCount}
                 </span>
@@ -1301,7 +1421,9 @@ export default function ManufacturerPortalPage() {
                   <tbody className="divide-y divide-stone-100 text-stone-800">
                     {filteredProducts.map((p) => {
                       const actual = parseFloat(p.price) || 0;
-                      const withoutDelivery = Math.max(0, actual - deliveryCharge);
+                      const customRate = productRates[p.id];
+                      const pDeliveryFee = customRate?.base_rate !== undefined && customRate?.base_rate !== null ? parseFloat(customRate.base_rate) : 80;
+                      const withoutDelivery = Math.max(0, actual - pDeliveryFee);
                       const base = Math.max(0, Math.round(withoutDelivery / (1 + commissionRate / 100)));
                       const comm = Math.max(0, withoutDelivery - base);
                       const qty = parseInt(p.stock_quantity, 10) || 0;
@@ -1334,12 +1456,14 @@ export default function ManufacturerPortalPage() {
 
                           <td className="p-3.5">
                             <span className="font-black text-forest-950 text-sm font-mono">₹{actual.toFixed(0)}</span>
-                            <span className="block text-[10px] font-semibold text-emerald-700">Free Customer Delivery</span>
+                            <span className="block text-[10px] font-semibold text-emerald-700">
+                              {customRate ? (customRate.is_free_delivery || pDeliveryFee === 0 ? 'Free Delivery' : `₹${pDeliveryFee.toFixed(0)} Delivery`) : 'Standard Delivery'}
+                            </span>
                           </td>
 
                           <td className="p-3.5">
                             <div className="text-[11px] text-stone-700 font-medium whitespace-nowrap">
-                              <span className="text-forest-900 font-bold">₹{base}</span> (Base) + <span className="text-amber-800">₹{comm}</span> ({commissionRate}%) + <span className="text-blue-700">₹{deliveryCharge}</span> (Air)
+                              <span className="text-forest-900 font-bold">₹{base}</span> (Base) + <span className="text-amber-800">₹{comm}</span> ({commissionRate}%) + <span className="text-blue-700">₹{pDeliveryFee.toFixed(0)}</span> (Delivery)
                             </div>
                             <span className="text-[10px] text-stone-400 font-semibold block mt-0.5">
                               Net Seller Payout: ₹{base}
@@ -1355,7 +1479,7 @@ export default function ManufacturerPortalPage() {
                                   ? 'bg-amber-100 text-amber-900 border border-amber-300'
                                   : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                               }`}>
-                                {qty === 0 ? 'Out of Stock' : `${qty} jars in stock`}
+                                {qty === 0 ? 'Out of Stock' : `${qty} units in stock`}
                               </span>
                             </div>
 
@@ -1366,7 +1490,7 @@ export default function ManufacturerPortalPage() {
                                 disabled={qty <= 0 || updatingStockId === p.id}
                                 onClick={() => handleQuickUpdateStock(p.id, Math.max(0, qty - 1))}
                                 className="w-5 h-5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40"
-                                title="Subtract 1 jar"
+                                title="Subtract 1 unit"
                               >
                                 -
                               </button>
@@ -1384,7 +1508,7 @@ export default function ManufacturerPortalPage() {
                                 disabled={updatingStockId === p.id}
                                 onClick={() => handleQuickUpdateStock(p.id, qty + 1)}
                                 className="w-5 h-5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer disabled:opacity-40"
-                                title="Add 1 jar"
+                                title="Add 1 unit"
                               >
                                 +
                               </button>
@@ -1410,6 +1534,15 @@ export default function ManufacturerPortalPage() {
                               >
                                 <Boxes size={12} />
                                 <span>Stock</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openEditProductModal(p)}
+                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg text-[11px] font-semibold border border-amber-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Configure product delivery charges"
+                              >
+                                <Truck size={12} />
+                                <span>{customRate ? `₹${pDeliveryFee.toFixed(0)}` : 'Delivery'}</span>
                               </button>
                               <button
                                 type="button"
@@ -1453,6 +1586,34 @@ export default function ManufacturerPortalPage() {
            =================================================================== */}
         {activeTab === 'orders' && (
           <div className="space-y-5 animate-fade-in">
+            {/* Quick Delivery Charges Banner */}
+            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-4 rounded-2xl border border-amber-500/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/30">
+                  <Truck size={20} />
+                </div>
+                <div>
+                  <h3 className="font-serif font-bold text-sm text-white flex items-center gap-2">
+                    <span>Manage Your Delivery Charges & Rates</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-black">
+                      Active System
+                    </span>
+                  </h3>
+                  <p className="text-xs text-stone-300 mt-0.5">
+                    Configure custom shipping fees for your products, destinations, PIN codes, and download official packaging stickers.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => handleTabChange('delivery')}
+                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold rounded-xl text-xs transition-all shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
+              >
+                <SlidersHorizontal size={14} />
+                <span>Open Delivery Settings &rarr;</span>
+              </button>
+            </div>
+
             {/* Filter Tabs for Orders */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1481,7 +1642,7 @@ export default function ManufacturerPortalPage() {
 
               <div className="text-xs text-stone-500 font-medium self-start sm:self-auto flex items-center gap-1.5">
                 <Truck size={14} className="text-forest-900" />
-                <span>Air Cargo Packaging: Plastic pouch or jar with shock-proof cushion</span>
+                <span>Air Cargo Packaging: Plastic pouch or container with shock-proof cushion</span>
               </div>
             </div>
 
@@ -1525,7 +1686,7 @@ export default function ManufacturerPortalPage() {
 
                         <td className="p-3.5">
                           <p className="font-medium text-stone-900">{o.product_title}</p>
-                          <span className="text-[10px] text-stone-500 font-mono">{o.weight_grams}g jar</span>
+                          <span className="text-[10px] text-stone-500 font-mono">{o.weight_grams}g pack</span>
                         </td>
 
                         <td className="p-3.5">
@@ -2311,12 +2472,19 @@ export default function ManufacturerPortalPage() {
                   <div className="space-y-2 text-stone-600 leading-relaxed text-[11px]">
                     <p>• <strong>Strict Pricing Rule:</strong> All product listings must be priced above ₹100 (minimum ₹101).</p>
                     <p>• <strong>Flexible Brand Bundles:</strong> Customers who select 2 to 4 recipes exclusively from your brand catalog receive a 10% discount.</p>
-                    <p>• <strong>Leak-Proof Packaging:</strong> Jars and pouches must feature airtight seals with bubble wrap/cushioning for safe cargo delivery.</p>
+                    <p>• <strong>Leak-Proof Packaging:</strong> Containers and pouches must feature airtight seals with bubble wrap/cushioning for safe cargo delivery.</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
+        )}
+
+        {/* ==============================================================
+            DELIVERY CHARGES & PACKAGING TAB
+           ============================================================== */}
+        {activeTab === 'delivery' && (
+          <ManufacturerDeliveryTab profile={profile} toast={toast} />
         )}
       </main>
 
@@ -2343,20 +2511,20 @@ export default function ManufacturerPortalPage() {
             <div className="space-y-1">
               <p className="font-bold text-stone-900 text-xs">{quickStockModal.title}</p>
               <p className="text-[11px] text-stone-500">
-                Currently listed stock: <strong className="font-mono text-stone-900">{quickStockModal.currentStock} jars</strong>
+                Currently listed stock: <strong className="font-mono text-stone-900">{quickStockModal.currentStock} units</strong>
               </p>
             </div>
 
             <div>
               <label className="block text-[11px] font-bold text-stone-700 mb-1">
-                Available Jars in Inventory:
+                Available Units in Inventory:
               </label>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setQuickStockModal((prev) => ({ ...prev, nextStock: Math.max(0, (parseInt(prev.nextStock, 10) || 0) - 1) }))}
                   className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-base flex items-center justify-center cursor-pointer select-none"
-                  title="Subtract 1 jar"
+                  title="Subtract 1 unit"
                 >
                   -
                 </button>
@@ -2371,7 +2539,7 @@ export default function ManufacturerPortalPage() {
                   type="button"
                   onClick={() => setQuickStockModal((prev) => ({ ...prev, nextStock: (parseInt(prev.nextStock, 10) || 0) + 1 }))}
                   className="w-10 h-10 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-base flex items-center justify-center cursor-pointer select-none"
-                  title="Add 1 jar"
+                  title="Add 1 unit"
                 >
                   +
                 </button>
@@ -2498,6 +2666,64 @@ export default function ManufacturerPortalPage() {
                     </select>
                   </div>
 
+                  {/* Delivery & Shipping Charge Configuration for this Product */}
+                  <div className="col-span-2 p-4 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-stone-50 rounded-2xl border border-blue-200/90 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-blue-600/15 text-blue-900 flex items-center justify-center font-bold">
+                          <Truck size={15} />
+                        </div>
+                        <div>
+                          <span className="font-bold text-stone-900 text-xs sm:text-sm">Product Delivery & Shipping Charge</span>
+                          <span className="block text-[10.5px] text-stone-600">Enter custom delivery charge for this product (or ₹0 for Free Delivery)</span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-forest-900 text-amber-300 font-bold shrink-0">
+                        Tier 2 Rate
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                      <div>
+                        <label className="block text-stone-800 font-bold mb-1">
+                          Delivery Charge per Package (₹)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={newProd.delivery_charge}
+                            onChange={(e) => handleDeliveryChargeChange(e.target.value)}
+                            placeholder="Default Kohima: 80 (or 0 for Free)"
+                            className="w-full pl-7 pr-3 py-2 border border-blue-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                        <p className="text-[10.5px] text-stone-600 mt-1">Default Kohima ₹80 · Dimapur ₹110 · 0 for Free Delivery.</p>
+                      </div>
+
+                      <div>
+                        <label className="block text-stone-800 font-bold mb-1">
+                          Free Delivery Order Threshold (₹, Optional)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="50"
+                            value={newProd.free_delivery_threshold}
+                            onChange={(e) => setNewProd({ ...newProd, free_delivery_threshold: e.target.value })}
+                            placeholder="e.g. 999"
+                            className="w-full pl-7 pr-3 py-2 border border-stone-300 bg-white rounded-xl text-sm font-bold text-stone-900 focus:ring-1 focus:ring-forest-800"
+                          />
+                        </div>
+                        <p className="text-[10.5px] text-stone-500 mt-1">Customer receives free delivery if cart total meets or exceeds this amount.</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Pricing Equation Section */}
                   <div className="col-span-2 p-4 bg-gradient-to-br from-amber-50/80 via-emerald-50/40 to-stone-50 rounded-2xl border border-amber-200/80 space-y-3">
                     <div className="flex items-center justify-between">
@@ -2506,7 +2732,7 @@ export default function ManufacturerPortalPage() {
                         <span className="font-bold text-stone-900 text-xs">Transparent Pricing Equation</span>
                       </div>
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        Zero Customer Delivery Fee
+                        {newProd.delivery_charge === '0' || newProd.delivery_charge === 0 ? 'Free Customer Delivery' : `₹${getEffectiveDeliveryFee(newProd.delivery_charge)} Delivery Included`}
                       </span>
                     </div>
 
@@ -2527,7 +2753,7 @@ export default function ManufacturerPortalPage() {
                             className="w-full pl-7 pr-3 py-2 border border-stone-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-forest-800"
                           />
                         </div>
-                        <p className="text-[10.5px] text-stone-600 mt-1">Amount you receive into your bank per jar sold.</p>
+                        <p className="text-[10.5px] text-stone-600 mt-1">Amount you receive into your bank per unit sold.</p>
                       </div>
 
                       <div>
@@ -2566,8 +2792,8 @@ export default function ManufacturerPortalPage() {
                         </div>
                         <span className="font-black text-stone-400 text-sm">+</span>
                         <div className="flex-1 min-w-[70px] bg-blue-50 py-1.5 px-2 rounded-lg border border-blue-200">
-                          <span className="block text-[10px] text-blue-700 font-medium">Air Courier</span>
-                          <span className="font-bold text-blue-900 text-sm">₹{deliveryCharge}</span>
+                          <span className="block text-[10px] text-blue-700 font-medium">Courier</span>
+                          <span className="font-bold text-blue-900 text-sm">₹{getEffectiveDeliveryFee(newProd.delivery_charge)}</span>
                         </div>
                         <span className="font-black text-stone-400 text-sm">=</span>
                         <div className="flex-1 min-w-[85px] bg-forest-900 text-white py-1.5 px-2 rounded-lg shadow-xs">
@@ -2793,6 +3019,15 @@ export default function ManufacturerPortalPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <a
+                  href="/wangs-packaging-sticker.png"
+                  download="Wangs-Packaging-Sticker.png"
+                  className="px-3.5 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold inline-flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  title="Download official tamper-evident packing sticker"
+                >
+                  <Download size={14} />
+                  <span>Download Sticker</span>
+                </a>
                 <button
                   type="button"
                   onClick={() => window.print()}
@@ -2819,13 +3054,22 @@ export default function ManufacturerPortalPage() {
               {/* Header: Platform Branding, High-Res Courier Dispatch QR & Order Reference */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-stone-900 pb-3 gap-3">
                 <div className="space-y-1">
-                  <h2 className="font-serif font-black text-2xl tracking-wider text-stone-900">
-                    WANGS
-                  </h2>
-                  <p className="text-[10px] uppercase font-bold tracking-widest text-stone-600">
-                    Authentic Food Marketplace · www.wangs.in
-                  </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/wangs-slip-logo.png"
+                      alt="Wangs Logo"
+                      className="h-11 w-auto object-contain shrink-0"
+                    />
+                    <div>
+                      <h2 className="font-serif font-black text-2xl tracking-wider text-stone-900 leading-tight">
+                        WANGS
+                      </h2>
+                      <p className="text-[10px] uppercase font-bold tracking-widest text-stone-600">
+                        Authentic Food Marketplace · www.wangs.in
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
                     <span className="text-[9px] font-mono text-stone-500 uppercase">Air Cargo Priority Label</span>
                     <span className="text-[9px] text-stone-400">·</span>
                     <span className="text-[9px] font-mono font-bold text-stone-700">Origin Hub: Dimapur (797112)</span>
