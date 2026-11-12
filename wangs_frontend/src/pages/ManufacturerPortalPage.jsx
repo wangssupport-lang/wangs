@@ -1024,34 +1024,6 @@ export default function ManufacturerPortalPage() {
            =================================================================== */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-fade-in">
-            {/* Quick Delivery Charges Action Banner */}
-            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-4.5 rounded-2xl border border-amber-400/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/30">
-                  <Truck size={20} />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-serif font-bold text-sm text-white">Delivery Charges & Courier Rates</h3>
-                    <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-black">
-                      Configurable
-                    </span>
-                  </div>
-                  <p className="text-xs text-stone-300 mt-0.5">
-                    Set product delivery fees, configure Kohima/Dimapur presets, and download official packaging stickers.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleTabChange('delivery')}
-                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0 self-start sm:self-auto flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Manage Delivery Charges</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
-
             {/* Quick Action Alert Bar if Pending Orders exist */}
             {pendingOrders.length > 0 && (
               <div className="p-4 bg-gradient-to-r from-amber-50 via-amber-100/70 to-cream-100 border border-amber-300 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
@@ -1586,34 +1558,6 @@ export default function ManufacturerPortalPage() {
            =================================================================== */}
         {activeTab === 'orders' && (
           <div className="space-y-5 animate-fade-in">
-            {/* Quick Delivery Charges Banner */}
-            <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white p-4 rounded-2xl border border-amber-500/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0 border border-amber-400/30">
-                  <Truck size={20} />
-                </div>
-                <div>
-                  <h3 className="font-serif font-bold text-sm text-white flex items-center gap-2">
-                    <span>Manage Your Delivery Charges & Rates</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-black">
-                      Active System
-                    </span>
-                  </h3>
-                  <p className="text-xs text-stone-300 mt-0.5">
-                    Configure custom shipping fees for your products, destinations, PIN codes, and download official packaging stickers.
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleTabChange('delivery')}
-                className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-stone-950 font-bold rounded-xl text-xs transition-all shadow-xs shrink-0 flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-              >
-                <SlidersHorizontal size={14} />
-                <span>Open Delivery Settings &rarr;</span>
-              </button>
-            </div>
-
             {/* Filter Tabs for Orders */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-1.5 flex-wrap">
