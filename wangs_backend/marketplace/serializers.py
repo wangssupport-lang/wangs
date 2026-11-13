@@ -1154,6 +1154,8 @@ class PaymentVerifySerializer(serializers.Serializer):
     payment_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
     razorpay_order_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
     signature = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    cf_order_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
+    cf_payment_id = serializers.CharField(max_length=100, required=False, allow_blank=True)
 
 
 class CommissionSettingSerializer(serializers.ModelSerializer):

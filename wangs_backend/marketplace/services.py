@@ -284,6 +284,14 @@ class OrderService:
 
 class PaymentService:
     @staticmethod
+    def create_cashfree_order(order, request=None):
+        """
+        Creates a Cashfree payment session for the order.
+        """
+        from .cashfree_service import CashfreeService
+        return CashfreeService.create_order(order, request=request)
+
+    @staticmethod
     def create_mock_or_razorpay_order(order):
         """
         Creates a test payment intent for the given order.
@@ -317,25 +325,42 @@ class PaymentService:
 
     @staticmethod
     @transaction.atomic
-    def verify_and_confirm_payment(order, payment_id, razorpay_order_id, signature, raw_data=None):
+    def verify_and_confirm_payment(order, payment_id=None, razorpay_order_id=None, signature=None, provider=None, raw_data=None):
         """
-        Verifies payment signature / test verification idempotently and marks order as CONFIRMED.
+        Verifies payment (Cashfree, Razorpay, or simulated) idempotently and marks order as CONFIRMED.
         """
+        from .cashfree_service import CashfreeService
+
+        # Determine provider
+        actual_provider = provider or order.payment_method or 'CASHFREE'
         idempotency_key = f"pay_confirm_{payment_id or order.order_number}"
 
         existing_tx = PaymentTransaction.objects.filter(idempotency_key=idempotency_key, status=PaymentTransaction.Status.SUCCESS).first()
         if existing_tx:
             return order, existing_tx
 
+        # If Cashfree and credentials configured, verify order status from Cashfree
+        if actual_provider == 'CASHFREE' and CashfreeService.is_configured():
+            cf_status = CashfreeService.get_order_status(order.order_number)
+            status_str = cf_status.get('order_status')
+            if status_str and status_str != 'PAID':
+                # Double check payments endpoint in case webhook arrived first
+                payments = CashfreeService.get_order_payments(order.order_number)
+                has_success_payment = any(p.get('payment_status') == 'SUCCESS' for p in payments)
+                if not has_success_payment:
+                    raise ValueError(f"Cashfree order is not paid yet (status: {status_str})")
+            if not payment_id and cf_status.get('cf_order_id'):
+                payment_id = str(cf_status.get('cf_order_id'))
+
         # Update or record transaction
         tx, _ = PaymentTransaction.objects.get_or_create(
             idempotency_key=idempotency_key,
             defaults={
                 'order': order,
-                'provider': 'RAZORPAY_TEST',
-                'payment_order_id': razorpay_order_id,
+                'provider': actual_provider,
+                'payment_order_id': razorpay_order_id or order.order_number,
                 'transaction_id': payment_id or f"pay_{uuid.uuid4().hex[:12]}",
-                'signature': signature or 'verified_sig_mock',
+                'signature': signature or 'verified_sig_cashfree',
                 'status': PaymentTransaction.Status.SUCCESS,
                 'amount': order.total_amount,
                 'currency': 'INR',
@@ -344,12 +369,14 @@ class PaymentService:
         )
         tx.status = PaymentTransaction.Status.SUCCESS
         tx.transaction_id = payment_id or tx.transaction_id
+        tx.provider = actual_provider
         tx.save()
 
         # Update Order status
         order.payment_status = Order.PaymentStatus.PAID
         order.status = Order.Status.CONFIRMED
-        order.save(update_fields=['payment_status', 'status', 'updated_at'])
+        order.payment_method = actual_provider
+        order.save(update_fields=['payment_status', 'status', 'payment_method', 'updated_at'])
 
         # Audit log
         AuditLog.objects.create(

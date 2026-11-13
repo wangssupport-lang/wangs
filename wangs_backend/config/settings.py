@@ -182,6 +182,14 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
 ]
 
+# Cashfree Payment Gateway Configuration
+# Mode: 'TEST' (Sandbox) or 'PROD' (Production)
+CASHFREE_APP_ID = os.getenv('CASHFREE_APP_ID', '').strip()
+CASHFREE_SECRET_KEY = os.getenv('CASHFREE_SECRET_KEY', '').strip()
+CASHFREE_API_VERSION = os.getenv('CASHFREE_API_VERSION', '2023-08-01').strip()
+CASHFREE_ENV = os.getenv('CASHFREE_ENV', 'PROD').strip().upper()
+FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://wangs.in').strip()
+
 # Razorpay Test / Production configuration
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_placeholder_key')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'placeholder_secret')

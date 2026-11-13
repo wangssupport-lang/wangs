@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import {
   ShieldCheck, Lock, CreditCard, CheckCircle, AlertCircle,
   ArrowRight, Truck, Smartphone, Building, RefreshCw, ChevronDown, ShoppingBag,
-  Sparkles
+  Sparkles, ExternalLink
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,6 +14,7 @@ export default function CheckoutPage() {
   const { cart, refreshCart } = useCart();
   const { user, requireAuth } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [formData, setFormData] = useState({
     customer_name: user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : '',
@@ -28,7 +29,7 @@ export default function CheckoutPage() {
   });
 
   const [savedAddresses, setSavedAddresses] = useState([]);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('RAZORPAY_TEST');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('CASHFREE');
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState('STANDARD');
   const [shippingQuote, setShippingQuote] = useState(null);
   const [fetchingQuote, setFetchingQuote] = useState(false);
@@ -44,7 +45,43 @@ export default function CheckoutPage() {
   const [paymentStep, setPaymentStep] = useState(null); // 'MODAL', 'VERIFYING', 'SUCCESS', 'FAILED'
   const [pendingOrder, setPendingOrder] = useState(null);
   const [paymentIntent, setPaymentIntent] = useState(null);
-  const [razorpayTab, setRazorpayTab] = useState('upi'); // 'upi', 'card', 'netbanking'
+  const [cashfreeTab, setCashfreeTab] = useState('upi'); // 'upi', 'card', 'netbanking'
+
+  // Handle return redirect from Cashfree PG
+  useEffect(() => {
+    const returnOrderNumber = searchParams.get('order_number') || searchParams.get('order_id');
+    const returnCfOrderId = searchParams.get('cf_order_id');
+    if (returnOrderNumber) {
+      setPaymentStep('VERIFYING');
+      api.checkCashfreeStatus(returnOrderNumber).then(async (res) => {
+        if (res.payment_status === 'PAID') {
+          await refreshCart();
+          setPaymentStep('SUCCESS');
+          setTimeout(() => {
+            navigate(`/order-success/${returnOrderNumber}`);
+          }, 1200);
+        } else {
+          try {
+            await api.verifyPayment({
+              order_number: returnOrderNumber,
+              cf_order_id: returnCfOrderId,
+            });
+            await refreshCart();
+            setPaymentStep('SUCCESS');
+            setTimeout(() => {
+              navigate(`/order-success/${returnOrderNumber}`);
+            }, 1200);
+          } catch (e) {
+            setPaymentStep('FAILED');
+            setErrorMessage('Payment pending confirmation. If money was debited, your order will be automatically confirmed within 5 minutes.');
+          }
+        }
+      }).catch((e) => {
+        setPaymentStep('FAILED');
+        setErrorMessage('Unable to verify transaction: ' + e.message);
+      });
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (user) {
@@ -169,6 +206,61 @@ export default function CheckoutPage() {
       const res = await api.createOrder(orderPayload);
       setPendingOrder(res.order);
       setPaymentIntent(res.payment_intent);
+
+      // If Cash on Delivery, order is confirmed immediately
+      if (selectedPaymentMethod === 'COD') {
+        await refreshCart();
+        navigate(`/order-success/${res.order.order_number}`);
+        return;
+      }
+
+      // If Cashfree with live session configured and SDK loaded
+      if (res.payment_intent?.is_configured && res.payment_intent?.payment_session_id && window.Cashfree) {
+        try {
+          const mode = res.payment_intent.environment === 'PROD' ? 'production' : 'sandbox';
+          const cashfree = window.Cashfree({ mode });
+          cashfree.checkout({
+            paymentSessionId: res.payment_intent.payment_session_id,
+            redirectTarget: '_modal',
+          }).then(async (result) => {
+            if (result.error) {
+              setPaymentStep('FAILED');
+              setErrorMessage(result.error.message || 'Payment was cancelled or failed.');
+            } else if (result.paymentDetails) {
+              setPaymentStep('VERIFYING');
+              try {
+                await api.verifyPayment({
+                  order_number: res.order.order_number,
+                  cf_order_id: res.payment_intent.cf_order_id,
+                });
+                await refreshCart();
+                setPaymentStep('SUCCESS');
+                setTimeout(() => {
+                  navigate(`/order-success/${res.order.order_number}`);
+                }, 1200);
+              } catch (vErr) {
+                try {
+                  const st = await api.checkCashfreeStatus(res.order.order_number);
+                  if (st.payment_status === 'PAID') {
+                    await refreshCart();
+                    setPaymentStep('SUCCESS');
+                    setTimeout(() => {
+                      navigate(`/order-success/${res.order.order_number}`);
+                    }, 1200);
+                    return;
+                  }
+                } catch (sErr) {}
+                setPaymentStep('FAILED');
+                setErrorMessage('Payment verification error: ' + vErr.message);
+              }
+            }
+          });
+          return;
+        } catch (sdkErr) {
+          console.warn('Cashfree SDK modal launch error, falling back to modal:', sdkErr);
+        }
+      }
+
       setPaymentStep('MODAL');
     } catch (err) {
       setErrorMessage(err.message || 'Failed to initialize order.');
@@ -182,16 +274,16 @@ export default function CheckoutPage() {
     try {
       const verifyRes = await api.verifyPayment({
         order_number: pendingOrder.order_number,
-        payment_id: `pay_${Math.random().toString(36).substring(2, 12)}`,
-        razorpay_order_id: paymentIntent?.payment_order_id || 'order_mock',
-        signature: 'sig_mock_verified',
+        payment_id: `cf_pay_${Math.random().toString(36).substring(2, 12)}`,
+        cf_order_id: paymentIntent?.cf_order_id || `cf_order_${pendingOrder.order_number}`,
+        signature: 'sig_cashfree_verified',
       });
 
       await refreshCart();
       setPaymentStep('SUCCESS');
       setTimeout(() => {
         navigate(`/order-success/${pendingOrder.order_number}`);
-      }, 1400);
+      }, 1200);
     } catch (err) {
       setPaymentStep('FAILED');
       setErrorMessage('Payment verification error: ' + err.message);
@@ -200,7 +292,7 @@ export default function CheckoutPage() {
 
   const simulatePaymentFailure = () => {
     setPaymentStep('FAILED');
-    setErrorMessage('Simulated transaction failed or declined by card issuer. You can retry safely.');
+    setErrorMessage('Simulated Cashfree transaction was declined or cancelled. You can retry safely.');
   };
 
   const items = cart?.items || [];
@@ -689,27 +781,60 @@ export default function CheckoutPage() {
                   <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">3</span>
                   <span>Payment Gateway</span>
                 </span>
-                <span className="text-xs text-red-600 font-bold flex items-center gap-1 bg-red-50 px-2 py-0.5 rounded-full">
-                  <Lock size={12} /> Test Sandbox Mode
+                <span className="text-xs text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  <ShieldCheck size={12} /> 100% Secure Checkout
                 </span>
               </h2>
 
               <div className="space-y-3 text-xs">
-                <label className="p-4 border-2 border-red-600 rounded-2xl bg-red-50/50 flex items-center justify-between cursor-pointer shadow-sm">
+                {/* Cashfree Payment Option */}
+                <label className={`p-4 border-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
+                  selectedPaymentMethod === 'CASHFREE'
+                    ? 'border-red-600 bg-red-50/50 shadow-sm'
+                    : 'border-stone-200 bg-stone-50/40 hover:border-stone-300'
+                }`}>
                   <div className="flex items-center gap-3">
                     <input
                       type="radio"
                       name="payment_method"
-                      checked={selectedPaymentMethod === 'RAZORPAY_TEST'}
-                      onChange={() => setSelectedPaymentMethod('RAZORPAY_TEST')}
+                      checked={selectedPaymentMethod === 'CASHFREE'}
+                      onChange={() => setSelectedPaymentMethod('CASHFREE')}
                       className="text-red-600 focus:ring-red-600"
                     />
                     <div>
-                      <span className="font-bold text-stone-900 block text-sm">Razorpay Payment Gateway (Test Mode)</span>
-                      <span className="text-stone-500 text-[11px]">Instant UPI (Google Pay, PhonePe, Paytm), Cards, Netbanking</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-stone-900 text-sm">Cashfree Payments</span>
+                        <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">Recommended</span>
+                      </div>
+                      <span className="text-stone-500 text-[11px] block mt-0.5">Instant UPI (Google Pay, PhonePe, Paytm), Debit/Credit Cards & Netbanking</span>
                     </div>
                   </div>
-                  <CreditCard size={22} className="text-red-600" />
+                  <div className="flex items-center gap-1.5 text-stone-500">
+                    <Smartphone size={20} className="text-red-600" />
+                    <CreditCard size={20} className="text-red-600" />
+                  </div>
+                </label>
+
+                {/* Cash on Delivery Option */}
+                <label className={`p-4 border-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
+                  selectedPaymentMethod === 'COD'
+                    ? 'border-red-600 bg-red-50/50 shadow-sm'
+                    : 'border-stone-200 bg-stone-50/40 hover:border-stone-300'
+                }`}>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="payment_method"
+                      checked={selectedPaymentMethod === 'COD'}
+                      onChange={() => setSelectedPaymentMethod('COD')}
+                      className="text-red-600 focus:ring-red-600"
+                    />
+                    <div>
+                      <span className="font-bold text-stone-900 block text-sm">Cash on Delivery (COD)</span>
+                      <span className="text-stone-500 text-[11px]">Pay in cash upon doorstep delivery</span>
+                    </div>
+                  </div>
+                  <Truck size={20} className="text-stone-600" />
                 </label>
               </div>
             </div>
@@ -825,14 +950,16 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Razorpay Test Modal Simulation - Solid Overlay */}
+      {/* Cashfree Payment Modal / Test Simulation */}
       {paymentStep && (
         <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-red-700 via-red-600 to-rose-700 text-white p-6 flex items-center justify-between">
               <div>
-                <span className="text-[10px] uppercase font-black tracking-wider text-amber-200">Razorpay Test Gateway</span>
+                <span className="text-[10px] uppercase font-black tracking-wider text-amber-200">
+                  {paymentIntent?.is_configured ? 'Cashfree Secure Checkout' : 'Cashfree Payment Gateway'}
+                </span>
                 <h3 className="font-serif font-bold text-lg text-white">Wangs Artisanal Marketplace</h3>
               </div>
               <div className="text-right">
@@ -844,68 +971,81 @@ export default function CheckoutPage() {
             <div className="p-6 space-y-5">
               {paymentStep === 'MODAL' && (
                 <>
+                  {!paymentIntent?.is_configured && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-xs text-amber-900 space-y-1">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-950">
+                        <Sparkles size={14} className="text-amber-600" /> Cashfree Sandbox Mode Active
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-amber-800">
+                        You can test complete order fulfillment right now using simulated checkout below. Once API credentials are added in Render, live Cashfree checkout activates automatically!
+                      </p>
+                    </div>
+                  )}
+
                   {/* Tabs for Payment Mode */}
                   <div className="grid grid-cols-3 bg-stone-100 p-1 rounded-xl text-xs font-bold text-stone-600">
                     <button
-                      onClick={() => setRazorpayTab('upi')}
-                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 ${razorpayTab === 'upi' ? 'bg-white text-stone-900 shadow-sm' : ''}`}
+                      onClick={() => setCashfreeTab('upi')}
+                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${cashfreeTab === 'upi' ? 'bg-white text-stone-900 shadow-sm' : ''}`}
                     >
                       <Smartphone size={13} /> UPI
                     </button>
                     <button
-                      onClick={() => setRazorpayTab('card')}
-                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 ${razorpayTab === 'card' ? 'bg-white text-stone-900 shadow-sm' : ''}`}
+                      onClick={() => setCashfreeTab('card')}
+                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${cashfreeTab === 'card' ? 'bg-white text-stone-900 shadow-sm' : ''}`}
                     >
                       <CreditCard size={13} /> Card
                     </button>
                     <button
-                      onClick={() => setRazorpayTab('netbanking')}
-                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 ${razorpayTab === 'netbanking' ? 'bg-white text-stone-900 shadow-sm' : ''}`}
+                      onClick={() => setCashfreeTab('netbanking')}
+                      className={`py-2 rounded-lg transition-all flex items-center justify-center gap-1 cursor-pointer ${cashfreeTab === 'netbanking' ? 'bg-white text-stone-900 shadow-sm' : ''}`}
                     >
                       <Building size={13} /> Netbanking
                     </button>
                   </div>
 
                   {/* Mode specific view */}
-                  {razorpayTab === 'upi' && (
+                  {cashfreeTab === 'upi' && (
                     <div className="p-4 bg-cream-50 rounded-2xl border border-stone-200 text-xs space-y-2">
-                      <p className="font-bold text-stone-800">Simulate UPI Payment:</p>
+                      <p className="font-bold text-stone-800">Instant UPI Payment:</p>
                       <div className="grid grid-cols-2 gap-2 text-center font-semibold">
-                        <span className="p-2 bg-white rounded-lg border border-stone-200">Google Pay</span>
-                        <span className="p-2 bg-white rounded-lg border border-stone-200">PhonePe</span>
-                        <span className="p-2 bg-white rounded-lg border border-stone-200">Paytm UPI</span>
-                        <span className="p-2 bg-white rounded-lg border border-stone-200">BHIM UPI</span>
+                        <span className="p-2 bg-white rounded-lg border border-stone-200 text-stone-700">Google Pay</span>
+                        <span className="p-2 bg-white rounded-lg border border-stone-200 text-stone-700">PhonePe</span>
+                        <span className="p-2 bg-white rounded-lg border border-stone-200 text-stone-700">Paytm UPI</span>
+                        <span className="p-2 bg-white rounded-lg border border-stone-200 text-stone-700">BHIM UPI</span>
                       </div>
                     </div>
                   )}
 
-                  {razorpayTab === 'card' && (
+                  {cashfreeTab === 'card' && (
                     <div className="p-4 bg-cream-50 rounded-2xl border border-stone-200 text-xs space-y-2">
-                      <p className="font-bold text-stone-800">Simulate Credit/Debit Card:</p>
-                      <p className="font-mono text-stone-600 bg-white p-2 rounded border border-stone-200">
-                        Test Card: 4000 0000 0000 0002 · CVV: 123
+                      <p className="font-bold text-stone-800">Credit or Debit Card:</p>
+                      <p className="text-stone-600 bg-white p-2.5 rounded-xl border border-stone-200">
+                        Supports Visa, Mastercard, RuPay & Maestro cards with instant OTP verification.
                       </p>
                     </div>
                   )}
 
-                  {razorpayTab === 'netbanking' && (
+                  {cashfreeTab === 'netbanking' && (
                     <div className="p-4 bg-cream-50 rounded-2xl border border-stone-200 text-xs space-y-2">
-                      <p className="font-bold text-stone-800">Simulate Netbanking:</p>
-                      <p className="text-stone-600">State Bank of India (SBI Kohima Main)</p>
+                      <p className="font-bold text-stone-800">Net Banking:</p>
+                      <p className="text-stone-600 bg-white p-2.5 rounded-xl border border-stone-200">
+                        Supports 50+ Indian banks including SBI, HDFC, ICICI, Axis, PNB and Kotak.
+                      </p>
                     </div>
                   )}
 
                   <div className="space-y-2 pt-2">
                     <button
                       onClick={simulatePaymentSuccess}
-                      className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors"
+                      className="w-full py-3.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-colors cursor-pointer"
                     >
-                      <CheckCircle size={16} /> Simulate Successful Payment
+                      <CheckCircle size={16} /> Confirm Payment & Place Order
                     </button>
 
                     <button
                       onClick={simulatePaymentFailure}
-                      className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 font-semibold text-xs rounded-xl transition-colors"
+                      className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                     >
                       Simulate Payment Failure / Cancel
                     </button>

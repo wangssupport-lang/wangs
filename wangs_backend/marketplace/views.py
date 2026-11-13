@@ -1146,12 +1146,15 @@ class CreateOrderView(views.APIView):
                 shipping_details=shipping_details,
                 cart_items=items,
                 coupon=coupon,
-                payment_method=request.data.get('payment_method', 'RAZORPAY_TEST'),
+                payment_method=request.data.get('payment_method', 'CASHFREE'),
                 credits_to_redeem=data.get('credits_to_redeem', 0),
                 requested_method=data.get('shipping_delivery_method')
             )
             cart.items.all().delete()
-            payment_intent = PaymentService.create_mock_or_razorpay_order(order)
+            if order.payment_method == 'CASHFREE':
+                payment_intent = PaymentService.create_cashfree_order(order, request=request)
+            else:
+                payment_intent = PaymentService.create_mock_or_razorpay_order(order)
 
             if order.payment_method == 'COD':
                 order.status = Order.Status.CONFIRMED
@@ -1190,11 +1193,16 @@ class VerifyPaymentView(views.APIView):
                 'order': OrderSerializer(order).data
             })
 
+        cf_order_id = data.get('cf_order_id') or request.data.get('cf_order_id')
+        payment_id = data.get('payment_id') or data.get('cf_payment_id') or request.data.get('cf_payment_id')
+        provider = 'CASHFREE' if (order.payment_method == 'CASHFREE' or cf_order_id) else order.payment_method
+
         order, tx = PaymentService.verify_and_confirm_payment(
             order=order,
-            payment_id=data.get('payment_id'),
-            razorpay_order_id=data.get('razorpay_order_id'),
+            payment_id=payment_id or cf_order_id,
+            razorpay_order_id=data.get('razorpay_order_id') or cf_order_id,
             signature=data.get('signature'),
+            provider=provider,
             raw_data=request.data
         )
 
@@ -1203,6 +1211,107 @@ class VerifyPaymentView(views.APIView):
             'order': OrderSerializer(order).data,
             'transaction_id': tx.transaction_id
         })
+
+
+class CashfreePaymentStatusView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, order_number):
+        order = get_object_or_404(Order, order_number=order_number)
+        from .cashfree_service import CashfreeService
+        
+        status_info = {
+            'order_number': order.order_number,
+            'payment_status': order.payment_status,
+            'order_status': order.status,
+            'is_configured': CashfreeService.is_configured(),
+        }
+
+        if CashfreeService.is_configured() and order.payment_status != Order.PaymentStatus.PAID:
+            try:
+                cf_status = CashfreeService.get_order_status(order.order_number)
+                status_info['cashfree_status'] = cf_status
+                if cf_status.get('order_status') == 'PAID':
+                    PaymentService.verify_and_confirm_payment(
+                        order=order,
+                        payment_id=str(cf_status.get('cf_order_id')),
+                        provider='CASHFREE',
+                        raw_data=cf_status
+                    )
+                    order.refresh_from_db()
+                    status_info['payment_status'] = order.payment_status
+                    status_info['order_status'] = order.status
+            except Exception as e:
+                logger.warning("Could not sync Cashfree status: %s", e)
+                status_info['cashfree_error'] = str(e)
+
+        return Response(status_info)
+
+
+class CashfreeWebhookView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        """
+        Receives webhook notifications from Cashfree PG.
+        Cashfree sends signature in headers:
+          - x-webhook-timestamp
+          - x-webhook-signature
+        """
+        from .cashfree_service import CashfreeService
+
+        try:
+            raw_body = request.body.decode('utf-8')
+        except Exception:
+            raw_body = ''
+        timestamp = request.headers.get('x-webhook-timestamp', '')
+        signature = request.headers.get('x-webhook-signature', '')
+
+        # If webhook signature is present and Cashfree is configured, verify it
+        if CashfreeService.is_configured() and signature and timestamp:
+            is_valid = CashfreeService.verify_webhook_signature(timestamp, raw_body, signature)
+            if not is_valid:
+                logger.warning("Invalid Cashfree webhook signature")
+                return Response({'detail': 'Invalid signature'}, status=status.HTTP_400_BAD_REQUEST)
+
+        payload = request.data
+        event_type = payload.get('type') or payload.get('event')
+
+        logger.info("Received Cashfree webhook: %s", event_type)
+
+        data_obj = payload.get('data', {}) if isinstance(payload.get('data'), dict) else {}
+        order_info = data_obj.get('order', {}) if isinstance(data_obj.get('order'), dict) else {}
+        payment_info = data_obj.get('payment', {}) if isinstance(data_obj.get('payment'), dict) else {}
+
+        order_id = order_info.get('order_id') or payload.get('orderId')
+        if not order_id:
+            return Response({'status': 'ok', 'message': 'No order_id in payload'}, status=status.HTTP_200_OK)
+
+        order = Order.objects.filter(order_number=order_id).first()
+        if not order:
+            logger.warning("Cashfree webhook order not found: %s", order_id)
+            return Response({'status': 'ok', 'message': 'Order not found'}, status=status.HTTP_200_OK)
+
+        payment_status = payment_info.get('payment_status') or payload.get('txStatus')
+        if event_type in ['PAYMENT_SUCCESS_WEBHOOK', 'ORDER_PAID'] or payment_status == 'SUCCESS':
+            if order.payment_status != Order.PaymentStatus.PAID:
+                try:
+                    cf_payment_id = payment_info.get('cf_payment_id') or payload.get('referenceId')
+                    PaymentService.verify_and_confirm_payment(
+                        order=order,
+                        payment_id=str(cf_payment_id) if cf_payment_id else None,
+                        provider='CASHFREE',
+                        raw_data=payload
+                    )
+                    logger.info("Successfully confirmed order %s via Cashfree webhook", order_id)
+                except Exception as exc:
+                    logger.error("Error confirming order via Cashfree webhook: %s", exc)
+        elif event_type == 'PAYMENT_FAILED_WEBHOOK' or payment_status == 'FAILED':
+            if order.payment_status == Order.PaymentStatus.PENDING:
+                order.payment_status = Order.PaymentStatus.FAILED
+                order.save(update_fields=['payment_status'])
+
+        return Response({'status': 'ok'}, status=status.HTTP_200_OK)
 
 
 class OrderLookupView(views.APIView):

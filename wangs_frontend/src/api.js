@@ -235,6 +235,7 @@ export const api = {
   getCheckoutQuote: (couponCode = '') => apiRequest('/checkout/quote/', { method: 'POST', body: JSON.stringify({ coupon_code: couponCode }) }),
   createOrder: (orderPayload) => apiRequest('/checkout/create-order/', { method: 'POST', body: JSON.stringify(orderPayload) }),
   verifyPayment: (payload) => apiRequest('/payments/verify/', { method: 'POST', body: JSON.stringify(payload) }),
+  checkCashfreeStatus: (orderNumber) => apiRequest(`/payments/cashfree-status/${orderNumber}/`),
   lookupOrder: (orderNumber, verify = '') => apiRequest(`/orders/lookup/${orderNumber}/${verify ? `?verify=${verify}` : ''}`),
   getMyOrders: () => apiRequest('/orders/my-orders/'),
 

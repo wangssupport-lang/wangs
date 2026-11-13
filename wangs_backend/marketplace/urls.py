@@ -7,6 +7,7 @@ from .views import (
     BrandListView, BrandDetailView,
     CategoryViewSet, ProductViewSet, check_pincode_serviceability,
     CartView, CheckoutQuoteView, CreateOrderView, VerifyPaymentView,
+    CashfreePaymentStatusView, CashfreeWebhookView,
     OrderLookupView, CustomerOrdersView,
     DeliveryOrderLookupView, DeliveryOrderMarkDeliveredView, DeliveryActiveOrdersView,
     CourierRegisterView, CourierLoginView, CourierProfileView,
@@ -79,6 +80,8 @@ urlpatterns = [
     path('checkout/shipping-quote/', CheckoutShippingQuoteView.as_view(), name='checkout-shipping-quote'),
     path('checkout/create-order/', CreateOrderView.as_view(), name='create-order'),
     path('payments/verify/', VerifyPaymentView.as_view(), name='payment-verify'),
+    path('payments/cashfree-webhook/', CashfreeWebhookView.as_view(), name='cashfree-webhook'),
+    path('payments/cashfree-status/<str:order_number>/', CashfreePaymentStatusView.as_view(), name='cashfree-payment-status'),
     path('orders/lookup/<str:order_number>/', OrderLookupView.as_view(), name='order-lookup'),
     path('orders/my-orders/', CustomerOrdersView.as_view(), name='customer-orders'),
     

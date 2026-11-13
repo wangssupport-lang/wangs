@@ -2792,3 +2792,142 @@ class DeliveryChargeManagementTests(TestCase):
         self.assertEqual(lookup_resp.data['shipping_delivery_method'], 'Standard Delivery (1-2 business days)')
 
 
+class CashfreeIntegrationTests(TestCase):
+    """
+    Tests for Cashfree payment gateway integration:
+    - Service URL and signature verification
+    - Order creation with Cashfree intent
+    - Payment verification and webhook handling
+    """
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='cashfree_customer',
+            email='shopper@wangs.in',
+            password='Password123!',
+            first_name='Mhashe',
+            phone_number='9876543210'
+        )
+        self.mfg_user = User.objects.create_user(
+            username='cashfree_mfg',
+            email='mfg@wangs.in',
+            password='Password123!',
+            first_name='Arenla',
+            role=User.Role.MANUFACTURER
+        )
+        self.mfg = ManufacturerProfile.objects.create(
+            user=self.mfg_user,
+            business_name='Heritage Foods Nagaland',
+            slug='heritage-foods-nagaland',
+            location_district='Kohima',
+            contact_email='mfg@wangs.in',
+            contact_phone='9436012345',
+            business_address='Midland, Kohima',
+            postal_code='797001',
+            fssai_license_number='10023064000199',
+            status=ManufacturerProfile.Status.APPROVED
+        )
+        self.category = Category.objects.create(name='Preserves & Pickles', slug='preserves-pickles')
+        self.product = Product.objects.create(
+            manufacturer=self.mfg,
+            category=self.category,
+            title='Traditional Smoked Pork Pickle',
+            slug='traditional-smoked-pork-pickle',
+            price=Decimal('350.00'),
+            weight_grams=250,
+            stock_quantity=25,
+            is_active=True
+        )
+
+    def test_cashfree_service_base_url_and_helpers(self):
+        from .cashfree_service import CashfreeService
+        self.assertEqual(CashfreeService.get_base_url('PROD'), 'https://api.cashfree.com/pg')
+        self.assertEqual(CashfreeService.get_base_url('TEST'), 'https://sandbox.cashfree.com/pg')
+
+    def test_cashfree_order_creation_and_verification(self):
+        from .services import PaymentService
+        order = Order.objects.create(
+            order_number='WNG-CF-TEST-001',
+            user=self.user,
+            customer_name='Mhashe Kire',
+            customer_email='shopper@wangs.in',
+            customer_phone='9876543210',
+            shipping_address_line1='Officers Hill',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('350.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('0.00'),
+            total_amount=Decimal('355.00'),
+            platform_commission_total=Decimal('35.00'),
+            manufacturer_payout_total=Decimal('315.00'),
+            payment_method='CASHFREE',
+            status=Order.Status.PENDING,
+            payment_status=Order.PaymentStatus.PENDING
+        )
+
+        # Payment intent generated
+        intent = PaymentService.create_cashfree_order(order)
+        self.assertIn('payment_session_id', intent)
+        self.assertIn('cf_order_id', intent)
+
+        # Payment verification endpoint
+        resp = self.client.post('/api/payments/verify/', {
+            'order_number': order.order_number,
+            'cf_order_id': intent['cf_order_id'],
+            'cf_payment_id': 'cf_pay_test_12345',
+        }, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(order.status, Order.Status.CONFIRMED)
+
+    def test_cashfree_webhook_success_handling(self):
+        order = Order.objects.create(
+            order_number='WNG-CF-TEST-002',
+            user=self.user,
+            customer_name='Mhashe Kire',
+            customer_email='shopper@wangs.in',
+            customer_phone='9876543210',
+            shipping_address_line1='Officers Hill',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('350.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('0.00'),
+            total_amount=Decimal('355.00'),
+            platform_commission_total=Decimal('35.00'),
+            manufacturer_payout_total=Decimal('315.00'),
+            payment_method='CASHFREE',
+            status=Order.Status.PENDING,
+            payment_status=Order.PaymentStatus.PENDING
+        )
+
+        webhook_payload = {
+            'type': 'PAYMENT_SUCCESS_WEBHOOK',
+            'data': {
+                'order': {
+                    'order_id': order.order_number,
+                    'order_amount': 355.00,
+                    'order_currency': 'INR'
+                },
+                'payment': {
+                    'cf_payment_id': 98765432,
+                    'payment_status': 'SUCCESS',
+                    'payment_amount': 355.00
+                }
+            }
+        }
+
+        resp = self.client.post('/api/payments/cashfree-webhook/', webhook_payload, format='json')
+        self.assertEqual(resp.status_code, 200)
+
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(order.status, Order.Status.CONFIRMED)
+
+
+
