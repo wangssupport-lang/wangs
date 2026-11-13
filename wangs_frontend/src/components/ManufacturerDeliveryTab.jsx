@@ -992,34 +992,6 @@ export default function ManufacturerDeliveryTab({ profile, toast }) {
                 </div>
               </div>
 
-              {/* Free Shipping Setting */}
-              <div className="p-3.5 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rateForm.is_free_delivery}
-                    onChange={e => setRateForm({ ...rateForm, is_free_delivery: e.target.checked })}
-                    className="w-4 h-4 text-emerald-800 rounded border-stone-300"
-                  />
-                  <span className="font-bold text-emerald-950">Offer Free Delivery</span>
-                </label>
-                {!rateForm.is_free_delivery && (
-                  <div>
-                    <label className="block text-[11px] text-emerald-900 mb-1">
-                      Or Free Shipping for orders above minimum subtotal (₹)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="e.g. 999.00"
-                      value={rateForm.min_order_amount_for_free_delivery}
-                      onChange={e => setRateForm({ ...rateForm, min_order_amount_for_free_delivery: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs"
-                    />
-                  </div>
-                )}
-              </div>
-
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
