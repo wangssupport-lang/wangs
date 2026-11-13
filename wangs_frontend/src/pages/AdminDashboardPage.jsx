@@ -5371,6 +5371,24 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 type="button"
+                onClick={async () => {
+                  if (!window.confirm("Sync all approved manufacturers to Cashfree Easy Split as Vendors?")) return;
+                  try {
+                    const res = await api.syncAllCashfreeVendors();
+                    alert(`Cashfree Easy Split Sync Complete!\nTotal Manufacturers Processed: ${res.total_synced}\nCheck your Cashfree Easy Split Vendors tab to see them!`);
+                    loadData();
+                  } catch (err) {
+                    alert('Sync error: ' + err.message);
+                  }
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0"
+                title="Sync all approved manufacturers to Cashfree Easy Split as Vendors"
+              >
+                <RefreshCw size={12} />
+                <span>Sync All to Cashfree</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveTab('yet_to_approve')}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-2xs hover:scale-105 active:scale-95 shrink-0"
               >
