@@ -2258,8 +2258,11 @@ export default function ManufacturerPortalPage() {
                       <div className="p-4 bg-emerald-50/70 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-stone-700 text-[11px] leading-relaxed">
                         <ShieldCheck size={16} className="text-emerald-700 shrink-0 mt-0.5" />
                         <div>
-                          <strong className="text-emerald-950 block">Encrypted Payout Channel:</strong>
-                          Your bank information is encrypted and strictly used for automated weekly sales transfers. No payment processing fees are deducted from your base payout.
+                          <strong className="text-emerald-950 block">Direct Settlement Channel:</strong>
+                          Your bank information is encrypted and linked to Cashfree Easy Split for automated marketplace payouts.
+                          {profile?.cashfree_vendor_id && (
+                            <span className="text-[10px] text-emerald-800 block mt-0.5 font-mono">Linked Vendor ID: {profile.cashfree_vendor_id}</span>
+                          )}
                         </div>
                       </div>
                     </div>

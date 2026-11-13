@@ -399,6 +399,8 @@ export const api = {
   deleteAdminSellerRequest: (payload) => apiRequest('/admin/seller-requests/', { method: 'DELETE', body: JSON.stringify(typeof payload === 'object' && payload !== null ? payload : { id: payload }) }),
   getAdminManufacturers: () => apiRequest('/admin/manufacturers/'),
   updateManufacturerStatus: (id, status, notes = '') => apiRequest(`/admin/manufacturers/${id}/update_status/`, { method: 'POST', body: JSON.stringify({ status, admin_review_notes: notes }) }),
+  syncCashfreeVendor: (id) => apiRequest(`/admin/manufacturers/${id}/sync_cashfree_vendor/`, { method: 'POST' }),
+  syncAllCashfreeVendors: () => apiRequest('/admin/manufacturers/sync_all_cashfree_vendors/', { method: 'POST' }),
   toggleManufacturerFeatured: (id, payload = {}) => apiRequest(`/admin/manufacturers/${id}/toggle_featured/`, { method: 'POST', body: JSON.stringify(payload) }),
   setManufacturerPriority: (id, priority) => apiRequest(`/admin/manufacturers/${id}/set_priority/`, { method: 'POST', body: JSON.stringify({ display_priority: priority }) }),
   setCommissionOverride: (id, rate) => apiRequest(`/admin/manufacturers/${id}/set_commission_override/`, { method: 'POST', body: JSON.stringify({ commission_rate_override: rate }) }),

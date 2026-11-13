@@ -346,7 +346,7 @@ class ManufacturerProfileSerializer(serializers.ModelSerializer):
             'contact_email', 'contact_phone', 'business_address', 'postal_code',
             'fssai_license_number', 'gst_number', 'compliance_notes',
             'bank_account_holder', 'bank_account_number', 'bank_ifsc_code', 'bank_name',
-            'bank_passbook_image',
+            'bank_passbook_image', 'cashfree_vendor_id', 'cashfree_vendor_status',
             'status', 'commission_rate_override', 'is_verified_producer',
             'is_featured', 'display_priority', 'tagline', 'brand_badge', 'hero_banner', 'logo_image',
             'admin_review_notes', 'documents', 'products_count', 'active_products_count',
@@ -1120,7 +1120,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'manufacturer_payout_total', 'coupon_code', 'status',
             'payment_status', 'payment_method', 'tracking_number', 'courier_partner', 'dispatch_notes',
             'shipping_rate', 'shipping_delivery_method', 'shipping_estimated_delivery',
-            'shipping_package_count', 'shipping_breakdown',
+            'shipping_package_count', 'shipping_breakdown', 'cashfree_split_data',
             'items', 'units', 'created_at', 'updated_at'
         ]
         read_only_fields = [

@@ -2929,5 +2929,68 @@ class CashfreeIntegrationTests(TestCase):
         self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
         self.assertEqual(order.status, Order.Status.CONFIRMED)
 
+    def test_cashfree_easy_split_vendor_and_order_split(self):
+        from .cashfree_service import CashfreeService
+        from .services import PaymentService
+
+        # 1. Sync manufacturer as vendor
+        self.mfg.bank_account_holder = 'Arenla Ao'
+        self.mfg.bank_account_number = '1234567890'
+        self.mfg.bank_ifsc_code = 'SBIN0000123'
+        self.mfg.save()
+
+        sync_res = CashfreeService.sync_manufacturer_vendor(self.mfg)
+        self.assertTrue(sync_res['success'])
+        self.mfg.refresh_from_db()
+        self.assertTrue(self.mfg.cashfree_vendor_id.startswith('mfg_'))
+        self.assertEqual(self.mfg.cashfree_vendor_status, 'ACTIVE')
+
+        # 2. Create order with OrderItem linked to this manufacturer
+        order = Order.objects.create(
+            order_number='WNG-CF-SPLIT-001',
+            user=self.user,
+            customer_name='Mhashe Kire',
+            customer_email='shopper@wangs.in',
+            customer_phone='9876543210',
+            shipping_address_line1='Officers Hill',
+            shipping_city='Kohima',
+            shipping_state='Nagaland',
+            shipping_postal_code='797001',
+            items_subtotal=Decimal('350.00'),
+            customer_platform_fee=Decimal('5.00'),
+            delivery_fee=Decimal('0.00'),
+            total_amount=Decimal('355.00'),
+            platform_commission_total=Decimal('35.00'),
+            manufacturer_payout_total=Decimal('315.00'),
+            payment_method='CASHFREE',
+            status=Order.Status.PENDING,
+            payment_status=Order.PaymentStatus.PENDING
+        )
+
+        OrderItem.objects.create(
+            order=order,
+            product=self.product,
+            manufacturer=self.mfg,
+            product_title=self.product.title,
+            weight_grams=250,
+            unit_price=Decimal('350.00'),
+            quantity=1,
+            subtotal=Decimal('350.00'),
+            commission_rate=Decimal('10.00'),
+            commission_amount=Decimal('35.00'),
+            manufacturer_payout=Decimal('315.00')
+        )
+
+        # 3. Create Cashfree order with Easy Split
+        intent = PaymentService.create_cashfree_order(order)
+        self.assertIn('order_splits', intent)
+        self.assertEqual(len(intent['order_splits']), 1)
+        self.assertEqual(intent['order_splits'][0]['vendor_id'], self.mfg.cashfree_vendor_id)
+        self.assertEqual(intent['order_splits'][0]['amount'], 315.00)
+
+        order.refresh_from_db()
+        self.assertIn('order_splits', order.cashfree_split_data)
+        self.assertEqual(order.cashfree_split_data['order_splits'][0]['amount'], 315.00)
+
 
 

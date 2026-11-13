@@ -150,7 +150,7 @@ class ManufacturerProfile(models.Model):
     gst_number = models.CharField(max_length=50, blank=True, default='')
     compliance_notes = models.TextField(blank=True, default='')
 
-    # Banking for settlement
+    # Banking for settlement & Cashfree Easy Split
     bank_account_holder = models.CharField(max_length=150, blank=True, default='')
     bank_account_number = models.CharField(max_length=50, blank=True, default='')
     bank_ifsc_code = models.CharField(max_length=20, blank=True, default='')
@@ -159,6 +159,18 @@ class ManufacturerProfile(models.Model):
         blank=True,
         default='',
         help_text="Mandatory photo/scan of bank passbook or cancelled cheque for settlement verification"
+    )
+    cashfree_vendor_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Cashfree Easy Split Vendor ID for automated direct payout settlements"
+    )
+    cashfree_vendor_status = models.CharField(
+        max_length=50,
+        blank=True,
+        default='',
+        help_text="Cashfree vendor status e.g. ACTIVE, PENDING"
     )
 
     # Admin approval & commission override
@@ -592,6 +604,11 @@ class Order(models.Model):
         default=dict,
         blank=True,
         help_text="Itemized snapshot of manufacturer fulfillment groups, weights, base rate, surcharges, rate versions"
+    )
+    cashfree_split_data = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Cashfree Easy Split vendor allocations and settlement reference"
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

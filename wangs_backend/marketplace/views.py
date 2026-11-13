@@ -2175,8 +2175,15 @@ class ManufacturerProfileView(views.APIView):
         data = {k: v for k, v in request.data.items() if k not in restricted_keys}
         serializer = ManufacturerProfileSerializer(profile, data=data, partial=True)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            updated_profile = serializer.save()
+            # If banking fields exist and profile is approved, auto-sync vendor to Cashfree Easy Split
+            if updated_profile.status == ManufacturerProfile.Status.APPROVED and (updated_profile.bank_account_number and updated_profile.bank_ifsc_code):
+                try:
+                    from .cashfree_service import CashfreeService
+                    CashfreeService.sync_manufacturer_vendor(updated_profile)
+                except Exception as cf_err:
+                    logger.warning("Could not sync updated bank details to Cashfree: %s", cf_err)
+            return Response(ManufacturerProfileSerializer(updated_profile).data)
         return Response(serializer.errors, status=400)
 
 
@@ -2618,6 +2625,13 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
                 mfg.user.save(update_fields=['is_banned', 'is_active', 'can_sell', 'role', 'ban_reason', 'banned_at'])
                 # Automatically approve seller products so they can immediately sell on the marketplace
                 Product.objects.filter(manufacturer=mfg).update(status=Product.Status.APPROVED, is_active=True)
+
+                # Auto-sync seller to Cashfree Easy Split vendor dashboard
+                try:
+                    from .cashfree_service import CashfreeService
+                    CashfreeService.sync_manufacturer_vendor(mfg)
+                except Exception as cf_err:
+                    logger.warning("Could not auto-sync approved seller %s to Cashfree: %s", mfg.id, cf_err)
             elif new_status == ManufacturerProfile.Status.SUSPENDED:
                 mfg.user.is_banned = True
                 mfg.user.is_active = False
@@ -2708,6 +2722,37 @@ class AdminManufacturerViewSet(viewsets.ModelViewSet):
             details={'business': mfg.business_name, 'display_priority': priority}
         )
         return Response(ManufacturerProfileSerializer(mfg).data)
+
+    @action(detail=True, methods=['post'])
+    def sync_cashfree_vendor(self, request, pk=None):
+        mfg = self.get_object()
+        from .cashfree_service import CashfreeService
+        result = CashfreeService.sync_manufacturer_vendor(mfg)
+        return Response({
+            'success': result.get('success', False),
+            'vendor_id': mfg.cashfree_vendor_id,
+            'cashfree_vendor_status': mfg.cashfree_vendor_status,
+            'details': result
+        })
+
+    @action(detail=False, methods=['post'])
+    def sync_all_cashfree_vendors(self, request):
+        from .cashfree_service import CashfreeService
+        approved_mfgs = ManufacturerProfile.objects.filter(status=ManufacturerProfile.Status.APPROVED)
+        results = []
+        for mfg in approved_mfgs:
+            res = CashfreeService.sync_manufacturer_vendor(mfg)
+            results.append({
+                'id': mfg.id,
+                'business_name': mfg.business_name,
+                'vendor_id': mfg.cashfree_vendor_id,
+                'status': mfg.cashfree_vendor_status,
+                'success': res.get('success', False)
+            })
+        return Response({
+            'total_synced': len(results),
+            'vendors': results
+        })
 
     def destroy(self, request, *args, **kwargs):
         mfg = self.get_object()
