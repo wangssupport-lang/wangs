@@ -93,7 +93,9 @@ class FinancialCalculator:
         # Platform fee
         platform_fee = quantize_amount(commission_setting.customer_platform_fee)
 
-        # Delivery fee calculation via DeliveryCalculator if destination provided
+        # Delivery fee calculation:
+        # Wangs customer policy: 100% Free Delivery to all customers!
+        # Delivery & courier charges are factored directly into the product listed price by the manufacturer/seller.
         shipping_quote = None
         delivery_fee = Decimal('0.00')
         if shipping_details and shipping_details.get('postal_code'):
@@ -107,7 +109,11 @@ class FinancialCalculator:
             )
             if not shipping_quote['is_deliverable']:
                 raise ValueError(shipping_quote.get('error_message') or 'Delivery not available for this location')
-            delivery_fee = quantize_amount(Decimal(str(shipping_quote['total_delivery_fee'])))
+            # Customer always receives 100% Free Delivery; courier charges are embedded into product prices
+            delivery_fee = Decimal('0.00')
+            if shipping_quote:
+                shipping_quote['customer_charged_fee'] = '0.00'
+                shipping_quote['is_free_to_customer'] = True
 
         total_amount = quantize_amount(items_subtotal - discount_amount + platform_fee + delivery_fee)
 

@@ -566,8 +566,9 @@ export default function ProductDetailPage() {
                 </span>
               )}
             </div>
-            <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full self-start sm:self-auto">
-              Tax Included · Pan-India Dispatch
+            <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full self-start sm:self-auto flex items-center gap-1">
+              <Truck size={13} className="text-emerald-700" />
+              <span>100% Free Delivery Across India</span>
             </span>
           </div>
 

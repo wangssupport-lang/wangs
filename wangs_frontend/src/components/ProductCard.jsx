@@ -215,6 +215,9 @@ function ProductCard({ product }) {
                 {discountPercent}% OFF
               </span>
             )}
+            <span className="text-[9.5px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/80 ml-auto">
+              Free Delivery
+            </span>
           </div>
 
           {/* Micro Psychology: Scarcity & Small Batch Social Proof */}

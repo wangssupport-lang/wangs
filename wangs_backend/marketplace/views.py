@@ -1095,6 +1095,14 @@ class CheckoutShippingQuoteView(views.APIView):
             state=state,
             requested_method=delivery_method
         )
+        # Wangs customer policy: 100% Free Delivery to all customers!
+        # Courier costs are incorporated into the original product listed price.
+        if quote.get('is_deliverable'):
+            quote['courier_cost_allowance'] = quote.get('total_delivery_fee', '0.00')
+            quote['total_delivery_fee'] = '0.00'
+            quote['customer_charged_fee'] = '0.00'
+            quote['is_free_to_customer'] = True
+            quote['customer_delivery_badge'] = '100% Free Express Delivery'
         return Response(quote)
 
 

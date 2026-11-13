@@ -211,11 +211,12 @@ export default function CheckoutPage() {
     total_amount: '0.00',
   };
 
-  const effectiveDeliveryFee = shippingQuote ? parseFloat(shippingQuote.total_delivery_fee) : (parseFloat(summary.delivery_fee) || 0);
+  // Customers always enjoy 100% Free Delivery (courier charges are factored into original product prices by makers)
+  const effectiveDeliveryFee = 0;
   const itemsSubtotal = parseFloat(summary.items_subtotal) || 0;
   const platformFee = parseFloat(summary.customer_platform_fee) || 0;
   const discountAmount = parseFloat(summary.discount_amount) || 0;
-  const rawTotal = Math.max(0, itemsSubtotal - discountAmount + platformFee + effectiveDeliveryFee);
+  const rawTotal = Math.max(0, itemsSubtotal - discountAmount + platformFee);
   const availableCredits = rewardWallet?.available_credits ?? rewardWallet?.balance ?? rewardWallet?.wallet?.balance ?? 0;
   const creditRate = rewardWallet?.credit_value_rupees ? parseFloat(rewardWallet.credit_value_rupees) : (rewardWallet?.settings?.credit_value_rupees ? parseFloat(rewardWallet.settings.credit_value_rupees) : 0.10);
   const maxRedeemableCredits = Math.min(availableCredits, Math.floor(rawTotal / (creditRate || 0.10)));
@@ -779,19 +780,13 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between items-baseline">
                 <div>
-                  <span className="block">Delivery Fee</span>
-                  {shippingQuote?.total_packages && (
-                    <span className="text-[10px] text-stone-500 font-normal block">
-                      {shippingQuote.total_packages} package{shippingQuote.total_packages > 1 ? 's' : ''} ({shippingQuote.fulfillment_breakdown?.length || 1} kitchen{shippingQuote.fulfillment_breakdown?.length > 1 ? 's' : ''})
-                    </span>
-                  )}
+                  <span className="block font-medium">Delivery Fee</span>
+                  <span className="text-[10px] text-emerald-700 font-semibold block">
+                    100% Free Express Delivery (Included in product price)
+                  </span>
                 </div>
-                <span className="font-bold text-stone-900">
-                  {effectiveDeliveryFee === 0 ? (
-                    <span className="text-emerald-700 font-black uppercase text-[10px]">Free Delivery</span>
-                  ) : (
-                    `₹${effectiveDeliveryFee.toFixed(2)}`
-                  )}
+                <span className="font-bold text-emerald-700 uppercase text-[10px] bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                  FREE
                 </span>
               </div>
               {safeCreditsToRedeem > 0 && (

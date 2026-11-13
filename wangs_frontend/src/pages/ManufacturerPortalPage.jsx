@@ -728,7 +728,9 @@ export default function ManufacturerPortalPage() {
 
     const baseVal = p.base_price !== undefined && p.base_price !== null ? String(p.base_price) : '';
     const existingRate = productRates[p.id];
-    const rateVal = existingRate?.base_rate !== undefined && existingRate?.base_rate !== null ? String(existingRate.base_rate) : '';
+    const rateVal = p.delivery_charge !== undefined && p.delivery_charge !== null
+      ? String(p.delivery_charge)
+      : (existingRate?.base_rate !== undefined && existingRate?.base_rate !== null ? String(existingRate.base_rate) : '80');
     const threshVal = existingRate?.min_order_amount_for_free_delivery ? String(existingRate.min_order_amount_for_free_delivery) : '';
 
     setNewProd({
@@ -1394,10 +1396,13 @@ export default function ManufacturerPortalPage() {
                     {filteredProducts.map((p) => {
                       const actual = parseFloat(p.price) || 0;
                       const customRate = productRates[p.id];
-                      const pDeliveryFee = customRate?.base_rate !== undefined && customRate?.base_rate !== null ? parseFloat(customRate.base_rate) : 80;
-                      const withoutDelivery = Math.max(0, actual - pDeliveryFee);
-                      const base = Math.max(0, Math.round(withoutDelivery / (1 + commissionRate / 100)));
-                      const comm = Math.max(0, withoutDelivery - base);
+                      const pCourierCharge = p.delivery_charge !== undefined && p.delivery_charge !== null
+                        ? parseFloat(p.delivery_charge)
+                        : (customRate?.base_rate !== undefined && customRate?.base_rate !== null ? parseFloat(customRate.base_rate) : 80);
+                      const base = p.base_price !== undefined && p.base_price !== null
+                        ? parseFloat(p.base_price)
+                        : Math.max(0, Math.round(Math.max(0, actual - pCourierCharge) / (1 + commissionRate / 100)));
+                      const comm = Math.max(0, actual - base - pCourierCharge);
                       const qty = parseInt(p.stock_quantity, 10) || 0;
 
                       return (
@@ -1429,16 +1434,16 @@ export default function ManufacturerPortalPage() {
                           <td className="p-3.5">
                             <span className="font-black text-forest-950 text-sm font-mono">₹{actual.toFixed(0)}</span>
                             <span className="block text-[10px] font-semibold text-emerald-700">
-                              {customRate ? (customRate.is_free_delivery || pDeliveryFee === 0 ? 'Free Delivery' : `₹${pDeliveryFee.toFixed(0)} Delivery`) : 'Standard Delivery'}
+                              100% Free Customer Delivery
                             </span>
                           </td>
 
                           <td className="p-3.5">
                             <div className="text-[11px] text-stone-700 font-medium whitespace-nowrap">
-                              <span className="text-forest-900 font-bold">₹{base}</span> (Base) + <span className="text-amber-800">₹{comm}</span> ({commissionRate}%) + <span className="text-blue-700">₹{pDeliveryFee.toFixed(0)}</span> (Delivery)
+                              <span className="text-forest-900 font-bold">₹{base.toFixed(0)}</span> (Base) + <span className="text-blue-700 font-bold">₹{pCourierCharge.toFixed(0)}</span> (Courier) + <span className="text-amber-800">₹{comm.toFixed(0)}</span> ({commissionRate}%)
                             </div>
                             <span className="text-[10px] text-stone-400 font-semibold block mt-0.5">
-                              Net Seller Payout: ₹{base}
+                              Net Seller Payout: ₹{base.toFixed(0)}
                             </span>
                           </td>
 
@@ -1510,11 +1515,11 @@ export default function ManufacturerPortalPage() {
                               <button
                                 type="button"
                                 onClick={() => openEditProductModal(p)}
-                                className="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg text-[11px] font-semibold border border-amber-200 transition-colors flex items-center gap-1 cursor-pointer"
-                                title="Configure product delivery charges"
+                                className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-900 rounded-lg text-[11px] font-semibold border border-blue-200 transition-colors flex items-center gap-1 cursor-pointer"
+                                title="Configure product courier charge and pricing"
                               >
                                 <Truck size={12} />
-                                <span>{customRate ? `₹${pDeliveryFee.toFixed(0)}` : 'Delivery'}</span>
+                                <span>Courier ₹{pCourierCharge.toFixed(0)}</span>
                               </button>
                               <button
                                 type="button"
@@ -2610,102 +2615,99 @@ export default function ManufacturerPortalPage() {
                     </select>
                   </div>
 
-                  {/* Delivery & Shipping Charge Configuration for this Product */}
-                  <div className="col-span-2 p-4 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-stone-50 rounded-2xl border border-blue-200/90 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-blue-600/15 text-blue-900 flex items-center justify-center font-bold">
-                          <Truck size={15} />
+                  {/* Unified Product Pricing & Delivery Integration Card */}
+                  <div className="col-span-2 p-5 bg-gradient-to-br from-amber-50/70 via-stone-50 to-blue-50/50 rounded-2xl border border-amber-200/90 shadow-2xs space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-200/70 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-forest-900 text-amber-300 flex items-center justify-center font-bold shrink-0">
+                          <Calculator size={17} />
                         </div>
                         <div>
-                          <span className="font-bold text-stone-900 text-xs sm:text-sm">Product Delivery & Shipping Charge</span>
-                          <span className="block text-[10.5px] text-stone-600">Enter custom delivery charge for this product (or ₹0 for Free Delivery)</span>
+                          <h4 className="font-serif font-bold text-stone-900 text-sm">Product Pricing & Delivery Integration</h4>
+                          <p className="text-[11px] text-stone-600">
+                            Customers receive 100% Free Delivery. Enter your desired payout and courier charges to calculate the original store price.
+                          </p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-forest-900 text-amber-300 font-bold shrink-0">
-                        Tier 2 Rate
+                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 self-start sm:self-auto shrink-0">
+                        100% Free Customer Delivery
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                      {/* Step 1: Base Payout */}
                       <div>
-                        <label className="block text-stone-800 font-bold mb-1">
-                          Delivery Charge per Package (₹)
+                        <label className="block text-stone-800 font-bold text-xs mb-1">
+                          1. Desired Base Payout (₹) *
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="1"
-                            value={newProd.delivery_charge}
-                            onChange={(e) => handleDeliveryChargeChange(e.target.value)}
-                            placeholder="Default Kohima: 80 (or 0 for Free)"
-                            className="w-full pl-7 pr-3 py-2 border border-blue-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-forest-800"
-                          />
-                        </div>
-                        <p className="text-[10.5px] text-stone-600 mt-1">Default Kohima ₹80 · Dimapur ₹110 · 0 for Free Delivery.</p>
-                      </div>
-
-                      <div>
-                        <label className="block text-stone-800 font-bold mb-1">
-                          Free Delivery Order Threshold (₹, Optional)
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="50"
-                            value={newProd.free_delivery_threshold}
-                            onChange={(e) => setNewProd({ ...newProd, free_delivery_threshold: e.target.value })}
-                            placeholder="e.g. 999"
-                            className="w-full pl-7 pr-3 py-2 border border-stone-300 bg-white rounded-xl text-sm font-bold text-stone-900 focus:ring-1 focus:ring-forest-800"
-                          />
-                        </div>
-                        <p className="text-[10.5px] text-stone-500 mt-1">Customer receives free delivery if cart total meets or exceeds this amount.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pricing Equation Section */}
-                  <div className="col-span-2 p-4 bg-gradient-to-br from-amber-50/80 via-emerald-50/40 to-stone-50 rounded-2xl border border-amber-200/80 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Calculator size={15} className="text-forest-800" />
-                        <span className="font-bold text-stone-900 text-xs">Transparent Pricing Equation</span>
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        {newProd.delivery_charge === '0' || newProd.delivery_charge === 0 ? 'Free Customer Delivery' : `₹${getEffectiveDeliveryFee(newProd.delivery_charge)} Delivery Included`}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div>
-                        <label className="block text-stone-800 font-bold mb-1">
-                          Your Desired Base Payout (₹) *
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-sm">₹</span>
                           <input
                             type="number"
                             min="1"
                             step="1"
+                            required
                             value={newProd.base_price || ''}
                             onChange={(e) => handleBasePriceChange(e.target.value)}
                             placeholder="e.g. 200"
                             className="w-full pl-7 pr-3 py-2 border border-stone-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-forest-800"
                           />
                         </div>
-                        <p className="text-[10.5px] text-stone-600 mt-1">Amount you receive into your bank per unit sold.</p>
+                        <p className="text-[10px] text-stone-500 mt-1">Direct amount credited to your bank per unit.</p>
                       </div>
 
+                      {/* Step 2: Courier & Delivery Charge */}
                       <div>
-                        <label className="block text-stone-800 font-bold mb-1">
-                          Actual Customer Listed Price (₹) *
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-stone-800 font-bold text-xs">
+                            2. Courier Charge (₹) *
+                          </label>
+                          <span className="text-[10px] text-blue-700 font-semibold flex items-center gap-0.5">
+                            <Truck size={10} /> Built-in
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-sm">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            value={newProd.delivery_charge}
+                            onChange={(e) => handleDeliveryChargeChange(e.target.value)}
+                            placeholder="e.g. 80"
+                            className="w-full pl-7 pr-3 py-2 border border-blue-300 rounded-xl text-sm font-bold bg-white focus:ring-1 focus:ring-blue-700"
+                          />
+                        </div>
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {[
+                            { label: '₹50 Standard', val: '50' },
+                            { label: '₹80 Kohima', val: '80' },
+                            { label: '₹110 Dimapur', val: '110' },
+                            { label: '₹0 Free', val: '0' },
+                          ].map((chip) => (
+                            <button
+                              key={chip.val}
+                              type="button"
+                              onClick={() => handleDeliveryChargeChange(chip.val)}
+                              className={`text-[9.5px] px-1.5 py-0.5 rounded border transition-colors cursor-pointer font-medium ${
+                                String(newProd.delivery_charge) === chip.val
+                                  ? 'bg-blue-600 text-white border-blue-700 font-bold'
+                                  : 'bg-white text-stone-600 hover:bg-stone-100 border-stone-200'
+                              }`}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Step 3: Original Customer Listed Price */}
+                      <div>
+                        <label className="block text-stone-800 font-bold text-xs mb-1">
+                          3. Original Listed Price (₹) *
                         </label>
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold">₹</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold text-sm">₹</span>
                           <input
                             type="number"
                             required
@@ -2714,18 +2716,24 @@ export default function ManufacturerPortalPage() {
                             value={newProd.price || ''}
                             onChange={(e) => handleActualPriceChange(e.target.value)}
                             placeholder="Min ₹101"
-                            className="w-full pl-7 pr-3 py-2 border border-emerald-300 bg-white rounded-xl text-sm font-black text-forest-950 focus:ring-1 focus:ring-forest-800"
+                            className="w-full pl-7 pr-3 py-2 border-2 border-forest-800 bg-white rounded-xl text-sm font-black text-forest-950 focus:ring-1 focus:ring-forest-800"
                           />
                         </div>
-                        <p className="text-[10.5px] text-amber-700 font-semibold mt-1">Platform policy: Must be strictly above ₹100.</p>
+                        <p className="text-[10px] text-amber-700 font-semibold mt-1">Displayed on storefront (Must be &gt; ₹100).</p>
                       </div>
                     </div>
 
+                    {/* Formula Breakdown Banner */}
                     <div className="p-3 bg-white rounded-xl border border-stone-200 text-stone-800 shadow-2xs">
                       <div className="flex flex-wrap items-center justify-between gap-2 text-center text-xs">
                         <div className="flex-1 min-w-[70px] bg-stone-50 py-1.5 px-2 rounded-lg border border-stone-200">
                           <span className="block text-[10px] text-stone-500 font-medium">Base Payout</span>
                           <span className="font-bold text-forest-900 text-sm">₹{parseFloat(newProd.base_price || 0).toFixed(0)}</span>
+                        </div>
+                        <span className="font-black text-stone-400 text-sm">+</span>
+                        <div className="flex-1 min-w-[70px] bg-blue-50 py-1.5 px-2 rounded-lg border border-blue-200">
+                          <span className="block text-[10px] text-blue-700 font-medium">Courier Cost</span>
+                          <span className="font-bold text-blue-900 text-sm">₹{getEffectiveDeliveryFee(newProd.delivery_charge)}</span>
                         </div>
                         <span className="font-black text-stone-400 text-sm">+</span>
                         <div className="flex-1 min-w-[70px] bg-amber-50/70 py-1.5 px-2 rounded-lg border border-amber-200">
@@ -2734,16 +2742,14 @@ export default function ManufacturerPortalPage() {
                             ₹{Math.max(0, Math.round(((parseFloat(newProd.base_price) || 0) * commissionRate) / 100))}
                           </span>
                         </div>
-                        <span className="font-black text-stone-400 text-sm">+</span>
-                        <div className="flex-1 min-w-[70px] bg-blue-50 py-1.5 px-2 rounded-lg border border-blue-200">
-                          <span className="block text-[10px] text-blue-700 font-medium">Courier</span>
-                          <span className="font-bold text-blue-900 text-sm">₹{getEffectiveDeliveryFee(newProd.delivery_charge)}</span>
-                        </div>
                         <span className="font-black text-stone-400 text-sm">=</span>
                         <div className="flex-1 min-w-[85px] bg-forest-900 text-white py-1.5 px-2 rounded-lg shadow-xs">
                           <span className="block text-[10px] text-amber-300 font-bold">Store Price</span>
                           <span className="font-black text-sm">₹{parseFloat(newProd.price || 0).toFixed(0)}</span>
                         </div>
+                      </div>
+                      <div className="mt-2 text-center text-[10.5px] text-stone-500 font-medium">
+                        Formula: <span className="font-bold text-forest-900">Base ₹{parseFloat(newProd.base_price || 0).toFixed(0)}</span> + <span className="font-bold text-blue-700">Courier ₹{getEffectiveDeliveryFee(newProd.delivery_charge)}</span> + <span className="font-bold text-amber-800">Fee ₹{Math.max(0, Math.round(((parseFloat(newProd.base_price) || 0) * commissionRate) / 100))}</span> = <span className="font-bold text-forest-950">Customer Price ₹{parseFloat(newProd.price || 0).toFixed(0)} (with 100% Free Delivery)</span>
                       </div>
                     </div>
                   </div>
