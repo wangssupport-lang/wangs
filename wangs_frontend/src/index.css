@@ -53,6 +53,12 @@
   }
 }
 
+/* Smooth focus transition */
+a, button, input, select, textarea {
+  transition-property: outline, box-shadow;
+  transition-duration: 150ms;
+}
+
 .bg-cream-texture {
   background-color: #faf9f6;
 }

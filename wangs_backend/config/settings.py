@@ -194,6 +194,14 @@ FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://wangs.in').strip()
 RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_placeholder_key')
 RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'placeholder_secret')
 
+# PayU India Gateway & Marketplace Split Settlement Architecture
+PAYU_MERCHANT_KEY = os.getenv('PAYU_MERCHANT_KEY', 'payu_test_merchant_key').strip()
+PAYU_MERCHANT_SALT = os.getenv('PAYU_MERCHANT_SALT', 'payu_test_merchant_salt').strip()
+PAYU_MODE = os.getenv('PAYU_MODE', 'TEST').strip().upper()  # 'TEST' or 'PROD'
+# Split settlements and live seller payouts remain strictly disabled until PayU approval & activation
+PAYU_SPLIT_SETTLEMENTS_ENABLED = os.getenv('PAYU_SPLIT_SETTLEMENTS_ENABLED', 'False').strip().lower() in ('true', '1', 'yes')
+DEFAULT_PAYMENT_PROVIDER = os.getenv('DEFAULT_PAYMENT_PROVIDER', 'PAYU').strip().upper()
+
 # Resend Email Configuration for OTP Verification
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 RESEND_FROM_EMAIL = os.getenv('RESEND_FROM_EMAIL', 'onboarding@resend.dev')

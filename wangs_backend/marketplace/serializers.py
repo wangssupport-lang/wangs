@@ -19,7 +19,8 @@ from .models import (
     ManufacturerSettlement, Coupon, AuditLog, HeroBanner, StorefrontNotice,
     RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode,
     DeliveryConfirmation, RewardTransaction, SuspiciousScanLog,
-    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion
+    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion,
+    Payment, SellerPaymentProfile, Commission, SellerAllocation, Settlement, WebhookEvent
 )
 
 
@@ -1398,5 +1399,94 @@ class ShippingPromotionSerializer(serializers.ModelSerializer):
             'id', 'name', 'promo_type', 'discount_value', 'min_spend',
             'zone', 'zone_name', 'is_active', 'start_date', 'end_date', 'created_at'
         ]
+
+
+# -------------------------------------------------------------
+# MARKETPLACE PAYMENT & SETTLEMENT SERIALIZERS
+# -------------------------------------------------------------
+
+class PaymentSerializer(serializers.ModelSerializer):
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    customer_email = serializers.CharField(source='customer.email', read_only=True)
+    amount_in_rupees = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Payment
+        fields = [
+            'id', 'payment_id', 'order_number', 'customer_email',
+            'payment_provider', 'provider_payment_id', 'provider_order_id',
+            'amount_paise', 'amount_in_rupees', 'currency', 'status',
+            'payment_method', 'verification_timestamp', 'created_at', 'updated_at'
+        ]
+        read_only_fields = [
+            'id', 'payment_id', 'verification_timestamp', 'created_at', 'updated_at'
+        ]
+
+
+class SellerPaymentProfileSerializer(serializers.ModelSerializer):
+    seller_name = serializers.CharField(source='seller.business_name', read_only=True)
+    seller_email = serializers.CharField(source='seller.contact_email', read_only=True)
+
+    class Meta:
+        model = SellerPaymentProfile
+        fields = [
+            'id', 'seller_name', 'seller_email', 'payment_provider',
+            'provider_merchant_id', 'kyc_status', 'bank_verification_status',
+            'onboarding_status', 'payout_eligibility', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class CommissionSerializer(serializers.ModelSerializer):
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    seller_name = serializers.CharField(source='seller.business_name', read_only=True)
+
+    class Meta:
+        model = Commission
+        fields = [
+            'id', 'order_number', 'seller_name', 'product_subtotal',
+            'commission_percentage', 'commission_amount', 'seller_payable_amount',
+            'calculation_timestamp', 'is_b2b', 'metadata'
+        ]
+        read_only_fields = ['id', 'calculation_timestamp']
+
+
+class SellerAllocationSerializer(serializers.ModelSerializer):
+    order_number = serializers.CharField(source='order.order_number', read_only=True)
+    seller_name = serializers.CharField(source='seller.business_name', read_only=True)
+
+    class Meta:
+        model = SellerAllocation
+        fields = [
+            'id', 'order_number', 'seller_name', 'gross_allocated_amount',
+            'commission_deducted', 'net_seller_amount', 'transfer_status',
+            'provider_transfer_reference', 'notes', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class SettlementSerializer(serializers.ModelSerializer):
+    seller_name = serializers.CharField(source='seller.business_name', read_only=True)
+    order_number = serializers.CharField(source='related_order.order_number', read_only=True)
+
+    class Meta:
+        model = Settlement
+        fields = [
+            'id', 'settlement_reference', 'seller_name', 'order_number',
+            'settlement_amount', 'settlement_status', 'provider_settlement_reference',
+            'settlement_date', 'failure_reason', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'settlement_reference', 'created_at', 'updated_at']
+
+
+class WebhookEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WebhookEvent
+        fields = [
+            'id', 'provider', 'event_id', 'event_type', 'processing_status',
+            'error_message', 'received_timestamp', 'processed_timestamp'
+        ]
+        read_only_fields = ['id', 'received_timestamp', 'processed_timestamp']
+
 
 

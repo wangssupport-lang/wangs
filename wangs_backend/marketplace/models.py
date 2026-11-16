@@ -707,10 +707,13 @@ class Refund(models.Model):
 
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='refunds')
     order_item = models.ForeignKey(OrderItem, on_delete=models.SET_NULL, null=True, blank=True)
+    payment = models.ForeignKey('Payment', on_delete=models.SET_NULL, null=True, blank=True, related_name='refunds')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
+    amount_paise = models.BigIntegerField(null=True, blank=True, help_text="Refund amount in integer paise")
     reason = models.TextField()
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.REQUESTED)
     refund_transaction_id = models.CharField(max_length=100, blank=True, default='')
+    provider_refund_reference = models.CharField(max_length=120, blank=True, default='', db_index=True)
     admin_notes = models.TextField(blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -1203,6 +1206,242 @@ class ShippingPromotion(models.Model):
 
     def __str__(self):
         return f"Promotion: {self.name} ({self.promo_type})"
+
+
+# -------------------------------------------------------------
+# WANGS.IN MARKETPLACE PAYMENT INFRASTRUCTURE & SETTLEMENT MODELS
+# -------------------------------------------------------------
+
+class Payment(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        INITIATED = 'INITIATED', 'Initiated'
+        AUTHORIZED = 'AUTHORIZED', 'Authorized'
+        CAPTURED = 'CAPTURED', 'Captured'
+        FAILED = 'FAILED', 'Failed'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+        REFUNDED = 'REFUNDED', 'Refunded'
+        PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED', 'Partially Refunded'
+
+    # Internal payment ID e.g. "PAY-20261116-XXXXXX"
+    payment_id = models.CharField(max_length=64, unique=True, db_index=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='payment_records')
+    customer = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='payments')
+    payment_provider = models.CharField(max_length=50, default='PAYU', db_index=True)
+    provider_payment_id = models.CharField(max_length=120, blank=True, default='', db_index=True)
+    provider_order_id = models.CharField(max_length=120, blank=True, default='', db_index=True)
+    amount_paise = models.BigIntegerField(help_text="Transaction amount in integer paise (e.g. ₹1000.00 = 100000 paise)")
+    currency = models.CharField(max_length=10, default='INR')
+    status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING, db_index=True)
+    payment_method = models.CharField(max_length=50, blank=True, default='')
+    verification_timestamp = models.DateTimeField(null=True, blank=True)
+    idempotency_key = models.CharField(max_length=120, unique=True, null=True, blank=True)
+    raw_response = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @property
+    def amount_in_rupees(self):
+        return (Decimal(self.amount_paise) / Decimal('100.00')).quantize(Decimal('0.01'))
+
+    def __str__(self):
+        return f"Payment {self.payment_id} - Order #{self.order.order_number} ({self.status}) - ₹{self.amount_in_rupees}"
+
+
+class SellerPaymentProfile(models.Model):
+    class KYCStatus(models.TextChoices):
+        NOT_SUBMITTED = 'NOT_SUBMITTED', 'Not Submitted'
+        PENDING = 'PENDING', 'Pending Verification'
+        VERIFIED = 'VERIFIED', 'Verified'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    class BankVerificationStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        VERIFIED = 'VERIFIED', 'Verified'
+        FAILED = 'FAILED', 'Failed'
+
+    class OnboardingStatus(models.TextChoices):
+        INCOMPLETE = 'INCOMPLETE', 'Incomplete'
+        PENDING_APPROVAL = 'PENDING_APPROVAL', 'Pending Approval'
+        ACTIVE = 'ACTIVE', 'Active'
+        SUSPENDED = 'SUSPENDED', 'Suspended'
+
+    seller = models.OneToOneField(ManufacturerProfile, on_delete=models.CASCADE, related_name='payment_profile')
+    payment_provider = models.CharField(max_length=50, default='PAYU')
+    provider_merchant_id = models.CharField(
+        max_length=100,
+        blank=True,
+        default='',
+        help_text="Child merchant / vendor ID on PayU or partner gateway for split settlement"
+    )
+    kyc_status = models.CharField(max_length=30, choices=KYCStatus.choices, default=KYCStatus.PENDING)
+    bank_verification_status = models.CharField(
+        max_length=30,
+        choices=BankVerificationStatus.choices,
+        default=BankVerificationStatus.PENDING
+    )
+    onboarding_status = models.CharField(
+        max_length=30,
+        choices=OnboardingStatus.choices,
+        default=OnboardingStatus.INCOMPLETE
+    )
+    payout_eligibility = models.BooleanField(
+        default=False,
+        help_text="True if seller meets compliance, KYC and bank verification for payout releases"
+    )
+    provider_metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Provider registration response metadata, risk scores, webhook status (never sensitive bank info)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Payment Profile: {self.seller.business_name} ({self.onboarding_status})"
+
+
+class Commission(models.Model):
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='commissions')
+    seller = models.ForeignKey(ManufacturerProfile, on_delete=models.CASCADE, related_name='commissions')
+    product_subtotal = models.DecimalField(max_digits=12, decimal_places=2)
+    product_subtotal_paise = models.BigIntegerField(default=0)
+    commission_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal('10.00'),
+        help_text="Snapshot of platform commission rate (e.g. 10.00 for 10%)"
+    )
+    commission_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    commission_amount_paise = models.BigIntegerField(default=0)
+    seller_payable_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    seller_payable_paise = models.BigIntegerField(default=0)
+    calculation_timestamp = models.DateTimeField(auto_now_add=True)
+    is_b2b = models.BooleanField(default=False)
+    metadata = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ['-calculation_timestamp']
+
+    def __str__(self):
+        return f"Commission Order #{self.order.order_number} - {self.seller.business_name} (₹{self.commission_amount})"
+
+
+class SellerAllocation(models.Model):
+    class TransferStatus(models.TextChoices):
+        NOT_ELIGIBLE = 'NOT_ELIGIBLE', 'Not Eligible'
+        PENDING = 'PENDING', 'Pending Settlement'
+        ON_HOLD = 'ON_HOLD', 'On Hold'
+        PROCESSING = 'PROCESSING', 'Processing'
+        SETTLED = 'SETTLED', 'Settled'
+        FAILED = 'FAILED', 'Failed'
+        REVERSED = 'REVERSED', 'Reversed'
+
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='seller_allocations')
+    seller = models.ForeignKey(ManufacturerProfile, on_delete=models.CASCADE, related_name='allocations')
+    gross_allocated_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    gross_allocated_paise = models.BigIntegerField(default=0)
+    commission_deducted = models.DecimalField(max_digits=12, decimal_places=2)
+    commission_deducted_paise = models.BigIntegerField(default=0)
+    net_seller_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    net_seller_paise = models.BigIntegerField(default=0)
+    transfer_status = models.CharField(
+        max_length=30,
+        choices=TransferStatus.choices,
+        default=TransferStatus.PENDING,
+        db_index=True
+    )
+    provider_transfer_reference = models.CharField(max_length=120, blank=True, default='', db_index=True)
+    notes = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Allocation #{self.order.order_number} - {self.seller.business_name}: ₹{self.net_seller_amount} ({self.transfer_status})"
+
+
+class Settlement(models.Model):
+    class Status(models.TextChoices):
+        NOT_ELIGIBLE = 'NOT_ELIGIBLE', 'Not Eligible'
+        PENDING = 'PENDING', 'Pending'
+        ON_HOLD = 'ON_HOLD', 'On Hold'
+        PROCESSING = 'PROCESSING', 'Processing'
+        SETTLED = 'SETTLED', 'Settled'
+        FAILED = 'FAILED', 'Failed'
+        REVERSED = 'REVERSED', 'Reversed'
+
+    settlement_reference = models.CharField(max_length=64, unique=True, db_index=True)
+    seller = models.ForeignKey(ManufacturerProfile, on_delete=models.CASCADE, related_name='provider_settlements')
+    related_order = models.ForeignKey(Order, null=True, blank=True, on_delete=models.SET_NULL, related_name='order_settlements')
+    settlement_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    settlement_amount_paise = models.BigIntegerField(default=0)
+    settlement_status = models.CharField(
+        max_length=30,
+        choices=Status.choices,
+        default=Status.PENDING,
+        db_index=True
+    )
+    provider_settlement_reference = models.CharField(max_length=120, blank=True, default='', db_index=True)
+    settlement_date = models.DateTimeField(null=True, blank=True)
+    failure_reason = models.TextField(blank=True, default='')
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Settlement {self.settlement_reference} - {self.seller.business_name}: ₹{self.settlement_amount} ({self.settlement_status})"
+
+
+class WebhookEvent(models.Model):
+    class ProcessingStatus(models.TextChoices):
+        RECEIVED = 'RECEIVED', 'Received'
+        PROCESSED = 'PROCESSED', 'Processed'
+        FAILED = 'FAILED', 'Failed'
+        IGNORED = 'IGNORED', 'Ignored'
+
+    provider = models.CharField(max_length=50, default='PAYU', db_index=True)
+    event_id = models.CharField(max_length=120, unique=True, db_index=True)
+    event_type = models.CharField(max_length=100, db_index=True)
+    related_payment = models.ForeignKey(
+        Payment,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='webhook_events'
+    )
+    related_settlement = models.ForeignKey(
+        Settlement,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='webhook_events'
+    )
+    payload = models.JSONField(default=dict, blank=True)
+    processing_status = models.CharField(
+        max_length=30,
+        choices=ProcessingStatus.choices,
+        default=ProcessingStatus.RECEIVED,
+        db_index=True
+    )
+    error_message = models.TextField(blank=True, default='')
+    received_timestamp = models.DateTimeField(auto_now_add=True)
+    processed_timestamp = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-received_timestamp']
+
+    def __str__(self):
+        return f"WebhookEvent {self.provider} [{self.event_type}] {self.event_id} ({self.processing_status})"
+
 
 
 

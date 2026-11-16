@@ -4,7 +4,8 @@ from .models import (
     CourierProfile, CourierDeliveryScanLog,
     Category, Product, ProductImage, ProductReview, CommissionSetting, CommissionChangeLog,
     Cart, CartItem, Order, OrderItem, PaymentTransaction, Refund,
-    ManufacturerSettlement, Coupon, AuditLog, EmailOTP
+    ManufacturerSettlement, Coupon, AuditLog, EmailOTP,
+    Payment, SellerPaymentProfile, Commission, SellerAllocation, Settlement, WebhookEvent
 )
 
 @admin.register(User)
@@ -171,4 +172,62 @@ class CourierDeliveryScanLogAdmin(admin.ModelAdmin):
     list_display = ('courier', 'order', 'action', 'confirmation_method', 'created_at')
     list_filter = ('action', 'confirmation_method', 'created_at')
     search_fields = ('courier__username', 'courier__email', 'order__order_number')
+
+
+# -------------------------------------------------------------
+# MARKETPLACE PAYMENT & SETTLEMENT ADMIN REGISTRATIONS
+# -------------------------------------------------------------
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = ('payment_id', 'order', 'customer', 'payment_provider', 'amount_in_rupees', 'status', 'created_at')
+    list_filter = ('status', 'payment_provider', 'currency', 'created_at')
+    search_fields = ('payment_id', 'order__order_number', 'provider_payment_id', 'provider_order_id', 'customer__email')
+    readonly_fields = ('payment_id', 'amount_paise', 'verification_timestamp', 'created_at', 'updated_at')
+
+
+@admin.register(SellerPaymentProfile)
+class SellerPaymentProfileAdmin(admin.ModelAdmin):
+    list_display = ('seller', 'payment_provider', 'provider_merchant_id', 'kyc_status', 'bank_verification_status', 'onboarding_status', 'payout_eligibility')
+    list_filter = ('kyc_status', 'bank_verification_status', 'onboarding_status', 'payout_eligibility', 'payment_provider')
+    search_fields = ('seller__business_name', 'seller__contact_email', 'provider_merchant_id')
+
+
+@admin.register(Commission)
+class CommissionAdmin(admin.ModelAdmin):
+    list_display = ('order', 'seller', 'product_subtotal', 'commission_percentage', 'commission_amount', 'seller_payable_amount', 'calculation_timestamp')
+    list_filter = ('commission_percentage', 'is_b2b', 'calculation_timestamp')
+    search_fields = ('order__order_number', 'seller__business_name')
+    readonly_fields = ('order', 'seller', 'product_subtotal', 'product_subtotal_paise', 'commission_percentage', 'commission_amount', 'commission_amount_paise', 'seller_payable_amount', 'seller_payable_paise', 'calculation_timestamp')
+
+
+@admin.register(SellerAllocation)
+class SellerAllocationAdmin(admin.ModelAdmin):
+    list_display = ('order', 'seller', 'gross_allocated_amount', 'commission_deducted', 'net_seller_amount', 'transfer_status', 'created_at')
+    list_filter = ('transfer_status', 'created_at')
+    search_fields = ('order__order_number', 'seller__business_name', 'provider_transfer_reference')
+
+
+@admin.register(Settlement)
+class SettlementAdmin(admin.ModelAdmin):
+    list_display = ('settlement_reference', 'seller', 'related_order', 'settlement_amount', 'settlement_status', 'settlement_date', 'created_at')
+    list_filter = ('settlement_status', 'created_at')
+    search_fields = ('settlement_reference', 'seller__business_name', 'provider_settlement_reference')
+    readonly_fields = ('settlement_reference', 'created_at', 'updated_at')
+
+
+@admin.register(WebhookEvent)
+class WebhookEventAdmin(admin.ModelAdmin):
+    list_display = ('event_id', 'provider', 'event_type', 'processing_status', 'received_timestamp', 'processed_timestamp')
+    list_filter = ('provider', 'processing_status', 'event_type')
+    search_fields = ('event_id', 'event_type')
+    readonly_fields = ('event_id', 'received_timestamp', 'processed_timestamp')
+
+
+@admin.register(Refund)
+class RefundAdmin(admin.ModelAdmin):
+    list_display = ('id', 'order', 'amount', 'status', 'provider_refund_reference', 'created_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('order__order_number', 'provider_refund_reference', 'refund_transaction_id')
+
 

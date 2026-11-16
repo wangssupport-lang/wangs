@@ -37,7 +37,11 @@ from .views import (
     AdminApplyPresetsView, AdminShippingPromotionListCreateView,
     AdminShippingPromotionDetailView, AdminToggleMfgRateApprovalRequirementView,
     ManufacturerDeliveryRateListCreateView, ManufacturerDeliveryRateDetailView,
-    ManufacturerDeliveryQuotePreviewView, ManufacturerShippingHistoryView
+    ManufacturerDeliveryQuotePreviewView, ManufacturerShippingHistoryView,
+    PaymentCreateOrderView, PaymentVerifyUnifiedView, PaymentWebhookUnifiedView,
+    PaymentStatusDetailView, SellerPaymentProfileView, SellerSettlementsView,
+    SellerTransactionsView, AdminPaymentsOverviewView, AdminCommissionsOverviewView,
+    AdminSettlementsOverviewView
 )
 
 router = DefaultRouter()
@@ -79,7 +83,12 @@ urlpatterns = [
     path('checkout/quote/', CheckoutQuoteView.as_view(), name='checkout-quote'),
     path('checkout/shipping-quote/', CheckoutShippingQuoteView.as_view(), name='checkout-shipping-quote'),
     path('checkout/create-order/', CreateOrderView.as_view(), name='create-order'),
-    path('payments/verify/', VerifyPaymentView.as_view(), name='payment-verify'),
+    
+    # Marketplace Payment Infrastructure & Lifecycle
+    path('payments/create-order/', PaymentCreateOrderView.as_view(), name='payment-create-order'),
+    path('payments/verify/', PaymentVerifyUnifiedView.as_view(), name='payment-verify-unified'),
+    path('payments/webhook/', PaymentWebhookUnifiedView.as_view(), name='payment-webhook-unified'),
+    path('payments/status/<str:order_id>/', PaymentStatusDetailView.as_view(), name='payment-status-detail'),
     path('payments/cashfree-webhook/', CashfreeWebhookView.as_view(), name='cashfree-webhook'),
     path('payments/cashfree-status/<str:order_number>/', CashfreePaymentStatusView.as_view(), name='cashfree-payment-status'),
     path('orders/lookup/<str:order_number>/', OrderLookupView.as_view(), name='order-lookup'),
@@ -132,6 +141,11 @@ urlpatterns = [
     path('manufacturer/delivery/quote-preview/', ManufacturerDeliveryQuotePreviewView.as_view(), name='mfg-delivery-quote-preview'),
     path('manufacturer/delivery/shipping-history/', ManufacturerShippingHistoryView.as_view(), name='mfg-delivery-shipping-history'),
     path('seller/rules-pdf/', SellerRulesPDFView.as_view(), name='seller-rules-pdf'),
+
+    # Seller Payment Profile & Settlements (Marketplace Architecture)
+    path('sellers/payment-profile/', SellerPaymentProfileView.as_view(), name='seller-payment-profile'),
+    path('sellers/settlements/', SellerSettlementsView.as_view(), name='seller-settlements'),
+    path('sellers/transactions/', SellerTransactionsView.as_view(), name='seller-transactions'),
     
     # Platform Settings & Maintenance
     path('platform-settings/', PlatformSettingsView.as_view(), name='platform-settings'),
@@ -158,7 +172,9 @@ urlpatterns = [
     path('admin/toggle-seller-registration/', AdminToggleSellerRegistrationView.as_view(), name='admin-toggle-seller-reg'),
     path('admin/toggle-maintenance-mode/', AdminToggleMaintenanceModeView.as_view(), name='admin-toggle-maintenance-mode'),
     path('admin/commission/', AdminCommissionView.as_view(), name='admin-commission'),
+    path('admin/commissions/', AdminCommissionsOverviewView.as_view(), name='admin-commissions-overview'),
     path('admin/settlements/', AdminSettlementsView.as_view(), name='admin-settlements'),
+    path('admin/payments/', AdminPaymentsOverviewView.as_view(), name='admin-payments-overview'),
     path('admin/maintenance-subscribers/', AdminMaintenanceSubscribersView.as_view(), name='admin-maintenance-subscribers'),
     path('admin/audit-logs/', AdminAuditLogsView.as_view(), name='admin-audit-logs'),
     path('admin/research-reports/', AdminResearchReportView.as_view(), name='admin-research-reports'),

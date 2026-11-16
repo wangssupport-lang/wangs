@@ -102,7 +102,7 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
-        <div className="w-24 h-24 bg-red-50 rounded-3xl flex items-center justify-center mx-auto text-red-500 shadow-inner">
+        <div className="w-24 h-24 bg-primary-fixed rounded-3xl flex items-center justify-center mx-auto text-primary shadow-inner">
           <ShoppingBag size={40} />
         </div>
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is currently empty</h2>
@@ -203,7 +203,7 @@ export default function CartPage() {
                     <button
                       onClick={() => handleRemove(item.product.id)}
                       disabled={updatingProductId === item.product.id}
-                      className="text-xs text-stone-400 hover:text-chilli-700 mt-1 flex items-center gap-1 transition-colors font-medium ml-auto"
+                      className="text-xs text-stone-400 hover:text-primary mt-1 flex items-center gap-1 transition-colors font-medium ml-auto"
                     >
                       <Trash2 size={13} /> Remove
                     </button>
@@ -214,10 +214,10 @@ export default function CartPage() {
           </div>
 
           <div className="flex justify-between items-center pt-2">
-            <Link to="/products" className="text-xs text-red-600 font-bold hover:underline">
+            <Link to="/products" className="text-xs text-primary font-bold hover:underline">
               ← Continue Shopping in Pantry
             </Link>
-            <button onClick={handleClearCart} className="text-xs text-stone-400 hover:text-red-600 transition-colors">
+            <button onClick={handleClearCart} className="text-xs text-stone-400 hover:text-primary transition-colors">
               Clear All Items
             </button>
           </div>
@@ -228,12 +228,12 @@ export default function CartPage() {
           {/* Promo Code Box */}
           <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-artisan space-y-3">
             <h3 className="font-serif font-bold text-sm text-stone-900 flex items-center gap-2">
-              <Tag size={15} className="text-red-600" /> Apply Promo Code
+              <Tag size={15} className="text-primary" /> Apply Promo Code
             </h3>
             {appliedCoupon ? (
               <div className="flex items-center justify-between p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-semibold">
                 <span>Code {appliedCoupon} applied!</span>
-                <button onClick={removeCoupon} className="text-xs text-stone-500 hover:text-red-600 underline">
+                <button onClick={removeCoupon} className="text-xs text-stone-500 hover:text-primary underline">
                   Remove
                 </button>
               </div>
@@ -244,12 +244,12 @@ export default function CartPage() {
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                   placeholder="e.g. WANGS10 or WANGS50"
-                  className="flex-1 px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs uppercase font-mono font-bold focus:outline-none focus:ring-1 focus:ring-red-600"
+                  className="flex-1 px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs uppercase font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary"
                 />
                 <button
                   type="submit"
                   disabled={calculating}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
+                  className="px-4 py-2 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl shadow-sm transition-colors"
                 >
                   Apply
                 </button>
@@ -262,8 +262,8 @@ export default function CartPage() {
           </div>
 
           {/* Pricing Breakdown Card */}
-          <div className="bg-red-50/40 p-7 rounded-3xl border border-red-100 shadow-artisan space-y-5">
-            <h3 className="font-serif font-bold text-lg text-stone-900 border-b border-red-200/80 pb-3">
+          <div className="bg-surface-container-low p-7 rounded-3xl border border-outline-variant/30 shadow-artisan space-y-5">
+            <h3 className="font-serif font-bold text-lg text-stone-900 border-b border-outline-variant/30 pb-3">
               Order Breakdown
             </h3>
 

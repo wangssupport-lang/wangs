@@ -321,7 +321,7 @@ export default function CheckoutPage() {
       <div className="max-w-xl mx-auto py-20 px-4 text-center space-y-4">
         <h2 className="font-serif text-3xl font-bold text-stone-900">Your basket is empty</h2>
         <p className="text-xs text-stone-500">Add handcrafted pickles to proceed with checkout.</p>
-        <Link to="/products" className="inline-block px-6 py-3 bg-red-600 text-white text-xs font-bold rounded-xl shadow-md hover:bg-red-700">
+        <Link to="/products" className="inline-block px-6 py-3 bg-primary text-white text-xs font-bold rounded-xl shadow-md hover:bg-primary-container">
           Explore Pickles
         </Link>
       </div>
@@ -331,7 +331,7 @@ export default function CheckoutPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
       <div className="mb-8">
-        <span className="text-xs font-bold tracking-wider uppercase text-red-600">Safe & Encrypted</span>
+        <span className="text-xs font-bold tracking-wider uppercase text-primary">Safe & Encrypted</span>
         <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 mt-1">Checkout & Delivery</h1>
         <p className="text-xs text-stone-500 mt-1">
           Direct dispatch from verified artisan producers in Kohima and Mokokchung.
@@ -349,20 +349,20 @@ export default function CheckoutPage() {
         {/* Checkout Steps Form */}
         <div className="lg:col-span-7 space-y-6">
           {/* Mobile Collapsible Order Summary Banner */}
-          <div className="lg:hidden bg-red-50/40 p-4 rounded-2xl border border-red-100 shadow-2xs space-y-3">
+          <div className="lg:hidden bg-surface-container-low p-4 rounded-2xl border border-outline-variant/30 shadow-2xs space-y-3">
             <button
               type="button"
               onClick={() => setShowMobileSummary(!showMobileSummary)}
               className="w-full flex items-center justify-between text-left"
             >
               <div className="flex items-center gap-2">
-                <ShoppingBag size={16} className="text-red-600" />
+                <ShoppingBag size={16} className="text-primary" />
                 <span className="font-bold text-xs text-stone-900">
                   Order Summary ({items.length} {items.length === 1 ? 'item' : 'items'})
                 </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-serif font-black text-sm text-red-600">
+                <span className="font-serif font-black text-sm text-primary">
                   ₹{finalPayableAmount.toFixed(0)}
                 </span>
                 <ChevronDown size={14} className={`text-stone-500 transition-transform ${showMobileSummary ? 'rotate-180' : ''}`} />
@@ -414,7 +414,7 @@ export default function CheckoutPage() {
                   )}
                   <div className="flex justify-between pt-1 border-t border-stone-200 font-bold text-stone-900">
                     <span>Total Amount</span>
-                    <span className="text-red-600 font-serif">₹{finalPayableAmount.toFixed(2)}</span>
+                    <span className="text-primary font-serif">₹{finalPayableAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -446,7 +446,7 @@ export default function CheckoutPage() {
             {/* 1. Customer Details */}
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <h2 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-3 flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">1</span>
+                <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold font-mono">1</span>
                 <span>Contact Details</span>
               </h2>
 
@@ -460,7 +460,7 @@ export default function CheckoutPage() {
                     value={formData.customer_name}
                     onChange={handleChange}
                     placeholder="e.g. Moa Longkumer"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -472,7 +472,7 @@ export default function CheckoutPage() {
                     value={formData.customer_email}
                     onChange={handleChange}
                     placeholder="e.g. moa@example.com"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -487,7 +487,7 @@ export default function CheckoutPage() {
                     value={formData.customer_phone}
                     onChange={handleChange}
                     placeholder="e.g. +91 98765 43210"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
               </div>
@@ -497,7 +497,7 @@ export default function CheckoutPage() {
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-3">
                 <h2 className="font-serif font-bold text-base text-stone-900 flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">2</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold font-mono">2</span>
                   <span>Delivery Address</span>
                 </h2>
                 {savedAddresses.length > 0 && (
@@ -513,9 +513,9 @@ export default function CheckoutPage() {
                       key={addr.id}
                       type="button"
                       onClick={() => handleSelectSavedAddress(addr)}
-                      className="px-3 py-1.5 bg-red-50 hover:bg-red-100 border border-red-200 rounded-xl text-xs text-red-700 font-medium flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 bg-primary-fixed/40 hover:bg-primary-fixed/70 border border-outline-variant/40 rounded-xl text-xs text-primary font-medium flex items-center gap-1.5 transition-colors"
                     >
-                      <Truck size={13} className="text-red-600" />
+                      <Truck size={13} className="text-primary" />
                       <span>{addr.city} ({addr.postal_code})</span>
                     </button>
                   ))}
@@ -532,7 +532,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_address_line1}
                     onChange={handleChange}
                     placeholder="e.g. House No. 42, Ministers Hill"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
                 <div className="sm:col-span-2">
@@ -543,7 +543,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_address_line2}
                     onChange={handleChange}
                     placeholder="e.g. Near Kohima War Cemetery"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -555,7 +555,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_city}
                     onChange={handleChange}
                     placeholder="e.g. Kohima or Dimapur"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -567,7 +567,7 @@ export default function CheckoutPage() {
                     value={formData.shipping_state}
                     onChange={handleChange}
                     placeholder="e.g. Assam, Delhi, Karnataka"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-medium"
                   />
                 </div>
                 <div>
@@ -585,7 +585,7 @@ export default function CheckoutPage() {
                       shipping_postal_code: e.target.value.replace(/\D/g, '').slice(0, 6),
                     }))}
                     placeholder="e.g. 797001"
-                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-red-600 font-mono font-medium"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary font-mono font-medium"
                   />
                 </div>
               </div>
@@ -778,7 +778,7 @@ export default function CheckoutPage() {
             <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-artisan space-y-4">
               <h2 className="font-serif font-bold text-base text-stone-900 border-b border-stone-100 pb-3 flex items-center justify-between">
                 <span className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-red-600 text-white text-xs flex items-center justify-center font-bold font-mono">3</span>
+                  <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center font-bold font-mono">3</span>
                   <span>Payment Gateway</span>
                 </span>
                 <span className="text-xs text-emerald-700 font-bold flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -790,7 +790,7 @@ export default function CheckoutPage() {
                 {/* Cashfree Payment Option */}
                 <label className={`p-4 border-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
                   selectedPaymentMethod === 'CASHFREE'
-                    ? 'border-red-600 bg-red-50/50 shadow-sm'
+                    ? 'border-primary bg-primary-fixed/20 shadow-sm'
                     : 'border-stone-200 bg-stone-50/40 hover:border-stone-300'
                 }`}>
                   <div className="flex items-center gap-3">
@@ -799,7 +799,7 @@ export default function CheckoutPage() {
                       name="payment_method"
                       checked={selectedPaymentMethod === 'CASHFREE'}
                       onChange={() => setSelectedPaymentMethod('CASHFREE')}
-                      className="text-red-600 focus:ring-red-600"
+                      className="text-primary focus:ring-primary"
                     />
                     <div>
                       <div className="flex items-center gap-2">
@@ -810,15 +810,15 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 text-stone-500">
-                    <Smartphone size={20} className="text-red-600" />
-                    <CreditCard size={20} className="text-red-600" />
+                    <Smartphone size={20} className="text-primary" />
+                    <CreditCard size={20} className="text-primary" />
                   </div>
                 </label>
 
                 {/* Cash on Delivery Option */}
                 <label className={`p-4 border-2 rounded-2xl flex items-center justify-between cursor-pointer transition-all ${
                   selectedPaymentMethod === 'COD'
-                    ? 'border-red-600 bg-red-50/50 shadow-sm'
+                    ? 'border-primary bg-primary-fixed/20 shadow-sm'
                     : 'border-stone-200 bg-stone-50/40 hover:border-stone-300'
                 }`}>
                   <div className="flex items-center gap-3">
@@ -827,7 +827,7 @@ export default function CheckoutPage() {
                       name="payment_method"
                       checked={selectedPaymentMethod === 'COD'}
                       onChange={() => setSelectedPaymentMethod('COD')}
-                      className="text-red-600 focus:ring-red-600"
+                      className="text-primary focus:ring-primary"
                     />
                     <div>
                       <span className="font-bold text-stone-900 block text-sm">Cash on Delivery (COD)</span>
@@ -845,7 +845,7 @@ export default function CheckoutPage() {
               className={`w-full py-4 text-white font-bold text-sm rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2 ${
                 !isDeliverable
                   ? 'bg-stone-400 cursor-not-allowed shadow-none'
-                  : 'bg-red-600 hover:bg-red-700 shadow-red-600/20 hover:shadow-xl hover:scale-101 active:scale-99 cursor-pointer'
+                  : 'bg-primary hover:bg-primary-container shadow-primary/20 hover:shadow-xl hover:scale-101 active:scale-99 cursor-pointer'
               }`}
             >
               {loading ? (
@@ -925,7 +925,7 @@ export default function CheckoutPage() {
               )}
               <div className="border-t border-stone-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-950">
                 <span>Total Amount Payable</span>
-                <span className="text-2xl font-serif font-black text-red-600">₹{finalPayableAmount.toFixed(2)}</span>
+                <span className="text-2xl font-serif font-black text-primary">₹{finalPayableAmount.toFixed(2)}</span>
               </div>
             </div>
 
@@ -955,7 +955,7 @@ export default function CheckoutPage() {
         <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-red-700 via-red-600 to-rose-700 text-white p-6 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-[#863700] via-[#9b4100] to-[#863700] text-white p-6 flex items-center justify-between">
               <div>
                 <span className="text-[10px] uppercase font-black tracking-wider text-amber-200">
                   {paymentIntent?.is_configured ? 'Cashfree Secure Checkout' : 'Cashfree Payment Gateway'}
@@ -1055,7 +1055,7 @@ export default function CheckoutPage() {
 
               {paymentStep === 'VERIFYING' && (
                 <div className="py-10 text-center space-y-3">
-                  <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                  <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
                   <p className="text-sm font-bold text-stone-900">Verifying signature with marketplace server...</p>
                   <p className="text-xs text-stone-500">Creating immutable financial transaction records.</p>
                 </div>

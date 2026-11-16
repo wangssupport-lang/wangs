@@ -235,6 +235,8 @@ export const api = {
   getCheckoutQuote: (couponCode = '') => apiRequest('/checkout/quote/', { method: 'POST', body: JSON.stringify({ coupon_code: couponCode }) }),
   createOrder: (orderPayload) => apiRequest('/checkout/create-order/', { method: 'POST', body: JSON.stringify(orderPayload) }),
   verifyPayment: (payload) => apiRequest('/payments/verify/', { method: 'POST', body: JSON.stringify(payload) }),
+  createPaymentOrder: (payload) => apiRequest('/payments/create-order/', { method: 'POST', body: JSON.stringify(payload) }),
+  getPaymentStatus: (orderId) => apiRequest(`/payments/status/${orderId}/`),
   checkCashfreeStatus: (orderNumber) => apiRequest(`/payments/cashfree-status/${orderNumber}/`),
   lookupOrder: (orderNumber, verify = '') => apiRequest(`/orders/lookup/${orderNumber}/${verify ? `?verify=${verify}` : ''}`),
   getMyOrders: () => apiRequest('/orders/my-orders/'),
@@ -418,6 +420,15 @@ export const api = {
   getSettlements: () => apiRequest('/admin/settlements/'),
   generateSettlement: (mfgId, notes = '') => apiRequest('/admin/settlements/', { method: 'POST', body: JSON.stringify({ manufacturer_id: mfgId, notes }) }),
   getAuditLogs: () => apiRequest('/admin/audit-logs/'),
+
+  // Marketplace Payment & Settlement Infrastructure APIs
+  getSellerPaymentProfile: () => apiRequest('/sellers/payment-profile/'),
+  updateSellerPaymentProfile: (payload) => apiRequest('/sellers/payment-profile/', { method: 'POST', body: JSON.stringify(payload) }),
+  getSellerSettlements: () => apiRequest('/sellers/settlements/'),
+  getSellerTransactions: () => apiRequest('/sellers/transactions/'),
+  getAdminPayments: () => apiRequest('/admin/payments/'),
+  getAdminCommissions: () => apiRequest('/admin/commissions/'),
+  getAdminSettlementsOverview: () => apiRequest('/admin/settlements/'),
 
   // Hero Banners Management
   getHeroBanners: () => apiRequest('/hero-banners/'),

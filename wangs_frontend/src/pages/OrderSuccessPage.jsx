@@ -25,7 +25,7 @@ export default function OrderSuccessPage() {
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-20 px-4 text-center">
-        <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-stone-500 mt-2">Loading your order confirmation...</p>
       </div>
     );
@@ -35,7 +35,7 @@ export default function OrderSuccessPage() {
     return (
       <div className="max-w-2xl mx-auto py-20 px-4 text-center">
         <h2 className="font-serif text-2xl font-bold text-stone-900">Order not found</h2>
-        <Link to="/products" className="mt-4 inline-block px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-colors">
+        <Link to="/products" className="mt-4 inline-block px-5 py-2.5 bg-primary hover:bg-primary-container text-on-primary text-xs font-semibold rounded-xl transition-colors">
           Return to Catalog
         </Link>
       </div>
@@ -50,7 +50,7 @@ export default function OrderSuccessPage() {
           <CheckCircle size={36} />
         </div>
 
-        <span className="inline-block px-3 py-1 bg-red-50 border border-red-200 text-red-600 rounded-full text-xs font-semibold">
+        <span className="inline-block px-3 py-1 bg-primary-fixed border border-outline-variant/30 text-primary rounded-full text-xs font-semibold">
           Order Confirmed & Paid
         </span>
 
@@ -65,14 +65,14 @@ export default function OrderSuccessPage() {
 
         <div className="p-4 bg-stone-50 rounded-xl max-w-xs mx-auto border border-stone-200">
           <span className="text-[11px] text-stone-500 uppercase tracking-wider block font-semibold">Order Number</span>
-          <span className="font-mono font-bold text-lg text-red-600">{order.order_number}</span>
+          <span className="font-mono font-bold text-lg text-primary">{order.order_number}</span>
         </div>
       </div>
 
       {/* Order Details & Summary Card */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl border border-stone-200 shadow-sm space-y-6">
         <h2 className="font-serif font-bold text-lg text-stone-900 border-b border-stone-100 pb-3 flex items-center gap-2">
-          <Package size={18} className="text-red-600" />
+          <Package size={18} className="text-primary" />
           <span>Items Ordered ({order.items?.length || 0})</span>
         </h2>
 
@@ -114,14 +114,14 @@ export default function OrderSuccessPage() {
 
           <div className="border-t border-stone-200 pt-3 flex justify-between items-baseline text-sm font-bold text-stone-900">
             <span>Total Paid (INR)</span>
-            <span className="text-xl font-serif text-red-600 font-bold">₹{parseFloat(order.total_amount).toFixed(2)}</span>
+            <span className="text-xl font-serif text-primary font-bold">₹{parseFloat(order.total_amount).toFixed(2)}</span>
           </div>
         </div>
 
         {/* Shipping Destination */}
         <div className="p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs text-stone-700 space-y-1">
           <span className="font-semibold text-stone-900 flex items-center gap-1.5">
-            <Truck size={14} className="text-red-600" /> Delivery Address:
+            <Truck size={14} className="text-primary" /> Delivery Address:
           </span>
           <p className="font-medium">{order.customer_name} ({order.customer_phone})</p>
           <p>{order.shipping_address_line1} {order.shipping_address_line2}</p>
@@ -131,7 +131,7 @@ export default function OrderSuccessPage() {
         <div className="pt-4 flex flex-col sm:flex-row gap-3">
           <Link
             to="/products"
-            className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-md text-center transition-colors"
+            className="flex-1 py-3 bg-primary hover:bg-primary-container text-on-primary font-bold text-xs rounded-xl shadow-md text-center transition-colors"
           >
             Continue Browsing Pickles
           </Link>

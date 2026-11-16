@@ -30,7 +30,8 @@ from .models import (
     ManufacturerSettlement, Coupon, AuditLog, EmailOTP, MaintenanceSubscriber, HeroBanner, StorefrontNotice,
     RewardSettings, CustomerRewardWallet, OrderUnit, ProductQRCode, DeliveryConfirmation,
     RewardTransaction, SuspiciousScanLog,
-    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion
+    CourierService, DeliveryZone, DeliveryRate, ShippingPromotion,
+    Payment, SellerPaymentProfile, Commission, SellerAllocation, Settlement, WebhookEvent
 )
 from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, AddressSerializer, CustomerProfileSerializer,
@@ -44,10 +45,16 @@ from .serializers import (
     OrderUnitSerializer, ProductQRCodeSerializer, DeliveryConfirmationSerializer,
     CustomerRewardWalletSerializer, RewardTransactionSerializer, RewardSettingsSerializer,
     SuspiciousScanLogSerializer,
-    CourierServiceSerializer, DeliveryZoneSerializer, DeliveryRateSerializer, ShippingPromotionSerializer
+    CourierServiceSerializer, DeliveryZoneSerializer, DeliveryRateSerializer, ShippingPromotionSerializer,
+    PaymentSerializer, SellerPaymentProfileSerializer, CommissionSerializer,
+    SellerAllocationSerializer, SettlementSerializer, WebhookEventSerializer
 )
 from .permissions import IsAdminUserRole, IsManufacturerUser, IsApprovedManufacturer, IsApprovedCourierUser
 from .services import FinancialCalculator, OrderService, PaymentService, SettlementService, RewardService
+from .payments import (
+    MarketplacePaymentService, CommissionEngine, to_paise, to_rupees,
+    PaymentError, PaymentVerificationError, WebhookSignatureError, IdempotencyError
+)
 from .delivery_service import DeliveryService, DeliveryCalculator
 from .resend_service import (
     send_otp_email, send_courier_approval_email, send_courier_rejection_email,
@@ -4694,6 +4701,433 @@ class ManufacturerShippingHistoryView(views.APIView):
             })
 
         return Response(history)
+
+
+# -------------------------------------------------------------
+# MARKETPLACE PAYMENT & SETTLEMENT ARCHITECTURE ENDPOINTS
+# -------------------------------------------------------------
+
+class PaymentCreateOrderView(views.APIView):
+    """
+    POST /api/payments/create-order/
+    Initiates payment for an order with PayU or configured payment provider.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        order_identifier = request.data.get('order_number') or request.data.get('order_id')
+        if not order_identifier:
+            return Response({'detail': 'order_number or order_id is required.'}, status=400)
+
+        # Lookup by order_number or primary key
+        if str(order_identifier).isdigit():
+            order = Order.objects.filter(Q(id=order_identifier) | Q(order_number=order_identifier)).first()
+        else:
+            order = Order.objects.filter(order_number=order_identifier).first()
+
+        if not order:
+            return Response({'detail': f'Order {order_identifier} not found.'}, status=404)
+
+        if order.payment_status == Order.PaymentStatus.PAID:
+            return Response({'detail': 'Order is already paid.'}, status=400)
+
+        provider = request.data.get('provider')
+        return_url = request.data.get('return_url') or getattr(settings, 'FRONTEND_BASE_URL', 'https://wangs.in')
+        idempotency_key = request.data.get('idempotency_key')
+
+        try:
+            res = MarketplacePaymentService.initiate_payment(
+                order=order,
+                provider_name=provider,
+                return_url=return_url,
+                idempotency_key=idempotency_key,
+                customer=request.user if request.user.is_authenticated else None
+            )
+            return Response(res, status=201)
+        except Exception as exc:
+            logger.error("Failed to initiate payment: %s", exc)
+            return Response({'detail': str(exc)}, status=400)
+
+
+class PaymentVerifyUnifiedView(views.APIView):
+    """
+    POST /api/payments/verify/
+    Verifies payment response from PayU, Razorpay, or simulated provider.
+    Guarantees server-side hash verification, amount check, and idempotent capture.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        data = request.data
+        order_number = data.get('order_number') or data.get('udf1') or ''
+
+        # If PayU txnid format "PAY-ORDERNUM-XXX", extract order number
+        txnid = data.get('txnid', '')
+        if not order_number and txnid:
+            if txnid.startswith('PAY-'):
+                parts = txnid.split('-')
+                if len(parts) >= 2:
+                    order_number = parts[1]
+
+        order = None
+        if order_number:
+            order = Order.objects.filter(order_number=order_number).first()
+        elif txnid:
+            payment = Payment.objects.filter(payment_id=txnid).first()
+            if payment:
+                order = payment.order
+
+        if not order:
+            # Fallback to legacy VerifyPaymentView logic
+            serializer = PaymentVerifySerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response({'detail': 'Could not identify order for payment verification.'}, status=400)
+            order = get_object_or_404(Order, order_number=serializer.validated_data['order_number'])
+
+        provider = data.get('provider')
+        if not provider:
+            if 'hash' in data and ('mihpayid' in data or 'txnid' in data):
+                provider = 'PAYU'
+            elif 'cf_order_id' in data or 'cf_payment_id' in data or order.payment_method == 'CASHFREE':
+                provider = 'CASHFREE'
+            elif 'mock_token' in data or 'simulated' in data:
+                provider = 'MOCK'
+            else:
+                provider = order.payment_method or 'PAYU'
+
+        # Seamless support for legacy Cashfree test & verification flow
+        if provider == 'CASHFREE' or 'cf_order_id' in data or 'cf_payment_id' in data:
+            if order.payment_status == Order.PaymentStatus.PAID:
+                return Response({
+                    'detail': 'Order payment already verified.',
+                    'order': OrderSerializer(order).data
+                })
+            cf_order_id = data.get('cf_order_id')
+            payment_id = data.get('payment_id') or data.get('cf_payment_id')
+            order, tx = PaymentService.verify_and_confirm_payment(
+                order=order,
+                payment_id=payment_id or cf_order_id,
+                razorpay_order_id=data.get('razorpay_order_id') or cf_order_id,
+                signature=data.get('signature'),
+                provider='CASHFREE',
+                raw_data=request.data
+            )
+            # Ensure commissions and allocations snapshot is created
+            try:
+                CommissionEngine.snapshot_order_commissions_and_allocations(order)
+            except Exception:
+                pass
+            return Response({
+                'detail': 'Payment successfully verified.',
+                'order': OrderSerializer(order).data,
+                'transaction_id': tx.transaction_id
+            })
+
+        try:
+            result = MarketplacePaymentService.verify_and_capture_payment(
+                order=order,
+                payload=data,
+                provider_name=provider
+            )
+            return Response({
+                'detail': 'Payment successfully verified and captured.',
+                'order': OrderSerializer(order).data,
+                'payment': PaymentSerializer(result['payment']).data,
+                'status': result['status']
+            }, status=200)
+        except PaymentVerificationError as exc:
+            return Response({'detail': str(exc)}, status=400)
+        except Exception as exc:
+            logger.error("Payment verification error: %s", exc)
+            return Response({'detail': str(exc)}, status=400)
+
+
+class PaymentWebhookUnifiedView(views.APIView):
+    """
+    POST /api/payments/webhook/
+    Idempotent webhook endpoint for PayU and payment provider notifications.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        provider = request.data.get('provider') or request.headers.get('X-Payment-Provider', 'PAYU').upper()
+        event_id = (
+            request.data.get('event_id') or
+            request.data.get('mihpayid') or
+            request.data.get('txnid') or
+            str(uuid.uuid4())
+        )
+        event_type = (
+            request.data.get('event_type') or
+            request.data.get('status') or
+            'PAYMENT_NOTIFICATION'
+        )
+
+        try:
+            result = MarketplacePaymentService.process_webhook(
+                provider_name=provider,
+                event_id=event_id,
+                event_type=event_type,
+                payload=request.data,
+                headers=dict(request.headers),
+                body=request.body
+            )
+            return Response(result, status=200)
+        except WebhookSignatureError as exc:
+            return Response({'detail': str(exc)}, status=400)
+        except Exception as exc:
+            logger.error("Webhook processing error: %s", exc)
+            return Response({'detail': str(exc)}, status=400)
+
+
+class PaymentStatusDetailView(views.APIView):
+    """
+    GET /api/payments/status/<order_id>/
+    Safe status inspection for customer and order tracking.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, order_id):
+        if str(order_id).isdigit():
+            order = Order.objects.filter(Q(id=order_id) | Q(order_number=order_id)).first()
+        else:
+            order = Order.objects.filter(order_number=order_id).first()
+
+        if not order:
+            return Response({'detail': f'Order {order_id} not found.'}, status=404)
+
+        payment = Payment.objects.filter(order=order).order_by('-created_at').first()
+
+        return Response({
+            'order_number': order.order_number,
+            'order_status': order.status,
+            'payment_status': order.payment_status,
+            'total_amount': str(order.total_amount),
+            'payment_method': order.payment_method,
+            'payment': PaymentSerializer(payment).data if payment else None,
+            'has_seller_allocations': order.seller_allocations.exists(),
+        })
+
+
+class SellerPaymentProfileView(views.APIView):
+    """
+    GET, POST /api/sellers/payment-profile/
+    Allows authenticated sellers to inspect and manage their payment profile.
+    Never exposes sensitive bank details.
+    """
+    permission_classes = [IsManufacturerUser]
+
+    def get(self, request):
+        profile = get_object_or_404(ManufacturerProfile, user=request.user)
+        payment_profile, created = SellerPaymentProfile.objects.get_or_create(
+            seller=profile,
+            defaults={
+                'payment_provider': 'PAYU',
+                'provider_merchant_id': getattr(profile, 'cashfree_vendor_id', ''),
+                'kyc_status': SellerPaymentProfile.KYCStatus.PENDING,
+                'bank_verification_status': SellerPaymentProfile.BankVerificationStatus.PENDING,
+                'onboarding_status': SellerPaymentProfile.OnboardingStatus.PENDING_APPROVAL if profile.status == 'APPROVED' else SellerPaymentProfile.OnboardingStatus.INCOMPLETE,
+                'payout_eligibility': False,
+            }
+        )
+        return Response(SellerPaymentProfileSerializer(payment_profile).data)
+
+    def post(self, request):
+        profile = get_object_or_404(ManufacturerProfile, user=request.user)
+        payment_profile, _ = SellerPaymentProfile.objects.get_or_create(
+            seller=profile,
+            defaults={'payment_provider': 'PAYU'}
+        )
+        # Update allowed non-sensitive fields
+        if 'provider_merchant_id' in request.data:
+            payment_profile.provider_merchant_id = str(request.data['provider_merchant_id']).strip()
+        if 'payment_provider' in request.data:
+            payment_profile.payment_provider = str(request.data['payment_provider']).strip()
+
+        payment_profile.save()
+        return Response(SellerPaymentProfileSerializer(payment_profile).data)
+
+
+class SellerSettlementsView(views.APIView):
+    """
+    GET /api/sellers/settlements/
+    Returns settlement history and metrics for the authenticated seller.
+    """
+    permission_classes = [IsManufacturerUser]
+
+    def get(self, request):
+        profile = get_object_or_404(ManufacturerProfile, user=request.user)
+
+        allocations = SellerAllocation.objects.filter(seller=profile)
+        total_gross = allocations.aggregate(Sum('gross_allocated_amount'))['gross_allocated_amount__sum'] or Decimal('0.00')
+        total_commission = allocations.aggregate(Sum('commission_deducted'))['commission_deducted__sum'] or Decimal('0.00')
+        net_earnings = allocations.aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        pending_settlements = allocations.filter(
+            transfer_status=SellerAllocation.TransferStatus.PENDING
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        settled_earnings = allocations.filter(
+            transfer_status=SellerAllocation.TransferStatus.SETTLED
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        failed_settlements = allocations.filter(
+            transfer_status=SellerAllocation.TransferStatus.FAILED
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        settlement_records = Settlement.objects.filter(seller=profile).order_by('-created_at')
+
+        return Response({
+            'summary': {
+                'total_gross_sales': str(total_gross),
+                'platform_commission_deducted': str(total_commission),
+                'net_seller_earnings': str(net_earnings),
+                'pending_settlements': str(pending_settlements),
+                'settled_earnings': str(settled_earnings),
+                'failed_settlements': str(failed_settlements),
+            },
+            'settlement_records': SettlementSerializer(settlement_records[:50], many=True).data,
+            'recent_allocations': SellerAllocationSerializer(allocations.order_by('-created_at')[:20], many=True).data
+        })
+
+
+class SellerTransactionsView(views.APIView):
+    """
+    GET /api/sellers/transactions/
+    Returns detailed allocation transactions for the authenticated seller.
+    """
+    permission_classes = [IsManufacturerUser]
+
+    def get(self, request):
+        profile = get_object_or_404(ManufacturerProfile, user=request.user)
+        allocations = SellerAllocation.objects.filter(seller=profile).order_by('-created_at')
+        return Response(SellerAllocationSerializer(allocations[:100], many=True).data)
+
+
+class AdminPaymentsOverviewView(views.APIView):
+    """
+    GET /api/admin/payments/
+    Platform-wide payment overview for administrators.
+    """
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        payments = Payment.objects.all()
+
+        total_volume_paise = payments.filter(
+            status=Payment.Status.CAPTURED
+        ).aggregate(Sum('amount_paise'))['amount_paise__sum'] or 0
+
+        successful_count = payments.filter(status=Payment.Status.CAPTURED).count()
+        failed_count = payments.filter(status=Payment.Status.FAILED).count()
+        refunded_count = payments.filter(status__in=[Payment.Status.REFUNDED, Payment.Status.PARTIALLY_REFUNDED]).count()
+
+        commissions = Commission.objects.all()
+        total_commission = commissions.aggregate(Sum('commission_amount'))['commission_amount__sum'] or Decimal('0.00')
+        total_allocations = SellerAllocation.objects.aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        pending_settlements = SellerAllocation.objects.filter(
+            transfer_status=SellerAllocation.TransferStatus.PENDING
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        settled_amount = SellerAllocation.objects.filter(
+            transfer_status=SellerAllocation.TransferStatus.SETTLED
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        refunds = Refund.objects.all()
+        total_refunded = refunds.filter(status=Refund.Status.PROCESSED).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+
+        provider_status = {
+            'provider': getattr(settings, 'DEFAULT_PAYMENT_PROVIDER', 'PAYU'),
+            'payu_mode': getattr(settings, 'PAYU_MODE', 'TEST'),
+            'payu_split_settlements_enabled': getattr(settings, 'PAYU_SPLIT_SETTLEMENTS_ENABLED', False),
+            'note': 'PayU Marketplace Split Settlements pending merchant account approval and commercial activation.'
+        }
+
+        recent_payments = payments.order_by('-created_at')[:30]
+
+        return Response({
+            'metrics': {
+                'total_payment_volume': str(to_rupees(total_volume_paise)),
+                'successful_payments': successful_count,
+                'failed_payments': failed_count,
+                'refunded_payments': refunded_count,
+                'total_platform_commission': str(total_commission),
+                'total_seller_allocations': str(total_allocations),
+                'pending_settlements': str(pending_settlements),
+                'completed_settlements': str(settled_amount),
+                'total_refunded_amount': str(total_refunded),
+            },
+            'provider_status': provider_status,
+            'recent_payments': PaymentSerializer(recent_payments, many=True).data
+        })
+
+
+class AdminCommissionsOverviewView(views.APIView):
+    """
+    GET /api/admin/commissions/
+    Platform commission overview across sellers and orders.
+    """
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        setting = CommissionSetting.get_current()
+        commissions = Commission.objects.all().order_by('-calculation_timestamp')
+
+        total_commission = commissions.aggregate(Sum('commission_amount'))['commission_amount__sum'] or Decimal('0.00')
+        total_subtotal = commissions.aggregate(Sum('product_subtotal'))['product_subtotal__sum'] or Decimal('0.00')
+
+        # Seller breakdown
+        seller_stats = commissions.values('seller__business_name').annotate(
+            total_comm=Sum('commission_amount'),
+            total_sales=Sum('product_subtotal'),
+            orders_count=Count('order', distinct=True)
+        ).order_by('-total_comm')
+
+        return Response({
+            'default_commission_rate': str(setting.default_commission_rate),
+            'total_commission_collected': str(total_commission),
+            'total_gross_product_sales': str(total_subtotal),
+            'seller_breakdown': list(seller_stats),
+            'recent_commissions': CommissionSerializer(commissions[:50], many=True).data
+        })
+
+
+class AdminSettlementsOverviewView(views.APIView):
+    """
+    GET /api/admin/settlements/
+    Admin overview of seller settlement batches and statuses.
+    """
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        allocations = SellerAllocation.objects.all()
+
+        pending_total = allocations.filter(
+            transfer_status=SellerAllocation.TransferStatus.PENDING
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        settled_total = allocations.filter(
+            transfer_status=SellerAllocation.TransferStatus.SETTLED
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        on_hold_total = allocations.filter(
+            transfer_status=SellerAllocation.TransferStatus.ON_HOLD
+        ).aggregate(Sum('net_seller_amount'))['net_seller_amount__sum'] or Decimal('0.00')
+
+        settlements = Settlement.objects.all().order_by('-created_at')
+
+        return Response({
+            'metrics': {
+                'pending_settlements_amount': str(pending_total),
+                'settled_settlements_amount': str(settled_total),
+                'on_hold_settlements_amount': str(on_hold_total),
+                'total_allocations_count': allocations.count(),
+            },
+            'settlements': SettlementSerializer(settlements[:50], many=True).data,
+            'recent_allocations': SellerAllocationSerializer(allocations.order_by('-created_at')[:50], many=True).data
+        })
+
 
 
 

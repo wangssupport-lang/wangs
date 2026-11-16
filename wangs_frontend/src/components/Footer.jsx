@@ -73,7 +73,7 @@ export default function Footer() {
 
       {/* 3. Main Footer Links */}
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 py-10 lg:py-14">
-        <div className="flex flex-col md:flex-row items-start justify-between gap-10">
+        <div className="flex flex-col md:flex-row items-start justify-between gap-8 lg:gap-12">
           {/* Column 1: Brand Identity & Mission */}
           <div className="space-y-4 max-w-md">
             <Link to="/" className="flex items-center gap-3 group w-fit">
@@ -141,6 +141,64 @@ export default function Footer() {
               <li>
                 <Link to="/about" className="hover:text-amber-400 transition-colors">
                   Kitchen Hygiene Standards
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 3: Customer Care */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
+              Customer Care
+            </h4>
+            <ul className="space-y-2.5 text-xs text-stone-400 font-medium">
+              <li>
+                <Link to="/account" className="hover:text-amber-400 transition-colors">
+                  My Orders &amp; Account
+                </Link>
+              </li>
+              <li>
+                <Link to="/refunds" className="hover:text-amber-400 transition-colors">
+                  Refunds &amp; Cancellations
+                </Link>
+              </li>
+              <li>
+                <Link to="/shipping" className="hover:text-amber-400 transition-colors">
+                  Shipping Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="hover:text-amber-400 transition-colors">
+                  Contact Us
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Column 4: Legal */}
+          <div className="space-y-3">
+            <h4 className="font-serif font-bold text-sm text-stone-100 uppercase tracking-wider text-[11px]">
+              Legal
+            </h4>
+            <ul className="space-y-2.5 text-xs text-stone-400 font-medium">
+              <li>
+                <Link to="/privacy" className="hover:text-amber-400 transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms" className="hover:text-amber-400 transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/about" className="hover:text-amber-400 transition-colors">
+                  About Wangs
+                </Link>
+              </li>
+              <li>
+                <Link to="/delivery" className="hover:text-amber-400 transition-colors">
+                  Delivery Information
                 </Link>
               </li>
             </ul>
