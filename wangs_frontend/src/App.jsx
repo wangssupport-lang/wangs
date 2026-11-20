@@ -8,7 +8,6 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
-import LiveSocialProof from './components/LiveSocialProof';
 
 import HomePage from './pages/HomePage';
 import BrandsPage from './pages/BrandsPage';
@@ -172,7 +171,6 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
 
-      {!isAdminRoute && !isDeliveryRoute && !location.pathname.startsWith('/product/') && <LiveSocialProof />}
       {!isAdminRoute && !isDeliveryRoute && <Footer />}
       {!isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/') && (
         <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
