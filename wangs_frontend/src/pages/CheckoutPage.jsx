@@ -132,12 +132,16 @@ export default function CheckoutPage() {
   };
 
   const fetchShippingQuote = async (pin, city, state, method) => {
-    const postalCode = pin || formData.shipping_postal_code;
-    const destCity = city || formData.shipping_city;
-    const destState = state || formData.shipping_state;
+    const postalCode = (pin || formData.shipping_postal_code || '').trim();
+    const destCity = (city || formData.shipping_city || '').trim();
+    const destState = (state || formData.shipping_state || '').trim();
     const delivMethod = method || selectedDeliveryMethod;
 
-    if (!postalCode || postalCode.length < 3) return;
+    if (!postalCode || postalCode.length < 6) {
+      setIsDeliverable(true);
+      setDeliveryError('');
+      return;
+    }
 
     setFetchingQuote(true);
     try {
@@ -165,7 +169,7 @@ export default function CheckoutPage() {
   };
 
   useEffect(() => {
-    if (formData.shipping_postal_code && formData.shipping_postal_code.length >= 3) {
+    if (formData.shipping_postal_code && formData.shipping_postal_code.trim().length >= 6) {
       fetchShippingQuote(formData.shipping_postal_code, formData.shipping_city, formData.shipping_state, selectedDeliveryMethod);
     }
   }, [formData.shipping_postal_code, formData.shipping_city, formData.shipping_state, selectedDeliveryMethod]);

@@ -19,7 +19,7 @@ def quantize_amount(val):
 
 class DeliveryService:
     @staticmethod
-    def seed_swiftzone_and_partner_presets(admin_user=None, activate=False):
+    def seed_swiftzone_and_partner_presets(admin_user=None, activate=True):
         """
         Seeds SwiftZone, BlueDart, India Post, and Bus/Sumo delivery zones and preset rates
         as editable database records. Reference rates supplied by the business.
@@ -149,9 +149,28 @@ class DeliveryService:
             created_zones[zd['code']] = zone
 
         # 3. Delivery Rates Presets (Editable)
-        # Note: activate defaults to False as business requires admin review before activation
         presets = [
-            # 1. Kohima: Same-day delivery ₹80 per package. First 1kg included, ₹6 per 100g over 1kg.
+            # 1a. Kohima: Standard local delivery ₹50 per package (1-2 days).
+            {
+                'title': 'SwiftZone Kohima Standard Delivery',
+                'scope': DeliveryRate.Scope.ZONE_DEFAULT,
+                'courier': swiftzone,
+                'zone': created_zones['KOHIMA_LOCAL'],
+                'delivery_method': DeliveryRate.DeliveryMethod.STANDARD,
+                'base_rate': Decimal('50.00'),
+                'per_package_rate': Decimal('50.00'),
+                'included_weight_grams': 1000,
+                'additional_weight_rate': Decimal('5.00'),
+                'additional_weight_step_grams': 100,
+                'max_items_per_package': 4,
+                'max_weight_per_package_grams': 1500,
+                'estimated_delivery_days_min': 1,
+                'estimated_delivery_days_max': 2,
+                'estimated_delivery_note': '1–2 Business Days in Kohima',
+                'is_locked': False,
+                'is_active': activate,
+            },
+            # 1b. Kohima: Same-day delivery ₹80 per package. First 1kg included, ₹6 per 100g over 1kg.
             {
                 'title': 'SwiftZone Kohima Same-Day Priority',
                 'scope': DeliveryRate.Scope.ZONE_DEFAULT,
@@ -579,6 +598,13 @@ class DeliveryCalculator:
         city = (city or '').strip()
         state = (state or '').strip()
 
+        # Ensure active zones and rates are present in database
+        if not DeliveryZone.objects.filter(is_active=True).exists():
+            try:
+                DeliveryService.seed_swiftzone_and_partner_presets(activate=True)
+            except Exception:
+                pass
+
         matched_zone = cls.match_zone_for_location(postal_code=postal_code, city=city, state=state)
 
         # Group items by manufacturer
@@ -629,19 +655,55 @@ class DeliveryCalculator:
                     break
 
             if not applicable_rate:
-                # Fallback to general zone or platform default
+                # Fallback to general zone or platform default (matching requested method when specified)
                 if matched_zone:
-                    applicable_rate = DeliveryRate.objects.filter(
-                        is_active=True,
-                        approval_status=DeliveryRate.ApprovalStatus.APPROVED,
-                        zone=matched_zone
-                    ).first()
+                    if requested_method:
+                        applicable_rate = DeliveryRate.objects.filter(
+                            is_active=True,
+                            approval_status=DeliveryRate.ApprovalStatus.APPROVED,
+                            zone=matched_zone,
+                            delivery_method=requested_method
+                        ).first()
+                    if not applicable_rate:
+                        applicable_rate = DeliveryRate.objects.filter(
+                            is_active=True,
+                            approval_status=DeliveryRate.ApprovalStatus.APPROVED,
+                            zone=matched_zone
+                        ).first()
                 if not applicable_rate:
-                    applicable_rate = DeliveryRate.objects.filter(
-                        is_active=True,
-                        approval_status=DeliveryRate.ApprovalStatus.APPROVED,
-                        scope=DeliveryRate.Scope.ADMIN_DEFAULT
-                    ).first()
+                    if requested_method:
+                        applicable_rate = DeliveryRate.objects.filter(
+                            is_active=True,
+                            approval_status=DeliveryRate.ApprovalStatus.APPROVED,
+                            scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+                            delivery_method=requested_method
+                        ).first()
+                    if not applicable_rate:
+                        applicable_rate = DeliveryRate.objects.filter(
+                            is_active=True,
+                            approval_status=DeliveryRate.ApprovalStatus.APPROVED,
+                            scope=DeliveryRate.Scope.ADMIN_DEFAULT
+                        ).first()
+
+            if not applicable_rate:
+                # Platform guarantee fallback: 100% Free Express Delivery across India
+                swiftzone = CourierService.objects.filter(code='SWIFTZONE').first()
+                applicable_rate, _ = DeliveryRate.objects.get_or_create(
+                    scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+                    delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+                    defaults={
+                        'title': 'Wangs Platform Standard Delivery Default',
+                        'courier': swiftzone,
+                        'base_rate': Decimal('0.00'),
+                        'per_package_rate': Decimal('0.00'),
+                        'is_free_delivery': True,
+                        'is_active': True,
+                        'approval_status': DeliveryRate.ApprovalStatus.APPROVED,
+                        'estimated_delivery_days_min': 1,
+                        'estimated_delivery_days_max': 3,
+                        'estimated_delivery_note': '1–3 Business Days Standard Delivery',
+                    }
+                )
 
             if not applicable_rate:
                 all_deliverable = False

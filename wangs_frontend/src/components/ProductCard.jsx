@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Plus, Minus, Check, ShoppingBag, Flame, Star, CheckCircle2, Sun } from 'lucide-react';
+import { Heart, Plus, Minus, Check, ShoppingBag, ShoppingCart, Flame, Star, CheckCircle2, Sun } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -291,7 +291,7 @@ function ProductCard({ product }) {
               <span>Out of Stock</span>
             ) : (
               <>
-                <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
+                <ShoppingCart size={17} />
                 <span>Add to Cart</span>
               </>
             )}

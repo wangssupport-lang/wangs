@@ -774,4 +774,12 @@ class Command(BaseCommand):
             except Product.DoesNotExist:
                 pass
 
+        # Seed and activate delivery zones and standard rates
+        from marketplace.delivery_service import DeliveryService
+        try:
+            DeliveryService.seed_swiftzone_and_partner_presets(activate=True)
+            self.stdout.write(self.style.SUCCESS("Seeded and activated courier delivery zones & rates."))
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f"Delivery preset seed notice: {exc}"))
+
         self.stdout.write(self.style.SUCCESS("Successfully seeded Wangs marketplace with clean artisanal pickle products and verified reviews!"))
