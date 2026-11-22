@@ -681,8 +681,8 @@ export default function HomePage() {
         {/* Section 1: Hero Announcement & Marketplace Banner */}
         <section className="relative w-full bg-white px-6 lg:px-12 py-10 lg:py-16 overflow-hidden border-b border-stone-100">
           <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center">
-            {/* Left 7 Columns */}
-            <div className="col-span-12 lg:col-span-7 flex flex-col gap-6 pr-0 lg:pr-6">
+            {/* Left 6 Columns */}
+            <div className="col-span-12 lg:col-span-6 flex flex-col gap-6 pr-0 lg:pr-4">
               <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/80 text-amber-950 px-4 py-1.5 rounded-full w-fit shadow-2xs">
                 <Flame size={14} className="text-amber-600 shrink-0 fill-amber-500" />
                 <span className="text-xs font-bold uppercase tracking-wider">
@@ -772,18 +772,18 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right 5 Columns: Hero Visual Showcase (Seamless high-res studio food photography on pure white) */}
-            <div className="col-span-12 lg:col-span-5 relative flex items-center justify-center">
-              <div className="relative w-full flex items-center justify-center">
+            {/* Right 6 Columns: Hero Visual Showcase (Large, Bold Showcase) */}
+            <div className="col-span-12 lg:col-span-6 relative flex items-center justify-center lg:justify-end">
+              <div className="relative w-full flex items-center justify-center lg:justify-end">
                 {/* Original pristine studio photography on matching pure white background */}
                 <img
                   src="/images/hero/wangs_signature_pickle_hero.jpg"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
-                  className="w-full max-w-[620px] lg:max-w-none lg:scale-110 h-auto object-contain select-none transition-transform duration-700 hover:scale-[1.12]"
+                  className="w-full max-w-[700px] lg:max-w-none lg:w-[125%] xl:w-[130%] h-auto object-contain select-none transition-transform duration-700 hover:scale-[1.03]"
                 />
 
                 {/* Subtle Floating Sun-Cured Pill Accent */}
-                <div className="absolute top-4 right-4 backdrop-blur-md bg-white/95 border border-stone-200/80 px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 z-10">
+                <div className="absolute top-2 right-2 sm:top-4 sm:right-4 backdrop-blur-md bg-white/95 border border-stone-200/80 px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 z-10">
                   <Sun size={15} className="text-amber-600 fill-amber-500 shrink-0" />
                   <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24 Active</span>
                 </div>
