@@ -785,12 +785,6 @@ export default function HomePage() {
                     maskImage: 'radial-gradient(ellipse 95% 90% at 55% 48%, black 72%, transparent 100%)',
                   }}
                 />
-
-                {/* Subtle Floating Sun-Cured Pill Accent */}
-                <div className="absolute top-2 right-2 sm:top-4 sm:right-4 backdrop-blur-md bg-white/95 border border-stone-200/80 px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 z-10">
-                  <Sun size={15} className="text-amber-600 fill-amber-500 shrink-0" />
-                  <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24 Active</span>
-                </div>
               </div>
             </div>
           </div>
