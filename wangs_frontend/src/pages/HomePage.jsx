@@ -679,36 +679,32 @@ export default function HomePage() {
           ======================================================== */}
       <div className="hidden md:block">
         {/* Section 1: Hero Announcement & Marketplace Banner */}
-        <section className="relative w-full bg-gradient-to-b from-[#faf5ee] via-[#faf2ed] to-[#f6ede4] px-6 lg:px-12 py-12 lg:py-16 overflow-hidden">
-          {/* Subtle Ambient Decorative Glows */}
-          <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-10 w-80 h-80 bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
+        <section className="relative w-full bg-white px-6 lg:px-12 py-10 lg:py-16 overflow-hidden border-b border-stone-100">
+          <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left 7 Columns */}
-            <div className="col-span-12 lg:col-span-7 flex flex-col gap-5">
-              <div className="inline-flex items-center gap-2 bg-amber-100/90 border border-amber-200/80 text-amber-950 px-4 py-1.5 rounded-full w-fit shadow-2xs backdrop-blur-xs">
-                <Flame size={14} className="text-amber-600 shrink-0 fill-amber-600" />
+            <div className="col-span-12 lg:col-span-7 flex flex-col gap-6 pr-0 lg:pr-6">
+              <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/80 text-amber-950 px-4 py-1.5 rounded-full w-fit shadow-2xs">
+                <Flame size={14} className="text-amber-600 shrink-0 fill-amber-500" />
                 <span className="text-xs font-bold uppercase tracking-wider">
                   Direct From 18 Spice States
                 </span>
               </div>
 
-              <h1 className="text-4xl lg:text-[54px] font-serif text-stone-900 tracking-tight leading-[1.12]">
+              <h1 className="text-4xl lg:text-[56px] font-serif text-stone-900 tracking-tight leading-[1.1]">
                 Authentic Indian Pickles, <br />
                 Handcrafted by Heritage <br />
                 Makers.
               </h1>
 
-              <p className="text-base text-stone-600 max-w-2xl leading-relaxed">
+              <p className="text-base sm:text-lg text-stone-600 max-w-xl leading-relaxed">
                 Connecting 320+ certified artisanal pickle manufacturers across 18 states directly with pickle lovers. Sun-cured in wood-pressed mustard oil, stone-ground spices, zero synthetic preservatives.
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-wrap items-center gap-3.5 pt-1">
+              <div className="flex flex-wrap items-center gap-4 pt-1">
                 <a
                   href="#artisan-bestsellers"
-                  className="bg-[#9b4100] hover:bg-[#803500] text-white px-7 py-3.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-bold text-sm active:scale-95"
+                  className="bg-[#8b3500] hover:bg-[#702a00] text-white px-8 py-4 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-bold text-sm active:scale-95"
                 >
                   <span>Shop Regional Pickles</span>
                   <ArrowRight size={17} />
@@ -716,14 +712,14 @@ export default function HomePage() {
 
                 <Link
                   to="/brands"
-                  className="px-5 py-3.5 rounded-full border border-stone-300 hover:border-stone-400 bg-white/80 hover:bg-white text-stone-800 font-semibold text-sm transition-all flex items-center gap-2 shadow-2xs"
+                  className="px-6 py-4 rounded-full border border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-semibold text-sm transition-all flex items-center gap-2 shadow-2xs"
                 >
-                  <span>Explore 320+ Kitchens</span>
+                  <span>Meet 320+ Makers</span>
                 </Link>
               </div>
 
               {/* Trust Pills */}
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-stone-600 pt-1">
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-stone-500 pt-1">
                 <span className="flex items-center gap-1.5 text-stone-700">
                   <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
                   <span>Free Express Delivery Above ₹499</span>
@@ -738,73 +734,58 @@ export default function HomePage() {
                 </span>
               </div>
 
-              {/* 3 Metric Stat Cards */}
-              <div className="grid grid-cols-3 gap-3.5 pt-2 max-w-xl">
-                <div className="bg-white/95 backdrop-blur-xs p-4 rounded-2xl shadow-xs border border-stone-200/80 hover:border-amber-300 transition-all">
-                  <span className="text-2xl font-serif text-[#9b4100] font-bold block">
+              {/* Elegant Hairline Metric Stats Row */}
+              <div className="flex items-center gap-6 sm:gap-10 pt-4 mt-2 border-t border-stone-100 max-w-xl">
+                <div>
+                  <span className="font-serif text-3xl font-bold text-stone-900 block">
                     14,200+
                   </span>
-                  <span className="text-xs text-stone-600 font-medium">
+                  <span className="text-xs text-stone-500 mt-0.5 block">
                     Packs Delivered Pan-India
                   </span>
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-xs p-4 rounded-2xl shadow-xs border border-stone-200/80 hover:border-amber-300 transition-all">
-                  <div className="flex items-center gap-1">
-                    <span className="text-2xl font-serif text-stone-900 font-bold">
+                <div className="h-10 w-px bg-stone-200" />
+
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-serif text-3xl font-bold text-stone-900">
                       4.8
                     </span>
                     <Star size={18} className="fill-amber-500 text-amber-500 shrink-0" />
                   </div>
-                  <span className="text-xs text-stone-600 font-medium">
+                  <span className="text-xs text-stone-500 mt-0.5 block">
                     Average Batch Rating
                   </span>
                 </div>
 
-                <div className="bg-white/95 backdrop-blur-xs p-4 rounded-2xl shadow-xs border border-stone-200/80 hover:border-amber-300 transition-all">
-                  <span className="text-2xl font-serif text-emerald-800 font-bold block">
+                <div className="h-10 w-px bg-stone-200" />
+
+                <div>
+                  <span className="font-serif text-3xl font-bold text-emerald-800 block">
                     320+
                   </span>
-                  <span className="text-xs text-stone-600 font-medium">
+                  <span className="text-xs text-stone-500 mt-0.5 block">
                     Verified Heritage Kitchens
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Right 5 Columns: Hero Visual Showcase (Free-standing, not inside a card) */}
+            {/* Right 5 Columns: Hero Visual Showcase (Seamless high-res studio food photography on pure white) */}
             <div className="col-span-12 lg:col-span-5 relative flex items-center justify-center">
-              {/* Soft ambient background glow */}
-              <div className="absolute w-72 h-72 sm:w-96 sm:h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
-
               <div className="relative w-full flex items-center justify-center">
-                {/* Product Photography sitting directly on the hero background without any card or box */}
+                {/* Original pristine studio photography on matching pure white background */}
                 <img
-                  src="/images/hero/wangs_signature_pickle_hero_transparent.png"
+                  src="/images/hero/wangs_signature_pickle_hero.jpg"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
-                  className="w-full max-w-[580px] h-auto object-contain drop-shadow-2xl select-none transition-transform duration-500 hover:scale-105"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = '/images/hero/wangs_signature_pickle_hero.jpg';
-                    e.currentTarget.classList.add('mix-blend-multiply');
-                  }}
+                  className="w-full max-w-[620px] lg:max-w-none lg:scale-110 h-auto object-contain select-none transition-transform duration-700 hover:scale-[1.12]"
                 />
 
-                {/* Floating Badge 1: Top Right - Delicate Sun-Cured Pill */}
-                <div className="absolute top-2 right-2 backdrop-blur-md bg-white/95 border border-stone-200/80 px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 z-10">
+                {/* Subtle Floating Sun-Cured Pill Accent */}
+                <div className="absolute top-4 right-4 backdrop-blur-md bg-white/95 border border-stone-200/80 px-4 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 z-10">
                   <Sun size={15} className="text-amber-600 fill-amber-500 shrink-0" />
-                  <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24</span>
-                </div>
-
-                {/* Floating Badge 2: Bottom Left - Terroir Fermentation Pill */}
-                <div className="absolute bottom-2 left-2 backdrop-blur-md bg-stone-900/90 text-white px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2.5 border border-white/10 z-10 max-w-[230px]">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
-                    <Flame size={16} className="text-amber-400" />
-                  </div>
-                  <div>
-                    <p className="text-[9px] uppercase tracking-wider text-amber-300 font-bold">Terroir Fermentation</p>
-                    <p className="text-xs font-semibold leading-tight text-white/90">21-Day Earthen Vessel</p>
-                  </div>
+                  <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24 Active</span>
                 </div>
               </div>
             </div>
