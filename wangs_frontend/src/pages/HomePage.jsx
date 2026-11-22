@@ -772,30 +772,38 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right 5 Columns: Hero Visual Showcase */}
-            <div className="col-span-12 lg:col-span-5 relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-stone-200/80 bg-white group">
-                {/* Product Photography cropped to showcase bowl, jar & spices prominently */}
+            {/* Right 5 Columns: Hero Visual Showcase (Free-standing, not inside a card) */}
+            <div className="col-span-12 lg:col-span-5 relative flex items-center justify-center">
+              {/* Soft ambient background glow */}
+              <div className="absolute w-72 h-72 sm:w-96 sm:h-96 bg-amber-500/15 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative w-full flex items-center justify-center">
+                {/* Product Photography sitting directly on the hero background without any card or box */}
                 <img
-                  src="/images/hero/wangs_signature_pickle_hero.jpg"
+                  src="/images/hero/wangs_signature_pickle_hero_transparent.png"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
-                  className="w-full h-[460px] lg:h-[500px] object-cover object-[78%_center] transition-transform duration-700 group-hover:scale-105"
+                  className="w-full max-w-[580px] h-auto object-contain drop-shadow-2xl select-none transition-transform duration-500 hover:scale-105"
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = '/images/hero/wangs_signature_pickle_hero.jpg';
+                    e.currentTarget.classList.add('mix-blend-multiply');
+                  }}
                 />
 
                 {/* Floating Badge 1: Top Right - Delicate Sun-Cured Pill */}
-                <div className="absolute top-5 right-5 backdrop-blur-md bg-white/95 border border-stone-200/70 px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                <div className="absolute top-2 right-2 backdrop-blur-md bg-white/95 border border-stone-200/80 px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 z-10">
                   <Sun size={15} className="text-amber-600 fill-amber-500 shrink-0" />
-                  <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24 Active</span>
+                  <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24</span>
                 </div>
 
                 {/* Floating Badge 2: Bottom Left - Terroir Fermentation Pill */}
-                <div className="absolute bottom-5 left-5 backdrop-blur-md bg-stone-900/90 text-white p-3 rounded-2xl shadow-xl flex items-center gap-3 border border-white/10 max-w-[250px]">
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
-                    <Flame size={18} className="text-amber-400" />
+                <div className="absolute bottom-2 left-2 backdrop-blur-md bg-stone-900/90 text-white px-3.5 py-2 rounded-2xl shadow-xl flex items-center gap-2.5 border border-white/10 z-10 max-w-[230px]">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Flame size={16} className="text-amber-400" />
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Terroir Fermentation</p>
-                    <p className="text-xs font-semibold leading-tight text-white/90">21-Day Earthen Vessel Maturation</p>
+                    <p className="text-[9px] uppercase tracking-wider text-amber-300 font-bold">Terroir Fermentation</p>
+                    <p className="text-xs font-semibold leading-tight text-white/90">21-Day Earthen Vessel</p>
                   </div>
                 </div>
               </div>
