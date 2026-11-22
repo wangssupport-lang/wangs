@@ -682,7 +682,7 @@ export default function HomePage() {
         <section className="relative w-full bg-white px-6 lg:px-12 py-10 lg:py-16 overflow-hidden border-b border-stone-100">
           <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left 6 Columns */}
-            <div className="col-span-12 lg:col-span-6 flex flex-col gap-6 pr-0 lg:pr-4">
+            <div className="col-span-12 lg:col-span-6 flex flex-col gap-6 pr-0 lg:pr-4 relative z-10">
               <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/80 text-amber-950 px-4 py-1.5 rounded-full w-fit shadow-2xs">
                 <Flame size={14} className="text-amber-600 shrink-0 fill-amber-500" />
                 <span className="text-xs font-bold uppercase tracking-wider">
@@ -772,18 +772,14 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Right 6 Columns: Hero Visual Showcase (Large, Bold Showcase) */}
+            {/* Right 6 Columns: Hero Visual Showcase (Cropped around subjects, zero text overlap) */}
             <div className="col-span-12 lg:col-span-6 relative flex items-center justify-center lg:justify-end">
               <div className="relative w-full flex items-center justify-center lg:justify-end">
-                {/* Original pristine studio photography on matching pure white background with seamless edge blending */}
+                {/* Cropped studio photography tightly framing bowl, jar & spices */}
                 <img
-                  src="/images/hero/wangs_signature_pickle_hero.jpg?v=3"
+                  src="/images/hero/wangs_signature_pickle_hero.jpg?v=4"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
-                  className="w-full max-w-[700px] lg:max-w-none lg:w-[125%] xl:w-[130%] h-auto object-contain select-none transition-transform duration-700 hover:scale-[1.03]"
-                  style={{
-                    WebkitMaskImage: 'radial-gradient(ellipse 95% 90% at 55% 48%, black 72%, transparent 100%)',
-                    maskImage: 'radial-gradient(ellipse 95% 90% at 55% 48%, black 72%, transparent 100%)',
-                  }}
+                  className="w-full max-w-[540px] lg:max-w-[600px] h-auto object-contain select-none transition-transform duration-500 hover:scale-[1.02]"
                 />
               </div>
             </div>
