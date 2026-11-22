@@ -3672,6 +3672,7 @@ class HeroBannerViewSet(viewsets.ReadOnlyModelViewSet):
                 coupon_code="ACHAR15",
                 cta_text="Shop Now",
                 cta_link="/products",
+                image_url="/images/hero/wangs_signature_pickle_hero.jpg",
                 bg_color="#9b4100",
                 is_active=True,
                 display_order=0

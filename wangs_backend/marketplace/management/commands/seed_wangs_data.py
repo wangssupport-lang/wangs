@@ -776,10 +776,30 @@ class Command(BaseCommand):
 
         # Seed and activate delivery zones and standard rates
         from marketplace.delivery_service import DeliveryService
+        from marketplace.models import HeroBanner
         try:
             DeliveryService.seed_swiftzone_and_partner_presets(activate=True)
             self.stdout.write(self.style.SUCCESS("Seeded and activated courier delivery zones & rates."))
         except Exception as exc:
             self.stdout.write(self.style.WARNING(f"Delivery preset seed notice: {exc}"))
+
+        try:
+            HeroBanner.objects.update_or_create(
+                display_order=0,
+                defaults={
+                    'title': 'The Great Achar Season',
+                    'subtitle': 'Authentic small-batch heritage pickles sun-cured in wood-pressed oil.',
+                    'badge_text': 'FRESH BATCH LIVE',
+                    'coupon_code': 'ACHAR15',
+                    'cta_text': 'Shop Now',
+                    'cta_link': '/products',
+                    'image_url': '/images/hero/wangs_signature_pickle_hero.jpg',
+                    'bg_color': '#9b4100',
+                    'is_active': True,
+                }
+            )
+            self.stdout.write(self.style.SUCCESS("Seeded signature hero banner."))
+        except Exception as exc:
+            self.stdout.write(self.style.WARNING(f"Hero banner seed notice: {exc}"))
 
         self.stdout.write(self.style.SUCCESS("Successfully seeded Wangs marketplace with clean artisanal pickle products and verified reviews!"))

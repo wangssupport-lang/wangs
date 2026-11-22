@@ -747,11 +747,11 @@ export default function HomePage() {
 
             {/* Right 5 Columns: Hero Visual Showcase */}
             <div className="col-span-5 relative">
-              <div className="relative bg-surface-container-highest rounded-3xl overflow-hidden shadow-xl p-3 border border-outline-variant/30">
+              <div className="relative bg-white rounded-3xl overflow-hidden shadow-xl p-3 border border-outline-variant/30">
                 <img
-                  src="/images/stitch/stitch_3_d0bc312725.jpg"
-                  alt="Traditional Indian raw mango pickle achar inside glazed ceramic martaban earthen vessel under warm golden sun"
-                  className="w-full h-[420px] object-cover rounded-2xl shadow-md"
+                  src="/images/hero/wangs_signature_pickle_hero.jpg"
+                  alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
+                  className="w-full h-[420px] object-cover object-center rounded-2xl shadow-md bg-white"
                 />
 
                 {/* Floating Badge 1: Top Left - Solid Clean Surface */}
