@@ -9,7 +9,7 @@ import { resolveProductImage } from '../utils/image';
 import {
   Flame, ArrowRight, Zap, Timer, ChevronRight, ChevronLeft,
   Star, CheckCircle2, SlidersHorizontal, Heart, Plus,
-  ShieldCheck, Sparkles, Utensils, Store
+  ShieldCheck, Sparkles, Utensils, Store, Sun
 } from 'lucide-react';
 
 // Isolated Memoized Countdown Component to prevent whole HomePage from re-rendering every second
@@ -679,66 +679,93 @@ export default function HomePage() {
           ======================================================== */}
       <div className="hidden md:block">
         {/* Section 1: Hero Announcement & Marketplace Banner */}
-        <section className="w-full bg-surface-container-low px-6 lg:px-12 py-12 lg:py-16">
-          <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center">
+        <section className="relative w-full bg-gradient-to-b from-[#faf5ee] via-[#faf2ed] to-[#f6ede4] px-6 lg:px-12 py-12 lg:py-16 overflow-hidden">
+          {/* Subtle Ambient Decorative Glows */}
+          <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-10 w-80 h-80 bg-orange-400/10 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center relative z-10">
             {/* Left 7 Columns */}
-            <div className="col-span-7 flex flex-col gap-5">
-              <div className="inline-flex items-center gap-1.5 bg-primary-fixed text-on-primary-fixed px-3.5 py-1 rounded-full w-fit shadow-xs">
-                <Flame size={15} className="text-amber-400 shrink-0" />
-                <span className="font-label-md text-xs font-bold uppercase tracking-wide">
+            <div className="col-span-12 lg:col-span-7 flex flex-col gap-5">
+              <div className="inline-flex items-center gap-2 bg-amber-100/90 border border-amber-200/80 text-amber-950 px-4 py-1.5 rounded-full w-fit shadow-2xs backdrop-blur-xs">
+                <Flame size={14} className="text-amber-600 shrink-0 fill-amber-600" />
+                <span className="text-xs font-bold uppercase tracking-wider">
                   Direct From 18 Spice States
                 </span>
               </div>
 
-              <h1 className="font-display-lg text-4xl lg:text-[54px] font-serif text-on-surface tracking-tight leading-[1.12]">
+              <h1 className="text-4xl lg:text-[54px] font-serif text-stone-900 tracking-tight leading-[1.12]">
                 Authentic Indian Pickles, <br />
                 Handcrafted by Heritage <br />
                 Makers.
               </h1>
 
-              <p className="font-body-lg text-base text-on-surface-variant max-w-2xl leading-relaxed">
+              <p className="text-base text-stone-600 max-w-2xl leading-relaxed">
                 Connecting 320+ certified artisanal pickle manufacturers across 18 states directly with pickle lovers. Sun-cured in wood-pressed mustard oil, stone-ground spices, zero synthetic preservatives.
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex items-center gap-3.5 pt-2">
+              <div className="flex flex-wrap items-center gap-3.5 pt-1">
                 <a
                   href="#artisan-bestsellers"
-                  className="bg-primary text-on-primary font-title-md text-sm px-6 py-3.5 rounded-full shadow-md hover:bg-primary-container transition-all flex items-center gap-2 font-bold active:scale-95"
+                  className="bg-[#9b4100] hover:bg-[#803500] text-white px-7 py-3.5 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-bold text-sm active:scale-95"
                 >
                   <span>Shop Regional Pickles</span>
-                  <ArrowRight size={16} />
+                  <ArrowRight size={17} />
                 </a>
+
+                <Link
+                  to="/brands"
+                  className="px-5 py-3.5 rounded-full border border-stone-300 hover:border-stone-400 bg-white/80 hover:bg-white text-stone-800 font-semibold text-sm transition-all flex items-center gap-2 shadow-2xs"
+                >
+                  <span>Explore 320+ Kitchens</span>
+                </Link>
+              </div>
+
+              {/* Trust Pills */}
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-stone-600 pt-1">
+                <span className="flex items-center gap-1.5 text-stone-700">
+                  <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
+                  <span>Free Express Delivery Above ₹499</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-stone-700">
+                  <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
+                  <span>FSSAI Certified Kitchens</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-stone-700">
+                  <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
+                  <span>100% Sun-Cured Heritage</span>
+                </span>
               </div>
 
               {/* 3 Metric Stat Cards */}
-              <div className="grid grid-cols-3 gap-3.5 pt-3 max-w-xl">
-                <div className="bg-surface-container-lowest p-4 rounded-xl shadow-xs border border-outline-variant/30">
-                  <span className="font-headline-md text-2xl font-serif text-primary font-bold block">
+              <div className="grid grid-cols-3 gap-3.5 pt-2 max-w-xl">
+                <div className="bg-white/95 backdrop-blur-xs p-4 rounded-2xl shadow-xs border border-stone-200/80 hover:border-amber-300 transition-all">
+                  <span className="text-2xl font-serif text-[#9b4100] font-bold block">
                     14,200+
                   </span>
-                  <span className="font-label-md text-xs text-on-surface-variant">
+                  <span className="text-xs text-stone-600 font-medium">
                     Packs Delivered Pan-India
                   </span>
                 </div>
 
-                <div className="bg-surface-container-lowest p-4 rounded-xl shadow-xs border border-outline-variant/30">
+                <div className="bg-white/95 backdrop-blur-xs p-4 rounded-2xl shadow-xs border border-stone-200/80 hover:border-amber-300 transition-all">
                   <div className="flex items-center gap-1">
-                    <span className="font-headline-md text-2xl font-serif text-secondary font-bold">
+                    <span className="text-2xl font-serif text-stone-900 font-bold">
                       4.8
                     </span>
-                    <Star size={18} className="fill-secondary text-secondary shrink-0" />
+                    <Star size={18} className="fill-amber-500 text-amber-500 shrink-0" />
                   </div>
-                  <span className="font-label-md text-xs text-on-surface-variant">
+                  <span className="text-xs text-stone-600 font-medium">
                     Average Batch Rating
                   </span>
                 </div>
 
-                <div className="bg-surface-container-lowest p-4 rounded-xl shadow-xs border border-outline-variant/30">
-                  <span className="font-headline-md text-2xl font-serif text-tertiary font-bold block">
+                <div className="bg-white/95 backdrop-blur-xs p-4 rounded-2xl shadow-xs border border-stone-200/80 hover:border-amber-300 transition-all">
+                  <span className="text-2xl font-serif text-emerald-800 font-bold block">
                     320+
                   </span>
-                  <span className="font-label-md text-xs text-on-surface-variant">
+                  <span className="text-xs text-stone-600 font-medium">
                     Verified Heritage Kitchens
                   </span>
                 </div>
@@ -746,28 +773,29 @@ export default function HomePage() {
             </div>
 
             {/* Right 5 Columns: Hero Visual Showcase */}
-            <div className="col-span-5 relative">
-              <div className="relative bg-white rounded-3xl overflow-hidden shadow-xl p-3 border border-outline-variant/30">
+            <div className="col-span-12 lg:col-span-5 relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-stone-200/80 bg-white group">
+                {/* Product Photography cropped to showcase bowl, jar & spices prominently */}
                 <img
                   src="/images/hero/wangs_signature_pickle_hero.jpg"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
-                  className="w-full h-[420px] object-cover object-center rounded-2xl shadow-md bg-white"
+                  className="w-full h-[460px] lg:h-[500px] object-cover object-[78%_center] transition-transform duration-700 group-hover:scale-105"
                 />
 
-                {/* Floating Badge 1: Top Left - Solid Clean Surface */}
-                <div className="absolute top-6 left-6 bg-surface px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5 border border-outline-variant/30">
-                  <CheckCircle2 size={15} className="text-secondary shrink-0" />
-                  <span className="font-label-md text-xs font-bold text-on-surface">Sun-Cured Batch #24 Active</span>
+                {/* Floating Badge 1: Top Right - Delicate Sun-Cured Pill */}
+                <div className="absolute top-5 right-5 backdrop-blur-md bg-white/95 border border-stone-200/70 px-3.5 py-1.5 rounded-full shadow-md flex items-center gap-1.5">
+                  <Sun size={15} className="text-amber-600 fill-amber-500 shrink-0" />
+                  <span className="text-xs font-bold text-stone-900">Sun-Cured Batch #24 Active</span>
                 </div>
 
-                {/* Floating Badge 2: Bottom Right - Solid Clean Badge */}
-                <div className="absolute bottom-6 right-6 bg-inverse-surface text-inverse-on-surface p-3.5 rounded-xl shadow-xl flex items-center gap-3 max-w-[260px] border border-white/10">
-                  <div className="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
-                    <Flame size={20} className="text-amber-400" />
+                {/* Floating Badge 2: Bottom Left - Terroir Fermentation Pill */}
+                <div className="absolute bottom-5 left-5 backdrop-blur-md bg-stone-900/90 text-white p-3 rounded-2xl shadow-xl flex items-center gap-3 border border-white/10 max-w-[250px]">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <Flame size={18} className="text-amber-400" />
                   </div>
                   <div>
-                    <p className="font-label-sm text-[10px] uppercase tracking-wider text-secondary-fixed-dim font-bold">Terroir Fermentation</p>
-                    <p className="font-title-md text-xs font-semibold leading-tight">21-Day Earthen Vessel Maturation</p>
+                    <p className="text-[10px] uppercase tracking-wider text-amber-300 font-bold">Terroir Fermentation</p>
+                    <p className="text-xs font-semibold leading-tight text-white/90">21-Day Earthen Vessel Maturation</p>
                   </div>
                 </div>
               </div>
