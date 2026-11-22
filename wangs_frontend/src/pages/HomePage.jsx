@@ -777,9 +777,13 @@ export default function HomePage() {
               <div className="relative w-full flex items-center justify-center lg:justify-end">
                 {/* Original pristine studio photography on matching pure white background with seamless edge blending */}
                 <img
-                  src="/images/hero/wangs_signature_pickle_hero.jpg?v=2"
+                  src="/images/hero/wangs_signature_pickle_hero.jpg?v=3"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
                   className="w-full max-w-[700px] lg:max-w-none lg:w-[125%] xl:w-[130%] h-auto object-contain select-none transition-transform duration-700 hover:scale-[1.03]"
+                  style={{
+                    WebkitMaskImage: 'radial-gradient(ellipse 95% 90% at 55% 48%, black 72%, transparent 100%)',
+                    maskImage: 'radial-gradient(ellipse 95% 90% at 55% 48%, black 72%, transparent 100%)',
+                  }}
                 />
 
                 {/* Subtle Floating Sun-Cured Pill Accent */}
