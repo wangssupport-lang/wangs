@@ -775,9 +775,9 @@ export default function HomePage() {
             {/* Right 6 Columns: Hero Visual Showcase (Large, Bold Showcase) */}
             <div className="col-span-12 lg:col-span-6 relative flex items-center justify-center lg:justify-end">
               <div className="relative w-full flex items-center justify-center lg:justify-end">
-                {/* Original pristine studio photography on matching pure white background */}
+                {/* Original pristine studio photography on matching pure white background with seamless edge blending */}
                 <img
-                  src="/images/hero/wangs_signature_pickle_hero.jpg"
+                  src="/images/hero/wangs_signature_pickle_hero.jpg?v=2"
                   alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
                   className="w-full max-w-[700px] lg:max-w-none lg:w-[125%] xl:w-[130%] h-auto object-contain select-none transition-transform duration-700 hover:scale-[1.03]"
                 />
