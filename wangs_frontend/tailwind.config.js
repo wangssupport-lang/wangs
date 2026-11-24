@@ -188,7 +188,8 @@ export default {
         }
       },
       fontFamily: {
-        logo: ['Agbalumo', 'cursive', 'Georgia', 'serif'],
+        logo: ['"Fruktur"', 'system-ui', 'cursive', 'serif'],
+        fruktur: ['"Fruktur"', 'system-ui', 'cursive', 'serif'],
         agbalumo: ['Agbalumo', 'cursive', 'Georgia', 'serif'],
         'headline-lg': ['"Playfair Display"', 'Georgia', 'serif'],
         'headline-md': ['"Playfair Display"', 'Georgia', 'serif'],
