@@ -9,7 +9,7 @@ export default function Footer() {
     <footer className="w-full bg-[#1c1917] text-stone-300 py-6 sm:py-8 mt-16 sm:mt-24 border-t border-stone-800 text-xs font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 text-stone-400">
-          <span className="font-serif font-bold text-stone-200">© Wangs</span>
+          <span className="font-logo text-sm text-stone-100">© Wangs</span>
           <span>·</span>
           <span className="text-stone-300">wangs.in</span>
           <span>·</span>

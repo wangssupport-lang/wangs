@@ -78,7 +78,7 @@ export default function MaintenancePage({ message }) {
             alt="Wangs"
             className="h-8 w-auto sm:h-9 sm:w-auto object-contain"
           />
-          <span className="font-brand font-black text-2xl sm:text-[1.85rem] tracking-[0.14em] leading-none text-white uppercase">
+          <span className="font-logo text-2xl sm:text-[1.85rem] leading-none text-white">
             Wangs
           </span>
         </div>

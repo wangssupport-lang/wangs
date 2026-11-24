@@ -115,7 +115,7 @@ export default function AuthModal() {
         <div className="bg-[#faf2ed] px-6 pt-6 pb-5 border-b border-[#dec0b3]/40 flex items-start justify-between relative">
           <div className="space-y-1 pr-6">
             <div className="flex items-center gap-2">
-              <span className="font-serif text-2xl font-bold tracking-tight text-[#9b4100]">
+              <span className="font-logo text-2xl text-[#ab331c]">
                 Wangs
               </span>
               <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-300">

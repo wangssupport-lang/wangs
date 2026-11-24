@@ -353,7 +353,7 @@ export default function AuthPage() {
               alt="Wangs"
               className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-200 group-hover:scale-105"
             />
-            <span className="font-headline-md font-bold text-2xl sm:text-[1.85rem] tracking-tight leading-none text-primary group-hover:text-primary-container transition-colors">
+            <span className="font-logo text-2xl sm:text-3xl leading-none text-[#ab331c] group-hover:opacity-90 transition-opacity">
               Wangs
             </span>
           </Link>

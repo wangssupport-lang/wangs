@@ -456,7 +456,7 @@ export default function Navbar() {
             <div className="flex items-center justify-between gap-1.5">
               {/* Brand Logo */}
               <Link to="/" className="flex items-center select-none shrink-0">
-                <span className="font-serif text-2xl font-bold text-[#ab331c] tracking-tight leading-none">
+                <span className="font-logo text-2xl text-[#ab331c] tracking-normal leading-none">
                   Wangs
                 </span>
               </Link>
@@ -522,7 +522,7 @@ export default function Navbar() {
             {/* Left: Brand Logo & Wordmark */}
             <div className="flex items-center gap-6 lg:gap-8 shrink-0">
               <Link to="/" className="group flex items-center select-none shrink-0">
-                <span className="font-serif text-3xl font-bold tracking-tight leading-none text-[#ab331c] group-hover:opacity-90 transition-opacity">
+                <span className="font-logo text-3xl sm:text-4xl leading-none text-[#ab331c] group-hover:opacity-90 transition-opacity tracking-normal">
                   Wangs
                 </span>
               </Link>

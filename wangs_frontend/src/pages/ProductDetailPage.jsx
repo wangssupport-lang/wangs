@@ -225,7 +225,7 @@ export default function ProductDetailPage() {
                   <div className="absolute inset-y-0 left-0 w-4 bg-white/15" />
                   <div className="absolute inset-y-0 right-0 w-3 bg-black/10" />
                   <div className="w-24 h-16 bg-[#fbf8f3] rounded-sm shadow-sm flex flex-col items-center justify-center p-1.5 text-center border border-stone-200/80">
-                    <span className="font-serif text-[11px] font-bold text-stone-900 uppercase tracking-tight">
+                    <span className="font-logo text-xs text-stone-900 leading-tight">
                       Wangs
                     </span>
                     <span className="text-[9px] text-stone-600 truncate w-full">
