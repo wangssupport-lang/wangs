@@ -395,18 +395,18 @@ export default function Navbar() {
   const currentNotice = activeNotices[ribbonIndex % activeNotices.length] || DEFAULT_RIBBON_MESSAGES[0];
 
   return (
-    <header className="sticky top-0 z-40 bg-[#fff8f4] shadow-xs w-full select-none">
+    <header className="sticky top-0 z-40 bg-[#fbf8f3] shadow-xs w-full select-none border-b border-stone-200/60">
       {/* ========================================================
-          1. TOP ANNOUNCEMENT NOTICE RIBBON (Interactive, Smooth Carousel & Social Proof)
+          1. TOP ANNOUNCEMENT NOTICE RIBBON (Dark Forest Green)
           ======================================================== */}
       <div
-        className="bg-gradient-to-r from-[#863700] via-[#9b4100] to-[#863700] text-white border-b border-[#bf550d] text-[9px] sm:text-[10.5px] font-medium py-1 px-1.5 sm:px-4 transition-all duration-300 select-none"
+        className="bg-[#28452e] text-white text-[10px] sm:text-[11.5px] font-medium py-1.5 px-2 sm:px-4 transition-all duration-300 select-none"
         onMouseEnter={() => setIsRibbonPaused(true)}
         onMouseLeave={() => setIsRibbonPaused(false)}
         onTouchStart={() => setIsRibbonPaused(true)}
         onTouchEnd={() => setIsRibbonPaused(false)}
       >
-        <div className="max-w-[1440px] mx-auto flex items-center justify-between font-label-md gap-1.5">
+        <div className="max-w-[1440px] mx-auto flex items-center justify-between gap-1.5">
           {/* Left Arrow */}
           <button
             type="button"
@@ -415,7 +415,7 @@ export default function Navbar() {
             aria-label="Previous Notice"
             title="Previous Notice"
           >
-            <ChevronLeft size={12} />
+            <ChevronLeft size={13} />
           </button>
 
           {/* Center Notice Content with Keyed Smooth Fade/Slide */}
@@ -424,14 +424,9 @@ export default function Navbar() {
             key={ribbonIndex}
             className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-hidden text-center hover:opacity-95 transition-opacity cursor-pointer animate-in fade-in duration-300"
           >
-            <span className="w-1 h-1 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
-            {currentNotice.highlight && (
-              <span className={`px-1.5 py-0.2 rounded text-[7.5px] sm:text-[8.5px] font-bold uppercase tracking-wide shrink-0 shadow-2xs ${currentNotice.badge_color || currentNotice.badgeColor || 'bg-emerald-600 text-white'}`}>
-                {currentNotice.highlight}
-              </span>
-            )}
-            <span className="truncate text-[9px] sm:text-[10.5px] font-normal tracking-tight">
-              {currentNotice.text}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
+            <span className="truncate tracking-tight font-medium">
+              Handmade in small batches in Nagaland · Free Delivery Across India on orders above ₹499
             </span>
           </Link>
 
@@ -443,312 +438,179 @@ export default function Navbar() {
             aria-label="Next Notice"
             title="Next Notice"
           >
-            <ChevronRight size={12} />
+            <ChevronRight size={13} />
           </button>
-
-          {/* Indicator Dots */}
-          <div className="hidden sm:flex items-center gap-1 shrink-0 ml-1">
-            {activeNotices.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setRibbonIndex(idx);
-                }}
-                aria-label={`Go to notice ${idx + 1}`}
-                className={`h-0.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  idx === (ribbonIndex % activeNotices.length) ? 'w-3 bg-white' : 'w-1 bg-white/40 hover:bg-white/70'
-                }`}
-              />
-            ))}
-          </div>
-
-          {/* Trust Seals (Desktop Only) */}
-          <div className="hidden lg:flex items-center gap-3 text-[#ffdbcb] shrink-0 border-l border-white/20 pl-3 ml-1 text-[10px]">
-            <span className="flex items-center gap-1 font-medium">
-              <ShieldCheck size={11} className="text-emerald-300" /> FSSAI Certified Purity
-            </span>
-          </div>
         </div>
       </div>
 
       {/* ========================================================
           2. MAIN NAVIGATION BAR
           ======================================================== */}
-      <div className="bg-[#fff8f4] border-b border-[#dec0b3]/30 text-[#1e1b18]">
+      <div className="bg-[#fbf8f3] border-b border-stone-200/50 text-stone-900">
         <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8">
           
           {/* ----------------------------------------------------
-              MOBILE TOP HEADER (Exact Match to Stitch Spec)
+              MOBILE TOP HEADER
               ---------------------------------------------------- */}
           <div className="md:hidden flex flex-col gap-2 pt-2.5 pb-2">
-            {/* Mobile Row 1: Logo & Title + Deliver To Pill + Bell + Avatar */}
             <div className="flex items-center justify-between gap-1.5">
-              {/* Brand Logo & Wordmark */}
-              <Link to="/" className="flex items-center gap-2 shrink-0">
-                <img
-                  src="/logo.png"
-                  alt="Wangs Pickle Marketplace Logo"
-                  className="h-8 w-8 object-contain"
-                />
-                <div className="flex flex-col">
-                  <span className="font-serif text-lg font-bold text-[#9b4100] leading-none tracking-tight">
-                    Wangs
-                  </span>
-                  <span className="text-[8px] uppercase tracking-wider text-[#574238] font-bold leading-tight mt-0.5">
-                    PICKLE MARKETPLACE
-                  </span>
-                </div>
+              {/* Brand Logo */}
+              <Link to="/" className="flex items-center select-none shrink-0">
+                <span className="font-serif text-2xl font-bold text-[#ab331c] tracking-tight leading-none">
+                  Wangs
+                </span>
               </Link>
 
-              {/* Right Controls: Notifications Bell + Cart + Profile Avatar */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                {/* Notifications Bell */}
-                <button
-                  type="button"
-                  onClick={() => setNotificationsOpen(!notificationsOpen)}
-                  aria-label="Notifications"
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#574238] hover:text-[#9b4100] relative hover:bg-[#faf2ed] transition-colors active:scale-95 cursor-pointer"
-                  title="Marketplace Notifications"
-                >
-                  <Bell size={18} className="text-[#574238]" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 min-w-[14px] h-[14px] px-0.5 bg-[#9b4100] text-white text-[8px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#fff8f4]">
-                      {unreadCount}
-                    </span>
-                  )}
-                </button>
-
-                {/* Shopping Bag / Cart */}
+              {/* Right Controls: Cart Pill + Profile Avatar */}
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(true)}
                   aria-label={`Shopping Basket with ${itemsCount} items`}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-[#574238] hover:text-[#9b4100] relative hover:bg-[#faf2ed] transition-colors active:scale-95 cursor-pointer"
-                  title="Cart"
+                  className="border border-stone-900 text-stone-900 text-[11px] font-bold px-3 py-1 rounded-full hover:bg-stone-900 hover:text-white transition-colors cursor-pointer"
                 >
-                  <ShoppingBag size={18} className="text-[#1e1b18]" />
-                  {itemsCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[15px] h-[15px] px-1 bg-[#9b4100] text-white font-bold text-[8.5px] rounded-full flex items-center justify-center">
-                      {itemsCount > 99 ? '99+' : itemsCount}
-                    </span>
-                  )}
+                  Cart ({itemsCount})
                 </button>
 
-                {/* Profile / Account Icon */}
                 <Link
                   to={user ? '/account' : '/login'}
                   aria-label="Account"
-                  className="w-8 h-8 rounded-full border border-[#dec0b3]/50 shadow-xs flex items-center justify-center bg-[#faf2ed] text-[#574238] hover:text-[#9b4100] active:scale-95 transition-colors"
+                  className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center bg-white text-stone-700 active:scale-95 transition-colors"
                 >
                   {user ? (
-                    <span className="font-bold text-xs text-[#9b4100]">
+                    <span className="font-bold text-xs text-[#ab331c]">
                       {(user.first_name || user.username || 'U')[0].toUpperCase()}
                     </span>
                   ) : (
-                    <User size={18} />
+                    <User size={15} />
                   )}
                 </Link>
               </div>
             </div>
 
             {/* Mobile Row 2: Search Input */}
-            <form onSubmit={handleSearch} className="relative w-full flex items-center bg-white rounded-full px-3.5 py-1.5 shadow-[0_1px_4px_rgba(30,27,24,0.06)] border border-[#dec0b3]/40 focus-within:shadow-[0_0_0_1.5px_#9b4100]">
-              <Search size={15} className="text-[#8a7267] mr-2 shrink-0" />
+            <form onSubmit={handleSearch} className="relative w-full flex items-center">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search artisan achars, regional makers..."
-                className="w-full bg-transparent text-xs text-[#1e1b18] placeholder:text-[#8a7267] focus:outline-none py-0.5"
+                placeholder="Search pickles, spices..."
+                className="w-full bg-white text-xs text-stone-900 placeholder:text-stone-400 rounded-full pl-4 pr-8 py-2 border border-stone-300 focus:outline-none focus:border-stone-900"
               />
               <button
-                type="button"
-                onClick={() => toast.info('Voice search coming soon')}
-                aria-label="Voice Search"
-                className="w-6 h-6 flex items-center justify-center text-[#8a7267] hover:text-[#9b4100] transition-colors shrink-0"
+                type="submit"
+                className="absolute right-3 text-stone-400 hover:text-stone-800"
               >
-                <Mic size={15} />
+                <Search size={14} />
               </button>
             </form>
 
-            {/* Mobile Row 3: Category Pills Strip (Dynamically based on categories entered by Admin) */}
-            {isBrowsePage && (
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
-                <Link
-                  to="/products"
-                  className={`h-7 px-3 rounded-full text-[11px] font-bold whitespace-nowrap flex items-center shrink-0 transition-colors ${
-                    !currentCategory
-                      ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
-                      : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
-                  }`}
-                >
-                  All Pickles
-                </Link>
-                {categories.map((c) => (
-                  <Link
-                    key={c.id || c.slug}
-                    to={`/products?category=${encodeURIComponent(c.slug)}`}
-                    className={`h-7 px-3 rounded-full text-[11px] font-semibold whitespace-nowrap flex items-center shrink-0 transition-colors ${
-                      currentCategory === c.slug
-                        ? 'bg-[#9b4100] text-white shadow-[0_2px_6px_rgba(155,65,0,0.25)]'
-                        : 'bg-[#f4ece7] text-[#574238] hover:bg-[#eee7e1] border border-[#dec0b3]/30'
-                    }`}
-                  >
-                    {c.name}
-                  </Link>
-                ))}
-              </div>
-            )}
+            {/* Mobile Row 3: Category Nav Links */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-1 px-1 text-xs font-medium text-stone-700">
+              <Link to="/products?category=pickles" className="whitespace-nowrap hover:text-[#ab331c]">Pickles</Link>
+              <Link to="/products?category=chutneys" className="whitespace-nowrap hover:text-[#ab331c]">Chutneys</Link>
+              <Link to="/products?category=spices" className="whitespace-nowrap hover:text-[#ab331c]">Spices</Link>
+              <Link to="/products?bestsellers=true" className="whitespace-nowrap hover:text-[#ab331c]">Gift Boxes</Link>
+              <Link to="/brands" className="whitespace-nowrap hover:text-[#ab331c]">Our Makers</Link>
+            </div>
           </div>
 
           {/* ----------------------------------------------------
-              DESKTOP NAVIGATION ROW (Exact Match to Desktop Spec)
+              DESKTOP NAVIGATION ROW (Exact Match to New Theme Spec)
               ---------------------------------------------------- */}
           <div className="hidden md:flex h-16 sm:h-[72px] items-center justify-between gap-4">
             {/* Left: Brand Logo & Wordmark */}
-            <div className="flex items-center gap-4 shrink-0">
-              <Link to="/" className="group flex items-center gap-2.5 select-none shrink-0">
-                <img
-                  src="/logo.png"
-                  alt="Wangs Pickle Marketplace Logo"
-                  className="h-10 w-10 object-contain transition-transform duration-200 group-hover:scale-105"
-                />
-                <span className="font-serif text-[26px] font-bold tracking-tight leading-none text-[#9b4100] group-hover:text-[#bf550d] transition-colors">
+            <div className="flex items-center gap-6 lg:gap-8 shrink-0">
+              <Link to="/" className="group flex items-center select-none shrink-0">
+                <span className="font-serif text-3xl font-bold tracking-tight leading-none text-[#ab331c] group-hover:opacity-90 transition-opacity">
                   Wangs
                 </span>
               </Link>
+
+              {/* Navigation Links (Matching Mockup 1: Pickles, Chutneys, Spices, Gift Boxes, Our Makers) */}
+              <nav className="flex items-center gap-5 lg:gap-7 text-xs font-medium text-stone-800">
+                <Link to="/products?category=pickles" className="hover:text-[#ab331c] transition-colors">
+                  Pickles
+                </Link>
+                <Link to="/products?category=chutneys" className="hover:text-[#ab331c] transition-colors">
+                  Chutneys
+                </Link>
+                <Link to="/products?category=spices" className="hover:text-[#ab331c] transition-colors">
+                  Spices
+                </Link>
+                <Link to="/products?bestsellers=true" className="hover:text-[#ab331c] transition-colors">
+                  Gift Boxes
+                </Link>
+                <Link to="/brands" className="hover:text-[#ab331c] transition-colors">
+                  Our Makers
+                </Link>
+              </nav>
             </div>
 
-            {/* Middle: Global Search Bar */}
-            <div className="flex-1 max-w-xl mx-2">
-              <form onSubmit={handleSearch} className="w-full flex items-center bg-[#faf2ed] rounded-full pl-4 pr-1.5 py-1.5 border border-[#dec0b3]/40 focus-within:bg-white focus-within:shadow-[0_0_0_1.5px_#9b4100] transition-all">
-                <Search size={17} className="text-[#8a7267] mr-2 shrink-0" />
+            {/* Right: Search Input + Cart (0) Pill Button + Account */}
+            <div className="flex items-center gap-3 shrink-0">
+              <form onSubmit={handleSearch} className="relative flex items-center">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search 500+ handmade mango, garlic, gongura..."
-                  className="w-full bg-transparent text-xs text-[#1e1b18] placeholder:text-[#8a7267] focus:outline-none"
+                  placeholder="Search pickles, spices..."
+                  className="w-44 lg:w-56 bg-white rounded-full pl-4 pr-8 py-1.5 border border-stone-300 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900 transition-all"
                 />
-
                 <button
                   type="submit"
-                  className="bg-[#9b4100] hover:bg-[#bf550d] text-white text-xs font-bold px-3.5 py-1.5 rounded-full shrink-0 transition-colors ml-1 active:scale-95"
+                  className="absolute right-2.5 text-stone-400 hover:text-stone-900 transition-colors cursor-pointer"
+                  aria-label="Submit search"
                 >
-                  Search
+                  <Search size={14} />
                 </button>
               </form>
-            </div>
 
-            {/* Right: Actions Cluster */}
-            <div className="flex items-center gap-3 shrink-0">
-              {/* Sell with Us / Seller Portal CTA Button */}
-              {(isManufacturer || allowSellerRegistration) && (
-                <Link
-                  to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
-                  className="inline-flex items-center gap-1.5 bg-[#526048] text-white text-xs font-bold px-4 py-2 rounded-full hover:bg-[#3f4a36] transition-all shadow-xs active:scale-95"
-                >
-                  <Store size={15} />
-                  <span>
-                    {isManufacturer
-                      ? "Seller Portal"
-                      : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
-                      ? "Seller Status"
-                      : "Sell with Us"}
-                  </span>
-                </Link>
-              )}
-
-              {/* Wishlist Icon */}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!user) {
-                    requireAuth(() => navigate('/brands'), 'save items to your wishlist');
-                    return;
-                  }
-                  navigate('/brands');
-                }}
-                className="relative p-2 rounded-full text-[#574238] hover:text-[#9b4100] hover:bg-[#faf2ed] transition-colors cursor-pointer"
-                title="Wishlist / Makers"
-              >
-                <Heart size={21} className="text-[#1e1b18]" />
-              </button>
-
-              {/* Notifications Bell (Desktop) */}
-              <button
-                type="button"
-                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                className="relative p-2 rounded-full text-[#574238] hover:text-[#9b4100] hover:bg-[#faf2ed] transition-colors cursor-pointer"
-                title="Marketplace Notifications"
-              >
-                <Bell size={21} className="text-[#1e1b18]" />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 min-w-[16px] h-[16px] px-1 bg-[#9b4100] text-white font-bold text-[8.5px] leading-tight rounded-full flex items-center justify-center ring-2 ring-[#fff8f4]">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Shopping Cart Pill Button */}
+              {/* Shopping Cart Pill Button - Exact Match: Cart (N) */}
               <button
                 onClick={() => setIsDrawerOpen(true)}
-                className="relative p-2 rounded-full text-[#574238] hover:text-[#9b4100] hover:bg-[#faf2ed] transition-colors cursor-pointer"
+                className="border border-stone-900 hover:bg-stone-900 hover:text-white text-stone-900 text-xs font-semibold px-4 py-1.5 rounded-full transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
                 aria-label={`Shopping Basket with ${itemsCount} items`}
                 title="Cart"
               >
-                <ShoppingBag size={21} className="text-[#1e1b18]" />
-                {itemsCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 bg-[#9b4100] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center shadow-xs">
-                    {itemsCount > 99 ? '99+' : itemsCount}
-                  </span>
-                )}
+                <span>Cart ({itemsCount})</span>
               </button>
 
-              {/* User Profile / Sign In Dropdown */}
+              {/* User Profile / Notifications / Seller links */}
               {user ? (
                 <div className="relative">
                   <button
                     onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                    className="flex items-center gap-1.5 p-1 pr-2 rounded-full hover:bg-[#faf2ed] transition-all cursor-pointer"
+                    className="flex items-center gap-1 p-1 pr-1.5 rounded-full hover:bg-stone-200/50 transition-all cursor-pointer"
                   >
-                    <div className="w-8 h-8 rounded-full bg-[#9b4100] text-white flex items-center justify-center font-bold text-xs ring-2 ring-[#dec0b3]">
+                    <div className="w-7 h-7 rounded-full bg-[#ab331c] text-white flex items-center justify-center font-bold text-xs">
                       {(user.first_name || user.username || 'U')[0].toUpperCase()}
                     </div>
-                    <ChevronDown size={13} className="text-[#8a7267]" />
+                    <ChevronDown size={12} className="text-stone-500" />
                   </button>
 
                   {userDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-[#dec0b3]/40 py-2 z-50 text-xs text-[#1e1b18]">
-                      <div className="px-4 py-2.5 border-b border-[#dec0b3]/20 bg-[#faf2ed]">
-                        <p className="font-bold text-[#1e1b18]">{user.first_name} {user.last_name}</p>
-                        <p className="text-[#574238] truncate text-[11px]">{user.email}</p>
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-xl border border-stone-200 py-2 z-50 text-xs text-stone-900">
+                      <div className="px-4 py-2.5 border-b border-stone-100 bg-stone-50">
+                        <p className="font-bold text-stone-900">{user.first_name} {user.last_name}</p>
+                        <p className="text-stone-500 truncate text-[11px]">{user.email}</p>
                       </div>
 
                       <Link
                         to="/account"
                         onClick={() => setUserDropdownOpen(false)}
-                        className="flex items-center gap-2.5 px-4 py-2.5 text-[#1e1b18] hover:bg-[#faf2ed] transition-colors font-medium"
+                        className="flex items-center gap-2.5 px-4 py-2.5 text-stone-900 hover:bg-stone-50 transition-colors font-medium"
                       >
-                        <Package size={15} className="text-[#9b4100]" /> My Account &amp; Orders
+                        <Package size={15} className="text-[#ab331c]" /> My Account &amp; Orders
                       </Link>
 
                       {(isManufacturer || allowSellerRegistration) && (
                         <Link
                           to={isManufacturer ? "/manufacturer" : "/manufacturer/register"}
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center gap-2.5 px-4 py-2.5 text-[#904d00] font-bold hover:bg-[#faf2ed] transition-colors"
+                          className="flex items-center gap-2.5 px-4 py-2.5 text-stone-900 hover:bg-stone-50 transition-colors font-medium"
                         >
-                          <Store size={15} className="text-[#904d00]" />
-                          <span>
-                            {isManufacturer
-                              ? "Seller Portal"
-                              : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
-                              ? "Seller Application Status"
-                              : "Sell with Us"}
-                          </span>
+                          <Store size={15} className="text-[#28452e]" /> {isManufacturer ? "Seller Studio" : "Sell with Us"}
                         </Link>
                       )}
 
@@ -756,9 +618,8 @@ export default function Navbar() {
                         onClick={() => {
                           setUserDropdownOpen(false);
                           logout();
-                          navigate('/');
                         }}
-                        className="w-full text-left flex items-center gap-2.5 px-4 py-2.5 text-[#ba1a1a] hover:bg-[#ffdad6]/40 border-t border-[#dec0b3]/20 mt-1 transition-colors"
+                        className="w-full flex items-center gap-2.5 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors font-medium text-left cursor-pointer"
                       >
                         <LogOut size={15} /> Sign Out
                       </button>
@@ -768,13 +629,9 @@ export default function Navbar() {
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-[#faf2ed] border border-[#dec0b3]/50 transition-all text-[#574238] hover:text-[#9b4100]"
-                  title="Sign In / Register"
+                  className="text-xs font-semibold text-stone-700 hover:text-stone-900 px-2.5 py-1.5 transition-colors"
                 >
-                  <div className="w-7 h-7 rounded-full bg-[#faf2ed] flex items-center justify-center text-[#574238]">
-                    <User size={18} />
-                  </div>
-                  <ChevronDown size={13} className="text-[#8a7267]" />
+                  Sign In
                 </Link>
               )}
             </div>

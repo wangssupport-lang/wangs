@@ -7,8 +7,23 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Wangs Artisanal Visual Theme
+        wangs: {
+          terracotta: '#ab331c',
+          'terracotta-dark': '#962c17',
+          forest: '#28452e',
+          'forest-dark': '#1f3724',
+          ochre: '#f6df9d',
+          cream: '#fbf8f3',
+        },
+        pastel: {
+          rose: '#fde8e8',
+          sage: '#e2ede2',
+          ochre: '#f7ebd2',
+          taupe: '#ede6dc',
+        },
         // Stitch "Heritage Spice & Kitchencraft" Design System Colors
-        surface: "#fff8f4",
+        surface: "#fbf8f3",
         "surface-dim": "#e0d9d3",
         "surface-bright": "#fff8f4",
         "surface-container-lowest": "#ffffff",

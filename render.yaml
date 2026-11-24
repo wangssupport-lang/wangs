@@ -39,13 +39,13 @@ services:
       - key: EMAIL_HOST_USER
         value: wangssupport@gmail.com
       - key: EMAIL_HOST_PASSWORD
-        value: xphhqfosryvzyscc
+        sync: false
       - key: DEFAULT_FROM_EMAIL
         value: wangssupport@gmail.com
       - key: MAIL_RELAY_URL
         value: https://wangs.in/api/mail-relay
       - key: MAIL_RELAY_SECRET
-        value: wangs-internal-mail-secret-key-2026
+        sync: false
 
 databases:
   - name: wangs-postgres

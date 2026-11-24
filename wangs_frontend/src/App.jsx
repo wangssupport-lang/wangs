@@ -13,7 +13,6 @@ import HomePage from './pages/HomePage';
 import BrandsPage from './pages/BrandsPage';
 import ProductListPage from './pages/ProductListPage';
 import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
 import OrderSuccessPage from './pages/OrderSuccessPage';
 import AuthPage from './pages/AuthPages';
 import MaintenancePage from './pages/MaintenancePage';
@@ -60,6 +59,7 @@ if (typeof window !== 'undefined') {
 }
 
 const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage'));
+const CartPage = CheckoutPage;
 const CustomerAccountPage = lazyWithRetry(() => import('./pages/CustomerAccountPage'));
 const ManufacturerPortalPage = lazyWithRetry(() => import('./pages/ManufacturerPortalPage'));
 const ManufacturerRegisterPage = lazyWithRetry(() => import('./pages/ManufacturerRegisterPage'));

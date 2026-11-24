@@ -11,38 +11,30 @@ import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { resolveProductImage } from '../utils/image';
+import ProductCard from '../components/ProductCard';
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { addToCart, cart } = useCart();
+  const { addToCart } = useCart();
   const { user, requireAuth } = useAuth();
   const toast = useToast();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
+  const [selectedSize, setSelectedSize] = useState('250 g');
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  // Bundle tier selector (Single, Duo 8% OFF, Trio 15% OFF)
-  const [selectedBundleIndex, setSelectedBundleIndex] = useState(1); // Default to Duo Pack (Recommended)
-  const [brandCatalog, setBrandCatalog] = useState([]);
-  const [bundleItems, setBundleItems] = useState([]);
-  const [addingBrandBundle, setAddingBrandBundle] = useState(false);
+  // Recommendations
+  const [recommendations, setRecommendations] = useState([]);
 
-  // PIN code checker state
-  const [pincode, setPincode] = useState('');
-  const [pincodeResult, setPincodeResult] = useState(null);
-  const [checkingPin, setCheckingPin] = useState(false);
+  // Active thumbnail index
+  const [activeThumbIdx, setActiveThumbIdx] = useState(0);
 
-  // Active image gallery index
-  const [activeImageIdx, setActiveImageIdx] = useState(0);
-
-  // Active tab in details section
-  const [activeInfoTab, setActiveInfoTab] = useState('ingredients'); // 'ingredients', 'storage', 'reviews'
-
-  // Review submission modal / form
+  // Reviews modal
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     author_name: '',
@@ -54,12 +46,10 @@ export default function ProductDetailPage() {
   });
   const [submittingReview, setSubmittingReview] = useState(false);
 
-  // Sticky bottom bar visibility on mobile scroll
-  const [showStickyBar, setShowStickyBar] = useState(false);
-
   useEffect(() => {
     async function loadProduct() {
       setLoading(true);
+      setImageError(false);
       try {
         const data = await api.getProductBySlug(slug);
         setProduct(data);
@@ -73,138 +63,85 @@ export default function ProductDetailPage() {
   }, [slug]);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 400) {
-        setShowStickyBar(true);
-      } else {
-        setShowStickyBar(false);
-      }
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  useEffect(() => {
-    if (product?.manufacturer?.slug) {
-      api.getProducts({ brand: product.manufacturer.slug })
-        .then((res) => {
-          const list = Array.isArray(res) ? res : res?.results || [];
-          const inStock = list.filter((p) => p.is_in_stock !== false);
-          setBrandCatalog(inStock);
-          const others = inStock.filter((p) => p.id !== product.id);
-          // Initialize flexible bundle: 2 to 4 items from the same brand
-          if (others.length >= 2) {
-            setBundleItems([product, others[0], others[1]]);
-          } else if (others.length === 1) {
-            setBundleItems([product, others[0]]);
-          } else if (product) {
-            setBundleItems([product, product]);
-          }
-        })
-        .catch((err) => console.error('Could not load brand companions', err));
-    }
-  }, [product?.manufacturer?.slug, product?.id]);
-
-  const productImages = React.useMemo(() => {
-    const list = [];
-    if (product?.images && product.images.length > 0) {
-      product.images.forEach((img) => {
-        const url = typeof img === 'string' ? img : img?.image_url;
-        if (url && !list.includes(url)) list.push(url);
-      });
-    }
-    if (product?.primary_image_url && !list.includes(product.primary_image_url)) {
-      list.unshift(product.primary_image_url);
-    }
-    return list.length > 0 ? list : ['/featured-pouches.png'];
-  }, [product]);
+    // Load recommendations
+    api.getProducts({ is_active: true })
+      .then((res) => {
+        const list = Array.isArray(res) ? res : res?.results || [];
+        const others = list.filter((p) => p.slug !== slug);
+        setRecommendations(others.slice(0, 3));
+      })
+      .catch((err) => console.error('Could not load recommendations', err));
+  }, [slug]);
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
-        <div className="animate-spin w-9 h-9 border-4 border-primary border-t-transparent rounded-full mx-auto" />
-        <p className="text-xs text-stone-500 mt-3 font-medium">Fetching authentic artisanal pantry heritage...</p>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="w-10 h-10 border-3 border-[#ab331c]/20 border-t-[#ab331c] rounded-full animate-spin" />
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-20 text-center">
+      <div className="max-w-4xl mx-auto px-4 py-20 text-center space-y-4">
         <h2 className="font-serif text-2xl font-bold text-stone-900">Product not found</h2>
-        <p className="text-xs text-stone-500 mt-2">This artisanal batch may have sold out or is no longer listed.</p>
-        <Link to="/products" className="mt-4 inline-block px-5 py-2.5 bg-primary text-white rounded-xl text-xs font-bold shadow">
-          Return to Catalog
+        <p className="text-stone-600 text-sm">The artisanal batch you are looking for may have concluded.</p>
+        <Link
+          to="/"
+          className="inline-block px-6 py-2.5 bg-[#ab331c] text-white rounded-full text-xs font-semibold hover:bg-[#962c17] transition-colors"
+        >
+          Return to Marketplace
         </Link>
       </div>
     );
   }
 
-  // Real Bundle Tiers (Single, Duo 8% OFF, Trio 15% OFF)
-  const basePrice = parseFloat(product.price) || 0;
-  const baseMrp = product.mrp ? parseFloat(product.mrp) : Math.round(basePrice * 1.15);
-  const baseWeight = product.weight_grams || 250;
+  const inStock = product.is_in_stock !== false && (product.stock_quantity === undefined || product.stock_quantity > 0);
 
-  const bundleTiers = [
-    {
-      id: 'single',
-      name: 'Single Unit',
-      sublabel: `1x ${baseWeight}g pack`,
-      quantity: 1,
-      discountPct: 0,
-      unitPrice: basePrice,
-      totalPrice: basePrice,
-      totalMrp: baseMrp,
-      savings: Math.max(0, baseMrp - basePrice),
-      badge: null,
-      tag: 'Standard Pack'
-    },
-    {
-      id: 'duo',
-      name: 'Duo Pack (2 Units)',
-      sublabel: `2x ${baseWeight}g packs · 8% OFF`,
-      quantity: 2,
-      discountPct: 8,
-      unitPrice: Math.round(basePrice * 0.92),
-      totalPrice: Math.round(basePrice * 2 * 0.92),
-      totalMrp: Math.round(baseMrp * 2),
-      savings: Math.round(baseMrp * 2 - basePrice * 2 * 0.92),
-      badge: 'Recommended',
-      tag: 'Save 8% · Most Popular'
-    },
-    {
-      id: 'trio',
-      name: 'Tasting Trio (3 Units)',
-      sublabel: `3x ${baseWeight}g packs · 15% OFF`,
-      quantity: 3,
-      discountPct: 15,
-      unitPrice: Math.round(basePrice * 0.85),
-      totalPrice: Math.round(basePrice * 3 * 0.85),
-      totalMrp: Math.round(baseMrp * 3),
-      savings: Math.round(baseMrp * 3 - basePrice * 3 * 0.85),
-      badge: 'Best Value',
-      tag: 'Save 15% · Free Air Dispatch'
-    }
-  ];
+  // Category & Styling resolution
+  const categoryKey = (product.category?.slug || product.category?.name || product.title || '').toLowerCase();
+  
+  let pastelBg = 'bg-[#fde8e8]'; // Default rose
+  let jarColor = '#b93822';
+  let defaultTag = 'Small batch';
 
-  const currentBundle = bundleTiers[selectedBundleIndex] || bundleTiers[0];
-  const activePrice = currentBundle.totalPrice;
-  const activeMrp = currentBundle.totalMrp;
-  const discountPercent = activeMrp > activePrice ? Math.round(((activeMrp - activePrice) / activeMrp) * 100) : 0;
-  const isInStock = product && product.is_in_stock !== false && (product.stock_quantity === undefined || product.stock_quantity === null || product.stock_quantity > 0);
+  if (categoryKey.includes('chilli') || categoryKey.includes('hot') || categoryKey.includes('bhoot') || categoryKey.includes('raja')) {
+    pastelBg = 'bg-[#fde8e8]';
+    jarColor = '#b93822';
+    defaultTag = 'Very hot · Small batch';
+  } else if (categoryKey.includes('bamboo') || categoryKey.includes('veg') || categoryKey.includes('green')) {
+    pastelBg = 'bg-[#e2ede2]';
+    jarColor = '#496e4c';
+    defaultTag = 'Fermented · Small batch';
+  } else if (categoryKey.includes('pork') || categoryKey.includes('meat') || categoryKey.includes('smoked') || categoryKey.includes('beef') || categoryKey.includes('chicken')) {
+    pastelBg = 'bg-[#f7ebd2]';
+    jarColor = '#c87820';
+    defaultTag = 'Smoked · Small batch';
+  } else if (categoryKey.includes('axone') || categoryKey.includes('ferment') || categoryKey.includes('soybean')) {
+    pastelBg = 'bg-[#ede6dc]';
+    jarColor = '#7a4e32';
+    defaultTag = 'Fermented · Small batch';
+  }
+
+  const basePrice = parseFloat(product.price || 299);
+  const displayPrice = selectedSize === '500 g' ? Math.round(basePrice * 1.85) : basePrice;
+
+  const makerName = product.manufacturer?.business_name || product.manufacturer?.name || 'Apeno Kikon';
+  const village = product.manufacturer?.location_district || 'Khonoma, Nagaland';
+  const rating = product.average_rating ? parseFloat(product.average_rating).toFixed(1) : '4.9';
+  const reviewsCount = product.reviews_count || product.reviews?.length || 18;
 
   const handleAddToCart = async () => {
-    if (!product || !isInStock || adding) return;
-    const totalUnits = currentBundle.quantity * quantity;
+    if (!inStock || adding) return;
 
     if (!user) {
       requireAuth(async () => {
         setAdding(true);
         try {
-          await addToCart(product.id, totalUnits);
+          await addToCart(product.id, quantity);
           setAdded(true);
-          toast.success(`Added ${currentBundle.name} (${totalUnits} units) of ${product.title} to your basket!`);
-          setTimeout(() => setAdded(false), 2000);
+          toast.success(`Added ${quantity} jar(s) of ${product.title} to cart`);
+          setTimeout(() => setAdded(false), 1800);
         } catch (err) {
           toast.error(err.message || 'Could not add to cart');
         } finally {
@@ -216,111 +153,14 @@ export default function ProductDetailPage() {
 
     setAdding(true);
     try {
-      await addToCart(product.id, totalUnits);
+      await addToCart(product.id, quantity);
       setAdded(true);
-      toast.success(`Added ${currentBundle.name} (${totalUnits} units) of ${product.title} to your basket!`);
-      setTimeout(() => setAdded(false), 2000);
+      toast.success(`Added ${quantity} jar(s) of ${product.title} to cart`);
+      setTimeout(() => setAdded(false), 1800);
     } catch (err) {
       toast.error(err.message || 'Could not add to cart');
     } finally {
       setAdding(false);
-    }
-  };
-
-  const handleBuyNow = async () => {
-    if (!product || !isInStock) return;
-    const totalUnits = currentBundle.quantity * quantity;
-
-    if (!user) {
-      requireAuth(async () => {
-        try {
-          await addToCart(product.id, totalUnits);
-          navigate('/checkout');
-        } catch (err) {
-          toast.error(err.message || 'Could not proceed to checkout');
-        }
-      }, 'proceed to direct checkout');
-      return;
-    }
-
-    try {
-      await addToCart(product.id, totalUnits);
-      navigate('/checkout');
-    } catch (err) {
-      toast.error(err.message || 'Could not proceed to checkout');
-    }
-  };
-
-  const handleCutBundleItem = (index) => {
-    if (bundleItems.length <= 2) {
-      toast.info('Brand bundles require a minimum of 2 items to qualify for the 10% discount.');
-      return;
-    }
-    const removedItem = bundleItems[index];
-    const updated = bundleItems.filter((_, i) => i !== index);
-    setBundleItems(updated);
-    toast.success(`Removed ${removedItem?.title || 'item'} from bundle.`);
-  };
-
-  const handleAddToBundle = (itemToAdd) => {
-    if (bundleItems.length >= 4) {
-      toast.info('Brand bundles can have a maximum of 4 items.');
-      return;
-    }
-    // Verify item is exclusively from the same brand
-    if (itemToAdd?.manufacturer?.slug && product?.manufacturer?.slug && itemToAdd.manufacturer.slug !== product.manufacturer.slug) {
-      toast.error('Only items from the same brand can be bundled together.');
-      return;
-    }
-    setBundleItems([...bundleItems, itemToAdd]);
-    toast.success(`Added ${itemToAdd.title} to your brand bundle!`);
-  };
-
-  const handleAddFlexibleBundle = async () => {
-    if (!product || bundleItems.length < 2 || bundleItems.length > 4 || addingBrandBundle) return;
-    if (!user) {
-      requireAuth(null, 'keep items in your cart');
-      return;
-    }
-    setAddingBrandBundle(true);
-    try {
-      // Group items by product ID
-      const qtyMap = {};
-      bundleItems.forEach((it) => {
-        qtyMap[it.id] = (qtyMap[it.id] || 0) + 1;
-      });
-      for (const [pId, qty] of Object.entries(qtyMap)) {
-        await addToCart(Number(pId), qty);
-      }
-      const bName = product.manufacturer?.business_name || 'Artisan Brand';
-      toast.success(`Added ${bundleItems.length}-Pack ${bName} Bundle (10% OFF) to your basket!`);
-    } catch (err) {
-      toast.error(err.message || 'Failed to add flexible brand bundle');
-    } finally {
-      setAddingBrandBundle(false);
-    }
-  };
-
-  const handleCheckPincode = async (e) => {
-    e.preventDefault();
-    const cleaned = (pincode || '').replace(/\D/g, '').slice(0, 6);
-    if (cleaned.length !== 6) {
-      setPincodeResult({ valid: false, message: 'Please enter a 6-digit Indian PIN code' });
-      return;
-    }
-    setCheckingPin(true);
-    try {
-      const res = await api.checkPincode(cleaned);
-      if (res && res.valid) {
-        setPincodeResult(res);
-      } else {
-        setPincodeResult({ valid: false, message: res?.message || 'Invalid PIN code' });
-      }
-    } catch (err) {
-      console.error('Failed to check delivery availability', err);
-      setPincodeResult({ valid: false, message: 'Could not check delivery. Please try again shortly.' });
-    } finally {
-      setCheckingPin(false);
     }
   };
 
@@ -333,10 +173,9 @@ export default function ProductDetailPage() {
     setSubmittingReview(true);
     try {
       await api.addProductReview(product.slug, reviewForm);
-      toast.success('Thank you! Your verified review has been published and the seller has been notified via email.');
+      toast.success('Thank you! Your verified review has been published.');
       setShowReviewModal(false);
       setReviewForm({ author_name: '', location: '', rating: 5, title: '', comment: '', image_url: '' });
-      // Reload product details to show new review
       const updated = await api.getProductBySlug(slug);
       setProduct(updated);
     } catch (err) {
@@ -346,756 +185,298 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Manufacturer FSSAI License Number
-  const fssaiNumber = product.manufacturer?.fssai_license_number || '10023064000124';
   const reviewsList = product.reviews || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-12 space-y-8 sm:space-y-16 pb-24 md:pb-12">
-      {/* Breadcrumbs */}
-      <nav aria-label="Breadcrumb" className="no-scrollbar flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap text-xs font-medium text-stone-500">
-        <Link to="/" className="shrink-0 hover:text-primary transition-colors">Home</Link>
-        <ChevronRight size={13} />
-        <Link to="/products" className="shrink-0 hover:text-primary transition-colors">Pickle Pantry</Link>
-        {product.category?.name && (
-          <>
-            <ChevronRight size={13} />
-            <Link to={`/products?category=${product.category?.slug}`} className="shrink-0 hover:text-primary transition-colors">
-              {product.category.name}
-            </Link>
-          </>
-        )}
-        <span className="hidden shrink-0 items-center gap-2 sm:inline-flex">
-          <ChevronRight size={13} />
-          <span className="max-w-xs truncate font-bold text-stone-900">{product.title}</span>
-        </span>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-12 sm:space-y-16">
+      {/* Breadcrumb Navigation */}
+      <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-medium text-stone-500">
+        <Link to="/" className="hover:text-stone-900 transition-colors">Home</Link>
+        <span className="text-stone-400">/</span>
+        <Link to="/products" className="hover:text-stone-900 transition-colors">Pickles</Link>
+        <span className="text-stone-400">/</span>
+        <span className="text-stone-900 font-semibold truncate max-w-xs">{product.title}</span>
       </nav>
 
-      {/* Main Details Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14">
-        {/* Left Column: Image Gallery & Trust Highlights */}
-        <div className="lg:col-span-6 space-y-5">
-          <div className="aspect-[4/3] sm:aspect-square overflow-hidden rounded-2xl sm:rounded-3xl border border-stone-200/90 bg-cream-100 shadow-artisan relative group">
-            <img
-              src={resolveProductImage(productImages[activeImageIdx] || product.primary_image_url)}
-              alt={product.title}
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/featured-pouches.png';
-              }}
-              className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
-            />
-            {discountPercent > 0 && (
-              <div className="absolute top-4 left-4 bg-primary text-white text-xs font-black px-3 py-1.5 rounded-full shadow-md flex items-center gap-1">
-                <Sparkles size={12} /> {discountPercent}% OFF
+      {/* Main Product Showcase Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+        {/* Left Column: Pastel Jar Container & Thumbnails */}
+        <div className="lg:col-span-6 space-y-4">
+          <div className={`${pastelBg} rounded-3xl p-8 sm:p-14 flex items-center justify-center min-h-[380px] sm:min-h-[460px] relative overflow-hidden transition-colors duration-500`}>
+            {/* Visual Jar Representation */}
+            {product.primary_image_url && !imageError ? (
+              <img
+                src={resolveProductImage(product.primary_image_url)}
+                alt={product.title}
+                onError={() => setImageError(true)}
+                className="max-h-[340px] w-auto object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
+              />
+            ) : (
+              <div className="relative w-44 h-56 flex items-center justify-center">
+                {/* Jar Lid */}
+                <div className="absolute top-0 w-28 h-5 bg-[#2a2725] rounded-t-sm shadow-md z-10" />
+                {/* Jar Neck Ring */}
+                <div className="absolute top-4 w-30 h-2 bg-[#3a3532] rounded-xs z-10" />
+                {/* Jar Body */}
+                <div
+                  className="w-40 h-50 rounded-3xl shadow-lg relative overflow-hidden flex flex-col items-center justify-center border border-black/5"
+                  style={{ backgroundColor: jarColor }}
+                >
+                  <div className="absolute inset-y-0 left-0 w-4 bg-white/15" />
+                  <div className="absolute inset-y-0 right-0 w-3 bg-black/10" />
+                  <div className="w-24 h-16 bg-[#fbf8f3] rounded-sm shadow-sm flex flex-col items-center justify-center p-1.5 text-center border border-stone-200/80">
+                    <span className="font-serif text-[11px] font-bold text-stone-900 uppercase tracking-tight">
+                      Wangs
+                    </span>
+                    <span className="text-[9px] text-stone-600 truncate w-full">
+                      Heritage
+                    </span>
+                  </div>
+                </div>
               </div>
             )}
-
-            <div className="absolute bottom-4 left-4 bg-inverse-surface text-inverse-on-surface text-xs font-bold px-3.5 py-1.5 rounded-full border border-outline-variant/30 flex items-center gap-2">
-              <span>{currentBundle.sublabel}</span>
-              <span className="opacity-40">|</span>
-              <span className="text-secondary-fixed font-medium">100% Homemade Small Batch</span>
-            </div>
 
             {/* Sold Out Overlay */}
-            {!isInStock && (
-              <div className="absolute inset-0 bg-stone-950/75 flex flex-col items-center justify-center p-6 z-20 text-center rounded-2xl sm:rounded-3xl">
-                <span className="px-4 py-2 rounded-xl bg-stone-900/95 text-white text-sm sm:text-base font-bold border border-white/20 shadow-2xl leading-tight">
-                  All Product Sold Out
-                </span>
-                <span className="text-xs sm:text-sm text-stone-200 mt-2 font-medium max-w-xs leading-relaxed drop-shadow">
-                  Please wait for some time, product will be in stock soon.
+            {!inStock && (
+              <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-xs flex items-center justify-center p-6 text-center rounded-3xl">
+                <span className="px-5 py-2.5 rounded-full bg-stone-950/90 text-white text-sm font-bold border border-white/20 shadow-xl">
+                  Batch Sold Out
                 </span>
               </div>
             )}
           </div>
 
-          {/* 1-3 Product Images Gallery Thumbnails */}
-          {productImages.length > 1 && (
-            <div className="flex items-center gap-2.5 pt-1">
-              {productImages.slice(0, 3).map((imgUrl, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setActiveImageIdx(idx)}
-                  className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border-2 transition-all p-0.5 bg-white ${
-                    activeImageIdx === idx
-                      ? 'border-primary ring-2 ring-primary/30 shadow-md scale-105'
-                      : 'border-stone-200 hover:border-primary/50 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img
-                    src={resolveProductImage(imgUrl)}
-                    alt={`${product.title} photo ${idx + 1}`}
-                    className="w-full h-full object-cover rounded-lg"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/featured-pouches.png';
-                    }}
-                  />
-                </button>
-              ))}
-            </div>
-          )}
+          {/* 3 Pastel Thumbnails Below */}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveThumbIdx(0)}
+              className={`w-20 h-20 rounded-2xl ${pastelBg} flex items-center justify-center border-2 transition-all p-2 ${
+                activeThumbIdx === 0 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
+              }`}
+            >
+              <div className="w-8 h-12 rounded-lg shadow-2xs" style={{ backgroundColor: jarColor }} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveThumbIdx(1)}
+              className={`w-20 h-20 rounded-2xl bg-[#f7ebd2] flex items-center justify-center border-2 transition-all p-2 ${
+                activeThumbIdx === 1 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
+              }`}
+            >
+              <div className="w-8 h-12 rounded-lg bg-[#c87820] shadow-2xs" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveThumbIdx(2)}
+              className={`w-20 h-20 rounded-2xl bg-[#e2ede2] flex items-center justify-center border-2 transition-all p-2 ${
+                activeThumbIdx === 2 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
+              }`}
+            >
+              <div className="w-8 h-12 rounded-lg bg-[#496e4c] shadow-2xs" />
+            </button>
+          </div>
         </div>
 
-        {/* Right Column: Information, Pricing, Pack Selector & Action Bar */}
+        {/* Right Column: Title, Maker, Price, Description, Size, CTA & Trust */}
         <div className="lg:col-span-6 space-y-6">
-          {/* Brand Store Header */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200/80 pb-3">
-            <div className="space-y-1">
-              <Link
-                to={`/products?brand=${encodeURIComponent(product.manufacturer?.slug || product.manufacturer?.business_name || '')}`}
-                className="group/brand inline-flex items-center gap-1.5 text-xs text-primary hover:text-primary-container font-bold"
-              >
-                <span>Visit the <span className="underline decoration-red-400 decoration-1 underline-offset-2">{product.manufacturer?.business_name || 'Artisan Brand'}</span> Store</span>
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 text-[9px] font-extrabold uppercase">
-                  Official Brand
-                </span>
-              </Link>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-[11px] text-stone-500 font-medium flex items-center gap-1">
-                  <MapPin size={11} className="text-primary" />
-                  {product.manufacturer?.location_district || 'Artisan Workshop'}
-                </span>
-                <span className="text-stone-300">·</span>
-                <div className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                  <ShieldCheck size={12} className="text-emerald-700" />
-                  <span>FSSAI Lic. #{fssaiNumber}</span>
-                  <span className="text-emerald-700 font-sans font-semibold inline-flex items-center gap-0.5">
-                    <Check size={11} /> Certified
-                  </span>
-                </div>
-              </div>
-            </div>
+          {/* Pill Tag */}
+          <div className="inline-block bg-[#f6df9d] text-stone-900 text-xs px-3.5 py-1 rounded-full font-medium tracking-tight">
+            {defaultTag}
           </div>
 
-          {/* Title & Star Rating Bar */}
-          <div>
-            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-950 leading-tight">
+          {/* Title & Maker Subtitle */}
+          <div className="space-y-2">
+            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-900 leading-tight">
               {product.title}
             </h1>
-            <div className="flex items-center gap-3 mt-2.5">
-              {product.average_rating && (product.reviews_count > 0 || reviewsList.length > 0) ? (
-                <>
-                  <div className="flex items-center gap-1 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-lg text-amber-900 text-xs font-bold">
-                    <Star size={13} className="fill-amber-500 text-amber-500" />
-                    <span>{parseFloat(product.average_rating).toFixed(1)}</span>
-                    <span className="text-[11px] font-semibold text-amber-700">({(product.reviews_count || reviewsList.length)}+)</span>
-                  </div>
-                  <span className="text-xs text-stone-500 font-medium">
-                    ({(product.reviews_count || reviewsList.length)}+ verified reviews)
-                  </span>
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2 py-0.5 rounded-md">
-                    New Artisanal Batch
-                  </span>
-                  <span className="text-xs text-stone-400">
-                    No customer reviews yet
-                  </span>
-                </div>
-              )}
-              <span className="text-stone-300">·</span>
-              <span className="text-xs font-semibold text-primary">100% Authentic Homemade</span>
-            </div>
-            <p className="text-xs sm:text-sm text-stone-600 mt-3 leading-relaxed">
-              {product.short_description}
+            <p className="text-xs sm:text-sm text-stone-600 font-medium">
+              Made by {makerName} · {village} · ★ {rating} ({reviewsCount} reviews)
             </p>
           </div>
 
-          {/* Bundle & Save Tier Selector */}
-          <div className="space-y-2.5 pt-1">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-stone-900 uppercase tracking-wide text-[11px] flex items-center gap-1.5">
-                <Sparkles size={13} className="text-amber-500" /> Choose Quantity Bundle:
-              </span>
-              <span className="text-stone-500 text-[11px]">Direct artisanal sealed packaging</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {bundleTiers.map((tier, idx) => (
-                <button
-                  key={tier.id}
-                  type="button"
-                  onClick={() => setSelectedBundleIndex(idx)}
-                  className={`p-3 rounded-2xl border text-left transition-all relative ${
-                    selectedBundleIndex === idx
-                      ? 'border-primary bg-primary-fixed/20 shadow-sm ring-2 ring-primary'
-                      : 'border-stone-200 bg-white hover:border-stone-300'
-                  }`}
-                >
-                  {tier.badge && (
-                    <span className={`absolute -top-2.5 right-2 text-white text-[9px] font-bold px-2 py-0.5 rounded-full shadow-sm ${
-                      tier.badge === 'Recommended' ? 'bg-secondary text-white' : 'bg-primary text-white'
-                    }`}>
-                      {tier.badge}
-                    </span>
-                  )}
-                  <span className="block font-bold text-xs text-stone-950">{tier.name}</span>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <span className="font-serif font-black text-sm text-stone-900">₹{tier.totalPrice}</span>
-                    {tier.totalMrp > tier.totalPrice && (
-                      <span className="text-[10px] text-stone-400 line-through">₹{tier.totalMrp}</span>
-                    )}
-                  </div>
-                  <span className={`block text-[10px] font-semibold mt-0.5 ${
-                    tier.discountPct > 0 ? 'text-emerald-700' : 'text-stone-500'
-                  }`}>
-                    {tier.tag}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Price Box with Active Bundle Savings */}
-          <div className="p-4 sm:p-5 bg-surface-container-low rounded-2xl border border-outline-variant/30 flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl sm:text-4xl font-serif font-black text-stone-950">
-                ₹{activePrice}
-              </span>
-              {activeMrp > activePrice && (
-                <span className="text-sm text-stone-400 line-through font-serif">
-                  MRP ₹{activeMrp}
-                </span>
-              )}
-              {discountPercent > 0 && (
-                <span className="text-xs font-bold text-secondary font-bold bg-secondary-fixed border border-secondary/20 px-2 py-0.5 rounded-full">
-                  Save {discountPercent}% (₹{currentBundle.savings})
-                </span>
-              )}
-            </div>
-            <span className="text-xs font-bold text-emerald-800 bg-emerald-100 px-2.5 py-1 rounded-full self-start sm:self-auto flex items-center gap-1">
-              <Truck size={13} className="text-emerald-700" />
-              <span>100% Free Delivery Across India</span>
+          {/* Price */}
+          <div className="flex items-baseline gap-3">
+            <span className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
+              ₹{displayPrice}
             </span>
-          </div>
-
-          {/* Psychology & Live Social Proof Urgency Hub */}
-          <div className="bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-50/70 border border-amber-200/90 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xs">
-            <div className="flex items-center justify-between text-xs flex-wrap gap-2">
-              <span className="flex items-center gap-2 font-bold text-stone-900">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-                </span>
-                <span>16 pickle lovers viewing this batch right now</span>
+            {selectedSize === '500 g' && (
+              <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                Value Pack Savings
               </span>
-              <span className="text-[10px] bg-amber-200 text-amber-950 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
-                Small Batch #{product?.id ? (product.id * 3 + 7) : '18'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-stone-700 pt-0.5">
-              <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1.5 rounded-xl border border-amber-200/50">
-                <Clock size={13} className="text-amber-700 shrink-0" />
-                <span>Order in next <strong className="text-stone-950 font-mono">02h 45m</strong> for Same-Day Dispatch!</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-white/70 px-2.5 py-1.5 rounded-xl border border-amber-200/50">
-                <Flame size={13} className="text-red-600 shrink-0" />
-                <span>Harvest Notice: <strong className="text-stone-950">Only 4 units left</strong> in today's cure</span>
-              </div>
-            </div>
-
-            {/* Sensory & Heritage Mental Simulation Pillars */}
-            <div className="grid grid-cols-3 gap-1.5 pt-1 text-center text-[10px]">
-              <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
-                <span className="block font-bold text-stone-900 text-[10.5px]">Clay Cured</span>
-                <span className="text-stone-500 text-[9px]">Zero plastic vats</span>
-              </div>
-              <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
-                <span className="block font-bold text-stone-900 text-[10.5px]">Wood Ghani</span>
-                <span className="text-stone-500 text-[9px]">Cold-pressed oil</span>
-              </div>
-              <div className="bg-white/80 py-1.5 px-1 rounded-lg border border-amber-200/40">
-                <span className="block font-bold text-stone-900 text-[10.5px]">Zero-Leak</span>
-                <span className="text-stone-500 text-[9px]">Cushioned glass wrap</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Recommended Bundle Offer Strip */}
-          <div className="p-3 bg-primary text-white rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs">
-            <div className="flex items-center gap-2">
-              <span className="p-1 bg-white text-primary rounded-lg">
-                <Sparkles size={13} />
-              </span>
-              <span>
-                <strong className="text-amber-200 font-semibold">Recommended Offer:</strong> Buy 2+ units for instant bundle savings & cushioned packaging.
-              </span>
-            </div>
-            <span className="text-[10px] text-red-200 font-mono hidden sm:inline">Tier Monitored</span>
-          </div>
-
-          {/* Quantity Selector & Action Buttons */}
-          <div className="space-y-4 pt-1">
-            {!isInStock ? (
-              <div className="p-4 bg-amber-50/90 border-2 border-amber-300 rounded-2xl text-amber-950 space-y-1.5 shadow-sm">
-                <div className="flex items-center gap-2">
-                  <AlertCircle size={20} className="text-amber-700 flex-shrink-0" />
-                  <span className="font-bold text-sm tracking-wide text-amber-950 uppercase">
-                    All product sold out
-                  </span>
-                </div>
-                <p className="text-xs text-amber-900 font-medium leading-relaxed pl-7">
-                  Please wait for some time, product will be in stock soon.
-                </p>
-              </div>
-            ) : (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-stone-600 font-bold">Quantity:</span>
-                  <div className="flex items-center border border-stone-300 rounded-xl bg-white shadow-inner overflow-hidden">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3.5 py-2 hover:bg-stone-100 text-stone-700 transition-colors"
-                    >
-                      <Minus size={13} />
-                    </button>
-                    <span className="px-4 text-xs font-black text-stone-900 font-mono">{quantity}</span>
-                    <button
-                      onClick={() => setQuantity(Math.min(product.stock_quantity || 99, quantity + 1))}
-                      className="px-3.5 py-2 hover:bg-stone-100 text-stone-700 transition-colors"
-                    >
-                      <Plus size={13} />
-                    </button>
-                  </div>
-                </div>
-
-                <span className="text-xs text-stone-500 font-medium">
-                  {product.stock_quantity > 0 ? (
-                    <span className="text-emerald-700 font-bold flex items-center gap-1">
-                      <CheckCircle size={13} /> In Stock ({product.stock_quantity} units available in fresh batch)
-                    </span>
-                  ) : (
-                    <span className="text-emerald-700 font-bold flex items-center gap-1">
-                      <CheckCircle size={13} /> In Stock
-                    </span>
-                  )}
-                </span>
-              </div>
             )}
+          </div>
 
-            <div className="flex gap-3 pt-1">
+          {/* Product Description */}
+          <p className="text-stone-600 text-sm leading-relaxed">
+            {product.description || product.short_description || 'Handcrafted in traditional earthen martabans with sun-cured spices and cold-pressed mustard oil. Matured slowly under ambient hill sunlight.'}
+          </p>
+
+          {/* Size Pills */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-stone-900 uppercase tracking-wider">
+              Size
+            </label>
+            <div className="flex items-center gap-3">
               <button
-                onClick={handleAddToCart}
-                disabled={!isInStock || adding}
-                className={`flex-1 py-4 px-5 rounded-2xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm ${
-                  added
-                    ? 'bg-emerald-600 text-white'
-                    : isInStock
-                    ? 'bg-white border-2 border-primary text-primary hover:bg-surface-container-low'
-                    : 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed shadow-none'
+                type="button"
+                onClick={() => setSelectedSize('250 g')}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                  selectedSize === '250 g'
+                    ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
+                    : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
                 }`}
               >
-                {added ? (
-                  <>
-                    <CheckCircle size={16} /> Added to Basket
-                  </>
-                ) : adding ? (
-                  <span>Reserving pack...</span>
-                ) : !isInStock ? (
-                  <span>All Product Sold Out</span>
-                ) : (
-                  <>
-                    <ShoppingBag size={16} /> Add to Basket
-                  </>
-                )}
+                [250 g]
               </button>
-
               <button
-                onClick={handleBuyNow}
-                disabled={!isInStock}
-                className={`flex-1 py-4 px-5 rounded-2xl text-xs font-bold text-white flex items-center justify-center gap-2 shadow-md shadow-primary/20 transition-all ${
-                  isInStock
-                    ? 'bg-primary hover:bg-primary-container hover:scale-102 active:scale-98 hover:shadow-lg'
-                    : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
+                type="button"
+                onClick={() => setSelectedSize('500 g')}
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                  selectedSize === '500 g'
+                    ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
+                    : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
                 }`}
               >
-                {!isInStock ? (
-                  <span>In Stock Soon</span>
-                ) : (
-                  <>
-                    <span>Direct Checkout</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
+                [500 g]
               </button>
-            </div>
-
-            {/* Food Safety Policy Notice: No return, refund fully dependent on manufacturer */}
-            <div className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-[11px] text-stone-600 flex items-start gap-2">
-              <ShieldCheck size={14} className="text-emerald-700 shrink-0 mt-0.5" />
-              <div>
-                <strong className="text-stone-900">No Returns (Edible Food): </strong>
-                <span>Items are non-returnable. Refunds or replacements are </span>
-                <strong className="text-stone-900">fully dependent on the manufacturer's review and approval</strong>
-                <span>, considered only for genuine reasons (transit breakage or defective seal with unboxing proof within 48h).</span>
-              </div>
             </div>
           </div>
 
-          {/* Delivery PIN Code Checker */}
-          <div className="p-4 bg-white rounded-2xl border border-stone-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between text-xs font-bold text-stone-800">
-              <span className="flex items-center gap-1.5">
-                <Truck size={15} className="text-primary" />
-                <span>Check Delivery Speed to your PIN</span>
+          {/* Quantity Box + Add to Cart Pill Button */}
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center border border-stone-300 rounded-xl bg-white px-2 py-1 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                className="p-2 text-stone-600 hover:text-stone-900 transition-colors"
+                aria-label="Decrease quantity"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="w-8 text-center font-bold text-stone-900 text-sm">
+                {quantity}
               </span>
-              <span className="text-[11px] text-stone-400 font-normal">Direct Origin Dispatch</span>
-            </div>
-            <form onSubmit={handleCheckPincode} className="flex gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={6}
-                value={pincode}
-                onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="Enter 6-digit Indian PIN code"
-                className="flex-1 px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
-              />
               <button
-                type="submit"
-                disabled={checkingPin}
-                className="px-4 py-2 bg-primary hover:bg-primary-container text-white text-xs font-bold rounded-xl shrink-0 transition-colors"
+                type="button"
+                onClick={() => setQuantity(quantity + 1)}
+                className="p-2 text-stone-600 hover:text-stone-900 transition-colors"
+                aria-label="Increase quantity"
               >
-                {checkingPin ? 'Checking...' : 'Check'}
+                <Plus size={14} />
               </button>
-            </form>
-            {pincodeResult && (
-              <div className={`p-2.5 rounded-xl text-xs font-medium border ${pincodeResult.valid ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
-                <p>{pincodeResult.message}</p>
-                {pincodeResult.valid && pincodeResult.estimated_delivery && (
-                  <p className="text-[11px] text-emerald-700 font-bold mt-0.5">
-                    Estimated Timeline: {pincodeResult.estimated_delivery}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Official 3-tier timeline indicator */}
-            <div className="pt-2 border-t border-stone-100 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-              <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200/80">
-                <div className="flex items-center gap-1 text-amber-900 font-bold">
-                  <Clock size={12} className="text-amber-700 shrink-0" />
-                  <span>Within Kohima</span>
-                </div>
-                <p className="text-stone-600 text-[10.5px] mt-0.5 leading-snug">
-                  Within <strong className="text-stone-900">12 hrs</strong> (best case <strong className="text-stone-900">30 mins – 1 hr</strong>)
-                </p>
-              </div>
-              <div className="p-2 rounded-xl bg-orange-50/70 border border-orange-200/80">
-                <div className="flex items-center gap-1 text-orange-900 font-bold">
-                  <Truck size={12} className="text-orange-700 shrink-0" />
-                  <span>Out of Kohima</span>
-                </div>
-                <p className="text-stone-600 text-[10.5px] mt-0.5 leading-snug">
-                  Nagaland: <strong className="text-stone-900">1 – 2 days</strong>
-                </p>
-              </div>
-              <div className="p-2 rounded-xl bg-stone-50 border border-stone-200/80">
-                <div className="flex items-center gap-1 text-stone-800 font-bold">
-                  <Package size={12} className="text-stone-600 shrink-0" />
-                  <span>Out of Nagaland</span>
-                </div>
-                <p className="text-stone-600 text-[10.5px] mt-0.5 leading-snug">
-                  Pan-India: <strong className="text-stone-900">4 – 10 days</strong>
-                </p>
-              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!inStock || adding}
+              className={`flex-1 py-3.5 px-8 rounded-full font-semibold text-sm sm:text-base text-white text-center transition-all shadow-sm ${
+                !inStock
+                  ? 'bg-stone-300 cursor-not-allowed text-stone-500'
+                  : added
+                  ? 'bg-emerald-700 hover:bg-emerald-800'
+                  : 'bg-[#ab331c] hover:bg-[#962c17] active:scale-98'
+              }`}
+            >
+              {added ? '✓ Added to cart' : adding ? 'Adding...' : !inStock ? 'Sold out' : 'Add to cart'}
+            </button>
           </div>
 
-          {/* Flexible Brand Bundle Builder (2-4 Items · Save 10%) */}
-          {bundleItems && bundleItems.length >= 2 && (
-            <div className="bg-surface-container-low p-4 sm:p-5 rounded-3xl border border-outline-variant/30 shadow-2xs space-y-3.5">
-              {/* Header */}
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-2.5">
-                  <span className="w-8 h-8 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center shadow-2xs font-bold shrink-0">
-                    <Sparkles size={16} />
-                  </span>
-                  <div>
-                    <h4 className="font-serif font-bold text-stone-900 text-sm sm:text-base leading-tight">
-                      Custom {product.manufacturer?.business_name || 'Brand'} Bundle
-                    </h4>
-                    <p className="text-[11px] text-stone-500">
-                      Mix 2 to 4 packs & get 10% off automatically
-                    </p>
-                  </div>
-                </div>
-                <span className="bg-primary text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
-                  10% OFF
-                </span>
+          {/* Trust Card */}
+          <div className="bg-white border border-stone-200/90 rounded-2xl p-5 space-y-3.5 text-xs text-stone-700 shadow-xs">
+            <div className="grid grid-cols-2 gap-2 font-medium">
+              <div className="flex items-center gap-1.5 text-stone-800">
+                <Check size={14} className="text-[#ab331c] shrink-0" strokeWidth={2.5} />
+                <span>FSSAI certified</span>
               </div>
-
-              {/* Active Bundle Items Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                {bundleItems.map((item, idx) => (
-                  <div
-                    key={`${item.id}-${idx}`}
-                    className="bg-white p-2.5 rounded-2xl border border-stone-200/90 text-center space-y-1 relative group shadow-2xs hover:border-red-500 transition-all flex flex-col justify-between"
-                  >
-                    {/* Remove Button */}
-                    {bundleItems.length > 2 && (
-                      <button
-                        type="button"
-                        onClick={() => handleCutBundleItem(idx)}
-                        aria-label="Remove item"
-                        className="absolute -top-1.5 -right-1.5 z-10 w-5 h-5 rounded-full bg-stone-100 hover:bg-red-500 hover:text-white text-stone-500 flex items-center justify-center text-xs font-bold shadow-xs transition-colors"
-                      >
-                        <X size={12} strokeWidth={2.5} />
-                      </button>
-                    )}
-
-                    <div className="aspect-square rounded-xl overflow-hidden bg-stone-100 mb-1">
-                      <img
-                        src={item.primary_image_url || '/featured-pouches.png'}
-                        alt={item.title || 'Pickle Pack'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <p className="font-bold text-[11px] text-stone-900 line-clamp-1 leading-snug" title={item.title}>
-                      {item.title}
-                    </p>
-                    <div className="flex items-center justify-center gap-1.5 pt-0.5">
-                      <span className="text-xs font-bold text-stone-950 font-mono">
-                        ₹{Math.round(parseFloat(item.price || 0) * 0.90)}
-                      </span>
-                      <span className="text-[10px] text-stone-400 line-through font-mono">
-                        ₹{parseFloat(item.price || 0).toFixed(0)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Empty Slot Placeholder if bundleItems.length < 4 */}
-                {bundleItems.length < 4 && (
-                  <div className="border-2 border-dashed border-stone-300 rounded-2xl p-2.5 flex flex-col items-center justify-center text-center space-y-1 bg-white/40 min-h-[110px]">
-                    <span className="w-6 h-6 rounded-full bg-stone-100 text-stone-600 font-bold text-xs flex items-center justify-center">
-                      <Plus size={13} />
-                    </span>
-                    <span className="text-[11px] font-bold text-stone-700">Add Pack</span>
-                    <span className="text-[9.5px] text-stone-400">
-                      Slot {bundleItems.length + 1} of 4
-                    </span>
-                  </div>
-                )}
+              <div className="flex items-center gap-1.5 text-stone-800">
+                <Check size={14} className="text-[#ab331c] shrink-0" strokeWidth={2.5} />
+                <span>No preservatives</span>
               </div>
-
-              {/* Add More Items from the Same Brand Picker */}
-              {(() => {
-                const uniqueBrandCatalog = brandCatalog.reduce((acc, current) => {
-                  const exists = acc.find(
-                    (it) => it.id === current.id || it.title?.toLowerCase() === current.title?.toLowerCase()
-                  );
-                  if (!exists) acc.push(current);
-                  return acc;
-                }, []);
-
-                if (uniqueBrandCatalog.length === 0 || bundleItems.length >= 4) return null;
-
-                return (
-                  <div className="pt-2 border-t border-red-200/50 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-stone-900">
-                        Add more from {product.manufacturer?.business_name || 'this brand'}:
-                      </span>
-                      <span className="text-[10.5px] font-semibold text-red-700 bg-red-100/80 px-2 py-0.5 rounded-full">
-                        {4 - bundleItems.length} slot{4 - bundleItems.length > 1 ? 's' : ''} left
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {uniqueBrandCatalog.map((opt) => (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          onClick={() => handleAddToBundle(opt)}
-                          className="flex items-center justify-between p-2 rounded-xl bg-white border border-stone-200/90 hover:border-primary hover:bg-primary-fixed/20 active:scale-98 transition-all text-left shadow-2xs group"
-                        >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <img
-                              src={opt.primary_image_url || '/featured-pouches.png'}
-                              alt={opt.title}
-                              className="w-9 h-9 rounded-lg object-cover shrink-0 bg-stone-100"
-                            />
-                            <div className="min-w-0">
-                              <p className="font-semibold text-stone-900 text-xs truncate">
-                                {opt.title}
-                              </p>
-                              <p className="text-[11px] text-stone-500 font-mono">
-                                +₹{parseFloat(opt.price || 0).toFixed(0)}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="w-6 h-6 rounded-full bg-red-600 group-hover:bg-red-700 text-white flex items-center justify-center shrink-0 ml-2 shadow-2xs">
-                            <Plus size={13} strokeWidth={2.5} />
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Summary & Pricing Row */}
-              {(() => {
-                const orig = bundleItems.reduce((acc, it) => acc + (parseFloat(it?.price || 0) || 0), 0);
-                const disc = Math.round(orig * 0.90);
-                const save = orig - disc;
-                return (
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-red-200/60">
-                    <div className="text-center sm:text-left">
-                      <div className="flex items-baseline justify-center sm:justify-start gap-2">
-                        <span className="text-xl font-serif font-black text-stone-950">₹{disc}</span>
-                        <span className="text-xs text-stone-400 line-through font-mono">₹{orig}</span>
-                        <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                          Save ₹{save} (10% OFF)
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-stone-500 mt-0.5">Free air shipping included with bundle packaging</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleAddFlexibleBundle}
-                      disabled={addingBrandBundle || !isInStock || bundleItems.length < 2 || bundleItems.length > 4}
-                      className={`w-full sm:w-auto px-6 py-2.5 text-xs font-bold rounded-xl shadow-xs flex items-center justify-center gap-2 transition-all ${
-                        isInStock && bundleItems.length >= 2 && bundleItems.length <= 4
-                          ? 'bg-red-600 hover:bg-red-700 text-white active:scale-95'
-                          : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
-                      }`}
-                    >
-                      <ShoppingBag size={14} />
-                      <span>
-                        {addingBrandBundle
-                          ? `Adding ${bundleItems.length}-Pack Bundle...`
-                          : !isInStock
-                          ? 'Sold Out'
-                          : `Add ${bundleItems.length}-Pack Bundle · ₹${disc}`}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-
-          {/* Interactive Tabs: Ingredients, Storage, Reviews */}
-          <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm space-y-4">
-            <div className="flex flex-wrap border-b border-stone-100 text-xs font-bold text-stone-500 gap-4 sm:gap-6">
-              <button
-                onClick={() => setActiveInfoTab('ingredients')}
-                className={`pb-2.5 transition-colors ${activeInfoTab === 'ingredients' ? 'border-b-2 border-red-600 text-red-600 font-bold' : 'hover:text-stone-900'}`}
-              >
-                Ingredients & Allergens
-              </button>
-              <button
-                onClick={() => setActiveInfoTab('storage')}
-                className={`pb-2.5 transition-colors ${activeInfoTab === 'storage' ? 'border-b-2 border-red-600 text-red-600 font-bold' : 'hover:text-stone-900'}`}
-              >
-                Storage & Shelf Life
-              </button>
-              <button
-                onClick={() => setActiveInfoTab('reviews')}
-                className={`pb-2.5 transition-colors ${activeInfoTab === 'reviews' ? 'border-b-2 border-red-600 text-red-600 font-bold' : 'hover:text-stone-900'}`}
-              >
-                Reviews ({reviewsList.length})
-              </button>
+              <div className="flex items-center gap-1.5 text-stone-800">
+                <Check size={14} className="text-[#ab331c] shrink-0" strokeWidth={2.5} />
+                <span>Leak-proof packing</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-stone-800">
+                <Check size={14} className="text-[#ab331c] shrink-0" strokeWidth={2.5} />
+                <span>Easy returns</span>
+              </div>
             </div>
 
-            <div className="text-xs text-stone-700 leading-relaxed">
-              {activeInfoTab === 'ingredients' && (
-                <div className="space-y-2.5">
-                  <p><strong>Ingredients:</strong> {product.ingredients}</p>
-                  <p className="text-stone-500"><strong>Allergen Notice:</strong> {product.allergens || 'None declared.'}</p>
-                  <div className="pt-2 border-t border-stone-100 flex items-center gap-2 text-stone-600">
-                    <ShieldCheck size={14} className="text-emerald-700" />
-                    <span>Prepared under FSSAI Food Safety Standards (Lic. #{fssaiNumber}). Free from artificial colors, binders, or synthetic preservatives.</span>
-                  </div>
-                </div>
-              )}
-
-              {activeInfoTab === 'storage' && (
-                <div className="space-y-2">
-                  <p><strong>Storage Instructions:</strong> {product.storage_instructions}</p>
-                  <p><strong>Shelf Life:</strong> {product.shelf_life}</p>
-                  <p className="text-stone-500"><strong>Pro-Tip:</strong> Always use a thoroughly dry spoon. Keep the top layer covered with oil to preserve natural shelf stability.</p>
-                </div>
-              )}
-
-              {activeInfoTab === 'reviews' && (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-stone-100">
-                    <div>
-                      <span className="font-bold text-stone-900 text-sm">Customer Feedback</span>
-                      <p className="text-[11px] text-stone-500">Verified buyer ratings & culinary notes</p>
-                    </div>
-                    <button
-                      onClick={() => setShowReviewModal(true)}
-                      className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors"
-                    >
-                      Write a Review
-                    </button>
-                  </div>
-
-                  {reviewsList.length === 0 ? (
-                    <p className="text-stone-500 py-3 text-center">Be the first to review this artisanal batch!</p>
-                  ) : (
-                    <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                      {reviewsList.map((rev) => (
-                        <div key={rev.id || rev.author_name} className="p-3 bg-stone-50 rounded-xl border border-stone-200/80 space-y-1">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="font-bold text-stone-900">{rev.author_name}</span>
-                              {rev.location && (
-                                <span className="text-[11px] text-stone-500 font-medium">({rev.location})</span>
-                              )}
-                              {rev.is_verified_buyer && (
-                                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-800 font-semibold bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded">
-                                  <Check size={10} className="text-emerald-700" /> Verified Buyer
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex text-amber-500">
-                              {Array.from({ length: Math.max(1, Math.min(5, Math.floor(Number(rev.rating) || 5))) }).map((_, i) => (
-                                <Star key={i} size={11} className="fill-amber-400 text-amber-400" />
-                              ))}
-                            </div>
-                          </div>
-                          {rev.title && <p className="font-semibold text-stone-800">{rev.title}</p>}
-                          <p className="text-stone-600 leading-normal">{rev.comment}</p>
-                          {rev.image_url && (
-                            <div className="pt-2">
-                              <img
-                                src={rev.image_url}
-                                alt="Customer review photo"
-                                className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-xl border border-stone-200 shadow-2xs hover:scale-105 transition-transform cursor-pointer"
-                                onClick={() => window.open(rev.image_url, '_blank')}
-                                title="Click to view photo"
-                              />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+            <div className="pt-2 border-t border-stone-100 text-stone-500 text-[11px] leading-relaxed">
+              <p>
+                <strong className="text-stone-700 font-semibold">Ingredients:</strong> {product.ingredients || 'Fresh regional chillies, wood-pressed mustard oil, sea salt, natural spices.'}
+              </p>
+              <p className="mt-1">
+                <strong className="text-stone-700 font-semibold">Shelf life:</strong> {product.shelf_life || '12 months from packing'} · Store in cool dry place, use dry spoon.
+              </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Review Submission Modal */}
+      {/* Customer Reviews Section */}
+      <div className="bg-white border border-stone-200/90 rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4 border-b border-stone-100 pb-4">
+          <div>
+            <h3 className="font-serif font-bold text-2xl text-stone-900">Customer Reviews</h3>
+            <p className="text-xs text-stone-500 mt-0.5">Verified culinary ratings & batch notes</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowReviewModal(true)}
+            className="px-4 py-2 rounded-full border border-[#ab331c] text-[#ab331c] hover:bg-[#ab331c] hover:text-white text-xs font-semibold transition-colors"
+          >
+            Write a Review
+          </button>
+        </div>
+
+        {reviewsList.length === 0 ? (
+          <p className="text-stone-500 text-xs py-4 text-center">
+            No customer reviews yet. Be the first to taste and review this batch!
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {reviewsList.slice(0, 4).map((rev, idx) => (
+              <div key={idx} className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-stone-900">{rev.author_name}</span>
+                  <div className="flex text-amber-500">
+                    {Array.from({ length: rev.rating || 5 }).map((_, i) => (
+                      <Star key={i} size={11} className="fill-amber-400 text-amber-400" />
+                    ))}
+                  </div>
+                </div>
+                {rev.title && <p className="font-semibold text-xs text-stone-800">{rev.title}</p>}
+                <p className="text-xs text-stone-600">{rev.comment}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* "You may also like" Section */}
+      {recommendations.length > 0 && (
+        <div className="space-y-6 pt-4">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+            You may also like
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {recommendations.map((rec) => (
+              <ProductCard key={rec.id} product={rec} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 bg-stone-950/70 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4 animate-in fade-in zoom-in-95">
+        <div className="fixed inset-0 z-50 bg-stone-950/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 space-y-4">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
-                <h3 className="font-serif font-bold text-lg text-stone-900">Review this Batch</h3>
+                <h3 className="font-serif font-bold text-lg text-stone-900">Write a Review</h3>
                 <p className="text-xs text-stone-500">{product.title}</p>
               </div>
               <button
@@ -1115,18 +496,7 @@ export default function ProductDetailPage() {
                   value={reviewForm.author_name}
                   onChange={(e) => setReviewForm({ ...reviewForm, author_name: e.target.value })}
                   placeholder="e.g. Sentila or Rahul"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-stone-700 font-bold mb-1">Your City / Location (optional)</label>
-                <input
-                  type="text"
-                  value={reviewForm.location || ''}
-                  onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })}
-                  placeholder="e.g. Bengaluru, Dimapur, or Mumbai"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#ab331c]"
                 />
               </div>
 
@@ -1138,10 +508,10 @@ export default function ProductDetailPage() {
                       key={star}
                       type="button"
                       onClick={() => setReviewForm({ ...reviewForm, rating: star })}
-                      className="p-1.5 focus:outline-none"
+                      className="p-1 focus:outline-none"
                     >
                       <Star
-                        size={22}
+                        size={20}
                         className={`${
                           star <= reviewForm.rating
                             ? 'fill-amber-400 text-amber-400'
@@ -1154,86 +524,24 @@ export default function ProductDetailPage() {
               </div>
 
               <div>
-                <label className="block text-stone-700 font-bold mb-1">Review Headline</label>
-                <input
-                  type="text"
-                  value={reviewForm.title}
-                  onChange={(e) => setReviewForm({ ...reviewForm, title: e.target.value })}
-                  placeholder="e.g. Phenomenal wood smoke and authentic chilli kick"
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-stone-700 font-bold mb-1">Detailed Review *</label>
+                <label className="block text-stone-700 font-bold mb-1">Review</label>
                 <textarea
                   rows={3}
                   required
                   value={reviewForm.comment}
                   onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })}
-                  placeholder="Tell other pickle lovers about the aroma, oil consistency, heat level, and what meal you paired it with..."
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-primary"
+                  placeholder="Share details of the aroma, texture, heat level..."
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-[#ab331c]"
                 />
-              </div>
-
-              <div>
-                <label className="block text-stone-700 font-bold mb-1">
-                  Upload Photo of your Dish / Pack <span className="text-stone-400 font-normal">(Optional)</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <label className="px-3 py-1.5 bg-stone-100 hover:bg-stone-200 border border-stone-300 rounded-lg cursor-pointer text-stone-700 text-xs font-semibold inline-flex items-center gap-1.5 transition-colors">
-                    <Camera size={13} className="text-red-600" />
-                    <span>Choose Photo</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          if (file.size > 5 * 1024 * 1024) {
-                            toast.error('Image size must be under 5MB');
-                            return;
-                          }
-                          const reader = new FileReader();
-                          reader.onloadend = () => {
-                            setReviewForm((prev) => ({ ...prev, image_url: reader.result }));
-                          };
-                          reader.readAsDataURL(file);
-                        }
-                      }}
-                    />
-                  </label>
-                  <span className="text-[11px] text-stone-400">or enter image URL:</span>
-                </div>
-                <input
-                  type="url"
-                  value={reviewForm.image_url}
-                  onChange={(e) => setReviewForm({ ...reviewForm, image_url: e.target.value })}
-                  placeholder="https://images.unsplash.com/..."
-                  className="w-full mt-1.5 px-3 py-1.5 bg-stone-50 border border-stone-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary"
-                />
-                {reviewForm.image_url && (
-                  <div className="relative mt-2 w-16 h-16 rounded-lg border border-stone-200 overflow-hidden group">
-                    <img src={reviewForm.image_url} alt="Review Preview" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => setReviewForm({ ...reviewForm, image_url: '' })}
-                      className="absolute top-1 right-1 bg-stone-900/80 hover:bg-stone-900 text-white rounded-full p-0.5"
-                    >
-                      <X size={10} />
-                    </button>
-                  </div>
-                )}
               </div>
 
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
                   disabled={submittingReview}
-                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl shadow transition-colors"
+                  className="flex-1 py-3 bg-[#ab331c] hover:bg-[#962c17] text-white font-bold rounded-xl transition-colors"
                 >
-                  {submittingReview ? 'Publishing...' : 'Submit Verified Review'}
+                  {submittingReview ? 'Submitting...' : 'Submit Review'}
                 </button>
                 <button
                   type="button"
@@ -1247,62 +555,6 @@ export default function ProductDetailPage() {
           </div>
         </div>
       )}
-
-      {/* Mobile Sticky Action Bar (Direct one-tap checkout always within thumb reach) */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-stone-200/90 p-2.5 px-3.5 pb-[calc(env(safe-area-inset-bottom,0px)+8px)] shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-2.5 animate-in slide-in-from-bottom duration-200">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <img
-            src={resolveProductImage(product.primary_image_url || productImages[0])}
-            alt={product.title}
-            className="w-10 h-10 object-cover rounded-xl border border-stone-200 shrink-0"
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/featured-pouches.png';
-            }}
-          />
-          <div className="truncate min-w-0">
-            <p className="font-bold text-xs text-stone-900 truncate leading-tight">{product.title}</p>
-            <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="font-serif font-black text-sm text-red-600">
-                ₹{activePrice}
-              </span>
-              <span className="text-[10px] text-stone-500 font-medium truncate">
-                {currentBundle.name}
-              </span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            disabled={!isInStock || adding}
-            className={`px-3 py-2 text-xs font-bold rounded-xl shadow-xs flex items-center gap-1.5 transition-all cursor-pointer ${
-              added
-                ? 'bg-emerald-600 text-white'
-                : isInStock
-                ? 'bg-red-50 border border-red-600/30 text-red-600 hover:bg-red-100 active:scale-95'
-                : 'bg-stone-100 border border-stone-200 text-stone-400 cursor-not-allowed'
-            }`}
-          >
-            {added ? <CheckCircle size={14} /> : <ShoppingBag size={14} />}
-            <span>{added ? 'Added' : isInStock ? 'Add' : 'Sold Out'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={handleBuyNow}
-            disabled={!isInStock}
-            className={`px-3.5 py-2 text-xs font-bold text-white rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1 ${
-              isInStock
-                ? 'bg-red-600 hover:bg-red-700 active:scale-95'
-                : 'bg-stone-300 text-stone-500 cursor-not-allowed shadow-none'
-            }`}
-          >
-            <span>{isInStock ? 'Buy Now' : 'In Stock Soon'}</span>
-            {isInStock && <ArrowRight size={13} />}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }

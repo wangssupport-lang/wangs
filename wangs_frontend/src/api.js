@@ -236,9 +236,9 @@ export const api = {
   createOrder: (orderPayload) => apiRequest('/checkout/create-order/', { method: 'POST', body: JSON.stringify(orderPayload) }),
   verifyPayment: (payload) => apiRequest('/payments/verify/', { method: 'POST', body: JSON.stringify(payload) }),
   createPaymentOrder: (payload) => apiRequest('/payments/create-order/', { method: 'POST', body: JSON.stringify(payload) }),
-  getPaymentStatus: (orderId) => apiRequest(`/payments/status/${orderId}/`),
+  getPaymentStatus: (orderId, verify = '') => apiRequest(`/payments/status/${orderId}/${verify ? `?verify=${encodeURIComponent(verify)}` : ''}`),
   checkCashfreeStatus: (orderNumber) => apiRequest(`/payments/cashfree-status/${orderNumber}/`),
-  lookupOrder: (orderNumber, verify = '') => apiRequest(`/orders/lookup/${orderNumber}/${verify ? `?verify=${verify}` : ''}`),
+  lookupOrder: (orderNumber, verify = '') => apiRequest(`/orders/lookup/${orderNumber}/${verify ? `?verify=${encodeURIComponent(verify)}` : ''}`),
   getMyOrders: () => apiRequest('/orders/my-orders/'),
 
   // Delivery Portal (Direct link /delivery & QR scan)

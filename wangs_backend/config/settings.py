@@ -10,7 +10,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 load_dotenv(BASE_DIR.parent / '.env')
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'wangs-naga-pickle-dev-secret-key-super-safe-12345')
+SECRET_KEY = os.getenv('SECRET_KEY')
+if not SECRET_KEY:
+    import secrets
+    SECRET_KEY = 'django-insecure-dev-fallback-key-wangs-naga-pickle' if os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes') else secrets.token_urlsafe(50)
 
 DEBUG = os.getenv('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
@@ -144,8 +147,8 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# CORS configuration
-CORS_ALLOW_ALL_ORIGINS = True
+# CORS configuration - restrict strictly to authorized origins
+CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 
 from corsheaders.defaults import default_headers
@@ -154,6 +157,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     'x-admin-token',
     'x-session-key',
     'x-bearer-token',
+    'x-order-verify',
 ]
 CORS_ALLOWED_ORIGINS = [
     'https://wangs.in',
@@ -164,6 +168,10 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
     'http://127.0.0.1:8000',
 ]
+extra_cors = [o.strip() for o in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',') if o.strip()]
+if extra_cors:
+    CORS_ALLOWED_ORIGINS.extend(extra_cors)
+
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.vercel\.app$",
     r"^https://.*\.wangs\.in$",
@@ -212,7 +220,7 @@ EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True').lower() in ('true', '1')
 EMAIL_HOST_USER = (os.getenv('EMAIL_HOST_USER') or 'wangssupport@gmail.com').strip()
-EMAIL_HOST_PASSWORD = (os.getenv('EMAIL_HOST_PASSWORD') or 'xphhqfosryvzyscc').replace(' ', '').strip()
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '').replace(' ', '').strip()
 DEFAULT_FROM_EMAIL = (os.getenv('DEFAULT_FROM_EMAIL') or EMAIL_HOST_USER or 'wangssupport@gmail.com').strip()
 
 # Production Security & SSL/HTTPS Enforcement

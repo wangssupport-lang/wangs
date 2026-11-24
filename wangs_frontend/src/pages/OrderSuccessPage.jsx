@@ -1,32 +1,135 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { CheckCircle, Package, ArrowRight, Truck, ShieldCheck, Mail } from 'lucide-react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { CheckCircle, Package, ArrowRight, Truck, ShieldCheck, Mail, Lock } from 'lucide-react';
 import { api } from '../api';
 
 export default function OrderSuccessPage() {
   const { orderNumber } = useParams();
+  const [searchParams] = useSearchParams();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verifyInput, setVerifyInput] = useState('');
+  const [verifyError, setVerifyError] = useState('');
+  const [verifying, setVerifying] = useState(false);
+
+  const initialVerify = (searchParams.get('verify') || '').trim() || (() => {
+    try {
+      return (
+        sessionStorage.getItem(`order_verify_${orderNumber}`) ||
+        sessionStorage.getItem('wangs_last_order_verify') ||
+        ''
+      );
+    } catch (e) {
+      return '';
+    }
+  })();
+
+  const fetchOrder = async (verifyValue) => {
+    setLoading(true);
+    setVerifyError('');
+    try {
+      const data = await api.lookupOrder(orderNumber, verifyValue);
+      setOrder(data);
+      setNeedsVerification(false);
+      if (verifyValue) {
+        try {
+          sessionStorage.setItem(`order_verify_${orderNumber}`, verifyValue);
+        } catch (e) {}
+      }
+    } catch (err) {
+      if (err.status === 403 || (err.message && err.message.toLowerCase().includes('verification required'))) {
+        setNeedsVerification(true);
+      } else {
+        console.error('Failed to lookup order', err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadOrder() {
-      try {
-        const data = await api.lookupOrder(orderNumber);
-        setOrder(data);
-      } catch (err) {
-        console.error('Failed to lookup order', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadOrder();
+    fetchOrder(initialVerify);
   }, [orderNumber]);
+
+  const handleManualVerify = async (e) => {
+    e.preventDefault();
+    const clean = verifyInput.trim();
+    if (!clean) {
+      setVerifyError('Please enter your email or phone number used at checkout.');
+      return;
+    }
+    setVerifying(true);
+    setVerifyError('');
+    try {
+      const data = await api.lookupOrder(orderNumber, clean);
+      setOrder(data);
+      setNeedsVerification(false);
+      try {
+        sessionStorage.setItem(`order_verify_${orderNumber}`, clean);
+      } catch (e) {}
+    } catch (err) {
+      setVerifyError('Verification failed. Please check that the email or phone number matches your order.');
+    } finally {
+      setVerifying(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="max-w-2xl mx-auto py-20 px-4 text-center">
         <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
         <p className="text-xs text-stone-500 mt-2">Loading your order confirmation...</p>
+      </div>
+    );
+  }
+
+  if (needsVerification && !order) {
+    return (
+      <div className="max-w-md mx-auto py-16 px-4">
+        <div className="bg-white p-8 rounded-2xl border border-stone-200 shadow-sm text-center space-y-4">
+          <div className="w-14 h-14 bg-amber-50 text-amber-700 rounded-full flex items-center justify-center mx-auto shadow-inner">
+            <Lock size={26} />
+          </div>
+          <h2 className="font-serif text-2xl font-bold text-stone-900">Order Verification</h2>
+          <p className="text-xs text-stone-600 leading-relaxed">
+            To protect your privacy, please enter the customer email address or phone number associated with order <span className="font-mono font-bold text-stone-800">{orderNumber}</span>.
+          </p>
+
+          <form onSubmit={handleManualVerify} className="space-y-3 pt-2 text-left">
+            <div>
+              <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wider mb-1">
+                Email or Phone
+              </label>
+              <input
+                type="text"
+                value={verifyInput}
+                onChange={(e) => setVerifyInput(e.target.value)}
+                placeholder="e.g. name@example.com or +91 94360..."
+                className="w-full px-3.5 py-2.5 text-xs bg-stone-50 border border-stone-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-600 focus:bg-white transition-all"
+                autoFocus
+              />
+            </div>
+
+            {verifyError && (
+              <p className="text-[11px] text-red-600 font-medium">{verifyError}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={verifying}
+              className="w-full py-2.5 bg-red-600 hover:bg-red-700 disabled:bg-stone-300 text-white text-xs font-bold rounded-xl shadow transition-colors cursor-pointer"
+            >
+              {verifying ? 'Verifying...' : 'Access Order Details'}
+            </button>
+          </form>
+
+          <div className="pt-2">
+            <Link to="/products" className="text-xs text-stone-500 hover:text-stone-800 underline">
+              Return to Catalog
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

@@ -686,26 +686,31 @@ class DeliveryCalculator:
                         ).first()
 
             if not applicable_rate:
-                # Platform guarantee fallback: 100% Free Express Delivery across India
-                swiftzone = CourierService.objects.filter(code='SWIFTZONE').first()
-                applicable_rate, _ = DeliveryRate.objects.get_or_create(
+                # Platform guarantee fallback: 100% Free Express Delivery across India only if active admin defaults exist
+                admin_default_rate = DeliveryRate.objects.filter(
                     scope=DeliveryRate.Scope.ADMIN_DEFAULT,
-                    delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
-                    defaults={
-                        'title': 'Wangs Platform Standard Delivery Default',
-                        'courier': swiftzone,
-                        'base_rate': Decimal('0.00'),
-                        'per_package_rate': Decimal('0.00'),
-                        'is_free_delivery': True,
-                        'is_active': True,
-                        'approval_status': DeliveryRate.ApprovalStatus.APPROVED,
-                        'estimated_delivery_days_min': 1,
-                        'estimated_delivery_days_max': 3,
-                        'estimated_delivery_note': '1–3 Business Days Standard Delivery',
-                    }
-                )
+                    delivery_method=DeliveryRate.DeliveryMethod.STANDARD
+                ).first()
+                if admin_default_rate and admin_default_rate.is_active:
+                    applicable_rate = admin_default_rate
+                elif not DeliveryRate.objects.filter(scope=DeliveryRate.Scope.ADMIN_DEFAULT).exists():
+                    swiftzone = CourierService.objects.filter(code='SWIFTZONE').first()
+                    applicable_rate = DeliveryRate.objects.create(
+                        scope=DeliveryRate.Scope.ADMIN_DEFAULT,
+                        delivery_method=DeliveryRate.DeliveryMethod.STANDARD,
+                        title='Wangs Platform Standard Delivery Default',
+                        courier=swiftzone,
+                        base_rate=Decimal('0.00'),
+                        per_package_rate=Decimal('0.00'),
+                        is_free_delivery=True,
+                        is_active=True,
+                        approval_status=DeliveryRate.ApprovalStatus.APPROVED,
+                        estimated_delivery_days_min=1,
+                        estimated_delivery_days_max=3,
+                        estimated_delivery_note='1–3 Business Days Standard Delivery',
+                    )
 
-            if not applicable_rate:
+            if not applicable_rate or not applicable_rate.is_active:
                 all_deliverable = False
                 missing_locations.append(f"{mfg.business_name} does not deliver to {city or postal_code}")
                 continue

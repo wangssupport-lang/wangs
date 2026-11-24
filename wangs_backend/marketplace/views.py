@@ -1,6 +1,7 @@
 import re
 import uuid
 import random
+import secrets
 import datetime
 import logging
 import urllib.parse
@@ -185,6 +186,18 @@ class SendEmailOTPView(views.APIView):
         if not email or '@' not in email or not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
             return Response({'detail': 'Please provide a valid, complete email address (e.g. name@gmail.com).'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Rate limit verification requests: enforce 60-second cooldown per email + purpose to prevent email flooding
+        recent_otp = EmailOTP.objects.filter(
+            email=email,
+            purpose=purpose,
+            created_at__gte=timezone.now() - datetime.timedelta(seconds=60)
+        ).first()
+        if recent_otp:
+            return Response({
+                'detail': 'Please wait 60 seconds before requesting another verification code.',
+                'cooldown': True
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
         # Check for existing account when registering
         if purpose == 'REGISTER':
             if User.objects.filter(email__iexact=email).exists():
@@ -201,8 +214,8 @@ class SendEmailOTPView(views.APIView):
                     'account_exists': False
                 }, status=status.HTTP_404_NOT_FOUND)
 
-        # Generate secure 6-digit numeric OTP code
-        otp_code = f"{random.randint(100000, 999999)}"
+        # Generate cryptographically secure 6-digit numeric OTP code
+        otp_code = f"{secrets.SystemRandom().randint(100000, 999999)}"
         expires_at = timezone.now() + datetime.timedelta(minutes=10)
 
         # Invalidate older unused OTPs for this email & purpose
@@ -819,7 +832,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
                 if last_addr and last_addr.city:
                     location = f"{last_addr.city}, {last_addr.state}".strip(', ')
         else:
-            is_verified_buyer = True
+            is_verified_buyer = False
 
         review = ProductReview.objects.create(
             product=product,
@@ -1325,7 +1338,7 @@ class OrderLookupView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, order_number):
-        email_or_phone = request.query_params.get('verify', '').strip()
+        email_or_phone = (request.query_params.get('verify') or request.headers.get('X-Order-Verify') or '').strip()
         order = get_object_or_404(Order, order_number=order_number)
 
         # 1. Authenticated customer who owns the order, or platform administrator
@@ -1334,16 +1347,12 @@ class OrderLookupView(views.APIView):
 
         # 2. Email or phone verification provided and matching
         if email_or_phone and (
-            order.customer_email.lower() == email_or_phone.lower() or
-            order.customer_phone == email_or_phone
+            (order.customer_email and order.customer_email.lower() == email_or_phone.lower()) or
+            (order.customer_phone and order.customer_phone == email_or_phone)
         ):
             return Response(OrderSerializer(order).data)
 
-        # 3. Recent checkout window (guest shopper viewing order confirmation within 30 minutes of purchase)
-        if order.created_at >= timezone.now() - datetime.timedelta(minutes=30):
-            return Response(OrderSerializer(order).data)
-
-        # 4. Prevent unauthorized information disclosure
+        # 3. Prevent unauthorized information disclosure (IDOR protection)
         return Response({
             'detail': 'Order verification required. Please provide the customer email or phone number associated with this order to view details.'
         }, status=status.HTTP_403_FORBIDDEN)
@@ -1790,8 +1799,20 @@ class CourierForgotPasswordView(views.APIView):
             # Return uniform message to prevent enumeration
             return Response({'message': 'If an active courier account is associated with this identifier, a password reset code has been sent.'})
 
-        # Generate and dispatch 6-digit OTP
-        otp_code = str(random.randint(100000, 999999))
+        # Rate limit password reset requests for courier: enforce 60-second cooldown
+        recent_otp = EmailOTP.objects.filter(
+            user=user,
+            purpose=EmailOTP.Purpose.RESET_PASSWORD,
+            created_at__gte=timezone.now() - datetime.timedelta(seconds=60)
+        ).first()
+        if recent_otp:
+            return Response({
+                'detail': 'Please wait 60 seconds before requesting another password reset code.',
+                'cooldown': True
+            }, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Generate cryptographically secure 6-digit numeric OTP
+        otp_code = str(secrets.SystemRandom().randint(100000, 999999))
         EmailOTP.objects.create(
             user=user,
             email=user.email,
@@ -4885,6 +4906,7 @@ class PaymentStatusDetailView(views.APIView):
     """
     GET /api/payments/status/<order_id>/
     Safe status inspection for customer and order tracking.
+    Enforces authorization check to prevent IDOR / unauthorized payment data inspection.
     """
     permission_classes = [permissions.AllowAny]
 
@@ -4896,6 +4918,21 @@ class PaymentStatusDetailView(views.APIView):
 
         if not order:
             return Response({'detail': f'Order {order_id} not found.'}, status=404)
+
+        # Authorization: order owner, platform administrator, or matching verification email/phone
+        email_or_phone = (request.query_params.get('verify') or request.headers.get('X-Order-Verify') or '').strip()
+        is_owner = request.user.is_authenticated and (order.user == request.user or request.user.is_platform_admin())
+        is_verified_guest = bool(
+            email_or_phone and (
+                (order.customer_email and order.customer_email.lower() == email_or_phone.lower()) or
+                (order.customer_phone and order.customer_phone == email_or_phone)
+            )
+        )
+
+        if not (is_owner or is_verified_guest):
+            return Response({
+                'detail': 'Authorization required to view payment status for this order.'
+            }, status=status.HTTP_403_FORBIDDEN)
 
         payment = Payment.objects.filter(order=order).order_by('-created_at').first()
 

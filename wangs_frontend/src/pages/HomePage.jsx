@@ -672,120 +672,252 @@ export default function HomePage() {
 
   const totalReviewPages = Math.ceil(activeReviewsList.length / 3);
 
+  // Filter products for Customer Favourites
+  const customerFavourites = useMemo(() => {
+    const list = bestsellers.length > 0 ? bestsellers : allProducts.length > 0 ? allProducts : desktopCurated;
+    if (activeFilter === 'ALL') return list.slice(0, 8);
+    if (activeFilter === 'MEAT') {
+      return list.filter((p) => {
+        const str = ((p.title || '') + ' ' + (p.dietary_type || '')).toLowerCase();
+        return str.includes('non_veg') || str.includes('meat') || str.includes('pork') || str.includes('beef') || str.includes('chicken');
+      }).slice(0, 8);
+    }
+    if (activeFilter === 'VEG') {
+      return list.filter((p) => {
+        const str = ((p.title || '') + ' ' + (p.dietary_type || '')).toLowerCase();
+        return str.includes('veg') && !str.includes('non_veg') && !str.includes('pork') && !str.includes('meat');
+      }).slice(0, 8);
+    }
+    if (activeFilter === 'CHILLI') {
+      return list.filter((p) => {
+        const str = ((p.title || '') + ' ' + (p.heat_level || '')).toLowerCase();
+        return str.includes('chilli') || str.includes('chili') || str.includes('hot') || str.includes('ghost');
+      }).slice(0, 8);
+    }
+    if (activeFilter === 'FERMENTED') {
+      return list.filter((p) => {
+        const str = ((p.title || '') + ' ' + (p.category?.name || '')).toLowerCase();
+        return str.includes('ferment') || str.includes('axone') || str.includes('bamboo');
+      }).slice(0, 8);
+    }
+    return list.slice(0, 8);
+  }, [bestsellers, allProducts, desktopCurated, activeFilter]);
+
   return (
-    <div className="w-full bg-background min-h-screen text-on-surface">
+    <div className="w-full bg-[#fbf8f3] min-h-screen text-[#1c1917]">
       {/* ========================================================
-          DESKTOP VIEW (EXACTLY MATCHING IMAGE 1)
+          HERO SECTION (EXACT MATCH TO THEME MOCKUP 1)
           ======================================================== */}
-      <div className="hidden md:block">
-        {/* Section 1: Hero Announcement & Marketplace Banner */}
-        <section className="relative w-full bg-white px-6 lg:px-12 py-10 lg:py-16 overflow-hidden border-b border-stone-100">
-          <div className="max-w-[1440px] mx-auto grid grid-cols-12 gap-8 lg:gap-12 items-center">
-            {/* Left 6 Columns */}
-            <div className="col-span-12 lg:col-span-6 flex flex-col gap-6 pr-0 lg:pr-4 relative z-10">
-              <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200/80 text-amber-950 px-4 py-1.5 rounded-full w-fit shadow-2xs">
-                <Flame size={14} className="text-amber-600 shrink-0 fill-amber-500" />
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Direct From 18 Spice States
-                </span>
-              </div>
+      <section className="w-full px-4 sm:px-6 lg:px-12 pt-8 sm:pt-12 pb-10 max-w-[1440px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+          {/* Left Column: Headline, Copy & CTAs */}
+          <div className="lg:col-span-7 flex flex-col items-start gap-5">
+            {/* Tag Badge */}
+            <span className="bg-[#f6df9d] text-stone-900 px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide">
+              Artisanal · Small batch · No shortcuts
+            </span>
 
-              <h1 className="text-4xl lg:text-[56px] font-serif text-stone-900 tracking-tight leading-[1.1]">
-                Authentic Indian Pickles, <br />
-                Handcrafted by Heritage <br />
-                Makers.
-              </h1>
+            {/* Main Headline */}
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-[62px] font-bold text-stone-900 leading-[1.1] tracking-tight">
+              Fiery, fermented, <br />
+              made by hand.
+            </h1>
 
-              <p className="text-base sm:text-lg text-stone-600 max-w-xl leading-relaxed">
-                Connecting 320+ certified artisanal pickle manufacturers across 18 states directly with pickle lovers. Sun-cured in wood-pressed mustard oil, stone-ground spices, zero synthetic preservatives.
-              </p>
+            {/* Subtitle */}
+            <p className="text-stone-600 text-base sm:text-lg leading-relaxed max-w-lg">
+              Pickles and pantry staples from the hills of Nagaland, made by local families and delivered to your door.
+            </p>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-wrap items-center gap-4 pt-1">
-                <a
-                  href="#artisan-bestsellers"
-                  className="bg-[#8b3500] hover:bg-[#702a00] text-white px-8 py-4 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 font-bold text-sm active:scale-95"
-                >
-                  <span>Shop Regional Pickles</span>
-                  <ArrowRight size={17} />
-                </a>
-
-                <Link
-                  to="/brands"
-                  className="px-6 py-4 rounded-full border border-stone-200 hover:border-stone-400 hover:bg-stone-50 text-stone-800 font-semibold text-sm transition-all flex items-center gap-2 shadow-2xs"
-                >
-                  <span>Meet 320+ Makers</span>
-                </Link>
-              </div>
-
-              {/* Trust Pills */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium text-stone-500 pt-1">
-                <span className="flex items-center gap-1.5 text-stone-700">
-                  <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
-                  <span>Free Express Delivery Above ₹499</span>
-                </span>
-                <span className="flex items-center gap-1.5 text-stone-700">
-                  <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
-                  <span>FSSAI Certified Kitchens</span>
-                </span>
-                <span className="flex items-center gap-1.5 text-stone-700">
-                  <CheckCircle2 size={15} className="text-emerald-700 shrink-0" />
-                  <span>100% Sun-Cured Heritage</span>
-                </span>
-              </div>
-
-              {/* Elegant Hairline Metric Stats Row */}
-              <div className="flex items-center gap-6 sm:gap-10 pt-4 mt-2 border-t border-stone-100 max-w-xl">
-                <div>
-                  <span className="font-serif text-3xl font-bold text-stone-900 block">
-                    14,200+
-                  </span>
-                  <span className="text-xs text-stone-500 mt-0.5 block">
-                    Packs Delivered Pan-India
-                  </span>
-                </div>
-
-                <div className="h-10 w-px bg-stone-200" />
-
-                <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-serif text-3xl font-bold text-stone-900">
-                      4.8
-                    </span>
-                    <Star size={18} className="fill-amber-500 text-amber-500 shrink-0" />
-                  </div>
-                  <span className="text-xs text-stone-500 mt-0.5 block">
-                    Average Batch Rating
-                  </span>
-                </div>
-
-                <div className="h-10 w-px bg-stone-200" />
-
-                <div>
-                  <span className="font-serif text-3xl font-bold text-emerald-800 block">
-                    320+
-                  </span>
-                  <span className="text-xs text-stone-500 mt-0.5 block">
-                    Verified Heritage Kitchens
-                  </span>
-                </div>
-              </div>
+            {/* CTA Buttons */}
+            <div className="flex flex-wrap items-center gap-3.5 pt-2">
+              <Link
+                to="/products"
+                className="bg-[#ab331c] hover:bg-[#962c17] text-white px-7 py-3 rounded-full font-semibold text-xs sm:text-sm transition-colors shadow-none"
+              >
+                Shop pickles
+              </Link>
+              <Link
+                to="/brands"
+                className="border border-stone-800 hover:bg-stone-900 hover:text-white text-stone-900 px-7 py-3 rounded-full font-semibold text-xs sm:text-sm transition-colors"
+              >
+                Meet the makers
+              </Link>
             </div>
 
-            {/* Right 6 Columns: Hero Visual Showcase (Cropped around subjects, zero text overlap) */}
-            <div className="col-span-12 lg:col-span-6 relative flex items-center justify-center lg:justify-end">
-              <div className="relative w-full flex items-center justify-center lg:justify-end">
-                {/* Cropped studio photography tightly framing bowl, jar & spices */}
-                <img
-                  src="/images/hero/wangs_signature_pickle_hero.jpg?v=4"
-                  alt="Authentic handcrafted Indian heritage artisanal pickle in glass jar with whole spices"
-                  className="w-full max-w-[540px] lg:max-w-[600px] h-auto object-contain select-none transition-transform duration-500 hover:scale-[1.02]"
-                />
+            {/* Checkmarks */}
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium pt-3">
+              <span className="flex items-center gap-1.5">
+                <span className="text-[#ab331c] font-bold">✓</span> FSSAI certified
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[#ab331c] font-bold">✓</span> No preservatives
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-[#ab331c] font-bold">✓</span> Pan-India delivery
+              </span>
+            </div>
+          </div>
+
+          {/* Right Column: Hero Visual Container (Warm Golden Card with Iconic Jars) */}
+          <div className="lg:col-span-5 w-full">
+            <div className="bg-[#f6df9d] rounded-3xl p-8 sm:p-12 min-h-[340px] sm:min-h-[400px] flex items-center justify-center relative overflow-hidden shadow-sm">
+              <div className="relative flex items-end justify-center gap-3.5 sm:gap-5 w-full pt-6">
+                {/* Red Jar (Left) */}
+                <div className="flex flex-col items-center">
+                  <div className="w-16 sm:w-20 h-4 bg-[#1c1917] rounded-t-md" />
+                  <div className="w-20 sm:w-24 h-32 sm:h-40 bg-[#ab331c] rounded-b-3xl shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-7 h-full bg-white/10" />
+                  </div>
+                </div>
+
+                {/* Center Tall Green Jar */}
+                <div className="flex flex-col items-center">
+                  <div className="w-20 sm:w-24 h-5 bg-[#1c1917] rounded-t-md" />
+                  <div className="w-24 sm:w-28 h-44 sm:h-56 bg-[#28452e] rounded-b-3xl shadow-md relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-9 h-full bg-white/10" />
+                  </div>
+                </div>
+
+                {/* Amber/Ochre Jar (Right) */}
+                <div className="flex flex-col items-center">
+                  <div className="w-16 sm:w-20 h-4 bg-[#1c1917] rounded-t-md" />
+                  <div className="w-20 sm:w-24 h-36 sm:h-44 bg-[#c86a14] rounded-b-3xl shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-7 h-full bg-white/10" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
+      {/* ========================================================
+          CATEGORY FILTER PILLS ROW (CENTERED, EXACT MATCH)
+          ======================================================== */}
+      <section className="w-full px-4 sm:px-6 lg:px-12 py-6 max-w-[1440px] mx-auto">
+        <div className="flex items-center justify-center gap-2.5 sm:gap-3.5 overflow-x-auto no-scrollbar py-1">
+          {[
+            { id: 'ALL', label: 'All' },
+            { id: 'MEAT', label: 'Meat pickles' },
+            { id: 'VEG', label: 'Veg pickles' },
+            { id: 'CHILLI', label: 'Chilli & hot' },
+            { id: 'FERMENTED', label: 'Fermented' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveFilter(tab.id)}
+              className={`px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                activeFilter === tab.id
+                  ? 'border-2 border-stone-900 bg-white text-stone-900 font-bold shadow-2xs'
+                  : 'border border-stone-300 hover:border-stone-500 bg-white/60 text-stone-700'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================
+          CUSTOMER FAVOURITES SECTION (EXACT MATCH TO THEME MOCKUP 1)
+          ======================================================== */}
+      <section className="w-full px-4 sm:px-6 lg:px-12 py-8 max-w-[1440px] mx-auto" id="customer-favourites">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900 tracking-tight">
+            Customer favourites
+          </h2>
+          <Link
+            to="/products"
+            className="text-[#ab331c] hover:underline font-semibold text-xs sm:text-sm flex items-center gap-1"
+          >
+            <span>View all</span>
+            <span aria-hidden="true">&rarr;</span>
+          </Link>
+        </div>
+
+        {/* 4-Column Product Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+          {customerFavourites.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </section>
+
+      {/* ========================================================
+          3-COLUMN VALUE PROPOSITIONS BANNER (FOREST GREEN)
+          ======================================================== */}
+      <section className="w-full bg-[#28452e] text-white py-14 px-6 lg:px-12 my-12">
+        <div className="max-w-[1440px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+          {/* Column 1 */}
+          <div className="space-y-1.5">
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-white">
+              Made by real families
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+              Every jar carries its maker's name and village.
+            </p>
+          </div>
+
+          {/* Column 2 */}
+          <div className="space-y-1.5">
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-white">
+              Honest ingredients
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+              Traditional methods, no artificial preservatives.
+            </p>
+          </div>
+
+          {/* Column 3 */}
+          <div className="space-y-1.5">
+            <h3 className="font-serif text-lg sm:text-xl font-bold text-white">
+              Packed to travel
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-300 leading-relaxed">
+              Leak-proof jars, tracked delivery, easy returns.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ========================================================
+          10% DISCOUNT NEWSLETTER BANNER (WARM GOLDEN OCHRE)
+          ======================================================== */}
+      <section className="w-full px-4 sm:px-6 lg:px-12 pb-14 max-w-[1440px] mx-auto">
+        <div className="bg-[#f6df9d] rounded-2xl p-8 sm:p-12 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xs">
+          <div className="space-y-1 text-center md:text-left">
+            <h3 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+              Get 10% off your first jar
+            </h3>
+            <p className="text-xs sm:text-sm text-stone-700">
+              Join for new batches and recipes. No spam.
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              toast.success('Thank you for subscribing! Your 10% welcome coupon has been sent.');
+            }}
+            className="flex items-center gap-2 w-full md:w-auto"
+          >
+            <input
+              type="email"
+              required
+              placeholder="Your email"
+              className="bg-white rounded-full px-5 py-2.5 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none w-full sm:w-64 border border-stone-200"
+            />
+            <button
+              type="submit"
+              className="bg-[#ab331c] hover:bg-[#962c17] text-white rounded-full px-6 py-2.5 text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            >
+              Subscribe
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <div className="hidden md:block">
         {/* Section 2: Explore Available Artisan Brands */}
         <section className="w-full px-6 lg:px-12 py-14 bg-surface-container-lowest/60">
           <div className="max-w-[1440px] mx-auto">
