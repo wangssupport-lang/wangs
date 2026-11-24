@@ -703,90 +703,99 @@ export default function HomePage() {
     return list.slice(0, 8);
   }, [bestsellers, allProducts, desktopCurated, activeFilter]);
 
+  const featuredHeroPickle = useMemo(() => {
+    if (bestsellers && bestsellers.length > 0) return bestsellers[0];
+    if (allProducts && allProducts.length > 0) return allProducts[0];
+    return {
+      title: 'King Chilli Pickle',
+      price: 299,
+      slug: 'pure-raja-mircha-king-chilli-pickle',
+    };
+  }, [bestsellers, allProducts]);
+
   return (
     <div className="w-full bg-[#fbf8f3] min-h-screen text-[#1c1917]">
       {/* ========================================================
-          HERO SECTION (EXACT MATCH TO THEME MOCKUP 1)
+          HERO SECTION (EXACT MATCH TO USER MOCKUP media_1795536959231_2d372ca5.jpg)
           ======================================================== */}
-      <section className="w-full px-4 sm:px-6 lg:px-12 pt-8 sm:pt-12 pb-10 max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          {/* Left Column: Headline, Copy & CTAs */}
-          <div className="lg:col-span-7 flex flex-col items-start gap-5">
-            {/* Tag Badge */}
-            <span className="bg-[#f6df9d] text-stone-900 px-3.5 py-1 rounded-full text-xs font-semibold tracking-wide">
-              Artisanal · Small batch · No shortcuts
+      <section className="w-full bg-white px-4 sm:px-6 lg:px-12 pt-8 sm:pt-14 pb-12 sm:pb-16 max-w-[1440px] mx-auto overflow-hidden relative">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
+          {/* Left Column: Eyebrow, 3-Line Headline, Subtitle, CTAs, Checks & Floating Badge */}
+          <div className="lg:col-span-5 flex flex-col items-start z-10">
+            {/* Eyebrow */}
+            <span className="text-[#ab331c] font-bold text-xs uppercase tracking-wider mb-2">
+              HANDMADE IN NAGALAND
             </span>
 
-            {/* Main Headline */}
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-[62px] font-bold text-stone-900 leading-[1.1] tracking-tight">
-              Fiery, fermented, <br />
-              made by hand.
+            {/* Main 3-line Headline */}
+            <h1 className="font-serif text-4xl sm:text-5xl lg:text-[62px] font-bold text-stone-900 leading-[1.08] tracking-tight">
+              Fiery pickles, <br />
+              made the old <br />
+              way.
             </h1>
 
             {/* Subtitle */}
-            <p className="text-stone-600 text-base sm:text-lg leading-relaxed max-w-lg">
-              Pickles and pantry staples from the hills of Nagaland, made by local families and delivered to your door.
+            <p className="text-stone-600 text-sm sm:text-base leading-relaxed max-w-md mt-4">
+              Small-batch, hand-ground and slow-fermented by local families. Every jar carries its maker's name.
             </p>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-wrap items-center gap-3.5 pt-2">
+            {/* Action Buttons */}
+            <div className="flex flex-wrap items-center gap-3.5 pt-4">
               <Link
                 to="/products"
-                className="bg-[#ab331c] hover:bg-[#962c17] text-white px-7 py-3 rounded-full font-semibold text-xs sm:text-sm transition-colors shadow-none"
+                className="bg-[#ab331c] hover:bg-[#962c17] active:scale-98 text-white px-7 py-3 rounded-full font-medium text-xs sm:text-sm transition-all shadow-sm"
               >
                 Shop pickles
               </Link>
               <Link
                 to="/brands"
-                className="border border-stone-800 hover:bg-stone-900 hover:text-white text-stone-900 px-7 py-3 rounded-full font-semibold text-xs sm:text-sm transition-colors"
+                className="border border-stone-800 hover:bg-stone-50 active:scale-98 text-stone-900 px-7 py-3 rounded-full font-medium text-xs sm:text-sm transition-all"
               >
                 Meet the makers
               </Link>
             </div>
 
-            {/* Checkmarks */}
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-stone-600 font-medium pt-3">
+            {/* Trust Checks */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-stone-600 font-medium pt-4">
               <span className="flex items-center gap-1.5">
-                <span className="text-[#ab331c] font-bold">✓</span> FSSAI certified
+                <span className="text-stone-900 font-bold">✓</span> FSSAI certified
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="text-[#ab331c] font-bold">✓</span> No preservatives
+                <span className="text-stone-900 font-bold">✓</span> No preservatives
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="text-[#ab331c] font-bold">✓</span> Pan-India delivery
+                <span className="text-stone-900 font-bold">✓</span> Pan-India delivery
               </span>
             </div>
+
+            {/* Floating Product Badge (Fresh this week) */}
+            <Link
+              to={`/product/${featuredHeroPickle.slug || 'pure-raja-mircha-king-chilli-pickle'}`}
+              className="bg-white border border-stone-200/90 rounded-2xl p-2.5 pr-5 flex items-center gap-3 shadow-md hover:shadow-lg transition-all w-fit mt-6 group"
+            >
+              <img
+                src="/hero-bowl-thumb.jpg"
+                alt="Fresh this week"
+                className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-stone-200 group-hover:scale-105 transition-transform"
+              />
+              <div className="text-left">
+                <span className="text-[10px] text-stone-500 font-medium block leading-tight">
+                  Fresh this week
+                </span>
+                <span className="text-xs font-bold text-stone-900 font-serif leading-tight group-hover:text-[#ab331c] transition-colors">
+                  {featuredHeroPickle.title?.split('&')?.[0]?.trim() || 'King Chilli Pickle'} · ₹{parseFloat(featuredHeroPickle.price || 299).toFixed(0)}
+                </span>
+              </div>
+            </Link>
           </div>
 
-          {/* Right Column: Hero Visual Container (Warm Golden Card with Iconic Jars) */}
-          <div className="lg:col-span-5 w-full">
-            <div className="bg-[#f6df9d] rounded-3xl p-8 sm:p-12 min-h-[340px] sm:min-h-[400px] flex items-center justify-center relative overflow-hidden shadow-sm">
-              <div className="relative flex items-end justify-center gap-3.5 sm:gap-5 w-full pt-6">
-                {/* Red Jar (Left) */}
-                <div className="flex flex-col items-center">
-                  <div className="w-16 sm:w-20 h-4 bg-[#1c1917] rounded-t-md" />
-                  <div className="w-20 sm:w-24 h-32 sm:h-40 bg-[#ab331c] rounded-b-3xl shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-7 h-full bg-white/10" />
-                  </div>
-                </div>
-
-                {/* Center Tall Green Jar */}
-                <div className="flex flex-col items-center">
-                  <div className="w-20 sm:w-24 h-5 bg-[#1c1917] rounded-t-md" />
-                  <div className="w-24 sm:w-28 h-44 sm:h-56 bg-[#28452e] rounded-b-3xl shadow-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-9 h-full bg-white/10" />
-                  </div>
-                </div>
-
-                {/* Amber/Ochre Jar (Right) */}
-                <div className="flex flex-col items-center">
-                  <div className="w-16 sm:w-20 h-4 bg-[#1c1917] rounded-t-md" />
-                  <div className="w-20 sm:w-24 h-36 sm:h-44 bg-[#c86a14] rounded-b-3xl shadow-sm relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-7 h-full bg-white/10" />
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Right Column: Authentic Nagaland Pickle Photography (Flawless Blend) */}
+          <div className="lg:col-span-7 flex items-center justify-center lg:justify-end select-none">
+            <img
+              src="/hero-pickle-artisan.jpg"
+              alt="Authentic handcrafted Nagaland pickles, sun-cured spices and cold-pressed mustard oil"
+              className="w-full max-w-[760px] h-auto object-contain pointer-events-none drop-shadow-xs"
+            />
           </div>
         </div>
       </section>

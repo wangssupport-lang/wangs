@@ -446,7 +446,7 @@ export default function Navbar() {
       {/* ========================================================
           2. MAIN NAVIGATION BAR
           ======================================================== */}
-      <div className="bg-[#fbf8f3] border-b border-stone-200/50 text-stone-900">
+      <div className="bg-white border-b border-stone-200/50 text-stone-900">
         <div className="max-w-[1440px] mx-auto px-3 sm:px-6 lg:px-8">
           
           {/* ----------------------------------------------------
