@@ -727,8 +727,8 @@ export default function HomePage() {
               HANDMADE IN NAGALAND
             </span>
 
-            {/* Main 3-line Headline */}
-            <h1 className="font-serif text-4xl sm:text-5xl lg:text-[62px] font-bold text-stone-900 leading-[1.08] tracking-tight">
+            {/* Main 3-line Headline with Exact Editorial Typography */}
+            <h1 className="hero-headline font-hero text-4xl sm:text-5xl lg:text-[64px] text-stone-950 leading-[1.05] tracking-tight">
               Fiery pickles, <br />
               made the old <br />
               way.
@@ -789,12 +789,12 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Right Column: Authentic Nagaland Pickle Photography (Flawless Blend) */}
+          {/* Right Column: Authentic Nagaland Pickle Photography Cutout (Exact Match) */}
           <div className="lg:col-span-7 flex items-center justify-center lg:justify-end select-none">
             <img
-              src="/hero-pickle-artisan.jpg"
+              src="/hero-pickle-cutout.png"
               alt="Authentic handcrafted Nagaland pickles, sun-cured spices and cold-pressed mustard oil"
-              className="w-full max-w-[760px] h-auto object-contain pointer-events-none drop-shadow-xs"
+              className="w-full max-w-[640px] lg:max-w-[700px] h-auto object-contain pointer-events-none drop-shadow-sm transition-transform duration-500 hover:scale-[1.02]"
             />
           </div>
         </div>

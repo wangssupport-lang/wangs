@@ -188,6 +188,7 @@ export default {
         }
       },
       fontFamily: {
+        hero: ['"Fraunces"', '"Young Serif"', '"Playfair Display"', 'Georgia', 'serif'],
         logo: ['"Fruktur"', 'system-ui', 'cursive', 'serif'],
         fruktur: ['"Fruktur"', 'system-ui', 'cursive', 'serif'],
         agbalumo: ['Agbalumo', 'cursive', 'Georgia', 'serif'],

@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fruktur:ital@0;1&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Agbalumo&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,100..900,0..100,0..1;1,9..144,100..900,0..100,0..1&family=Young+Serif&family=DM+Serif+Display:ital@0;1&family=Fruktur:ital@0;1&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -20,6 +19,15 @@
   font-family: "Fruktur", system-ui, cursive, serif !important;
   font-weight: 400;
   font-style: normal;
+}
+
+.hero-headline {
+  font-family: 'Fraunces', 'Young Serif', 'Playfair Display', Georgia, serif;
+  font-weight: 900;
+  font-style: normal;
+  font-variation-settings: 'opsz' 144, 'wght' 900, 'SOFT' 85, 'WONK' 1;
+  letter-spacing: -0.035em;
+  line-height: 1.06;
 }
 
 @layer base {
