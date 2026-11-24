@@ -716,19 +716,19 @@ export default function HomePage() {
   return (
     <div className="w-full bg-[#fbf8f3] min-h-screen text-[#1c1917]">
       {/* ========================================================
-          HERO SECTION (EXACT MATCH TO USER MOCKUP media_1795536959231_2d372ca5.jpg)
+          HERO SECTION (CORNER-TO-CORNER WITH SPACIOUS BREATHING ROOM)
           ======================================================== */}
-      <section className="w-full bg-white px-4 sm:px-6 lg:px-12 pt-8 sm:pt-14 pb-12 sm:pb-16 max-w-[1440px] mx-auto overflow-hidden relative">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-6 items-center">
-          {/* Left Column: Eyebrow, 3-Line Headline, Subtitle, CTAs, Checks & Floating Badge */}
-          <div className="lg:col-span-5 flex flex-col items-start z-10">
+      <section className="w-full bg-white px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 sm:pt-10 pb-10 sm:pb-14 max-w-[1440px] mx-auto overflow-hidden relative">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-16 w-full">
+          {/* Left Column: Reaching Left Corner (Eyebrow, 3-Line Headline, Subtitle, CTAs, Checks & Floating Badge) */}
+          <div className="w-full lg:max-w-[460px] xl:max-w-[500px] flex flex-col items-start text-left z-10 shrink-0">
             {/* Eyebrow */}
             <span className="text-[#ab331c] font-bold text-xs uppercase tracking-wider mb-2">
               HANDMADE IN NAGALAND
             </span>
 
             {/* Main 3-line Headline with Exact Editorial Typography */}
-            <h1 className="hero-headline font-hero text-4xl sm:text-5xl lg:text-[64px] text-stone-950 leading-[1.05] tracking-tight">
+            <h1 className="hero-headline font-hero text-4xl sm:text-5xl lg:text-[62px] text-stone-950 leading-[1.05] tracking-tight">
               Fiery pickles, <br />
               made the old <br />
               way.
@@ -789,12 +789,12 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Right Column: Authentic Nagaland Pickle Photography Cutout (Exact Match) */}
-          <div className="lg:col-span-7 flex items-center justify-center lg:justify-end select-none">
+          {/* Right Column: Reaching Right Corner (Authentic Nagaland Pickle Photography) */}
+          <div className="w-full flex-1 flex items-center justify-center lg:justify-end select-none">
             <img
               src="/hero-pickle-cutout.png"
               alt="Authentic handcrafted Nagaland pickles, sun-cured spices and cold-pressed mustard oil"
-              className="w-full max-w-[640px] lg:max-w-[700px] h-auto object-contain pointer-events-none drop-shadow-sm transition-transform duration-500 hover:scale-[1.02]"
+              className="w-full max-w-[580px] lg:max-w-[660px] xl:max-w-[720px] h-auto object-contain object-right pointer-events-none drop-shadow-sm transition-transform duration-500 hover:scale-[1.02]"
             />
           </div>
         </div>
