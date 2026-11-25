@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Filter, Search, X, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
+import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 
 export default function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -373,11 +374,7 @@ export default function ProductListPage() {
         {/* Product Cards Grid */}
         <div className="lg:col-span-3">
           {loading ? (
-            <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <div key={i} className="h-96 bg-surface-container-low rounded-2xl animate-pulse" />
-              ))}
-            </div>
+            <PickleLoadingScreen minHeight="min-h-[45vh]" message="Loading pickles..." />
           ) : loadError ? (
             <div className="rounded-3xl border border-error/30 bg-error-container/20 p-10 text-center">
               <h3 className="font-serif text-xl font-bold text-on-surface">Products couldn’t be loaded</h3>

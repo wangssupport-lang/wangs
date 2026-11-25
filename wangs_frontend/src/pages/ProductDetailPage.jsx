@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api';
 import { useCart } from '../context/CartContext';
+import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { resolveProductImage } from '../utils/image';
@@ -74,11 +75,7 @@ export default function ProductDetailPage() {
   }, [slug]);
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-10 h-10 border-3 border-[#ab331c]/20 border-t-[#ab331c] rounded-full animate-spin" />
-      </div>
-    );
+    return <PickleLoadingScreen minHeight="min-h-[60vh]" message="Loading jar details..." />;
   }
 
   if (!product) {

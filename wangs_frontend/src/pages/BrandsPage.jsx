@@ -4,6 +4,7 @@ import { ArrowRight, Store } from 'lucide-react';
 import { api } from '../api';
 import BrandCard from '../components/BrandCard';
 import { getBrandsFromProducts } from '../utils/brands';
+import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState([]);
@@ -61,17 +62,7 @@ export default function BrandsPage() {
       </section>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="animate-pulse overflow-hidden rounded-2xl border border-outline-variant/30 bg-surface-container-lowest">
-              <div className="aspect-[5/3] bg-surface-container-low" />
-              <div className="space-y-2 p-5">
-                <div className="h-4 w-2/3 rounded bg-surface-container" />
-                <div className="h-3 w-1/3 rounded bg-surface-container-low" />
-              </div>
-            </div>
-          ))}
-        </div>
+        <PickleLoadingScreen minHeight="min-h-[45vh]" message="Loading makers..." />
       ) : error ? (
         <div role="alert" className="rounded-2xl border border-error/30 bg-error-container/20 p-6 text-center">
           <p className="text-sm text-on-surface">{error}</p>

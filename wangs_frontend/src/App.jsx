@@ -74,13 +74,10 @@ import {
 } from './pages/StaticPages';
 
 import MobileBottomNav from './components/MobileBottomNav';
+import { PickleLoadingScreen } from './components/PickleCharacterIllustration';
 
 function PageFallback() {
-  return (
-    <div className="min-h-[45vh] flex items-center justify-center p-8">
-      <div className="w-8 h-8 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
-    </div>
-  );
+  return <PickleLoadingScreen minHeight="min-h-[55vh]" message="Serving up something fiery..." />;
 }
 
 function ScrollToTop() {
