@@ -498,7 +498,7 @@ export default function ManufacturerDeliveryTab({ profile, toast }) {
                 Wangs Official Tamper-Evident Packing Sticker
               </h3>
               <p className="text-xs sm:text-sm text-emerald-100 leading-relaxed">
-                Download the official scalloped green packing sticker badge. Affix onto your artisanal packaging boxes, kraft pouches, and container caps before dispatching to SwiftZone couriers or bus station drop-offs.
+                Download the official scalloped packing sticker badge. Affix onto your artisanal packaging boxes, kraft pouches, and container caps before dispatching to SwiftZone couriers or bus station drop-offs.
               </p>
 
               <div className="flex items-center gap-3 pt-2 flex-wrap">
@@ -569,7 +569,7 @@ export default function ManufacturerDeliveryTab({ profile, toast }) {
               <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold">2</div>
               <h4 className="font-serif font-bold text-stone-900 text-sm">Seal with Wangs Sticker</h4>
               <p className="text-stone-500 leading-relaxed">
-                Place the scalloped green sticker across the top box seam or container lid. Customers inspect this seal upon delivery confirmation.
+                Place the scalloped sticker across the top box seam or container lid. Customers inspect this seal upon delivery confirmation.
               </p>
             </div>
             <div className="bg-white p-5 rounded-3xl border border-stone-200/90 shadow-2xs space-y-2">
