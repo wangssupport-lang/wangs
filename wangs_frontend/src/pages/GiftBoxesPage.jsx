@@ -2,10 +2,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import PickleCharacterIllustration from '../components/PickleCharacterIllustration';
+import SeoHead from '../components/SeoHead';
 
 export default function GiftBoxesPage() {
   return (
     <div className="w-full bg-[#fbf8f3] min-h-[calc(100vh-140px)] flex items-center justify-center px-4 sm:px-6 lg:px-12 py-10 sm:py-16 overflow-hidden">
+      <SeoHead
+        title="Gift Boxes | Wangs"
+        description="Curated regional pickle and food gift boxes from Wangs, bringing together traditional flavours from independent makers."
+        canonicalPath="/gift-boxes"
+      />
       <div className="max-w-2xl w-full mx-auto text-center animate-fade-in-up">
         {/* Borderless Animated Pickle-Tasting Character */}
         <div className="mb-3">

@@ -1,0 +1,21 @@
+User-agent: *
+Allow: /
+Allow: /manufacturer/register
+
+Disallow: /account
+Disallow: /cart
+Disallow: /checkout
+Disallow: /order-success
+Disallow: /wishlist
+Disallow: /login
+Disallow: /manufacturer$
+Disallow: /manufacturer/login
+Disallow: /wangsadminspace
+Disallow: /wangadminspace
+Disallow: /adminspace
+Disallow: /admin
+Disallow: /delivery
+Disallow: /courier
+Disallow: /rewards
+
+Sitemap: https://wangs.in/sitemap.xml

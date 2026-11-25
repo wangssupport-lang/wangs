@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
+import SeoHead from '../components/SeoHead';
 import { resolveProductImage } from '../utils/image';
 import {
   Flame, ArrowRight, Zap, Timer, ChevronRight, ChevronLeft,
@@ -868,6 +869,11 @@ export default function HomePage() {
 
   return (
     <div className="w-full bg-[#fbf8f3] min-h-screen text-[#1c1917]">
+      <SeoHead
+        title="Wangs | Authentic Regional Pickles & Foods from Nagaland, India"
+        description="Wangs is an online regional food marketplace from Nagaland, India, connecting customers with authentic Naga pickles and traditional food products from independent makers."
+        canonicalPath="/"
+      />
       {/* ========================================================
           HERO SECTION
           - Mobile (< md): Admin-configured Hero Promo Banner Carousel
@@ -1037,7 +1043,7 @@ export default function HomePage() {
               >
                 <span>✓ FSSAI certified</span>
                 <span>✓ No preservatives</span>
-                <span>✓ Pan-India delivery</span>
+                <span>✓ Tracked delivery</span>
               </div>
             </div>
 
@@ -1076,7 +1082,7 @@ export default function HomePage() {
           <span>✦ Small batch</span>
           <span>✓ No preservatives</span>
           <span>✦ Made by local families</span>
-          <span>✓ Pan-India delivery</span>
+          <span>✓ Tracked delivery</span>
           <span>✦ Slow fermented</span>
         </div>
         <div className="hero-dc-tick-track">
@@ -1084,7 +1090,7 @@ export default function HomePage() {
           <span>✦ Small batch</span>
           <span>✓ No preservatives</span>
           <span>✦ Made by local families</span>
-          <span>✓ Pan-India delivery</span>
+          <span>✓ Tracked delivery</span>
           <span>✦ Slow fermented</span>
         </div>
       </div>
@@ -1263,6 +1269,39 @@ export default function HomePage() {
           </section>
         );
       })()}
+
+      {/* ========================================================
+          BRAND INTRODUCTION SECTION (ABOUT WANGS)
+          ======================================================== */}
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 mt-12">
+        <div className="rounded-3xl bg-white border border-stone-200/80 px-6 py-8 sm:px-10 sm:py-10 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
+          <div className="max-w-2xl space-y-2.5">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#ab331c]">
+              Indian Regional Food Marketplace · Nagaland
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+              Discover Authentic Regional Flavours.
+            </h2>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Wangs is an online regional food marketplace that originated in Nagaland, India. Starting with authentic Naga pickles, Wangs connects independent regional food makers directly with customers and plans to expand its catalogue of regional food products across India.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <Link
+              to="/about"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#ab331c] text-white text-xs font-semibold hover:bg-[#8e2815] transition-colors"
+            >
+              About Wangs <ArrowRight size={14} />
+            </Link>
+            <Link
+              to="/brands"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-xs font-semibold hover:border-stone-900 transition-colors"
+            >
+              Explore Makers
+            </Link>
+          </div>
+        </div>
+      </section>
 
       {/* ========================================================
           3-COLUMN VALUE PROPOSITIONS BANNER (FOREST GREEN)

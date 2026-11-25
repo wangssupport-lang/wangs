@@ -13,6 +13,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { resolveProductImage } from '../utils/image';
 import ProductCard from '../components/ProductCard';
+import SeoHead from '../components/SeoHead';
 
 export default function ProductDetailPage() {
   const { slug } = useParams();
@@ -183,9 +184,22 @@ export default function ProductDetailPage() {
   };
 
   const reviewsList = product.reviews || [];
+  const rawDescription = (product.description || '').replace(/\s+/g, ' ').trim();
+  const seoDescription = rawDescription
+    ? (rawDescription.length > 155 ? `${rawDescription.slice(0, 152)}...` : rawDescription)
+    : `Buy ${product.title} online at Wangs. Authentic regional pickle and food product from independent makers.`;
+  const productImageRaw = product.images?.[0]?.image_url || product.image_url || '';
+  const seoImage = productImageRaw ? resolveProductImage(productImageRaw) : undefined;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-12 sm:space-y-16">
+      <SeoHead
+        title={`${product.title} | Buy Online at Wangs`}
+        description={seoDescription}
+        canonicalPath={`/product/${product.slug || slug}`}
+        image={seoImage}
+        ogType="product"
+      />
       {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-medium text-stone-500">
         <Link to="/" className="hover:text-stone-900 transition-colors">Home</Link>

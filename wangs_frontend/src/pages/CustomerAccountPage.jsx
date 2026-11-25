@@ -1479,7 +1479,7 @@ export default function CustomerAccountPage() {
                         : (user?.has_pending_seller_request || user?.seller_request_status === 'PENDING')
                         ? `Your application to sell on Wangs${user?.seller_request_details?.business_name ? ` for "${user.seller_request_details.business_name}"` : ''} has been received and is currently under review by our curation team. You will be notified via email once authorized.`
                         : allowSellerRegistration
-                        ? "Showcase your family heritage recipes, pure Raja Mircha, and fermented bamboo shoot pickles to customers nationwide with 0% listing fee."
+                        ? "Showcase your regional recipes, Raja Mircha, and fermented bamboo shoot pickles to customers through Wangs."
                         : "New artisan producer applications are temporarily paused while our culinary curation team processes active batch reviews."}
                     </p>
                   </div>

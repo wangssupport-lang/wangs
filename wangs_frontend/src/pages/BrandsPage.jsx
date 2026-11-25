@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Store } from 'lucide-react';
 import { api } from '../api';
 import BrandCard from '../components/BrandCard';
+import SeoHead from '../components/SeoHead';
 import { getBrandsFromProducts } from '../utils/brands';
 import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 
@@ -47,6 +48,11 @@ export default function BrandsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+      <SeoHead
+        title="Artisan Food Makers & Brands | Wangs"
+        description="Explore independent pickle makers and regional food brands on Wangs. Discover traditional recipes and small-batch products from across India."
+        canonicalPath="/brands"
+      />
       <section className="relative mb-8 sm:mb-10 overflow-hidden rounded-3xl bg-surface-container-low border border-outline-variant/30 px-6 py-8 sm:px-10 sm:py-12 shadow-xs">
         <div className="relative max-w-2xl">
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-primary">
@@ -83,7 +89,7 @@ export default function BrandsPage() {
       ) : (
         <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-10 text-center">
           <h2 className="font-serif text-2xl font-semibold text-on-surface">More Brand Kitchens Coming Soon</h2>
-          <p className="mt-2 text-sm text-on-surface-variant">We’re working with verified cottage kitchens across 18 states to bring you more small-batch heirloom recipes.</p>
+          <p className="mt-2 text-sm text-on-surface-variant">We’re onboarding independent regional food makers from Nagaland and across India to bring you more authentic small-batch recipes.</p>
         </div>
       )}
 

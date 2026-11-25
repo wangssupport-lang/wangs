@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Filter, Search, X, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
+import SeoHead from '../components/SeoHead';
 import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 
 export default function ProductListPage() {
@@ -117,8 +118,37 @@ export default function ProductListPage() {
 
   const activeFiltersCount = [categoryParam, searchParam, brandParam, spiceParam, dietaryParam, inStockParam ? 'true' : ''].filter(Boolean).length;
 
+  const matchedCategory = categories.find((c) => c.slug === categoryParam);
+  const formattedCategoryName = matchedCategory?.name || (categoryParam
+    ? categoryParam.replace(/-/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
+    : '');
+  const formattedBrandName = products[0]?.manufacturer?.business_name || (brandParam
+    ? brandParam.replace(/-/g, ' ').replace(/\b\w/g, (ch) => ch.toUpperCase())
+    : '');
+
+  const seoTitle = formattedCategoryName
+    ? `${formattedCategoryName} | Wangs`
+    : formattedBrandName
+      ? `${formattedBrandName} | Wangs`
+      : 'All Pickles & Regional Foods | Wangs';
+
+  const seoDescription = formattedCategoryName
+    ? `Browse authentic ${formattedCategoryName.toLowerCase()} from independent food makers on Wangs.`
+    : formattedBrandName
+      ? `Explore regional pickles and food products from ${formattedBrandName} on Wangs.`
+      : 'Browse authentic Naga pickles and regional food products from independent food makers across India on Wangs.';
+
+  const seoCanonicalPath = categoryParam
+    ? `/products?category=${encodeURIComponent(categoryParam)}`
+    : '/products';
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-4 sm:space-y-6">
+      <SeoHead
+        title={seoTitle}
+        description={seoDescription}
+        canonicalPath={seoCanonicalPath}
+      />
       {/* Brand Store Filter Indicator if active */}
       {brandParam && (
         <div className="flex items-center justify-between p-3.5 sm:p-4 bg-primary text-on-primary rounded-2xl shadow-xs">

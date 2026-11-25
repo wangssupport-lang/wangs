@@ -495,34 +495,37 @@ export default function Navbar() {
           {/* ----------------------------------------------------
               MOBILE TOP HEADER
               ---------------------------------------------------- */}
-          <div className="md:hidden flex flex-col gap-2.5 pt-3 pb-2.5">
+          <div className="md:hidden flex flex-col gap-2 pt-2 pb-2.5">
             <div className="flex items-center justify-between gap-2">
               {/* Brand Logo */}
-              <Link to="/" className="flex items-center select-none shrink-0 min-h-10" aria-label="Wangs home">
-                <span className="font-logo text-[28px] text-[#ab331c] tracking-normal leading-none">
+              <Link to="/" className="flex items-center select-none shrink-0 active:opacity-80 transition-opacity" aria-label="Wangs home">
+                <span className="font-logo text-[26px] text-[#ab331c] tracking-normal leading-none">
                   Wangs
                 </span>
               </Link>
 
-              {/* Right Controls: Cart Pill + Profile Avatar */}
+              {/* Right Controls: Compact Basket Pill + Warm Profile Avatar */}
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsDrawerOpen(true)}
                   aria-label={`Shopping Basket with ${itemsCount} items`}
-                  className="min-h-11 flex items-center gap-2 rounded-full border border-[#d8cbbd] bg-[#f7f3ed] px-3.5 text-xs font-semibold text-[#28452e] hover:bg-[#efe9df] transition-colors cursor-pointer"
+                  className="inline-flex items-center gap-1.5 bg-[#f8f5ef] hover:bg-[#f2ece1] border border-stone-200/90 text-stone-900 text-xs font-semibold pl-2.5 pr-2 py-1.5 rounded-full active:scale-95 transition-all cursor-pointer"
                 >
-                  <ShoppingBag size={16} strokeWidth={2.2} />
-                  <span>Cart <span className="tabular-nums">({itemsCount})</span></span>
+                  <ShoppingBag size={14} className="text-[#ab331c] shrink-0" />
+                  <span>Basket</span>
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#ab331c] text-white text-[10px] font-bold inline-flex items-center justify-center leading-none">
+                    {itemsCount}
+                  </span>
                 </button>
 
                 <Link
                   to={user ? '/account' : '/login'}
                   aria-label="Account"
-                  className="w-11 h-11 rounded-full border border-stone-200 flex items-center justify-center bg-white text-stone-700 active:scale-95 transition-colors"
+                  className="w-8 h-8 rounded-full border border-[#ab331c]/20 bg-[#fbf2ec] flex items-center justify-center text-[#ab331c] active:scale-95 transition-transform"
                 >
                   {user ? (
-                    <span className="font-bold text-xs text-[#ab331c]">
+                    <span className="font-bold text-xs leading-none">
                       {(user.first_name || user.username || 'U')[0].toUpperCase()}
                     </span>
                   ) : (
@@ -532,30 +535,44 @@ export default function Navbar() {
               </div>
             </div>
 
-            {/* Mobile Row 2: Search Input */}
+            {/* Mobile Row 2: Soft-Filled Search Input with Left Icon & Clear Button */}
             <form onSubmit={handleSearch} className="relative w-full flex items-center">
+              <Search
+                size={15}
+                className="absolute left-3.5 text-stone-400 pointer-events-none"
+              />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search pickles, brands..."
-                className="w-full min-h-11 bg-[#faf8f4] text-sm text-stone-900 placeholder:text-stone-400 rounded-full pl-4 pr-11 border border-[#e6ded4] focus:outline-none focus:border-[#28452e] focus:ring-2 focus:ring-[#28452e]/10"
+                placeholder="Search pickles, brands, flavours..."
+                className="w-full bg-[#f8f5ef] text-xs text-stone-900 placeholder:text-stone-400 rounded-full pl-9 pr-9 py-2 border border-stone-200/80 focus:bg-white focus:outline-none focus:border-[#ab331c]/50 focus:ring-2 focus:ring-[#ab331c]/10 transition-all"
               />
-              <button
-                type="submit"
-                className="absolute right-0 w-11 h-11 rounded-full bg-[#28452e] text-white flex items-center justify-center hover:bg-[#1f3724] transition-colors"
-                aria-label="Submit search"
-              >
-                <Search size={16} />
-              </button>
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 p-1 text-stone-400 hover:text-stone-700 rounded-full cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X size={13} />
+                </button>
+              )}
             </form>
 
-            {/* Mobile Row 3: Category Nav Links (Evenly Spaced & Active Highlight) */}
-            <nav aria-label="Shop categories" className="grid grid-cols-3 gap-2 py-0.5 text-xs font-semibold text-center">
+            {/* Mobile Row 3: Segmented Category Switcher */}
+            <nav
+              aria-label="Mobile categories"
+              className="grid grid-cols-3 gap-1 p-1 bg-[#f8f5ef] border border-stone-200/70 rounded-full text-xs text-center"
+            >
               <NavLink
                 to="/products"
                 className={({ isActive }) =>
-                  `min-h-11 flex items-center justify-center px-2 rounded-full transition-colors ${isActive ? 'bg-[#fbeee9] text-[#ab331c] font-bold' : 'text-stone-600 hover:text-[#ab331c]'}`
+                  `py-1.5 rounded-full transition-all ${
+                    isActive
+                      ? 'bg-white text-[#ab331c] font-bold shadow-xs'
+                      : 'text-stone-600 font-medium hover:text-stone-900'
+                  }`
                 }
               >
                 Pickles
@@ -563,7 +580,11 @@ export default function Navbar() {
               <NavLink
                 to="/gift-boxes"
                 className={({ isActive }) =>
-                  `min-h-11 flex items-center justify-center px-2 rounded-full transition-colors ${isActive ? 'bg-[#fbeee9] text-[#ab331c] font-bold' : 'text-stone-600 hover:text-[#ab331c]'}`
+                  `py-1.5 rounded-full transition-all ${
+                    isActive
+                      ? 'bg-white text-[#ab331c] font-bold shadow-xs'
+                      : 'text-stone-600 font-medium hover:text-stone-900'
+                  }`
                 }
               >
                 Gift Boxes
@@ -571,7 +592,11 @@ export default function Navbar() {
               <NavLink
                 to="/brands"
                 className={({ isActive }) =>
-                  `min-h-11 flex items-center justify-center px-2 rounded-full transition-colors ${isActive ? 'bg-[#fbeee9] text-[#ab331c] font-bold' : 'text-stone-600 hover:text-[#ab331c]'}`
+                  `py-1.5 rounded-full transition-all ${
+                    isActive
+                      ? 'bg-white text-[#ab331c] font-bold shadow-xs'
+                      : 'text-stone-600 font-medium hover:text-stone-900'
+                  }`
                 }
               >
                 Brands

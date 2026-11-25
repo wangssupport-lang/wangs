@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import SeoHead from '../components/SeoHead';
 import {
   Store,
   ShieldCheck,
@@ -1491,6 +1492,11 @@ export default function ManufacturerRegisterPage() {
   // =========================================================================
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
+      <SeoHead
+        title="Become a Seller | Wangs"
+        description="Apply to sell authentic Naga pickles and regional food products on Wangs. Join independent food makers on our multi-vendor marketplace."
+        canonicalPath="/manufacturer/register"
+      />
       {renderPreviewModal()}
 
       <div className="text-center max-w-2xl mx-auto mb-8">

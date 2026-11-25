@@ -13,10 +13,18 @@ export default function Footer() {
           <span>·</span>
           <span className="text-stone-300">wangs.in</span>
           <span>·</span>
-          <span className="text-amber-400/90 font-medium">FSSAI Lic. #10023064000124</span>
+          <span className="text-stone-400">Indian regional food marketplace developed in Nagaland</span>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-stone-400 text-xs">
+          <Link to="/about" className="hover:text-stone-100 transition-colors">
+            About
+          </Link>
+          <span>·</span>
+          <Link to="/products" className="hover:text-stone-100 transition-colors">
+            Products
+          </Link>
+          <span>·</span>
           <Link to="/shipping" className="hover:text-stone-100 transition-colors">
             Shipping
           </Link>

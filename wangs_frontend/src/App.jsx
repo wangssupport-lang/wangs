@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import CartDrawer from './components/CartDrawer';
 import AuthModal from './components/AuthModal';
+import SeoHead from './components/SeoHead';
 
 import HomePage from './pages/HomePage';
 import BrandsPage from './pages/BrandsPage';
@@ -145,8 +146,51 @@ function AppLayout() {
   const isDeliveryRoute = location.pathname.startsWith('/delivery') || location.pathname.startsWith('/courier');
   const hasMobileBottomNav = !isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/');
 
+  const isNoIndexRoute = (() => {
+    const p = location.pathname;
+    return (
+      p.startsWith('/account') ||
+      p.startsWith('/cart') ||
+      p.startsWith('/checkout') ||
+      p.startsWith('/order-success') ||
+      p.startsWith('/wishlist') ||
+      p.startsWith('/login') ||
+      p === '/manufacturer' ||
+      p.startsWith('/manufacturer/login') ||
+      p.startsWith('/wangsadminspace') ||
+      p.startsWith('/wangadminspace') ||
+      p.startsWith('/delivery') ||
+      p.startsWith('/courier') ||
+      p.startsWith('/rewards')
+    );
+  })();
+
+  const noIndexTitle = (() => {
+    const p = location.pathname;
+    if (p.startsWith('/login')) return 'Sign In | Wangs';
+    if (p.startsWith('/account')) return 'My Account | Wangs';
+    if (p.startsWith('/cart')) return 'Shopping Basket | Wangs';
+    if (p.startsWith('/checkout')) return 'Checkout | Wangs';
+    if (p.startsWith('/wishlist')) return 'Wishlist | Wangs';
+    if (p.startsWith('/order-success')) return 'Order Confirmation | Wangs';
+    if (p.startsWith('/manufacturer/login')) return 'Seller Login | Wangs';
+    if (p === '/manufacturer') return 'Seller Dashboard | Wangs';
+    if (isAdminRoute) return 'Admin Space | Wangs';
+    if (isDeliveryRoute) return 'Delivery Portal | Wangs';
+    if (p.startsWith('/rewards')) return 'Wangs Rewards | Wangs';
+    return 'Wangs';
+  })();
+
   return (
     <div className={`min-h-screen flex flex-col bg-background text-on-surface selection:bg-primary selection:text-white ${isAdminRoute ? 'pb-0' : isDeliveryRoute ? 'pb-10' : ''}`}>
+      {isNoIndexRoute && (
+        <SeoHead
+          title={noIndexTitle}
+          description="Private account and portal route on Wangs."
+          canonicalPath={location.pathname}
+          robots="noindex, nofollow"
+        />
+      )}
       <StickerSplashOverlay />
       <ScrollToTop />
       {!isAdminRoute && !isDeliveryRoute && <Navbar />}

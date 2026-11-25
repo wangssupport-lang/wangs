@@ -1,50 +1,217 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import SeoHead from '../components/SeoHead';
 import { ShieldCheck, Mail, MapPin, Phone, Truck, RefreshCw, Award, Flame, ShieldAlert, CheckCircle2, XCircle, Check, X } from 'lucide-react';
 
 export function AboutPage() {
+  const faqs = [
+    {
+      q: 'What is Wangs?',
+      a: 'Wangs is an India-based online marketplace developed in Nagaland, connecting customers with authentic regional food products and independent food makers.',
+    },
+    {
+      q: 'Where did Wangs originate?',
+      a: 'Wangs originated as a marketplace initiative developed in Nagaland, India.',
+    },
+    {
+      q: 'What does Wangs sell?',
+      a: 'Wangs focuses on authentic Naga pickles and regional food products, with plans to expand its marketplace to include products from different parts of India.',
+    },
+    {
+      q: 'What is the purpose of Wangs?',
+      a: 'Wangs aims to connect regional food makers with customers and make traditional regional food products easier to discover and purchase.',
+    },
+    {
+      q: 'Is Wangs a food manufacturer?',
+      a: 'No. Wangs operates as a multi-vendor marketplace. Independent sellers and manufacturers manage their own products.',
+    },
+    {
+      q: 'Can manufacturers sell through Wangs?',
+      a: "Yes. Manufacturers and eligible food businesses can apply to become sellers. Sellers must complete Wangs' verification and approval process.",
+    },
+    {
+      q: 'Does Wangs operate across India?',
+      a: "Wangs is designed as an India-focused marketplace. Actual product availability and delivery destinations depend on each seller's shipping permissions and applicable delivery arrangements.",
+    },
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 space-y-10">
-      <div className="text-center space-y-3">
-        <span className="text-xs font-bold uppercase tracking-wider text-primary">Quality &amp; Standards</span>
-        <h1 className="font-serif text-4xl font-bold text-on-surface">About Wangs (wangs.in)</h1>
-        <p className="text-sm text-on-surface-variant max-w-xl mx-auto">
-          India's dedicated multi-vendor marketplace connecting verified artisanal food producers with culinary enthusiasts nationwide.
-        </p>
-      </div>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-12 text-stone-700">
+      <SeoHead
+        title="About Wangs | Indian Regional Food Marketplace"
+        description="Wangs is an India-based online marketplace developed in Nagaland, connecting customers with authentic regional food products and independent food makers."
+        canonicalPath="/about"
+      />
 
-      <div className="prose prose-stone text-xs sm:text-sm text-on-surface-variant space-y-6 leading-relaxed">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-primary-fixed text-primary flex items-center justify-center">
-              <Award size={18} />
-            </div>
-            <h4 className="font-serif font-bold text-on-surface text-sm">Sun-Cured Maturation</h4>
-            <p className="text-xs text-on-surface-variant leading-relaxed">Artisan batches cured in glazed earthen martabans under regional micro-climates.</p>
-          </div>
-          <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center">
-              <Flame size={18} />
-            </div>
-            <h4 className="font-serif font-bold text-on-surface text-sm">Wood-Pressed Oils</h4>
-            <p className="text-xs text-on-surface-variant leading-relaxed">Stone-ground spices steeped in virgin cold-pressed mustard and sesame oils.</p>
-          </div>
-          <div className="p-5 bg-surface-container-lowest rounded-2xl border border-outline-variant/30 shadow-xs space-y-2">
-            <div className="w-9 h-9 rounded-xl bg-tertiary-fixed text-on-tertiary-fixed flex items-center justify-center">
-              <ShieldCheck size={18} />
-            </div>
-            <h4 className="font-serif font-bold text-on-surface text-sm">Verified Producers</h4>
-            <p className="text-xs text-on-surface-variant leading-relaxed">All producers hold active FSSAI registration with verified hygiene protocols.</p>
-          </div>
-        </div>
-
-        <div className="bg-surface-container-low p-6 rounded-2xl border border-outline-variant/30 text-xs sm:text-sm space-y-3">
-          <h3 className="font-serif font-bold text-base text-on-surface">Marketplace Standards</h3>
+      {/* About Wangs */}
+      <section className="space-y-4">
+        <span className="inline-block text-[11px] font-bold uppercase tracking-[0.18em] text-[#ab331c]">
+          Indian Regional Food Marketplace · Nagaland, India
+        </span>
+        <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
+          About Wangs
+        </h1>
+        <div className="space-y-3 text-sm sm:text-base leading-relaxed text-stone-700">
           <p>
-            Wangs provides direct nationwide logistics, transparent 0% seller commission for early artisanal partners, and tamper-evident packaging for certified artisanal food entrepreneurs. Every container is sealed with food-grade safety film and shipped via zero-leak express logistics.
+            Wangs (<span className="font-medium text-stone-900">wangs.in</span>) is an India-based online marketplace developed in Nagaland, connecting customers with authentic regional food products and independent food makers.
+          </p>
+          <p>
+            Starting with the rich culinary traditions of Nagaland, Wangs aims to connect independent food makers, traditional producers and regional brands with people who appreciate authentic flavours and locally crafted food products.
+          </p>
+          <p>
+            From traditional Naga pickles to regional delicacies from different parts of India, Wangs is building a platform where customers can discover food products that reflect India's diverse culinary heritage.
           </p>
         </div>
-      </div>
+        <div className="flex flex-wrap gap-3 pt-2 text-xs font-semibold">
+          <Link
+            to="/products"
+            className="px-4 py-2 rounded-full bg-[#ab331c] text-white hover:bg-[#8e2815] transition-colors"
+          >
+            Explore Pickles &amp; Foods
+          </Link>
+          <Link
+            to="/brands"
+            className="px-4 py-2 rounded-full border border-stone-300 bg-white text-stone-800 hover:border-stone-900 transition-colors"
+          >
+            Browse Independent Makers
+          </Link>
+          <Link
+            to="/manufacturer/register"
+            className="px-4 py-2 rounded-full border border-stone-300 bg-white text-stone-800 hover:border-stone-900 transition-colors"
+          >
+            Become a Seller
+          </Link>
+        </div>
+      </section>
+
+      {/* Our Story */}
+      <section className="bg-white rounded-3xl border border-stone-200/80 p-6 sm:p-8 space-y-3 shadow-xs">
+        <h2 className="font-serif text-2xl font-bold text-stone-900">Our Story</h2>
+        <p className="text-sm leading-relaxed">
+          Wangs began with an appreciation for traditional food, regional flavours and the people behind them.
+        </p>
+        <p className="text-sm leading-relaxed">
+          Many independent food makers create distinctive products rooted in local ingredients, recipes and traditions. However, reaching customers beyond their immediate communities can be challenging.
+        </p>
+        <p className="text-sm leading-relaxed">
+          Wangs aims to bridge this gap by providing an online marketplace where regional food makers can showcase their products and customers can discover flavours from different parts of India.
+        </p>
+      </section>
+
+      {/* Mission & Vision */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="bg-[#fbf8f3] rounded-3xl border border-stone-200/80 p-6 space-y-2.5">
+          <h2 className="font-serif text-xl font-bold text-stone-900">Our Mission</h2>
+          <p className="text-sm leading-relaxed">
+            To connect regional food makers with customers, make authentic regional food products more accessible and support independent food businesses through digital commerce.
+          </p>
+        </div>
+        <div className="bg-[#fbf8f3] rounded-3xl border border-stone-200/80 p-6 space-y-2.5">
+          <h2 className="font-serif text-xl font-bold text-stone-900">Our Vision</h2>
+          <p className="text-sm leading-relaxed">
+            To become a trusted destination for discovering authentic regional food products from across India, while celebrating the people, traditions and culinary heritage behind them.
+          </p>
+        </div>
+      </section>
+
+      {/* What We Offer & Our Marketplace */}
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-3xl border border-stone-200/80 p-6 space-y-3 shadow-xs">
+          <h2 className="font-serif text-xl font-bold text-stone-900">What We Offer</h2>
+          <p className="text-xs text-stone-500">
+            Currently focused on Naga pickles and regional food products, with plans to expand into more regional categories across India.
+          </p>
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+              <span>Authentic Naga pickles (currently available).</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+              <span>Regional pickles and traditional food products.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+              <span>Products from independent food makers.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+              <span>A marketplace for discovering regional flavours.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+              <span>An online platform connecting sellers and customers.</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-stone-200/80 p-6 space-y-3 shadow-xs">
+          <h2 className="font-serif text-xl font-bold text-stone-900">Our Marketplace</h2>
+          <div className="space-y-2.5 text-sm leading-relaxed">
+            <p>Wangs operates as a multi-vendor marketplace.</p>
+            <p>
+              Independent sellers can register, create their stores and manage their product listings after seller verification and approval.
+            </p>
+            <p>
+              Customers can discover products, compare offerings and place orders through the Wangs platform.
+            </p>
+            <p>
+              Wangs aims to make regional food discovery and online shopping easier for both customers and manufacturers.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Our Commitment */}
+      <section className="bg-[#28452e] text-white rounded-3xl p-6 sm:p-8 space-y-4">
+        <h2 className="font-serif text-2xl font-bold">Our Commitment</h2>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-stone-100">
+          <li className="flex items-start gap-2">
+            <Check size={16} className="text-emerald-300 shrink-0 mt-0.5" />
+            <span>Promoting authentic regional food products.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check size={16} className="text-emerald-300 shrink-0 mt-0.5" />
+            <span>Supporting independent food makers.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check size={16} className="text-emerald-300 shrink-0 mt-0.5" />
+            <span>Making product information transparent.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Check size={16} className="text-emerald-300 shrink-0 mt-0.5" />
+            <span>Building a reliable online shopping experience.</span>
+          </li>
+          <li className="flex items-start gap-2 sm:col-span-2">
+            <Check size={16} className="text-emerald-300 shrink-0 mt-0.5" />
+            <span>Celebrating India's diverse culinary heritage.</span>
+          </li>
+        </ul>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="space-y-5" aria-labelledby="about-faq-heading">
+        <div>
+          <h2 id="about-faq-heading" className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+            Frequently Asked Questions
+          </h2>
+          <p className="text-xs sm:text-sm text-stone-500 mt-1">
+            Key facts about Wangs (wangs.in), our marketplace model, and regional food sellers.
+          </p>
+        </div>
+
+        <div className="space-y-3">
+          {faqs.map((item) => (
+            <div
+              key={item.q}
+              className="bg-white rounded-2xl border border-stone-200/80 p-5 space-y-1.5 shadow-xs"
+            >
+              <h3 className="font-serif text-base font-bold text-stone-900">{item.q}</h3>
+              <p className="text-sm text-stone-700 leading-relaxed">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
@@ -52,6 +219,11 @@ export function AboutPage() {
 export function TermsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
+      <SeoHead
+        title="Terms & Conditions | Wangs"
+        description="Read the terms and conditions for shopping and selling on the Wangs regional food marketplace."
+        canonicalPath="/terms"
+      />
       <h1 className="font-serif text-3xl font-bold text-stone-900">Terms & Conditions</h1>
       <p className="text-stone-500 text-xs">Last updated: October 2026 · wangs.in</p>
 
@@ -78,6 +250,11 @@ export function TermsPage() {
 export function PrivacyPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
+      <SeoHead
+        title="Privacy Policy | Wangs"
+        description="Read how Wangs handles customer data, order details, and payment security on wangs.in."
+        canonicalPath="/privacy"
+      />
       <h1 className="font-serif text-3xl font-bold text-stone-900">Privacy Policy</h1>
       <p className="text-stone-500 text-xs">Commitment to Data Security & Compliance · wangs.in</p>
 
@@ -97,6 +274,11 @@ export function PrivacyPage() {
 export function ShippingPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-6 text-xs sm:text-sm text-stone-700 leading-relaxed">
+      <SeoHead
+        title="Shipping & Delivery Policy | Wangs"
+        description="View Wangs packaging standards and delivery timelines for Naga pickles and regional food orders."
+        canonicalPath="/shipping"
+      />
       <h1 className="font-serif text-3xl font-bold text-stone-900">Shipping & Delivery Policy</h1>
       <div className="space-y-4">
         <p>
@@ -127,6 +309,11 @@ export function ShippingPage() {
 export function RefundsPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-8 text-xs sm:text-sm text-stone-700 leading-relaxed">
+      <SeoHead
+        title="Refund & Return Policy | Wangs"
+        description="Understand Wangs food safety, return, and refund policies for artisanal pickles and regional foods."
+        canonicalPath="/refunds"
+      />
       {/* Header */}
       <div className="border-b border-stone-200 pb-5">
         <span className="text-xs font-bold uppercase tracking-wider text-red-600">
@@ -277,9 +464,16 @@ export function RefundsPage() {
 export function ContactPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+      <SeoHead
+        title="Contact Wangs"
+        description="Wangs is an India-based online marketplace developed in Nagaland, connecting customers with authentic regional food products and independent food makers."
+        canonicalPath="/contact"
+      />
       <div className="text-center space-y-2">
-        <h1 className="font-serif text-3xl font-bold text-stone-900">Contact Wangs Support</h1>
-        <p className="text-xs text-stone-500">We are based in Kohima. Reach out with questions, wholesale inquiries, or seller onboarding support.</p>
+        <h1 className="font-serif text-3xl font-bold text-stone-900">Contact Wangs</h1>
+        <p className="text-xs sm:text-sm text-stone-600 max-w-xl mx-auto">
+          Wangs is an India-based online marketplace developed in Nagaland, connecting customers with authentic regional food products and independent food makers. Reach out for customer support, product questions, or seller onboarding inquiries.
+        </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
