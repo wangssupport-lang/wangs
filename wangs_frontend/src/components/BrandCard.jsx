@@ -63,12 +63,12 @@ export default function BrandCard({ brand, compact = false }) {
   return (
     <Link
       to={targetUrl}
-      className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-lg"
+      className="group flex flex-col justify-between overflow-hidden rounded-2xl sm:rounded-3xl border border-outline-variant/30 bg-surface-container-lowest p-3.5 sm:p-6 shadow-xs transition-all duration-300 hover:-translate-y-1 hover:border-primary hover:shadow-lg"
     >
       <div>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo / Crest */}
-          <div className="w-14 h-14 rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-serif font-bold text-lg border border-outline-variant/30 shadow-xs overflow-hidden flex-shrink-0">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-secondary-container text-on-secondary-container flex items-center justify-center font-serif font-bold text-sm sm:text-lg border border-outline-variant/30 shadow-xs overflow-hidden flex-shrink-0">
             {brandImage && !logoFailed ? (
               <img
                 src={brandImage}
@@ -81,35 +81,36 @@ export default function BrandCard({ brand, compact = false }) {
             )}
           </div>
 
-          <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-xs font-bold group-hover:bg-primary group-hover:text-on-primary transition-colors">
-            <span>View Items</span>
-            <ArrowUpRight size={13} />
+          <span className="inline-flex items-center gap-0.5 sm:gap-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full bg-primary-fixed text-on-primary-fixed text-[10px] sm:text-xs font-bold group-hover:bg-primary group-hover:text-on-primary transition-colors">
+            <span className="hidden sm:inline">View Items</span>
+            <span className="sm:hidden">View</span>
+            <ArrowUpRight size={12} />
           </span>
         </div>
 
         {/* Brand Name & Location */}
-        <div className="mt-4">
-          <div className="flex items-center gap-1.5">
-            <h3 className="font-serif text-xl font-bold text-on-surface group-hover:text-primary transition-colors">
+        <div className="mt-3 sm:mt-4">
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <h3 className="font-serif text-sm sm:text-xl font-bold text-on-surface group-hover:text-primary transition-colors line-clamp-1">
               {brandName}
             </h3>
-            <ShieldCheck size={16} className="text-secondary flex-shrink-0" />
+            <ShieldCheck size={14} className="text-secondary flex-shrink-0 sm:w-4 sm:h-4" />
           </div>
 
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-on-surface-variant">
-            <MapPin size={13} className="text-primary flex-shrink-0" />
-            <span>{location}</span>
+          <p className="mt-1 flex items-center gap-1 sm:gap-1.5 text-[11px] sm:text-xs text-on-surface-variant">
+            <MapPin size={12} className="text-primary flex-shrink-0" />
+            <span className="truncate">{location}</span>
           </p>
 
-          <p className="mt-2.5 text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
+          <p className="mt-2 sm:mt-2.5 text-[11px] sm:text-xs text-on-surface-variant line-clamp-2 leading-relaxed">
             {tagline}
           </p>
         </div>
       </div>
 
-      <div className="mt-6 pt-4 border-t border-outline-variant/20 flex items-center justify-between text-xs font-bold text-primary group-hover:text-primary-container">
-        <span>Open Brand Store</span>
-        <ArrowUpRight size={14} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+      <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-outline-variant/20 flex items-center justify-between text-[11px] sm:text-xs font-bold text-primary group-hover:text-primary-container">
+        <span>Open Store</span>
+        <ArrowUpRight size={13} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
       </div>
     </Link>
   );
