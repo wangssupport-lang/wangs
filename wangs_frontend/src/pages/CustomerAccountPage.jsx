@@ -8,6 +8,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
+import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import QRCodeSVG from '../components/QRCodeSVG';
 import ScanAndEarnModal from '../components/ScanAndEarnModal';
 
@@ -229,12 +230,7 @@ export default function CustomerAccountPage() {
   };
 
   if (authLoading) {
-    return (
-      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
-        <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying your account session...</p>
-      </div>
-    );
+    return <PickleLoadingScreen minHeight="min-h-[60vh]" message="Verifying your account session..." />;
   }
 
   if (!user) return null;

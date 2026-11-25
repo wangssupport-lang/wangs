@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
 import BrandCard from '../components/BrandCard';
@@ -497,12 +498,7 @@ export default function ManufacturerPortalPage() {
   };
 
   if (authLoading || (loading && user)) {
-    return (
-      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
-        <div className="w-10 h-10 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-sm font-medium text-stone-600 mt-4">Loading artisan seller workspace...</p>
-      </div>
-    );
+    return <PickleLoadingScreen minHeight="min-h-[60vh]" message="Loading artisan seller workspace..." />;
   }
 
   // 1. Dedicated Seller Login Space (when not authenticated)

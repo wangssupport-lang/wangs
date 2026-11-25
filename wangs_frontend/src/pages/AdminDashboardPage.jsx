@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import {
   Shield, Users, Package, DollarSign, Settings,
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
@@ -1629,12 +1630,7 @@ export default function AdminDashboardPage() {
   }, [ordersList, manufacturersList, sellerRequestsList, usersList, chartTimeRange, metrics]);
 
   if (authLoading) {
-    return (
-      <div className="max-w-7xl mx-auto py-24 px-4 text-center">
-        <div className="w-10 h-10 border-4 border-forest-800 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-500 mt-3 font-semibold">Verifying admin session...</p>
-      </div>
-    );
+    return <PickleLoadingScreen minHeight="min-h-[60vh]" message="Verifying admin session..." />;
   }
 
   if (!isAdmin || sessionError) {
@@ -1738,13 +1734,11 @@ export default function AdminDashboardPage() {
 
   if (loading && !metrics) {
     return (
-      <div className="max-w-7xl mx-auto py-20 px-4 text-center">
-        <div className="w-8 h-8 border-4 border-chilli-700 border-t-transparent rounded-full animate-spin mx-auto" />
-        <p className="text-xs text-stone-600 font-medium mt-3">Loading admin operational controls...</p>
-        <p className="text-[11px] text-stone-400 mt-1">Connecting to marketplace administration backend...</p>
+      <div className="max-w-7xl mx-auto py-12 px-4 text-center">
+        <PickleLoadingScreen minHeight="min-h-[45vh]" message="Loading admin operational controls..." />
         <button
           onClick={() => setLoading(false)}
-          className="mt-4 px-3.5 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer border border-stone-200"
+          className="mt-2 px-3.5 py-1.5 text-xs text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition-colors cursor-pointer border border-stone-200"
         >
           Skip Waiting & Enter Dashboard
         </button>
