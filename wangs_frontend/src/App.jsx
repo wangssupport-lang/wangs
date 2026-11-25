@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, useLocation, Link, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider, useCart } from './context/CartContext';
+import { WishlistProvider } from './context/WishlistContext';
 import { ToastProvider } from './context/ToastContext';
 
 import Navbar from './components/Navbar';
@@ -67,6 +68,7 @@ const AdminDashboardPage = lazyWithRetry(() => import('./pages/AdminDashboardPag
 const DeliveryPage = lazyWithRetry(() => import('./pages/DeliveryPage'));
 const RewardsScanPage = lazyWithRetry(() => import('./pages/RewardsScanPage'));
 const GiftBoxesPage = lazyWithRetry(() => import('./pages/GiftBoxesPage'));
+const WishlistPage = lazyWithRetry(() => import('./pages/WishlistPage'));
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -125,6 +127,7 @@ function AppLayout() {
               <Route path="/" element={<HomePage />} />
               <Route path="/brands" element={<BrandsPage />} />
               <Route path="/gift-boxes" element={<GiftBoxesPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
               <Route path="/products" element={<ProductListPage />} />
               <Route path="/product/:slug" element={<ProductDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
@@ -252,11 +255,13 @@ export default function App() {
     <ErrorBoundary>
       <AuthProvider>
         <CartProvider>
-          <ToastProvider>
-            <BrowserRouter>
-              <AppLayout />
-            </BrowserRouter>
-          </ToastProvider>
+          <WishlistProvider>
+            <ToastProvider>
+              <BrowserRouter>
+                <AppLayout />
+              </BrowserRouter>
+            </ToastProvider>
+          </WishlistProvider>
         </CartProvider>
       </AuthProvider>
     </ErrorBoundary>

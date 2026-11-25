@@ -4,16 +4,18 @@ import { Heart, Plus, Minus, Check, ShoppingBag, ShoppingCart, Flame, Star, Chec
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { useWishlist } from '../context/WishlistContext';
 import { resolveProductImage } from '../utils/image';
 
 function ProductCard({ product }) {
   const { cart, addToCart, updateQuantity } = useCart();
   const { user, requireAuth } = useAuth();
+  const { isWishlisted: checkWishlisted, toggleWishlist: toggleWishlistItem } = useWishlist();
   const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [added, setAdded] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [isWishlisted, setIsWishlisted] = useState(false);
+  const isWishlisted = checkWishlisted(product?.id);
 
   // Check if item is already in basket
   const cartItem = cart?.items?.find((i) => i.product?.id === product?.id);
@@ -87,15 +89,8 @@ function ProductCard({ product }) {
   const toggleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) {
-      requireAuth(() => {
-        setIsWishlisted(true);
-        toast.success('Saved to your spice cellar');
-      }, 'save items to your wishlist');
-      return;
-    }
-    setIsWishlisted(!isWishlisted);
-    toast.success(isWishlisted ? 'Removed from saved batches' : 'Saved to your spice cellar');
+    const addedNow = toggleWishlistItem(product);
+    toast.success(addedNow ? 'Saved to your wishlist' : 'Removed from wishlist');
   };
 
   const priceNum = Math.round(Number(product.price) || 0);

@@ -1,14 +1,14 @@
 import React from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Home, Compass, Heart, User, ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 
 export default function MobileBottomNav({ onOpenCart }) {
   const { itemsCount, isDrawerOpen } = useCart();
-  const { user, requireAuth } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user } = useAuth();
+  const { wishlistCount } = useWishlist();
 
   // Hide bottom nav when cart drawer is active
   if (isDrawerOpen) return null;
@@ -56,29 +56,35 @@ export default function MobileBottomNav({ onOpenCart }) {
         )}
       </NavLink>
 
-      {/* 3. Wishlist / Artisans */}
-      <button
-        type="button"
-        onClick={() => {
-          if (!user) {
-            requireAuth(() => navigate('/brands'), 'save items to your wishlist');
-            return;
-          }
-          navigate('/brands');
-        }}
-        className={`flex flex-col items-center justify-center min-w-[56px] py-1 px-1.5 rounded-xl transition-all duration-200 cursor-pointer active:scale-95 ${
-          location.pathname === '/brands'
-            ? 'text-[#9b4100] font-bold bg-[#faf2ed]'
-            : 'text-[#8a7267] hover:text-[#9b4100]'
-        }`}
+      {/* 3. Wishlist */}
+      <NavLink
+        to="/wishlist"
+        className={({ isActive }) =>
+          `flex flex-col items-center justify-center min-w-[56px] py-1 px-1.5 rounded-xl transition-all duration-200 active:scale-95 relative ${
+            isActive
+              ? 'text-[#9b4100] font-bold bg-[#faf2ed]'
+              : 'text-[#8a7267] hover:text-[#9b4100]'
+          }`
+        }
       >
-        <Heart
-          size={20}
-          strokeWidth={location.pathname === '/brands' ? 2.5 : 2}
-          className={location.pathname === '/brands' ? 'text-[#9b4100] fill-[#9b4100]' : 'text-[#8a7267]'}
-        />
-        <span className="text-[10px] tracking-tight mt-0.5">Wishlist</span>
-      </button>
+        {({ isActive }) => (
+          <>
+            <div className="relative">
+              <Heart
+                size={20}
+                strokeWidth={isActive ? 2.5 : 2}
+                className={isActive ? 'text-[#9b4100] fill-[#9b4100]' : 'text-[#8a7267]'}
+              />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 bg-[#ab331c] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center shadow-xs ring-2 ring-[#fff8f4]">
+                  {wishlistCount > 99 ? '99+' : wishlistCount}
+                </span>
+              )}
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">Wishlist</span>
+          </>
+        )}
+      </NavLink>
 
       {/* 4. Cart Bag (Center Highlight or Primary Action) */}
       <button
