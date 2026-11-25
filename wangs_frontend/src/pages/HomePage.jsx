@@ -716,10 +716,133 @@ export default function HomePage() {
   return (
     <div className="w-full bg-[#fbf8f3] min-h-screen text-[#1c1917]">
       {/* ========================================================
-          HERO SECTION (CORNER-TO-CORNER WITH SPACIOUS BREATHING ROOM)
+          HERO SECTION (FULL-WIDTH EDGE-TO-EDGE WHITE + MOBILE PROMO BANNER)
           ======================================================== */}
-      <section className="w-full bg-white px-4 sm:px-6 lg:px-8 xl:px-12 pt-6 sm:pt-10 pb-10 sm:pb-14 max-w-[1440px] mx-auto overflow-hidden relative">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-16 w-full">
+      <section className="w-full bg-white overflow-hidden relative">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-10 pb-8 sm:pb-14">
+          {/* Mobile-Only Hero Promo Banner Carousel (Controlled via Admin Hero Promo Banners) */}
+          <div className="md:hidden flex flex-col gap-2 mb-6">
+            <div className="relative">
+              <div
+                ref={bannerScrollRef}
+                onScroll={handleBannerScroll}
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onMouseEnter={() => { isInteractingWithBanner.current = true; }}
+                onMouseLeave={() => { isInteractingWithBanner.current = false; }}
+                className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar py-0.5 touch-pan-x"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                  scrollSnapType: 'x mandatory',
+                }}
+              >
+                {displayBanners.map((banner, index) => {
+                  const bgImg = banner.effective_image_url || banner.image_url || banner.image;
+
+                  if (banner.is_image_only && bgImg) {
+                    return (
+                      <Link
+                        key={banner.id || index}
+                        to={banner.cta_link || '/products'}
+                        className="w-full min-w-full snap-start shrink-0 relative overflow-hidden rounded-2xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
+                        style={{ backgroundColor: banner.bg_color || '#9b4100' }}
+                      >
+                        <img
+                          src={bgImg}
+                          alt={banner.title || 'Promotional Banner'}
+                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 rounded-2xl"
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = '/images/hero/dried_beef_pickle_signature.jpg';
+                          }}
+                        />
+                      </Link>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={banner.id || index}
+                      className="w-full min-w-full snap-start shrink-0 relative overflow-hidden rounded-2xl shadow-md text-white min-h-[165px] p-4 flex flex-col justify-between"
+                      style={{
+                        backgroundColor: banner.bg_color || '#9b4100',
+                        backgroundImage: bgImg
+                          ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url(${bgImg})`
+                          : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <div className="flex flex-col gap-1 z-10">
+                        {banner.badge_text && (
+                          <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
+                            <Flame size={12} className="text-amber-400" />
+                            <span>{banner.badge_text}</span>
+                          </span>
+                        )}
+                        <h2 className="text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                          {banner.title}
+                        </h2>
+                        {banner.subtitle && (
+                          <p className="text-[11px] text-white/90 max-w-[260px] leading-snug line-clamp-2 drop-shadow-xs">
+                            {banner.subtitle}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center justify-between z-10 pt-2">
+                        {banner.coupon_code ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard?.writeText(banner.coupon_code);
+                              toast.success(`Coupon code ${banner.coupon_code} copied!`);
+                            }}
+                            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
+                            title="Tap to copy code"
+                          >
+                            <span className="text-[10px] text-amber-100">CODE:</span>
+                            <span className="text-xs font-bold text-white tracking-wider">
+                              {banner.coupon_code}
+                            </span>
+                          </button>
+                        ) : <div />}
+
+                        <Link
+                          to={banner.cta_link || '/products'}
+                          className="px-3.5 py-1.5 rounded-full bg-white text-[#ab331c] text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+                        >
+                          <span>{banner.cta_text || 'Shop Now'}</span>
+                          <ArrowRight size={13} />
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {displayBanners.length > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-0.5">
+                {displayBanners.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => scrollToBanner(idx)}
+                    className={`h-2 rounded-full transition-all cursor-pointer ${
+                      activeBannerIndex === idx
+                        ? 'w-6 bg-[#ab331c] shadow-xs'
+                        : 'w-2 bg-stone-300 hover:bg-stone-400'
+                    }`}
+                    aria-label={`Slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-16 w-full">
           {/* Left Column: Reaching Left Corner (Eyebrow, 3-Line Headline, Subtitle, CTAs, Checks & Floating Badge) */}
           <div className="w-full lg:max-w-[460px] xl:max-w-[500px] flex flex-col items-start text-left z-10 shrink-0">
             {/* Eyebrow */}
@@ -797,6 +920,7 @@ export default function HomePage() {
               className="w-full max-w-[580px] lg:max-w-[660px] xl:max-w-[720px] h-auto object-contain object-right pointer-events-none drop-shadow-sm transition-transform duration-500 hover:scale-[1.02]"
             />
           </div>
+          </div>
         </div>
       </section>
 
@@ -844,8 +968,8 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* 4-Column Product Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+        {/* 2-Column Mobile / 4-Column Desktop Product Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {customerFavourites.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
