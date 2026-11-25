@@ -126,6 +126,11 @@ export default function CustomerAccountPage() {
   const [loading, setLoading] = useState(true);
   const [copiedAwb, setCopiedAwb] = useState(null);
   const [trackingModalOrder, setTrackingModalOrder] = useState(null);
+  const [expandedOrderIds, setExpandedOrderIds] = useState({});
+
+  const toggleOrderExpanded = (orderId) => {
+    setExpandedOrderIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
 
   // New Address form state
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -245,38 +250,24 @@ export default function CustomerAccountPage() {
   const equivalentRupees = (availableCredits * creditRate).toFixed(2);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 border-b border-stone-200 pb-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 border-b border-stone-200/80 pb-5">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-stone-900">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
             Welcome, {user.first_name || user.username}
           </h1>
-          <p className="text-xs text-stone-500 mt-0.5">{user.email} · Account Role: {user.role}</p>
+          <p className="text-xs text-stone-500 mt-0.5">{user.email}</p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+        <div className="flex items-center gap-2.5">
           {/* Scan & Earn Button */}
           <button
             type="button"
             onClick={() => setShowScanModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-700 text-white shadow-xs transition-all cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold bg-[#ab331c] hover:bg-[#962c17] text-white shadow-xs transition-all cursor-pointer active:scale-95"
           >
-            <Sparkles size={14} className="text-amber-300" />
+            <Sparkles size={14} className="text-[#f6df9d]" />
             <span>Scan &amp; Earn</span>
-          </button>
-
-          {/* Track Orders Button */}
-          <button
-            type="button"
-            onClick={() => setActiveTab('orders')}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shadow-xs cursor-pointer ${
-              activeTab === 'orders'
-                ? 'bg-stone-900 text-white shadow-sm'
-                : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50 hover:text-stone-900'
-            }`}
-          >
-            <Package size={14} className={activeTab === 'orders' ? 'text-amber-400' : 'text-stone-400'} />
-            <span>Track Orders</span>
           </button>
 
           <button
@@ -284,57 +275,58 @@ export default function CustomerAccountPage() {
               logout();
               navigate('/');
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-600 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors ml-1"
+            className="inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 bg-white rounded-full text-xs font-semibold text-stone-700 hover:bg-stone-50 hover:text-[#ab331c] hover:border-[#ab331c]/40 transition-colors cursor-pointer"
           >
-            <LogOut size={14} /> Log Out
+            <LogOut size={13} />
+            <span>Log Out</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Navigation Tabs (Horizontal Scroll on Mobile, Sidebar on Desktop) */}
-        <aside className="lg:col-span-3 flex lg:flex-col overflow-x-auto no-scrollbar gap-1.5 lg:space-y-1 text-xs pb-2 lg:pb-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
+        {/* Navigation Tabs (Clean Pills on Mobile, Sidebar on Desktop) */}
+        <aside className="lg:col-span-3 flex lg:flex-col overflow-x-auto no-scrollbar gap-2 lg:space-y-1 text-xs pb-1 lg:pb-0">
           <button
             onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'orders' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'orders' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
             }`}
           >
-            <Package size={15} /> Track Orders ({orders.length})
+            <Package size={14} /> Orders ({orders.length})
           </button>
 
           <button
             onClick={() => setActiveTab('rewards')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'rewards' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'rewards' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
             }`}
           >
-            <Sparkles size={15} className="text-amber-500" /> Wangs Rewards {rewardWallet ? `(${availableCredits})` : ''}
+            <Sparkles size={14} className={activeTab === 'rewards' ? 'text-[#f6df9d]' : 'text-amber-600'} /> Rewards {rewardWallet ? `(${availableCredits})` : ''}
           </button>
 
           <button
             onClick={() => setActiveTab('addresses')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'addresses' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'addresses' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
             }`}
           >
-            <MapPin size={15} /> Addresses ({addresses.length})
+            <MapPin size={14} /> Addresses ({addresses.length})
           </button>
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 ${
-              activeTab === 'profile' ? 'bg-red-600 text-white shadow-xs' : 'text-stone-700 bg-stone-100 lg:bg-transparent hover:bg-stone-200 lg:hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'profile' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
             }`}
           >
-            <User size={15} /> Profile &amp; Account
+            <User size={14} /> Profile
           </button>
         </aside>
 
         {/* Tab Content */}
         <div className="lg:col-span-9">
           {loading ? (
-            <div className="py-12 text-center text-xs text-stone-500">Loading your account history...</div>
+            <PickleLoadingScreen minHeight="min-h-[35vh]" message="Loading your orders..." />
           ) : activeTab === 'orders' ? (
             <div className="space-y-4">
               {orders.length === 0 ? (
@@ -355,59 +347,84 @@ export default function CustomerAccountPage() {
                 orders.map((ord) => {
                   const currentStepIdx = getStepProgressIndex(ord.status);
                   const isDispatchedOrDelivered = ['DISPATCHED', 'DELIVERED'].includes(ord.status) || Boolean(ord.tracking_number);
+                  const isExpanded = Boolean(expandedOrderIds[ord.id]);
 
                   return (
-                    <div key={ord.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 space-y-6">
-                      {/* Order Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-100 pb-4 text-xs">
+                    <div key={ord.id} className="bg-white rounded-2xl border border-stone-200/80 shadow-xs p-4 sm:p-6 space-y-4">
+                      {/* Compact Order Header */}
+                      <div className="flex flex-wrap items-start justify-between gap-2.5 border-b border-stone-100 pb-3.5 text-xs">
                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <span className="font-bold text-stone-950 font-mono text-sm tracking-tight">#{ord.order_number}</span>
                             <button
                               type="button"
                               onClick={() => handleCopyAwb(ord.order_number)}
-                              className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors"
+                              className="p-1 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded transition-colors cursor-pointer"
                               title="Copy Order Number"
                             >
                               <Copy size={12} />
                             </button>
                           </div>
                           <span className="text-stone-400 text-[11px] block">
-                            Placed on {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date(ord.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(ord.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         </div>
 
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                            ord.payment_status === 'PAID' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-amber-100 text-amber-800 border border-amber-200'
+                          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold inline-flex items-center gap-1 ${
+                            ord.status === 'DELIVERED'
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                              : ord.status === 'DISPATCHED'
+                              ? 'bg-purple-50 text-purple-800 border border-purple-200'
+                              : ord.status === 'PROCESSING'
+                              ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                              : 'bg-amber-50 text-amber-800 border border-amber-200'
                           }`}>
-                            Payment: {ord.payment_status}
+                            {ord.status === 'DELIVERED' && <CheckCircle size={11} />}
+                            {ord.status === 'DISPATCHED' && <Plane size={11} />}
+                            <span>{ord.status}</span>
                           </span>
 
-                          <span className={`px-3 py-1 rounded-full text-[11px] font-bold inline-flex items-center gap-1.5 shadow-2xs ${
-                            ord.status === 'DELIVERED'
-                              ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                              : ord.status === 'DISPATCHED'
-                              ? 'bg-purple-100 text-purple-900 border border-purple-300'
-                              : ord.status === 'PROCESSING'
-                              ? 'bg-blue-100 text-blue-900 border border-blue-300'
-                              : ord.status === 'CANCELLED'
-                              ? 'bg-red-100 text-red-900 border border-red-300'
-                              : 'bg-red-100 text-red-900 border border-red-300'
-                          }`}>
-                            {ord.status === 'DISPATCHED' && <Plane size={12} className="animate-bounce" />}
-                            {ord.status === 'DELIVERED' && <CheckCircle size={12} />}
-                            {ord.status === 'PROCESSING' && <Boxes size={12} />}
-                            <span>Order Status: {ord.status}</span>
-                          </span>
+                          <strong className="text-sm sm:text-base font-serif text-stone-950 font-bold">
+                            ₹{parseFloat(ord.total_amount).toFixed(0)}
+                          </strong>
                         </div>
                       </div>
 
-                      {/* Visual Parcel Journey Stepper */}
-                      <div className="bg-stone-50/70 rounded-2xl p-4 sm:p-6 border border-stone-200/80">
-                        <div className="flex items-center justify-between mb-4">
+                      {/* Compact Items Summary */}
+                      <div className="space-y-1.5 text-xs">
+                        {ord.items?.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between gap-3">
+                            <span className="text-stone-800 font-medium truncate">
+                              {item.product_title} <span className="text-stone-400 font-normal">({item.weight_grams}g × {item.quantity})</span>
+                            </span>
+                            <span className="text-stone-700 font-semibold shrink-0">₹{parseFloat(item.subtotal).toFixed(0)}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Clean Action Row: Toggle Parcel Journey */}
+                      <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-3 text-xs">
+                        <span className="text-[11px] text-stone-500 truncate">
+                          {ord.shipping_city}{ord.shipping_state ? `, ${ord.shipping_state}` : ''} · {ord.payment_status}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => toggleOrderExpanded(ord.id)}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#ab331c] hover:underline shrink-0 cursor-pointer"
+                        >
+                          <Truck size={13} />
+                          <span>{isExpanded ? 'Hide Journey' : 'Track Journey'}</span>
+                          <ChevronRight size={13} className={`transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`} />
+                        </button>
+                      </div>
+
+                      {/* Collapsible Visual Parcel Journey Stepper */}
+                      {isExpanded && (
+                      <div className="bg-stone-50/70 rounded-2xl p-4 sm:p-5 border border-stone-200/80 space-y-4">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Truck size={16} className="text-red-600" />
+                            <Truck size={15} className="text-[#ab331c]" />
                             <h4 className="font-serif font-bold text-sm text-stone-900">Live Parcel Journey</h4>
                           </div>
                           <span className="text-[11px] text-stone-500 font-medium">
@@ -416,7 +433,7 @@ export default function CustomerAccountPage() {
                               : ord.status === 'DISPATCHED'
                               ? 'En route via Air Cargo'
                               : ord.status === 'PROCESSING'
-                              ? 'Preparing in Artisan Workshop'
+                              ? 'Preparing in Workshop'
                               : 'Order Confirmed'}
                           </span>
                         </div>
@@ -525,9 +542,10 @@ export default function CustomerAccountPage() {
                           </div>
                         </div>
                       </div>
+                      )}
 
-                      {/* Prominent Courier & AWB Tracking Card */}
-                      {isDispatchedOrDelivered && (
+                      {/* Prominent Courier & AWB Tracking Card (shown when expanded) */}
+                      {isExpanded && isDispatchedOrDelivered && (
                         <div className="bg-linear-to-r from-purple-50/90 via-stone-50/60 to-purple-50/40 border border-purple-200/90 rounded-2xl p-5 shadow-2xs space-y-3">
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-start gap-3">
@@ -611,36 +629,8 @@ export default function CustomerAccountPage() {
                         </div>
                       )}
 
-                      {/* Order items snapshot */}
-                      <div className="space-y-2">
-                        <span className="text-xs font-bold text-stone-900 uppercase tracking-wider block">Ordered Items ({ord.items?.length || 0})</span>
-                        <div className="divide-y divide-stone-100 rounded-xl border border-stone-100 bg-stone-50/40 p-3 text-xs">
-                          {ord.items?.map((item) => (
-                            <div key={item.id} className="py-2.5 flex items-center justify-between first:pt-0 last:pb-0 gap-3">
-                              <div className="space-y-0.5">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-semibold text-stone-900">{item.product_title}</p>
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    item.fulfillment_status === 'DISPATCHED'
-                                      ? 'bg-purple-100 text-purple-800'
-                                      : item.fulfillment_status === 'DELIVERED'
-                                      ? 'bg-emerald-100 text-emerald-800'
-                                      : item.fulfillment_status === 'PACKED'
-                                      ? 'bg-blue-100 text-blue-800'
-                                      : 'bg-amber-100 text-amber-800'
-                                  }`}>
-                                    {item.fulfillment_status}
-                                  </span>
-                                </div>
-                                <p className="text-stone-500 text-[11px]">{item.weight_grams}g pack · Quantity: {item.quantity}</p>
-                              </div>
-                              <span className="font-bold text-stone-900 font-mono">₹{parseFloat(item.subtotal).toFixed(2)}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Delivery Address & Fee Summary */}
+                      {/* Delivery Address & Fee Summary (shown when expanded) */}
+                      {isExpanded && (
                       <div className="pt-3 border-t border-stone-100 flex flex-wrap items-center justify-between gap-4 text-xs">
                         <div className="text-stone-600 max-w-sm space-y-0.5">
                           <span className="block text-[11px] font-bold uppercase tracking-wider text-stone-400">Shipping Destination</span>
@@ -662,6 +652,7 @@ export default function CustomerAccountPage() {
                           </div>
                         </div>
                       </div>
+                      )}
                     </div>
                   );
                 })
