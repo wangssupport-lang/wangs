@@ -728,25 +728,6 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleQuickAdminLogin = async () => {
-    setLoggingIn(true);
-    try {
-      setAdminLoginForm({ username: 'admin', password: 'admin12345' });
-      const u = await login('admin', 'admin12345');
-      if (u.role === 'ADMIN' || u.is_staff || u.is_superuser) {
-        setSessionError(null);
-        toast.success(`Welcome to Wangs Admin Space, ${u.username}`);
-        await loadAdminData();
-      } else {
-        toast.error('This account does not have Superadmin privileges.');
-      }
-    } catch (err) {
-      toast.error(err.message || 'Invalid administrator credentials');
-    } finally {
-      setLoggingIn(false);
-    }
-  };
-
   const handleToggleSellerRegistration = async () => {
     setTogglingSellerReg(true);
     try {
@@ -1729,30 +1710,6 @@ export default function AdminDashboardPage() {
                 </button>
               </div>
             </div>
-
-              <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between">
-                <div>
-                  <span className="font-bold block">Quick Administrator Access:</span>
-                  <span className="font-mono text-stone-600">admin / admin12345</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setAdminLoginForm({ username: 'admin', password: 'admin12345' })}
-                    className="px-2.5 py-1 bg-amber-200 hover:bg-amber-300 text-stone-950 font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
-                  >
-                    Auto-Fill
-                  </button>
-                  <button
-                    type="button"
-                    disabled={loggingIn}
-                    onClick={handleQuickAdminLogin}
-                    className="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-stone-950 font-black rounded-lg shadow-xs transition-colors cursor-pointer"
-                  >
-                    1-Click Sign In
-                  </button>
-                </div>
-              </div>
 
             <button
               type="submit"
