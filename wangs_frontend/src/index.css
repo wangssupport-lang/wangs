@@ -452,16 +452,16 @@ a, button, input, select, textarea {
 
 @keyframes spoonEat {
   0%, 100% {
-    transform: rotate(0deg) translate(0px, 0px);
+    transform: rotate(8deg) translate(2px, 6px);
   }
-  25% {
-    transform: rotate(-18deg) translate(-6px, -16px);
+  18% {
+    transform: rotate(12deg) translate(0px, 9px);
   }
-  45%, 60% {
-    transform: rotate(-24deg) translate(-8px, -22px);
+  42%, 62% {
+    transform: rotate(-28deg) translate(-10px, -24px);
   }
-  80% {
-    transform: rotate(-6deg) translate(-2px, -4px);
+  82% {
+    transform: rotate(2deg) translate(0px, 2px);
   }
 }
 
@@ -469,11 +469,44 @@ a, button, input, select, textarea {
   0%, 100% {
     transform: rotate(0deg) translateY(0px);
   }
-  45%, 60% {
-    transform: rotate(-3deg) translateY(2px);
+  20% {
+    transform: rotate(2deg) translateY(1px);
   }
-  70% {
-    transform: rotate(2deg) translateY(-1px);
+  44%, 58% {
+    transform: rotate(-4deg) translateY(2px);
+  }
+  68% {
+    transform: rotate(3deg) translateY(-1px);
+  }
+}
+
+@keyframes mouthTaste {
+  0%, 36%, 68%, 100% {
+    transform: scaleY(0.35) scaleX(1);
+  }
+  44%, 60% {
+    transform: scaleY(1.15) scaleX(0.95);
+  }
+}
+
+@keyframes bowlTilt {
+  0%, 100% {
+    transform: rotate(0deg) translateY(0px);
+  }
+  18% {
+    transform: rotate(-4deg) translateY(2px);
+  }
+  45%, 65% {
+    transform: rotate(3deg) translateY(-2px);
+  }
+}
+
+@keyframes bodyBreathe {
+  0%, 100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(1.015);
   }
 }
 
@@ -534,5 +567,23 @@ a, button, input, select, textarea {
   transform-box: fill-box;
   transform-origin: center;
   animation: heartPop 3.2s ease-out infinite;
+}
+
+.animate-mouth-taste {
+  transform-box: fill-box;
+  transform-origin: 50% 35%;
+  animation: mouthTaste 3.2s ease-in-out infinite;
+}
+
+.animate-bowl-tilt {
+  transform-box: fill-box;
+  transform-origin: 20% 45%;
+  animation: bowlTilt 3.2s ease-in-out infinite;
+}
+
+.animate-body-breathe {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: bodyBreathe 3.2s ease-in-out infinite;
 }
 

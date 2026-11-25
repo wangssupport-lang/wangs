@@ -8,7 +8,7 @@ function PickleCharacterIllustration() {
       viewBox="0 0 320 270"
       className="w-64 h-56 sm:w-80 sm:h-68 mx-auto select-none pointer-events-none overflow-visible"
       role="img"
-      aria-label="Animated character happily eating handcrafted Nagaland pickle"
+      aria-label="Animated male character happily eating handcrafted Nagaland pickle"
     >
       <defs>
         <linearGradient id="jarGlass" x1="0" y1="0" x2="1" y2="1">
@@ -22,7 +22,7 @@ function PickleCharacterIllustration() {
       </defs>
 
       {/* Soft ground shadow (no card, directly on page background) */}
-      <ellipse cx="172" cy="244" rx="88" ry="11" fill="#e8dfd3" opacity="0.7" />
+      <ellipse cx="174" cy="246" rx="76" ry="10" fill="#e8dfd3" opacity="0.7" />
       <ellipse cx="78" cy="242" rx="34" ry="7" fill="#e8dfd3" opacity="0.65" />
 
       {/* Open Pickle Jar on the Left */}
@@ -80,33 +80,39 @@ function PickleCharacterIllustration() {
         />
       </g>
 
-      {/* Character Legs & Sandals */}
+      {/* Male Character Trousers & Shoes */}
       <g>
-        <rect x="147" y="214" width="16" height="24" rx="7" fill="#f2b896" />
-        <rect x="181" y="214" width="16" height="24" rx="7" fill="#f2b896" />
-        {/* Sandals */}
-        <ellipse cx="154" cy="239" rx="13" ry="6" fill="#28452e" />
-        <ellipse cx="190" cy="239" rx="13" ry="6" fill="#28452e" />
+        <rect x="145" y="198" width="22" height="40" rx="8" fill="#292524" />
+        <rect x="179" y="198" width="22" height="40" rx="8" fill="#292524" />
+        {/* Shoes / Sandals */}
+        <ellipse cx="155" cy="240" rx="14" ry="6.5" fill="#44403c" />
+        <ellipse cx="191" cy="240" rx="14" ry="6.5" fill="#44403c" />
       </g>
 
-      {/* Character Body & Traditional Attire */}
-      <g>
-        {/* Main Terracotta Tunic */}
+      {/* Male Character Torso (Breathing gently) */}
+      <g className="animate-body-breathe">
+        {/* Terracotta Shirt / Kurta */}
         <path
-          d="M134 142 C134 128 210 128 210 142 L216 214 C216 218 212 220 208 220 L136 220 C132 220 128 218 128 214 Z"
+          d="M134 140 C134 128 212 128 212 140 L215 202 C215 206 211 208 207 208 L139 208 C135 208 131 206 131 202 Z"
           fill="url(#tunicGrad)"
         />
-        {/* Forest Green Sash / Shawl */}
+        {/* Forest Green Waistcoat / Vest */}
         <path
-          d="M168 133 L194 133 L188 220 L170 220 Z"
+          d="M138 134 L164 134 L164 206 L136 206 Z"
           fill="#28452e"
         />
-        {/* Golden Woven Trim */}
-        <path d="M130 212 L214 212" stroke="#f6df9d" strokeWidth="3" strokeDasharray="4 3" />
+        <path
+          d="M182 134 L208 134 L210 206 L182 206 Z"
+          fill="#28452e"
+        />
+        {/* Shirt Collar V-neck */}
+        <path d="M164 134 L173 150 L182 134" fill="#fffaf3" opacity="0.2" />
+        {/* Golden Woven Trim on Vest */}
+        <path d="M138 200 L162 200 M184 200 L208 200" stroke="#f6df9d" strokeWidth="2.5" strokeDasharray="4 3" />
       </g>
 
-      {/* Left Arm Holding Bowl (foreground left of character's body) */}
-      <g>
+      {/* Left Arm Holding Bowl (Tilts slightly to meet spoon) */}
+      <g className="animate-bowl-tilt">
         {/* Left Sleeve */}
         <path
           d="M138 144 C122 152 118 172 132 180 L146 174"
@@ -132,37 +138,54 @@ function PickleCharacterIllustration() {
         />
       </g>
 
-      {/* Character Head (Animated happy tilt while enjoying pickle) */}
+      {/* Male Character Head (Animated happy nod & tasting expression) */}
       <g className="animate-head-enjoy">
-        {/* Hair Bun */}
-        <circle cx="216" cy="108" r="14" fill="#3b2314" />
         {/* Ears */}
         <circle cx="129" cy="96" r="8" fill="#f0b792" />
-        <circle cx="215" cy="96" r="8" fill="#f0b792" />
+        <circle cx="217" cy="96" r="8" fill="#f0b792" />
         {/* Face */}
-        <circle cx="172" cy="88" r="44" fill="#f7c9aa" />
-        {/* Hair */}
+        <circle cx="173" cy="88" r="44" fill="#f7c9aa" />
+        {/* Short Tousled Male Hair */}
         <path
-          d="M126 88 C126 52 150 38 172 38 C196 38 218 54 218 88 C210 74 192 64 172 60 C156 68 136 74 126 88 Z"
-          fill="#3b2314"
+          d="M126 88 C124 54 146 34 174 34 C202 34 222 54 219 88 C214 72 204 62 192 58 C186 64 176 66 168 58 C156 64 142 66 126 88 Z"
+          fill="#2d1b10"
         />
+        {/* Little hair tuft on top */}
+        <path
+          d="M164 36 Q173 25 184 35"
+          stroke="#2d1b10"
+          strokeWidth="7"
+          strokeLinecap="round"
+          fill="none"
+        />
+        {/* Expressive Eyebrows */}
+        <path d="M144 74 Q153 70 161 74" stroke="#2d1b10" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+        <path d="M185 74 Q193 70 202 74" stroke="#2d1b10" strokeWidth="2.6" strokeLinecap="round" fill="none" />
         {/* Rosy Cheeks */}
-        <ellipse cx="145" cy="99" rx="8" ry="5" fill="#e87a68" opacity="0.45" />
-        <ellipse cx="199" cy="99" rx="8" ry="5" fill="#e87a68" opacity="0.45" />
+        <ellipse cx="145" cy="99" rx="8" ry="4.5" fill="#e87a68" opacity="0.4" />
+        <ellipse cx="201" cy="99" rx="8" ry="4.5" fill="#e87a68" opacity="0.4" />
         {/* Happy Closed Smiling Eyes */}
-        <path d="M144 86 Q152 78 160 86" stroke="#3b2314" strokeWidth="3.2" strokeLinecap="round" fill="none" />
-        <path d="M184 86 Q192 78 200 86" stroke="#3b2314" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+        <path d="M144 86 Q153 78 161 86" stroke="#2d1b10" strokeWidth="3.2" strokeLinecap="round" fill="none" />
+        <path d="M185 86 Q193 78 202 86" stroke="#2d1b10" strokeWidth="3.2" strokeLinecap="round" fill="none" />
         {/* Cute Nose */}
-        <path d="M171 92 Q175 95 171 98" stroke="#d88e6d" strokeWidth="2.2" strokeLinecap="round" fill="none" />
-        {/* Happy Smile */}
-        <path d="M161 105 Q172 116 183 105" stroke="#3b2314" strokeWidth="3" strokeLinecap="round" fill="none" />
+        <path d="M172 92 Q176 95 172 98" stroke="#d88e6d" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+        {/* Mouth (Opens excitedly when tasting spoon!) */}
+        <path d="M163 106 Q173 115 183 106" stroke="#2d1b10" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+        <ellipse
+          cx="173"
+          cy="110"
+          rx="6"
+          ry="5.5"
+          fill="#8c2313"
+          className="animate-mouth-taste"
+        />
       </g>
 
-      {/* Right Arm + Hand + Wooden Spoon (Animated Eating Motion!) */}
+      {/* Right Arm + Hand + Wooden Spoon (Scooping & Lifting Motion) */}
       <g className="animate-spoon-eat">
         {/* Right Sleeve */}
         <path
-          d="M204 146 C220 154 220 174 202 182"
+          d="M206 146 C222 154 222 174 204 182"
           fill="none"
           stroke="#bc3b22"
           strokeWidth="15"
