@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import {
   User, Package, MapPin, Clock, CheckCircle, CheckCircle2, Plus, AlertCircle,
   LogOut, Trash2, Truck, Shield, ShieldCheck, ArrowRight, Copy, Check, ExternalLink,
-  Boxes, Plane, X, ChevronRight, Sparkles, Navigation, Store
+  Boxes, Plane, X, ChevronRight, ChevronLeft, Sparkles, Navigation, Store, RotateCcw, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -127,6 +127,7 @@ export default function CustomerAccountPage() {
   const [copiedAwb, setCopiedAwb] = useState(null);
   const [trackingModalOrder, setTrackingModalOrder] = useState(null);
   const [expandedOrderIds, setExpandedOrderIds] = useState({});
+  const [mobileShowDetail, setMobileShowDetail] = useState(false);
 
   const toggleOrderExpanded = (orderId) => {
     setExpandedOrderIds((prev) => ({ ...prev, [orderId]: !prev[orderId] }));
@@ -251,16 +252,16 @@ export default function CustomerAccountPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8 border-b border-stone-200/80 pb-5">
+      {/* Desktop Header */}
+      <div className="hidden lg:flex sm:items-center justify-between gap-4 mb-8 border-b border-stone-200/80 pb-5">
         <div>
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+          <h1 className="font-serif text-3xl font-bold text-stone-900">
             Welcome, {user.first_name || user.username}
           </h1>
           <p className="text-xs text-stone-500 mt-0.5">{user.email}</p>
         </div>
 
         <div className="flex items-center gap-2.5">
-          {/* Scan & Earn Button */}
           <button
             type="button"
             onClick={() => setShowScanModal(true)}
@@ -283,13 +284,204 @@ export default function CustomerAccountPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8">
-        {/* Navigation Tabs (Clean Pills on Mobile, Sidebar on Desktop) */}
-        <aside className="lg:col-span-3 flex lg:flex-col overflow-x-auto no-scrollbar gap-2 lg:space-y-1 text-xs pb-1 lg:pb-0">
+      {/* ========================================================
+          MOBILE VIEW: Clean Grouped-List Hub (Matches Reference UI)
+          ======================================================== */}
+      {!mobileShowDetail && (
+        <div className="lg:hidden space-y-5 pb-4">
+          {/* Header */}
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h1 className="font-serif text-2xl font-bold text-stone-950 tracking-tight">
+                My Account
+              </h1>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Welcome, {user.first_name || user.username} · {user.email}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                navigate('/');
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 border border-stone-300 bg-white rounded-full text-[11px] font-semibold text-stone-700 hover:text-[#ab331c] shrink-0 cursor-pointer"
+            >
+              <LogOut size={12} />
+              <span>Log Out</span>
+            </button>
+          </div>
+
+          {/* Account Menu Card */}
+          <div className="bg-white rounded-2xl border border-stone-200/80 shadow-xs divide-y divide-stone-100 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => { setActiveTab('orders'); setMobileShowDetail(true); }}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-stone-50/70 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Package size={18} className="text-[#ab331c] shrink-0" />
+                <span className="text-sm font-medium text-stone-900">My Orders &amp; Tracking</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {orders.length > 0 && (
+                  <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-full">
+                    {orders.length}
+                  </span>
+                )}
+                <ChevronRight size={16} className="text-stone-400" />
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('rewards'); setMobileShowDetail(true); }}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-stone-50/70 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Sparkles size={18} className="text-[#ab331c] shrink-0" />
+                <span className="text-sm font-medium text-stone-900">Wangs Rewards</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {rewardWallet && (
+                  <span className="text-[11px] font-bold text-[#ab331c] bg-[#fbf2ec] px-2 py-0.5 rounded-full">
+                    {availableCredits} pts
+                  </span>
+                )}
+                <ChevronRight size={16} className="text-stone-400" />
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowScanModal(true)}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-stone-50/70 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <Sparkles size={18} className="text-amber-600 shrink-0" />
+                <span className="text-sm font-medium text-stone-900">Scan &amp; Earn QR</span>
+              </div>
+              <ChevronRight size={16} className="text-stone-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('addresses'); setMobileShowDetail(true); }}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-stone-50/70 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <MapPin size={18} className="text-[#ab331c] shrink-0" />
+                <span className="text-sm font-medium text-stone-900">Saved Addresses</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {addresses.length > 0 && (
+                  <span className="text-[11px] font-bold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-full">
+                    {addresses.length}
+                  </span>
+                )}
+                <ChevronRight size={16} className="text-stone-400" />
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setActiveTab('profile'); setMobileShowDetail(true); }}
+              className="w-full px-4 py-3.5 flex items-center justify-between text-left hover:bg-stone-50/70 transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <User size={18} className="text-[#ab331c] shrink-0" />
+                <span className="text-sm font-medium text-stone-900">Profile &amp; Account</span>
+              </div>
+              <ChevronRight size={16} className="text-stone-400" />
+            </button>
+          </div>
+
+          {/* Artisan Maker Card */}
+          {(isManufacturer || allowSellerRegistration) && (
+            <div className="bg-[#faf2ed] rounded-2xl border border-[#e7d6cb] p-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-stone-900">Artisan Maker?</p>
+                <Link
+                  to={isManufacturer ? '/manufacturer' : '/manufacturer/register'}
+                  className="text-xs font-medium text-[#ab331c] underline mt-0.5 inline-block"
+                >
+                  {isManufacturer ? 'Manage Your Brand Kitchen' : 'Register as Artisan Seller'}
+                </Link>
+              </div>
+              <Link
+                to={isManufacturer ? '/manufacturer' : '/manufacturer/login'}
+                className="px-3.5 py-1.5 rounded-full bg-white border border-[#d7bfb1] text-xs font-semibold text-[#ab331c] hover:bg-stone-50 whitespace-nowrap inline-flex items-center gap-1 shadow-2xs"
+              >
+                <span>{isManufacturer ? 'Seller Studio' : 'Seller Login'}</span>
+                <ArrowRight size={12} />
+              </Link>
+            </div>
+          )}
+
+          {/* Customer Care & Info */}
+          <div className="space-y-2.5 pt-1">
+            <h2 className="font-serif text-base font-bold text-stone-900 px-0.5">
+              Customer Care &amp; Info
+            </h2>
+            <div className="bg-white rounded-2xl border border-stone-200/80 shadow-xs divide-y divide-stone-100 overflow-hidden">
+              <Link
+                to="/shipping"
+                className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck size={18} className="text-[#ab331c] shrink-0" />
+                  <span className="text-sm font-medium text-stone-900">Delivery Information</span>
+                </div>
+                <ChevronRight size={16} className="text-stone-400" />
+              </Link>
+
+              <Link
+                to="/refunds"
+                className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <RotateCcw size={18} className="text-[#ab331c] shrink-0" />
+                  <span className="text-sm font-medium text-stone-900">Refunds &amp; Cancellations</span>
+                </div>
+                <ChevronRight size={16} className="text-stone-400" />
+              </Link>
+
+              <Link
+                to="/contact"
+                className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Phone size={18} className="text-[#ab331c] shrink-0" />
+                  <span className="text-sm font-medium text-stone-900">Contact Us</span>
+                </div>
+                <ChevronRight size={16} className="text-stone-400" />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Sub-View Back Button */}
+      {mobileShowDetail && (
+        <div className="lg:hidden mb-4">
+          <button
+            type="button"
+            onClick={() => setMobileShowDetail(false)}
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-[#ab331c] hover:underline cursor-pointer"
+          >
+            <ChevronLeft size={16} />
+            <span>Back to My Account</span>
+          </button>
+        </div>
+      )}
+
+      <div className={`${mobileShowDetail ? 'grid' : 'hidden lg:grid'} grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8`}>
+        {/* Desktop Sidebar Tabs */}
+        <aside className="hidden lg:flex lg:col-span-3 lg:flex-col lg:space-y-1 text-xs">
           <button
             onClick={() => setActiveTab('orders')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              activeTab === 'orders' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'orders' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 hover:bg-stone-100'
             }`}
           >
             <Package size={14} /> Orders ({orders.length})
@@ -297,8 +489,8 @@ export default function CustomerAccountPage() {
 
           <button
             onClick={() => setActiveTab('rewards')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              activeTab === 'rewards' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'rewards' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 hover:bg-stone-100'
             }`}
           >
             <Sparkles size={14} className={activeTab === 'rewards' ? 'text-[#f6df9d]' : 'text-amber-600'} /> Rewards {rewardWallet ? `(${availableCredits})` : ''}
@@ -306,8 +498,8 @@ export default function CustomerAccountPage() {
 
           <button
             onClick={() => setActiveTab('addresses')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              activeTab === 'addresses' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'addresses' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 hover:bg-stone-100'
             }`}
           >
             <MapPin size={14} /> Addresses ({addresses.length})
@@ -315,8 +507,8 @@ export default function CustomerAccountPage() {
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-full lg:rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-              activeTab === 'profile' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 bg-white border border-stone-200/80 lg:border-0 lg:bg-transparent hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+              activeTab === 'profile' ? 'bg-[#ab331c] text-white shadow-xs' : 'text-stone-700 hover:bg-stone-100'
             }`}
           >
             <User size={14} /> Profile

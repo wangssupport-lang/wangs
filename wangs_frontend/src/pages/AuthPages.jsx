@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock, Store, Eye, EyeOff } from 'lucide-react';
+import { ArrowRight, Mail, KeyRound, CheckCircle, ShieldCheck, AlertCircle, MapPin, X, Lock, Store, Eye, EyeOff, Package, Truck, RotateCcw, Phone, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { api } from '../api';
@@ -343,43 +343,18 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-12 sm:py-16">
-      <div className="bg-surface-container-lowest p-7 sm:p-9 rounded-3xl border border-outline-variant/30 shadow-xs space-y-6">
-        {/* Brand Crest Header */}
-        <div className="text-center">
-          <Link to="/" className="inline-flex items-center gap-2.5 mb-2 group select-none">
-            <img
-              src="/logo.png"
-              alt="Wangs"
-              className="h-9 w-9 sm:h-10 sm:w-10 object-contain transition-transform duration-200 group-hover:scale-105"
-            />
-            <span className="font-logo text-2xl sm:text-3xl leading-none text-[#ab331c] group-hover:opacity-90 transition-opacity">
-              Wangs
-            </span>
-          </Link>
-          <p className="text-xs text-on-surface-variant font-medium">
-            Authentic Indian Pickles Handcrafted by Heritage Makers
-          </p>
-        </div>
+    <div className="max-w-md mx-auto px-4 py-8 sm:py-12 space-y-5">
+      {/* My Account Header */}
+      <div>
+        <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-950 tracking-tight">
+          My Account
+        </h1>
+        <p className="text-xs sm:text-sm text-stone-500 mt-0.5">
+          Welcome to Wangs Artisanal Pickle Marketplace
+        </p>
+      </div>
 
-        {/* Artisan Seller Gateway link */}
-        <div className="p-2.5 bg-surface-container-low border border-outline-variant/30 rounded-2xl flex items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="p-1 bg-primary text-on-primary rounded-lg">
-              <Store size={13} />
-            </span>
-            <span className="text-on-surface text-[11px] font-medium">
-              Are you an <strong>Artisan Maker</strong>?
-            </span>
-          </div>
-          <Link
-            to="/manufacturer/login"
-            className="text-primary hover:text-primary-container font-bold underline whitespace-nowrap text-[11px]"
-          >
-            Seller Login Space →
-          </Link>
-        </div>
-
+      <div className="bg-white p-6 sm:p-8 rounded-2xl sm:rounded-3xl border border-stone-200/80 shadow-xs space-y-5">
         {/* Tab switch / Header */}
         {!showForgotPassword ? (
           <div className="grid grid-cols-2 bg-surface-container p-1 rounded-2xl text-xs font-semibold text-on-surface-variant">
@@ -893,8 +868,80 @@ export default function AuthPage() {
 
         {/* Security badge footer */}
         <div className="pt-2 border-t border-stone-100 flex items-center justify-center gap-2 text-[11px] text-stone-500">
-          <ShieldCheck size={14} className="text-red-600" />
-          <span>Secured with Gmail / Email OTP & 256-Bit SSL Encryption</span>
+          <ShieldCheck size={14} className="text-[#ab331c]" />
+          <span>Secured with Gmail / Email OTP &amp; 256-Bit SSL Encryption</span>
+        </div>
+      </div>
+
+      {/* Standalone Artisan Maker Card */}
+      <div className="bg-[#faf2ed] rounded-2xl border border-[#e7d6cb] p-4 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-stone-900">Artisan Maker?</p>
+          <Link
+            to="/manufacturer/register"
+            className="text-xs font-medium text-[#ab331c] underline mt-0.5 inline-block"
+          >
+            Register as Artisan Seller
+          </Link>
+        </div>
+        <Link
+          to="/manufacturer/login"
+          className="px-3.5 py-1.5 rounded-full bg-white border border-[#d7bfb1] text-xs font-semibold text-[#ab331c] hover:bg-stone-50 whitespace-nowrap inline-flex items-center gap-1 shadow-2xs"
+        >
+          <span>Seller Login Space</span>
+          <ArrowRight size={12} />
+        </Link>
+      </div>
+
+      {/* Customer Care & Info */}
+      <div className="space-y-2.5 pt-1">
+        <h2 className="font-serif text-base font-bold text-stone-900 px-0.5">
+          Customer Care &amp; Info
+        </h2>
+        <div className="bg-white rounded-2xl border border-stone-200/80 shadow-xs divide-y divide-stone-100 overflow-hidden">
+          <Link
+            to="/account"
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Package size={18} className="text-[#ab331c] shrink-0" />
+              <span className="text-sm font-medium text-stone-900">My Orders &amp; Account</span>
+            </div>
+            <ChevronRight size={16} className="text-stone-400" />
+          </Link>
+
+          <Link
+            to="/shipping"
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Truck size={18} className="text-[#ab331c] shrink-0" />
+              <span className="text-sm font-medium text-stone-900">Delivery Information</span>
+            </div>
+            <ChevronRight size={16} className="text-stone-400" />
+          </Link>
+
+          <Link
+            to="/refunds"
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <RotateCcw size={18} className="text-[#ab331c] shrink-0" />
+              <span className="text-sm font-medium text-stone-900">Refunds &amp; Cancellations</span>
+            </div>
+            <ChevronRight size={16} className="text-stone-400" />
+          </Link>
+
+          <Link
+            to="/contact"
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-stone-50/70 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Phone size={18} className="text-[#ab331c] shrink-0" />
+              <span className="text-sm font-medium text-stone-900">Contact Us</span>
+            </div>
+            <ChevronRight size={16} className="text-stone-400" />
+          </Link>
         </div>
       </div>
 
