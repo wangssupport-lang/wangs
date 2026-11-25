@@ -1,40 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Gift, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function GiftBoxesPage() {
   return (
-    <div className="w-full bg-[#fbf8f3] min-h-[calc(100vh-140px)] flex items-center justify-center px-4 sm:px-6 lg:px-12 py-16 sm:py-24 overflow-hidden">
+    <div className="w-full bg-[#fbf8f3] min-h-[calc(100vh-140px)] flex items-center justify-center px-4 sm:px-6 lg:px-12 py-12 sm:py-16 overflow-hidden">
       <div className="max-w-2xl w-full mx-auto text-center animate-fade-in-up">
-        {/* Animated Gift Box Centerpiece */}
-        <div className="relative inline-flex items-center justify-center mb-10">
-          {/* Outer soft breathing halo */}
-          <span
-            aria-hidden="true"
-            className="absolute -inset-4 rounded-[2rem] bg-[#f6df9d]/35 animate-pulse"
-            style={{ animationDuration: '2.8s' }}
+        {/* Animated Character Enjoying Pickle */}
+        <div className="relative inline-flex items-center justify-center mb-4">
+          <img
+            src="/gift-box-character.jpg"
+            alt="Character happily enjoying handcrafted Nagaland pickle"
+            className="w-52 h-52 sm:w-64 sm:h-64 object-contain mix-blend-multiply animate-float-slow select-none pointer-events-none"
           />
-          <span
-            aria-hidden="true"
-            className="absolute -inset-2 rounded-[1.75rem] border border-[#e7c76d]/60 animate-ping"
-            style={{ animationDuration: '3.4s' }}
-          />
-
-          {/* Floating Gift Box Card */}
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-3xl bg-[#f6df9d] border border-[#e7c76d] shadow-md flex items-center justify-center animate-float-slow relative">
-            <Gift size={54} className="text-[#ab331c]" strokeWidth={1.75} />
-
-            {/* Top-right bouncing sparkle badge */}
-            <span className="absolute -top-2.5 -right-2.5 w-8 h-8 rounded-full bg-[#28452e] text-white flex items-center justify-center shadow-sm animate-bounce">
-              <Sparkles size={15} />
-            </span>
-
-            {/* Bottom-left subtle warm accent dot */}
-            <span
-              aria-hidden="true"
-              className="absolute -bottom-1.5 -left-1.5 w-4 h-4 rounded-full bg-[#ab331c] shadow-xs animate-pulse"
-            />
-          </div>
         </div>
 
         {/* Animated Coming Soon Pill */}
