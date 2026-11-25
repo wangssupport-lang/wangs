@@ -130,7 +130,7 @@ function ProductCard({ product }) {
   const makerVillage = product.origin_district || product.manufacturer?.location_district || 'Kohima';
 
   return (
-    <article className="group bg-white rounded-2xl p-2.5 sm:p-4 border border-stone-200/70 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-full">
+    <article className="group bg-white rounded-2xl p-3 sm:p-4 border border-stone-200/70 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-full">
       <div>
         {/* Top Image Showcase in Theme Pastel Rounded Box */}
         <div className={`relative aspect-square w-full rounded-xl overflow-hidden flex items-center justify-center p-2 sm:p-4 mb-2 sm:mb-3 ${pastelBg} transition-colors`}>
@@ -149,7 +149,7 @@ function ProductCard({ product }) {
             type="button"
             onClick={toggleWishlist}
             aria-label="Save to Wishlist"
-            className="absolute top-2 right-2 w-8 h-8 sm:w-7 sm:h-7 rounded-full bg-white/85 hover:bg-white flex items-center justify-center text-stone-600 hover:text-[#ab331c] transition-all shadow-xs cursor-pointer"
+            className="absolute top-1 right-1 w-11 h-11 sm:w-8 sm:h-8 rounded-full bg-white/85 hover:bg-white flex items-center justify-center text-stone-600 hover:text-[#ab331c] transition-all shadow-xs cursor-pointer"
           >
             <Heart
               size={14}
@@ -176,7 +176,7 @@ function ProductCard({ product }) {
 
         {/* Title */}
         <Link to={`/product/${product.slug}`} className="block">
-          <h3 className="font-serif font-bold text-xs sm:text-base text-stone-900 group-hover:text-[#ab331c] transition-colors line-clamp-2 min-h-[2.4em] leading-snug">
+          <h3 className="font-serif font-bold text-[13px] sm:text-base text-stone-900 group-hover:text-[#ab331c] transition-colors line-clamp-2 min-h-[2.5em] leading-snug">
             {product.title}
           </h3>
         </Link>
@@ -229,7 +229,7 @@ function ProductCard({ product }) {
             type="button"
             onClick={handleAddToCart}
             disabled={!inStock || adding}
-            className="w-full bg-[#28452e] hover:bg-[#1f3724] text-white py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="w-full min-h-10 bg-[#28452e] hover:bg-[#1f3724] text-white py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl font-semibold text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {adding ? (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

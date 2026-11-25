@@ -495,11 +495,11 @@ export default function Navbar() {
           {/* ----------------------------------------------------
               MOBILE TOP HEADER
               ---------------------------------------------------- */}
-          <div className="md:hidden flex flex-col gap-2 pt-2.5 pb-2">
-            <div className="flex items-center justify-between gap-1.5">
+          <div className="md:hidden flex flex-col gap-2.5 pt-3 pb-2.5">
+            <div className="flex items-center justify-between gap-2">
               {/* Brand Logo */}
-              <Link to="/" className="flex items-center select-none shrink-0">
-                <span className="font-logo text-2xl text-[#ab331c] tracking-normal leading-none">
+              <Link to="/" className="flex items-center select-none shrink-0 min-h-10" aria-label="Wangs home">
+                <span className="font-logo text-[28px] text-[#ab331c] tracking-normal leading-none">
                   Wangs
                 </span>
               </Link>
@@ -510,15 +510,16 @@ export default function Navbar() {
                   type="button"
                   onClick={() => setIsDrawerOpen(true)}
                   aria-label={`Shopping Basket with ${itemsCount} items`}
-                  className="border border-stone-900 text-stone-900 text-[11px] font-bold px-3 py-1 rounded-full hover:bg-stone-900 hover:text-white transition-colors cursor-pointer"
+                  className="min-h-11 flex items-center gap-2 rounded-full border border-[#d8cbbd] bg-[#f7f3ed] px-3.5 text-xs font-semibold text-[#28452e] hover:bg-[#efe9df] transition-colors cursor-pointer"
                 >
-                  Cart ({itemsCount})
+                  <ShoppingBag size={16} strokeWidth={2.2} />
+                  <span>Cart <span className="tabular-nums">({itemsCount})</span></span>
                 </button>
 
                 <Link
                   to={user ? '/account' : '/login'}
                   aria-label="Account"
-                  className="w-7 h-7 rounded-full border border-stone-300 flex items-center justify-center bg-white text-stone-700 active:scale-95 transition-colors"
+                  className="w-11 h-11 rounded-full border border-stone-200 flex items-center justify-center bg-white text-stone-700 active:scale-95 transition-colors"
                 >
                   {user ? (
                     <span className="font-bold text-xs text-[#ab331c]">
@@ -538,23 +539,23 @@ export default function Navbar() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search pickles, brands..."
-                className="w-full bg-white text-xs text-stone-900 placeholder:text-stone-400 rounded-full pl-4 pr-8 py-2 border border-stone-300 focus:outline-none focus:border-stone-900"
+                className="w-full min-h-11 bg-[#faf8f4] text-sm text-stone-900 placeholder:text-stone-400 rounded-full pl-4 pr-11 border border-[#e6ded4] focus:outline-none focus:border-[#28452e] focus:ring-2 focus:ring-[#28452e]/10"
               />
               <button
                 type="submit"
-                className="absolute right-3 text-stone-400 hover:text-stone-800"
+                className="absolute right-0 w-11 h-11 rounded-full bg-[#28452e] text-white flex items-center justify-center hover:bg-[#1f3724] transition-colors"
                 aria-label="Submit search"
               >
-                <Search size={14} />
+                <Search size={16} />
               </button>
             </form>
 
             {/* Mobile Row 3: Category Nav Links (Evenly Spaced & Active Highlight) */}
-            <div className="grid grid-cols-3 gap-2 py-0.5 text-xs font-medium text-stone-700 text-center">
+            <nav aria-label="Shop categories" className="grid grid-cols-3 gap-2 py-0.5 text-xs font-semibold text-center">
               <NavLink
                 to="/products"
                 className={({ isActive }) =>
-                  `py-1.5 rounded-full transition-colors ${isActive ? 'bg-[#fbf2ec] text-[#ab331c] font-bold' : 'hover:text-[#ab331c]'}`
+                  `min-h-11 flex items-center justify-center px-2 rounded-full transition-colors ${isActive ? 'bg-[#fbeee9] text-[#ab331c] font-bold' : 'text-stone-600 hover:text-[#ab331c]'}`
                 }
               >
                 Pickles
@@ -562,7 +563,7 @@ export default function Navbar() {
               <NavLink
                 to="/gift-boxes"
                 className={({ isActive }) =>
-                  `py-1.5 rounded-full transition-colors ${isActive ? 'bg-[#fbf2ec] text-[#ab331c] font-bold' : 'hover:text-[#ab331c]'}`
+                  `min-h-11 flex items-center justify-center px-2 rounded-full transition-colors ${isActive ? 'bg-[#fbeee9] text-[#ab331c] font-bold' : 'text-stone-600 hover:text-[#ab331c]'}`
                 }
               >
                 Gift Boxes
@@ -570,12 +571,12 @@ export default function Navbar() {
               <NavLink
                 to="/brands"
                 className={({ isActive }) =>
-                  `py-1.5 rounded-full transition-colors ${isActive ? 'bg-[#fbf2ec] text-[#ab331c] font-bold' : 'hover:text-[#ab331c]'}`
+                  `min-h-11 flex items-center justify-center px-2 rounded-full transition-colors ${isActive ? 'bg-[#fbeee9] text-[#ab331c] font-bold' : 'text-stone-600 hover:text-[#ab331c]'}`
                 }
               >
                 Brands
               </NavLink>
-            </div>
+            </nav>
           </div>
 
           {/* ----------------------------------------------------
