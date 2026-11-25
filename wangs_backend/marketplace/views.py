@@ -3462,19 +3462,98 @@ class AdminCommissionView(views.APIView):
         })
 
 
+DEFAULT_ORBITAL_SHOWCASE = {
+    'is_active': True,
+    'eyebrow': 'ARTISAN COLLECTION',
+    'headline': 'The whole Nagaland pickle shelf, in one place.',
+    'cta_text': 'Explore all jars',
+    'cta_link': '/products',
+    'product_ids': [],
+}
+
+
+def get_orbital_showcase_payload(current, request=None):
+    raw = current.orbital_showcase_config if isinstance(current.orbital_showcase_config, dict) else {}
+    config = {
+        'is_active': bool(raw.get('is_active', DEFAULT_ORBITAL_SHOWCASE['is_active'])),
+        'eyebrow': str(raw.get('eyebrow') or DEFAULT_ORBITAL_SHOWCASE['eyebrow']).strip(),
+        'headline': str(raw.get('headline') or DEFAULT_ORBITAL_SHOWCASE['headline']).strip(),
+        'cta_text': str(raw.get('cta_text') or DEFAULT_ORBITAL_SHOWCASE['cta_text']).strip(),
+        'cta_link': str(raw.get('cta_link') or DEFAULT_ORBITAL_SHOWCASE['cta_link']).strip(),
+        'product_ids': [int(pid) for pid in (raw.get('product_ids') or []) if str(pid).isdigit()][:5],
+    }
+
+    base_qs = Product.objects.filter(is_active=True).select_related('category', 'manufacturer').prefetch_related('images')
+    selected_products = []
+    if config['product_ids']:
+        by_id = {p.id: p for p in base_qs.filter(id__in=config['product_ids'])}
+        selected_products = [by_id[pid] for pid in config['product_ids'] if pid in by_id]
+    if not selected_products:
+        selected_products = list(base_qs.order_by('-is_bestseller', '-created_at')[:5])
+
+    ctx = {'request': request} if request else {}
+    config['products'] = ProductSerializer(selected_products, many=True, context=ctx).data
+    return config
+
+
 class PlatformSettingsView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
         current = CommissionSetting.get_current()
-        return Response({
+        response = Response({
             'allow_seller_registration': current.allow_seller_registration,
             'is_maintenance_mode': current.is_maintenance_mode,
             'maintenance_message': current.maintenance_message,
             'customer_platform_fee': str(current.customer_platform_fee),
             'default_delivery_fee': str(current.default_delivery_fee),
             'free_delivery_threshold': str(current.free_delivery_threshold),
+            'orbital_showcase': get_orbital_showcase_payload(current, request),
         })
+        response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        return response
+
+
+class AdminOrbitalShowcaseView(views.APIView):
+    permission_classes = [IsAdminUserRole]
+
+    def get(self, request):
+        current = CommissionSetting.get_current()
+        return Response(get_orbital_showcase_payload(current, request))
+
+    def put(self, request):
+        current = CommissionSetting.get_current()
+        data = request.data or {}
+        raw_ids = data.get('product_ids') or []
+        if not isinstance(raw_ids, list):
+            raw_ids = []
+        clean_ids = []
+        for pid in raw_ids:
+            if str(pid).isdigit():
+                val = int(pid)
+                if val not in clean_ids:
+                    clean_ids.append(val)
+            if len(clean_ids) >= 5:
+                break
+
+        current.orbital_showcase_config = {
+            'is_active': bool(data.get('is_active', True)),
+            'eyebrow': str(data.get('eyebrow') or DEFAULT_ORBITAL_SHOWCASE['eyebrow']).strip()[:80],
+            'headline': str(data.get('headline') or DEFAULT_ORBITAL_SHOWCASE['headline']).strip()[:160],
+            'cta_text': str(data.get('cta_text') or DEFAULT_ORBITAL_SHOWCASE['cta_text']).strip()[:60],
+            'cta_link': str(data.get('cta_link') or DEFAULT_ORBITAL_SHOWCASE['cta_link']).strip()[:200],
+            'product_ids': clean_ids,
+        }
+        current.save(update_fields=['orbital_showcase_config', 'updated_at'])
+
+        AuditLog.objects.create(
+            user=request.user,
+            action='ORBITAL_SHOWCASE_UPDATED',
+            target_model='CommissionSetting',
+            target_id=str(current.id),
+            details={'is_active': current.orbital_showcase_config['is_active'], 'product_ids': clean_ids}
+        )
+        return Response(get_orbital_showcase_payload(current, request))
 
 
 class AdminToggleSellerRegistrationView(views.APIView):

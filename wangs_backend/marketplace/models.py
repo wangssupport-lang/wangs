@@ -447,6 +447,11 @@ class CommissionSetting(models.Model):
         blank=True,
         default="We're currently undergoing scheduled maintenance & pantry inventory updates. We'll be back shortly!"
     )
+    orbital_showcase_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Configuration for the homepage orbital floating product showcase (eyebrow, headline, cta_text, cta_link, is_active, product_ids)."
+    )
     effective_from = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)

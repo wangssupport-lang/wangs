@@ -111,6 +111,60 @@ export default function HomePage() {
     };
   });
   const [reviewPageIndex, setReviewPageIndex] = useState(0);
+  const [orbitalShowcase, setOrbitalShowcase] = useState(() => {
+    try {
+      const raw = localStorage.getItem('wangs_orbital_showcase_cache') || sessionStorage.getItem('wangs_orbital_showcase_cache');
+      if (raw) return JSON.parse(raw);
+    } catch {}
+    return {
+      is_active: true,
+      eyebrow: 'ARTISAN COLLECTION',
+      headline: 'The whole Nagaland pickle shelf, in one place.',
+      cta_text: 'Explore all jars',
+      cta_link: '/products',
+      products: [],
+    };
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    let channel = null;
+
+    async function loadOrbitalShowcase() {
+      try {
+        const res = await api.getPlatformSettings();
+        if (!cancelled && res?.orbital_showcase) {
+          setOrbitalShowcase(res.orbital_showcase);
+          try {
+            localStorage.setItem('wangs_orbital_showcase_cache', JSON.stringify(res.orbital_showcase));
+            sessionStorage.setItem('wangs_orbital_showcase_cache', JSON.stringify(res.orbital_showcase));
+          } catch {}
+        }
+      } catch {}
+    }
+
+    loadOrbitalShowcase();
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel('wangs_orbital_sync');
+        channel.onmessage = () => loadOrbitalShowcase();
+      }
+    } catch {}
+
+    const handleOrbitalChanged = () => loadOrbitalShowcase();
+    window.addEventListener('wangs_orbital_changed', handleOrbitalChanged);
+    window.addEventListener('focus', loadOrbitalShowcase);
+
+    return () => {
+      cancelled = true;
+      if (channel) {
+        try { channel.close(); } catch {}
+      }
+      window.removeEventListener('wangs_orbital_changed', handleOrbitalChanged);
+      window.removeEventListener('focus', loadOrbitalShowcase);
+    };
+  }, []);
 
   const bannerScrollRef = useRef(null);
   const isInteractingWithBanner = useRef(false);
@@ -989,12 +1043,15 @@ export default function HomePage() {
       </section>
 
       {/* ========================================================
-          ORBITAL FLOATING PRODUCT SHOWCASE (Cashfree-style Card Animation)
+          ORBITAL FLOATING PRODUCT SHOWCASE (Admin-Managed + Cashfree-style Animation)
           ======================================================== */}
       {(() => {
-        const pool = (allProducts && allProducts.length > 0)
-          ? allProducts
-          : (bestsellers && bestsellers.length > 0 ? bestsellers : desktopCurated);
+        if (orbitalShowcase?.is_active === false) return null;
+        const pool = (orbitalShowcase?.products && orbitalShowcase.products.length > 0)
+          ? orbitalShowcase.products
+          : ((allProducts && allProducts.length > 0)
+            ? allProducts
+            : (bestsellers && bestsellers.length > 0 ? bestsellers : desktopCurated));
         const orbitalItems = (pool || []).slice(0, 5);
         if (orbitalItems.length === 0) return null;
 
@@ -1031,21 +1088,19 @@ export default function HomePage() {
             </svg>
 
             <div className="max-w-[1240px] mx-auto relative md:min-h-[540px] lg:min-h-[580px] flex flex-col items-center justify-center">
-              {/* Centered Headline */}
+              {/* Centered Headline (Admin-Managed) */}
               <div className="relative z-10 text-center max-w-xl mx-auto mb-10 md:mb-0 px-2">
                 <span className="text-[#ab331c] font-bold text-[11px] uppercase tracking-[0.14em] block mb-2">
-                  ARTISAN COLLECTION
+                  {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
                 </span>
                 <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
-                  The whole Nagaland <br />
-                  pickle shelf, <br />
-                  in one place.
+                  {orbitalShowcase?.headline || 'The whole Nagaland pickle shelf, in one place.'}
                 </h2>
                 <Link
-                  to="/products"
+                  to={orbitalShowcase?.cta_link || '/products'}
                   className="mt-5 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#ab331c] hover:underline"
                 >
-                  <span>Explore all jars</span>
+                  <span>{orbitalShowcase?.cta_text || 'Explore all jars'}</span>
                   <ArrowRight size={14} />
                 </Link>
               </div>

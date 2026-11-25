@@ -23,7 +23,7 @@ from .views import (
     AdminToggleMaintenanceModeView, MaintenanceNotifyView, AdminMaintenanceSubscribersView,
     AdminResearchReportView, HeroBannerViewSet, AdminHeroBannerViewSet,
     AdminCategoryViewSet, PublicNotificationView,
-    PublicStorefrontNoticeView, AdminStorefrontNoticeViewSet,
+    PublicStorefrontNoticeView, AdminStorefrontNoticeViewSet, AdminOrbitalShowcaseView,
     CustomerRewardWalletView, CustomerRewardScanView, CustomerRewardVerifyTokenView,
     AdminRewardOverviewView, AdminRewardQRListView, AdminRewardPrintLabelsView,
     AdminRewardSettingsView, AdminRewardRevokeQRView, AdminRewardAdjustBalanceView,
@@ -72,6 +72,7 @@ urlpatterns = [
     # Storefront & Brands (Amazon-style Brand Spotlight)
     path('notifications/', PublicNotificationView.as_view(), name='public-notifications'),
     path('storefront-notices/', PublicStorefrontNoticeView.as_view(), name='public-storefront-notices'),
+    path('admin/orbital-showcase/', AdminOrbitalShowcaseView.as_view(), name='admin-orbital-showcase'),
     path('community-reviews/', PublicCommunityReviewsView.as_view(), name='community-reviews'),
     path('reviews/', PublicCommunityReviewsView.as_view(), name='reviews-list'),
     path('brands/', BrandListView.as_view(), name='brands-list'),

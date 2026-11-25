@@ -447,6 +447,7 @@ const tabTitles = {
   shipping_delivery: 'Shipping & Delivery Management',
   notices: 'Notice Ribbon Announcements',
   banners: 'Hero Promo Banners',
+  orbital: 'Orbital Shelf',
   categories: 'Catalog Categories',
   commission: 'Commission & Fees Settings',
   settlements: 'Payout Settlements',
@@ -554,6 +555,17 @@ export default function AdminDashboardPage() {
   const [bannerImageFile, setBannerImageFile] = useState(null);
   const [bannerImagePreview, setBannerImagePreview] = useState('');
 
+  // Orbital Floating Product Showcase State
+  const [orbitalSaving, setOrbitalSaving] = useState(false);
+  const [orbitalForm, setOrbitalForm] = useState({
+    is_active: true,
+    eyebrow: 'ARTISAN COLLECTION',
+    headline: 'The whole Nagaland pickle shelf, in one place.',
+    cta_text: 'Explore all jars',
+    cta_link: '/products',
+    product_ids: [],
+  });
+
   // Product Categories Management State (Storefront Navbar Pills & Catalog Filters)
   const [categoriesList, setCategoriesList] = useState(() => cachedData?.categoriesList || []);
   const [categorySaving, setCategorySaving] = useState(false);
@@ -624,7 +636,7 @@ export default function AdminDashboardPage() {
 
       // PHASE 2: Secondary Tab Data loaded smoothly in background with Promise.allSettled
       setSecondaryLoading(true);
-      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes, noticesRes, couriersRes] = await Promise.allSettled([
+      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes, noticesRes, couriersRes, orbitalRes] = await Promise.allSettled([
         api.getAdminProducts(),
         api.getAdminOrders(),
         api.getCommissionSettings(),
@@ -636,6 +648,7 @@ export default function AdminDashboardPage() {
         api.getAdminCategories(),
         api.getAdminStorefrontNotices(),
         api.getAdminCouriers(),
+        api.getAdminOrbitalShowcase(),
       ]);
 
       const parsedProds = prodsRes.status === 'fulfilled' ? extractList(prodsRes.value) : (cachedData?.products || []);
@@ -661,6 +674,17 @@ export default function AdminDashboardPage() {
       setCategoriesList(parsedCats);
       setStorefrontNotices(parsedNotices);
       setCouriers(parsedCouriers);
+      if (orbitalRes?.status === 'fulfilled' && orbitalRes.value) {
+        const ov = orbitalRes.value;
+        setOrbitalForm({
+          is_active: ov.is_active !== false,
+          eyebrow: ov.eyebrow || 'ARTISAN COLLECTION',
+          headline: ov.headline || 'The whole Nagaland pickle shelf, in one place.',
+          cta_text: ov.cta_text || 'Explore all jars',
+          cta_link: ov.cta_link || '/products',
+          product_ids: Array.isArray(ov.product_ids) ? ov.product_ids : [],
+        });
+      }
 
       if (parsedComm?.current) {
         setCommForm({
@@ -1431,6 +1455,43 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const handleToggleOrbitalProduct = (productId) => {
+    setOrbitalForm((prev) => {
+      const exists = prev.product_ids.includes(productId);
+      if (exists) {
+        return { ...prev, product_ids: prev.product_ids.filter((id) => id !== productId) };
+      }
+      if (prev.product_ids.length >= 5) {
+        toast.error('You can select up to 5 products for the Orbital Showcase.');
+        return prev;
+      }
+      return { ...prev, product_ids: [...prev.product_ids, productId] };
+    });
+  };
+
+  const handleSaveOrbitalShowcase = async (e) => {
+    e?.preventDefault?.();
+    setOrbitalSaving(true);
+    try {
+      const updated = await api.updateAdminOrbitalShowcase(orbitalForm);
+      try {
+        localStorage.setItem('wangs_orbital_showcase_cache', JSON.stringify(updated));
+        sessionStorage.setItem('wangs_orbital_showcase_cache', JSON.stringify(updated));
+        if (typeof BroadcastChannel !== 'undefined') {
+          const ch = new BroadcastChannel('wangs_orbital_sync');
+          ch.postMessage({ type: 'updated', ts: Date.now() });
+          ch.close();
+        }
+      } catch {}
+      window.dispatchEvent(new CustomEvent('wangs_orbital_changed'));
+      toast.success('Orbital Showcase updated & synced live!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to save Orbital Showcase settings');
+    } finally {
+      setOrbitalSaving(false);
+    }
+  };
+
   const handleStartEditNotice = (n) => {
     setEditingNoticeId(n.id);
     setNoticeForm({
@@ -1789,6 +1850,7 @@ export default function AdminDashboardPage() {
       items: [
         { id: 'notices', label: 'Notice Ribbon', icon: Megaphone, count: storefrontNotices.length },
         { id: 'banners', label: 'Hero Promo Banners', icon: ImageIcon, count: heroBanners.length },
+        { id: 'orbital', label: 'Orbital Shelf', icon: Sparkles, count: orbitalForm.product_ids.length || 5 },
         { id: 'categories', label: 'Categories', icon: Tags, count: categoriesList.length },
         { id: 'commission', label: 'Commission & Fees', icon: DollarSign },
         { id: 'settlements', label: 'Payout Settlements', icon: Landmark },
@@ -2832,6 +2894,155 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tab: Orbital Floating Product Showcase Management */}
+      {activeTab === 'orbital' && (
+        <div className="space-y-6 text-xs">
+          <div className="bg-gradient-to-r from-forest-950 via-forest-900 to-[#123821] text-cream-50 p-6 sm:p-7 rounded-3xl border border-forest-800 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <span className="p-3 bg-amber-400 text-forest-950 rounded-2xl shadow-sm shrink-0">
+                <Sparkles size={22} />
+              </span>
+              <div>
+                <h2 className="font-serif text-xl sm:text-2xl font-bold text-white flex items-center gap-2.5">
+                  Orbital Floating Product Shelf
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase ${orbitalForm.is_active ? 'bg-emerald-400 text-forest-950' : 'bg-stone-300 text-stone-800'}`}>
+                    {orbitalForm.is_active ? 'Live on Home' : 'Hidden'}
+                  </span>
+                </h2>
+                <p className="text-stone-300 text-xs mt-0.5">
+                  Customize the centered headline, CTA, visibility, and pick up to 5 floating pickle jars orbiting the showcase.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setOrbitalForm((prev) => ({ ...prev, is_active: !prev.is_active }))}
+              className={`px-4 py-2 rounded-xl font-bold text-xs cursor-pointer transition-colors ${orbitalForm.is_active ? 'bg-emerald-400 text-forest-950 hover:bg-emerald-300' : 'bg-white/15 text-white hover:bg-white/25'}`}
+            >
+              {orbitalForm.is_active ? 'Visible on Storefront' : 'Hidden from Storefront'}
+            </button>
+          </div>
+
+          <form onSubmit={handleSaveOrbitalShowcase} className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Copy & CTA Settings */}
+            <div className="lg:col-span-5 bg-white rounded-3xl border border-stone-200 p-6 shadow-xs space-y-4">
+              <h3 className="font-serif text-base font-bold text-stone-900 border-b border-stone-100 pb-2">
+                Showcase Copy &amp; CTA
+              </h3>
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Eyebrow Label</label>
+                <input
+                  type="text"
+                  value={orbitalForm.eyebrow}
+                  onChange={(e) => setOrbitalForm({ ...orbitalForm, eyebrow: e.target.value })}
+                  placeholder="ARTISAN COLLECTION"
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-stone-700 mb-1">Main Centered Headline</label>
+                <textarea
+                  rows={2}
+                  value={orbitalForm.headline}
+                  onChange={(e) => setOrbitalForm({ ...orbitalForm, headline: e.target.value })}
+                  placeholder="The whole Nagaland pickle shelf, in one place."
+                  className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">CTA Text</label>
+                  <input
+                    type="text"
+                    value={orbitalForm.cta_text}
+                    onChange={(e) => setOrbitalForm({ ...orbitalForm, cta_text: e.target.value })}
+                    placeholder="Explore all jars"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-stone-700 mb-1">CTA Link</label>
+                  <input
+                    type="text"
+                    value={orbitalForm.cta_link}
+                    onChange={(e) => setOrbitalForm({ ...orbitalForm, cta_link: e.target.value })}
+                    placeholder="/products"
+                    className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={orbitalSaving}
+                className="w-full py-3 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+              >
+                {orbitalSaving ? 'Saving & Syncing...' : 'Save & Sync Orbital Showcase'}
+              </button>
+            </div>
+
+            {/* Right: 5-Product Selector */}
+            <div className="lg:col-span-7 bg-white rounded-3xl border border-stone-200 p-6 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-100 pb-2">
+                <div>
+                  <h3 className="font-serif text-base font-bold text-stone-900">
+                    Select Floating Products ({orbitalForm.product_ids.length}/5)
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    Leave empty to auto-fill with your top 5 active pickles, or pick up to 5 specific jars.
+                  </p>
+                </div>
+                {orbitalForm.product_ids.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setOrbitalForm({ ...orbitalForm, product_ids: [] })}
+                    className="text-xs font-bold text-chilli-700 hover:underline cursor-pointer"
+                  >
+                    Clear Selection
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
+                {(products || []).filter((p) => p.is_active !== false).map((p) => {
+                  const selectedIdx = orbitalForm.product_ids.indexOf(p.id);
+                  const isSelected = selectedIdx !== -1;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => handleToggleOrbitalProduct(p.id)}
+                      className={`p-2.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-emerald-50 border-emerald-600 ring-1 ring-emerald-600/30'
+                          : 'bg-stone-50/70 border-stone-200 hover:border-stone-400'
+                      }`}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-white border border-stone-200 overflow-hidden shrink-0 flex items-center justify-center p-1">
+                        {p.primary_image_url ? (
+                          <img src={p.primary_image_url} alt={p.title} className="w-full h-full object-contain" />
+                        ) : (
+                          <Package size={16} className="text-stone-400" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-stone-900 truncate">{p.title}</p>
+                        <p className="text-[10px] text-stone-500">₹{Math.round(Number(p.price) || 0)}</p>
+                      </div>
+                      {isSelected && (
+                        <span className="w-6 h-6 rounded-full bg-emerald-700 text-white font-bold text-[11px] flex items-center justify-center shrink-0">
+                          {selectedIdx + 1}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </form>
         </div>
       )}
 

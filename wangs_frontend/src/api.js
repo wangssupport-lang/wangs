@@ -472,6 +472,13 @@ export const api = {
   toggleAdminStorefrontNotice: (id) => apiRequest(`/admin/storefront-notices/${id}/toggle_active/`, { method: 'POST' }),
   resetAdminStorefrontNotices: () => apiRequest('/admin/storefront-notices/reset_defaults/', { method: 'POST' }),
 
+  // Orbital Floating Product Showcase Management
+  getAdminOrbitalShowcase: () => apiRequest(`/admin/orbital-showcase/?_t=${Date.now()}`),
+  updateAdminOrbitalShowcase: (body) => apiRequest('/admin/orbital-showcase/', {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  }),
+
   // Delivery & Shipping Management System
   getShippingQuote: (params) => apiRequest('/checkout/shipping-quote/', { method: 'POST', body: JSON.stringify(params) }),
   getAdminDeliveryOverview: () => apiRequest('/admin/delivery/overview/'),
