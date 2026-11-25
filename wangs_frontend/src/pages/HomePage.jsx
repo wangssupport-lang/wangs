@@ -1283,7 +1283,7 @@ export default function HomePage() {
               Discover Authentic Regional Flavours.
             </h2>
             <p className="text-sm text-stone-600 leading-relaxed">
-              Wangs is an online regional food marketplace that originated in Nagaland, India. Starting with authentic Naga pickles, Wangs connects independent regional food makers directly with customers and plans to expand its catalogue of regional food products across India.
+              Wangs (Wangs Marketplace) is an Indian online regional food marketplace that originated in Nagaland, India. Starting with authentic Naga pickles, Wangs connects independent regional food makers directly with customers for online shopping and plans to expand its catalogue of regional food products across India.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -1291,13 +1291,19 @@ export default function HomePage() {
               to="/about"
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#ab331c] text-white text-xs font-semibold hover:bg-[#8e2815] transition-colors"
             >
-              About Wangs <ArrowRight size={14} />
+              About Wangs Marketplace <ArrowRight size={14} />
+            </Link>
+            <Link
+              to="/products"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-xs font-semibold hover:border-stone-900 transition-colors"
+            >
+              Shop Naga Pickles
             </Link>
             <Link
               to="/brands"
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-xs font-semibold hover:border-stone-900 transition-colors"
             >
-              Explore Makers
+              Browse Regional Makers
             </Link>
           </div>
         </div>

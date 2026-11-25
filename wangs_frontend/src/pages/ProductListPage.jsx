@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Filter, Search, X, ShieldCheck, Sparkles, ArrowRight } from 'lucide-react';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
@@ -130,17 +130,37 @@ export default function ProductListPage() {
     ? `${formattedCategoryName} | Wangs`
     : formattedBrandName
       ? `${formattedBrandName} | Wangs`
-      : 'All Pickles & Regional Foods | Wangs';
+      : 'Naga Pickles & Regional Foods | Wangs Online Marketplace';
 
   const seoDescription = formattedCategoryName
-    ? `Browse authentic ${formattedCategoryName.toLowerCase()} from independent food makers on Wangs.`
+    ? `Shop authentic ${formattedCategoryName.toLowerCase()} online at Wangs Marketplace, connecting independent regional food makers from Nagaland and India with customers.`
     : formattedBrandName
-      ? `Explore regional pickles and food products from ${formattedBrandName} on Wangs.`
-      : 'Browse authentic Naga pickles and regional food products from independent food makers across India on Wangs.';
+      ? `Explore regional pickles and food products from ${formattedBrandName} on Wangs Marketplace, India.`
+      : 'Shop authentic Naga pickles and regional food products online at Wangs Marketplace. Discover traditional flavours from independent food makers in Nagaland and across India.';
 
   const seoCanonicalPath = categoryParam
     ? `/products?category=${encodeURIComponent(categoryParam)}`
     : '/products';
+
+  const catalogHeading = formattedCategoryName
+    ? formattedCategoryName
+    : formattedBrandName
+      ? formattedBrandName
+      : 'Naga Pickles & Regional Foods at Wangs';
+
+  const catalogStructuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wangs.in/' },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: catalogHeading,
+        item: `https://wangs.in${seoCanonicalPath}`,
+      },
+    ],
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-4 sm:space-y-6">
@@ -148,7 +168,27 @@ export default function ProductListPage() {
         title={seoTitle}
         description={seoDescription}
         canonicalPath={seoCanonicalPath}
+        structuredData={catalogStructuredData}
       />
+
+      {/* Compact Editorial Catalog Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-1">
+        <div className="space-y-1">
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
+            {catalogHeading}
+          </h1>
+          <p className="text-xs sm:text-sm text-stone-600 max-w-2xl">
+            {seoDescription}
+          </p>
+        </div>
+        <div className="flex items-center gap-3 text-xs font-medium text-stone-500 shrink-0">
+          <Link to="/" className="hover:text-[#ab331c] transition-colors">Home</Link>
+          <span>·</span>
+          <Link to="/about" className="hover:text-[#ab331c] transition-colors">About Wangs</Link>
+          <span>·</span>
+          <Link to="/brands" className="hover:text-[#ab331c] transition-colors">Makers</Link>
+        </div>
+      </div>
       {/* Brand Store Filter Indicator if active */}
       {brandParam && (
         <div className="flex items-center justify-between p-3.5 sm:p-4 bg-primary text-on-primary rounded-2xl shadow-xs">

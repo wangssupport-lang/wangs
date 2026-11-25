@@ -11,18 +11,26 @@ export default function Footer() {
         <div className="flex flex-wrap items-center justify-center sm:justify-start gap-x-2 gap-y-1 text-stone-400">
           <span className="font-logo text-sm text-stone-100">© Wangs</span>
           <span>·</span>
-          <span className="text-stone-300">wangs.in</span>
+          <span className="text-stone-300">Wangs Marketplace (wangs.in)</span>
           <span>·</span>
-          <span className="text-stone-400">Indian regional food marketplace developed in Nagaland</span>
+          <span className="text-stone-400">Indian regional food marketplace from Nagaland</span>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-stone-400 text-xs">
+          <Link to="/" className="hover:text-stone-100 transition-colors">
+            Home
+          </Link>
+          <span>·</span>
           <Link to="/about" className="hover:text-stone-100 transition-colors">
             About
           </Link>
           <span>·</span>
           <Link to="/products" className="hover:text-stone-100 transition-colors">
-            Products
+            Pickles
+          </Link>
+          <span>·</span>
+          <Link to="/brands" className="hover:text-stone-100 transition-colors">
+            Brands
           </Link>
           <span>·</span>
           <Link to="/shipping" className="hover:text-stone-100 transition-colors">
