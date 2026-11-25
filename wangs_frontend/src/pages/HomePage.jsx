@@ -184,9 +184,11 @@ export default function HomePage() {
 
     const applyTransforms = (rawT) => {
       const p = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+      const vw = window.innerWidth || 1024;
+      const isMobile = vw < 768;
 
       if (orbitalHeadlineRef.current) {
-        orbitalHeadlineRef.current.style.transform = `translate3d(0, ${(-28 * p).toFixed(2)}px, 0)`;
+        orbitalHeadlineRef.current.style.transform = `translate3d(0, ${((isMobile ? -20 : -28) * p).toFixed(2)}px, 0)`;
       }
       if (orbitalArcsRef.current) {
         orbitalArcsRef.current.style.opacity = String(Math.max(0, 0.45 * (1 - p * 1.15)).toFixed(3));
@@ -195,17 +197,23 @@ export default function HomePage() {
       if (orbitalGlowLeftRef.current) orbitalGlowLeftRef.current.style.opacity = glowOpacity;
       if (orbitalGlowRightRef.current) orbitalGlowRightRef.current.style.opacity = glowOpacity;
 
+      const maxRx = isMobile ? Math.min(138, vw * 0.34) : 400;
+      const maxRy = isMobile ? 168 : 205;
+      const stackSpread = isMobile ? 10 : 14;
+      const stackDrop = isMobile ? 118 : 148;
+      const shrinkFactor = isMobile ? 0.28 : 0.42;
+
       orbitalCardRefs.current.forEach((el, idx) => {
         if (!el) return;
         const baseAngle = baseAngles[idx % baseAngles.length];
         const angleRad = ((baseAngle + p * 115) * Math.PI) / 180;
-        const rx = 400 * (1 - p);
-        const ry = 205 * (1 - p);
-        const stackX = (idx - 2) * 14 * p;
-        const stackY = 148 * p;
+        const rx = maxRx * (1 - p);
+        const ry = maxRy * (1 - p);
+        const stackX = (idx - 2) * stackSpread * p;
+        const stackY = stackDrop * p;
         const x = Math.cos(angleRad) * rx + stackX;
         const y = Math.sin(angleRad) * ry + stackY;
-        const scale = 1 - 0.42 * p;
+        const scale = 1 - shrinkFactor * p;
         const tilt = (idx - 2) * 7 * p;
 
         el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), calc(-50% + ${y.toFixed(2)}px), 0) scale(${scale.toFixed(4)}) rotate(${tilt.toFixed(2)}deg)`;
@@ -231,7 +239,7 @@ export default function HomePage() {
     };
 
     const measureScroll = () => {
-      if (!orbitalSectionRef.current || window.innerWidth < 768) return;
+      if (!orbitalSectionRef.current) return;
       const rect = orbitalSectionRef.current.getBoundingClientRect();
       const vh = window.innerHeight || 800;
       const scrollable = Math.max(1, rect.height - vh * 0.82);
@@ -1154,27 +1162,27 @@ export default function HomePage() {
         return (
           <section
             ref={orbitalSectionRef}
-            className="w-full bg-white/80 border-y border-stone-200/50 relative my-6 md:h-[150vh]"
+            className="w-full bg-white/80 border-y border-stone-200/50 relative my-6 h-[135vh] md:h-[150vh]"
           >
-            <div className="md:sticky md:top-20 md:h-[calc(100vh-100px)] md:max-h-[620px] w-full py-14 md:py-0 px-4 sm:px-6 lg:px-12 overflow-hidden flex items-center justify-center relative">
+            <div className="sticky top-20 h-[calc(100vh-110px)] max-h-[540px] md:max-h-[620px] w-full px-4 sm:px-6 lg:px-12 overflow-hidden flex items-center justify-center relative">
               {/* Soft Ambient Pastel Radial Glows */}
               <div
                 ref={orbitalGlowLeftRef}
                 aria-hidden="true"
-                className="absolute -left-24 top-1/4 w-96 h-96 rounded-full bg-[#dcfce7]/65 blur-3xl pointer-events-none"
+                className="absolute -left-24 top-1/4 w-72 md:w-96 h-72 md:h-96 rounded-full bg-[#dcfce7]/65 blur-3xl pointer-events-none"
               />
               <div
                 ref={orbitalGlowRightRef}
                 aria-hidden="true"
-                className="absolute -right-24 bottom-1/4 w-96 h-96 rounded-full bg-[#fef3c7]/75 blur-3xl pointer-events-none"
+                className="absolute -right-24 bottom-1/4 w-72 md:w-96 h-72 md:h-96 rounded-full bg-[#fef3c7]/75 blur-3xl pointer-events-none"
               />
 
-              {/* Delicate Orbital Arcs (Desktop, fade smoothly as cards stack) */}
+              {/* Delicate Orbital Arcs (Fade smoothly as cards stack) */}
               <svg
                 ref={orbitalArcsRef}
                 aria-hidden="true"
                 viewBox="0 0 1200 560"
-                className="hidden md:block absolute inset-0 w-full h-full pointer-events-none opacity-45"
+                className="absolute inset-0 w-full h-full pointer-events-none opacity-45"
                 preserveAspectRatio="none"
               >
                 <path d="M-40 130 Q 600 280 1240 90" fill="none" stroke="#d6d3d1" strokeWidth="1" />
@@ -1182,28 +1190,28 @@ export default function HomePage() {
                 <ellipse cx="600" cy="280" rx="410" ry="215" fill="none" stroke="#e7e5e4" strokeWidth="1" strokeDasharray="4 6" />
               </svg>
 
-              <div className="max-w-[1240px] w-full mx-auto relative md:h-[540px] flex flex-col items-center justify-center">
+              <div className="max-w-[1240px] w-full mx-auto relative h-[460px] md:h-[540px] flex flex-col items-center justify-center">
                 {/* Centered Headline (Admin-Managed) */}
                 <div
                   ref={orbitalHeadlineRef}
-                  className="relative z-10 text-center max-w-xl mx-auto mb-10 md:mb-0 px-2 will-change-transform"
+                  className="relative z-10 text-center max-w-[260px] sm:max-w-xl mx-auto px-2 will-change-transform"
                 >
-                  <span className="text-[#ab331c] font-bold text-[11px] uppercase tracking-[0.14em] block mb-2">
+                  <span className="text-[#ab331c] font-bold text-[10px] sm:text-[11px] uppercase tracking-[0.14em] block mb-1.5 sm:mb-2">
                     {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
                   </span>
-                  <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
+                  <h2 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
                     {orbitalShowcase?.headline || 'The best local pickle shelf, in one place.'}
                   </h2>
                   <Link
                     to={orbitalShowcase?.cta_link || '/products'}
-                    className="mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#ab331c] hover:underline"
+                    className="mt-3 sm:mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#ab331c] hover:underline"
                   >
                     <span>{orbitalShowcase?.cta_text || 'Explore all jars'}</span>
                     <ArrowRight size={14} />
                   </Link>
                 </div>
 
-                {/* Desktop Scroll-Driven Orbiting & Converging Cards (GPU-Composited, Zero React Rerenders) */}
+                {/* Scroll-Driven Orbiting & Converging Cards (Phone & Desktop, GPU-Composited) */}
                 {orbitalItems.map((item, idx) => {
                   const theme = cardThemes[idx % cardThemes.length];
                   const imgUrl = resolveProductImage(
@@ -1216,15 +1224,15 @@ export default function HomePage() {
                     <div
                       key={item.id || idx}
                       ref={(el) => { orbitalCardRefs.current[idx] = el; }}
-                      className="hidden md:block absolute top-1/2 left-1/2 will-change-transform"
+                      className="block absolute top-1/2 left-1/2 will-change-transform"
                       style={{ zIndex: 20 + idx }}
                     >
                       <Link
                         to={`/product/${item.slug}`}
                         style={{ animationDelay: theme.delay }}
-                        className={`flex flex-col justify-between ${theme.anim} w-40 lg:w-44 h-40 lg:h-44 rounded-3xl p-2.5 border shadow-lg hover:shadow-2xl hover:scale-105 transition-shadow duration-300 group overflow-hidden ${theme.frame}`}
+                        className={`flex flex-col justify-between ${theme.anim} w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 lg:w-44 lg:h-44 rounded-2xl sm:rounded-3xl p-1.5 sm:p-2.5 border shadow-lg hover:shadow-2xl hover:scale-105 transition-shadow duration-300 group overflow-hidden ${theme.frame}`}
                       >
-                        <div className="w-full h-24 lg:h-28 rounded-2xl overflow-hidden bg-white/90 flex items-center justify-center p-1.5">
+                        <div className="w-full h-14 sm:h-22 md:h-24 lg:h-28 rounded-xl sm:rounded-2xl overflow-hidden bg-white/90 flex items-center justify-center p-1 sm:p-1.5">
                           <img
                             src={imgUrl}
                             alt={item.title}
@@ -1232,48 +1240,14 @@ export default function HomePage() {
                             loading="lazy"
                           />
                         </div>
-                        <div className={`${theme.pill} rounded-xl px-2.5 py-1.5 shadow-xs flex items-center justify-between gap-1.5`}>
-                          <span className="text-[10px] font-bold truncate">{item.title}</span>
-                          <span className="text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
+                        <div className={`${theme.pill} rounded-lg sm:rounded-xl px-1.5 sm:px-2.5 py-0.5 sm:py-1.5 shadow-xs flex items-center justify-between gap-1`}>
+                          <span className="text-[8px] sm:text-[10px] font-bold truncate">{item.title}</span>
+                          <span className="text-[8px] sm:text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
                         </div>
                       </Link>
                     </div>
                   );
                 })}
-
-                {/* Mobile 2-Column Floating Product Grid */}
-                <div className="grid grid-cols-2 gap-3 w-full md:hidden relative z-10">
-                  {orbitalItems.slice(0, 4).map((item, idx) => {
-                    const theme = cardThemes[idx % cardThemes.length];
-                    const imgUrl = resolveProductImage(
-                      item.primary_image_url || item.images?.[0]?.image_url,
-                      '/images/hero/dried_beef_pickle_signature.jpg'
-                    );
-                    const priceNum = Math.round(Number(item.price) || 299);
-
-                    return (
-                      <Link
-                        key={item.id || idx}
-                        to={`/product/${item.slug}`}
-                        style={{ animationDelay: theme.delay }}
-                        className={`${theme.anim} rounded-2xl p-2.5 border shadow-md flex flex-col gap-2 overflow-hidden ${theme.frame}`}
-                      >
-                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-white/90 flex items-center justify-center p-2">
-                          <img
-                            src={imgUrl}
-                            alt={item.title}
-                            className="w-full h-full object-contain"
-                            loading="lazy"
-                          />
-                        </div>
-                        <div className={`${theme.pill} rounded-lg px-2 py-1 flex items-center justify-between gap-1`}>
-                          <span className="text-[10px] font-bold truncate">{item.title}</span>
-                          <span className="text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
               </div>
             </div>
           </section>
