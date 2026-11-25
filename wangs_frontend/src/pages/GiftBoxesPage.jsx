@@ -150,25 +150,49 @@ function PickleCharacterIllustration() {
           <path d="M138 201 L162 201 M184 201 L208 201" stroke="#f6df9d" strokeWidth="2.5" strokeDasharray="4 3" />
         </g>
 
-        {/* Left Arm Holding 3D Bowl (Tilts slightly to meet spoon) */}
+        {/* Left Arm Holding 3D Rice Plate with Pickle (Tilts slightly to meet spoon) */}
         <g className="animate-bowl-tilt" filter="url(#soft3DShadow)">
           {/* Left Sleeve */}
           <path
-            d="M138 144 C122 152 118 172 132 180 L146 174"
+            d="M138 144 C120 152 116 172 128 180 L144 174"
             fill="url(#tunicGrad)"
             stroke="#8a2614"
             strokeWidth="1.5"
           />
-          {/* 3D Ceramic Bowl of Spicy Pickle */}
-          <path d="M133 172 C133 192 171 192 171 172 Z" fill="url(#bowl3D)" stroke="#d6c7b2" strokeWidth="2" />
-          <ellipse cx="152" cy="172" rx="19" ry="5.5" fill="#ab331c" />
-          <ellipse cx="152" cy="171" rx="14" ry="3.2" fill="#d9482b" />
-          {/* Left Hand */}
-          <circle cx="136" cy="178" r="7.5" fill="url(#hand3D)" />
+          {/* Wide Ceramic Rice Plate */}
+          <ellipse cx="152" cy="178" rx="30" ry="10.5" fill="url(#bowl3D)" stroke="#d6c7b2" strokeWidth="2" />
+          <ellipse cx="152" cy="176" rx="24" ry="7.5" fill="#fdfaf5" stroke="#ebe0d0" strokeWidth="1" />
 
-          {/* Aroma wisp from bowl */}
+          {/* Steamed White Rice Mound on Plate */}
           <path
-            d="M150 162 Q145 152 151 144"
+            d="M133 176 C134 162 164 160 170 175 C164 181 139 181 133 176 Z"
+            fill="#ffffff"
+            stroke="#ede4d5"
+            strokeWidth="1.2"
+          />
+          {/* Subtle Rice Grain Texture */}
+          <ellipse cx="143" cy="170" rx="2" ry="1" transform="rotate(-15 143 170)" fill="#e8dfd1" />
+          <ellipse cx="150" cy="167" rx="2" ry="1" transform="rotate(20 150 167)" fill="#e8dfd1" />
+          <ellipse cx="146" cy="174" rx="2" ry="1" transform="rotate(10 146 174)" fill="#e8dfd1" />
+          <ellipse cx="156" cy="171" rx="2" ry="1" transform="rotate(-25 156 171)" fill="#e8dfd1" />
+
+          {/* Generous Serving of Fiery Red Pickle on the Rice */}
+          <path
+            d="M153 175 C154 166 168 165 171 174 C168 179 157 179 153 175 Z"
+            fill="#ab331c"
+          />
+          <ellipse cx="162" cy="171" rx="6" ry="3.2" fill="#d9482b" />
+          {/* Chili seed & oil sheen on pickle */}
+          <circle cx="160" cy="172" r="1.1" fill="#f6df9d" />
+          <circle cx="165" cy="174" r="1" fill="#f6df9d" />
+          <ellipse cx="169" cy="176" rx="3" ry="1.2" fill="#c94025" opacity="0.6" />
+
+          {/* Left Hand gripping edge of plate */}
+          <circle cx="128" cy="179" r="7.5" fill="url(#hand3D)" />
+
+          {/* Aroma wisp from warm rice & pickle */}
+          <path
+            d="M151 160 Q146 150 152 142"
             stroke="#c9725b"
             strokeWidth="2.2"
             strokeLinecap="round"
@@ -259,9 +283,10 @@ function PickleCharacterIllustration() {
             strokeLinecap="round"
           />
           <ellipse cx="159" cy="154" rx="9" ry="5.5" transform="rotate(24 159 154)" fill="#b37b40" />
-          {/* Fiery Pickle on Spoon */}
-          <ellipse cx="158" cy="152" rx="6.5" ry="4" transform="rotate(24 158 152)" fill="#ab331c" />
-          <ellipse cx="157" cy="151" rx="3" ry="1.5" transform="rotate(24 157 151)" fill="#e05336" />
+          {/* Bite of White Rice + Fiery Pickle on Spoon */}
+          <ellipse cx="158" cy="152.5" rx="7" ry="4.2" transform="rotate(24 158 152.5)" fill="#ffffff" />
+          <ellipse cx="157" cy="151" rx="4.2" ry="2.6" transform="rotate(24 157 151)" fill="#ab331c" />
+          <ellipse cx="156.5" cy="150.2" rx="2" ry="1.1" transform="rotate(24 156.5 150.2)" fill="#e05336" />
           {/* 3D Right Hand gripping spoon */}
           <circle cx="201" cy="176" r="8" fill="url(#hand3D)" />
         </g>
