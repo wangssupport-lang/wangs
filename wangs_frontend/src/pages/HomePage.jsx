@@ -1104,10 +1104,12 @@ export default function HomePage() {
             <button
               key={tab.id}
               onClick={() => setActiveFilter(tab.id)}
-              className={`px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+              type="button"
+              aria-pressed={activeFilter === tab.id}
+              className={`min-h-11 shrink-0 px-4 sm:px-5 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 activeFilter === tab.id
-                  ? 'border-2 border-stone-900 bg-white text-stone-900 font-bold shadow-2xs'
-                  : 'border border-stone-300 hover:border-stone-500 bg-white/60 text-stone-700'
+                  ? 'border-2 border-[#28452e] bg-white text-[#28452e] font-bold shadow-sm'
+                  : 'border border-stone-300 hover:border-stone-500 bg-white/70 text-stone-700'
               }`}
             >
               {tab.label}

@@ -49,6 +49,13 @@
     scroll-behavior: smooth;
   }
 
+  @media (max-width: 767px) {
+    body, #root {
+      width: 100%;
+      overflow-x: clip;
+    }
+  }
+
   img {
     content-visibility: auto;
   }

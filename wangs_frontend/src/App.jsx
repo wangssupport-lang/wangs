@@ -143,6 +143,7 @@ function AppLayout() {
     location.pathname.startsWith('/wangsadminspace') ||
     location.pathname.startsWith('/wangadminspace');
   const isDeliveryRoute = location.pathname.startsWith('/delivery') || location.pathname.startsWith('/courier');
+  const hasMobileBottomNav = !isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/');
 
   return (
     <div className={`min-h-screen flex flex-col bg-background text-on-surface selection:bg-primary selection:text-white ${isAdminRoute ? 'pb-0' : isDeliveryRoute ? 'pb-10' : ''}`}>
@@ -152,7 +153,7 @@ function AppLayout() {
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
       <AuthModal />
 
-      <main className="flex-1">
+      <main className={`flex-1 ${hasMobileBottomNav ? 'pb-20 md:pb-0' : ''}`}>
         <ErrorBoundary>
           <React.Suspense fallback={<PageFallback />}>
             <Routes>
