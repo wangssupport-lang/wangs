@@ -638,35 +638,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* ========================================================
-            3. SUB-NAVIGATION CATEGORY STRIP (DESKTOP ONLY)
-            Exact Match to Desktop Design Spec (Dynamic Admin Categories)
-            ======================================================== */}
-        <div className="hidden md:block bg-[#faf2ed] border-t border-[#dec0b3]/30">
-          <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-6 overflow-x-auto no-scrollbar py-2 text-xs font-semibold text-[#574238] whitespace-nowrap">
-            <Link
-              to="/products"
-              className={`py-0.5 transition-colors ${!currentCategory ? 'text-[#9b4100] font-bold' : 'hover:text-[#9b4100]'}`}
-            >
-              All Pickles
-            </Link>
-            {categories.map((c) => (
-              <Link
-                key={c.id || c.slug}
-                to={`/products?category=${encodeURIComponent(c.slug)}`}
-                className={`py-0.5 transition-colors ${currentCategory === c.slug ? 'text-[#9b4100] font-bold' : 'hover:text-[#9b4100]'}`}
-              >
-                {c.name}
-              </Link>
-            ))}
-            <Link to="/products?bestsellers=true" className="hover:text-[#9b4100] transition-colors py-0.5 ml-auto flex items-center gap-1 font-bold text-[#9b4100]">
-              <Sparkles size={12} className="text-[#904d00]" /> Bestsellers
-            </Link>
-            <Link to="/brands" className="hover:text-[#9b4100] transition-colors py-0.5">
-              Artisan Brands
-            </Link>
-          </div>
-        </div>
+
       </div>
 
       {/* ========================================================
