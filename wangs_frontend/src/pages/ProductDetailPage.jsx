@@ -192,14 +192,14 @@ export default function ProductDetailPage() {
         <span className="text-stone-400">/</span>
         <Link to="/products" className="hover:text-stone-900 transition-colors">Pickles</Link>
         <span className="text-stone-400">/</span>
-        <span className="text-stone-900 font-semibold truncate max-w-xs">{product.title}</span>
+        <span className="text-stone-900 font-semibold truncate max-w-[170px] sm:max-w-xs">{product.title}</span>
       </nav>
 
       {/* Main Product Showcase Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-10 lg:gap-14 items-start">
         {/* Left Column: Pastel Jar Container & Thumbnails */}
-        <div className="lg:col-span-6 space-y-4">
-          <div className={`${pastelBg} rounded-3xl p-8 sm:p-14 flex items-center justify-center min-h-[380px] sm:min-h-[460px] relative overflow-hidden transition-colors duration-500`}>
+        <div className="lg:col-span-6 space-y-3 sm:space-y-4">
+          <div className={`${pastelBg} rounded-2xl sm:rounded-3xl p-6 sm:p-14 flex items-center justify-center min-h-[260px] sm:min-h-[460px] relative overflow-hidden transition-colors duration-500`}>
             {/* Visual Jar Representation */}
             {product.primary_image_url && !imageError ? (
               <img
@@ -284,7 +284,7 @@ export default function ProductDetailPage() {
 
           {/* Title & Maker Subtitle */}
           <div className="space-y-2">
-            <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-900 leading-tight">
+            <h1 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold text-stone-900 leading-tight">
               {product.title}
             </h1>
             <p className="text-xs sm:text-sm text-stone-600 font-medium">
@@ -318,24 +318,24 @@ export default function ProductDetailPage() {
               <button
                 type="button"
                 onClick={() => setSelectedSize('250 g')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   selectedSize === '250 g'
                     ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
                     : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
                 }`}
               >
-                [250 g]
+                250 g
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedSize('500 g')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   selectedSize === '500 g'
                     ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
                     : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
                 }`}
               >
-                [500 g]
+                500 g
               </button>
             </div>
           </div>
@@ -459,7 +459,7 @@ export default function ProductDetailPage() {
           <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
             You may also like
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             {recommendations.map((rec) => (
               <ProductCard key={rec.id} product={rec} />
             ))}

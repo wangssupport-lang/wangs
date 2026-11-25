@@ -130,10 +130,10 @@ function ProductCard({ product }) {
   const makerVillage = product.origin_district || product.manufacturer?.location_district || 'Kohima';
 
   return (
-    <article className="group bg-white rounded-2xl p-4 border border-stone-200/70 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+    <article className="group bg-white rounded-2xl p-2.5 sm:p-4 border border-stone-200/70 shadow-xs hover:shadow-md transition-all duration-300 flex flex-col justify-between h-full">
       <div>
         {/* Top Image Showcase in Theme Pastel Rounded Box */}
-        <div className={`relative aspect-square w-full rounded-xl overflow-hidden flex items-center justify-center p-4 mb-3 ${pastelBg} transition-colors`}>
+        <div className={`relative aspect-square w-full rounded-xl overflow-hidden flex items-center justify-center p-2 sm:p-4 mb-2 sm:mb-3 ${pastelBg} transition-colors`}>
           <Link to={`/product/${product.slug}`} className="w-full h-full flex items-center justify-center">
             <img
               src={imageUrl}
@@ -149,7 +149,7 @@ function ProductCard({ product }) {
             type="button"
             onClick={toggleWishlist}
             aria-label="Save to Wishlist"
-            className="absolute top-2.5 right-2.5 w-7 h-7 rounded-full bg-white/80 hover:bg-white flex items-center justify-center text-stone-600 hover:text-[#ab331c] transition-all shadow-xs cursor-pointer"
+            className="absolute top-2 right-2 w-8 h-8 sm:w-7 sm:h-7 rounded-full bg-white/85 hover:bg-white flex items-center justify-center text-stone-600 hover:text-[#ab331c] transition-all shadow-xs cursor-pointer"
           >
             <Heart
               size={14}
@@ -168,31 +168,31 @@ function ProductCard({ product }) {
         </div>
 
         {/* Tag Badge */}
-        <div className="flex items-center gap-1.5 mb-1.5">
-          <span className="bg-[#f6df9d] text-stone-900 text-[10px] sm:text-[11px] font-medium px-2.5 py-0.5 rounded-full inline-block">
+        <div className="flex items-center gap-1.5 mb-1">
+          <span className="bg-[#f6df9d] text-stone-900 text-[10px] sm:text-[11px] font-medium px-2 sm:px-2.5 py-0.5 rounded-full inline-block">
             {badgeLabel}
           </span>
         </div>
 
         {/* Title */}
         <Link to={`/product/${product.slug}`} className="block">
-          <h3 className="font-serif font-bold text-sm sm:text-base text-stone-900 group-hover:text-[#ab331c] transition-colors line-clamp-1 leading-snug">
+          <h3 className="font-serif font-bold text-xs sm:text-base text-stone-900 group-hover:text-[#ab331c] transition-colors line-clamp-2 min-h-[2.4em] leading-snug">
             {product.title}
           </h3>
         </Link>
 
         {/* Size & Maker / Village */}
-        <p className="text-[11px] text-stone-500 font-medium uppercase tracking-wider mt-0.5 truncate">
+        <p className="text-[10px] sm:text-[11px] text-stone-500 font-medium uppercase tracking-wider mt-0.5 truncate">
           {weightText} · {brandName} / {makerVillage}
         </p>
 
         {/* Pricing */}
-        <div className="flex items-baseline gap-2 mt-1.5">
-          <span className="font-bold text-base sm:text-lg text-stone-900">
+        <div className="flex items-baseline gap-1.5 sm:gap-2 mt-1.5">
+          <span className="font-bold text-sm sm:text-lg text-stone-900">
             ₹{priceNum}
           </span>
           {hasDiscount && (
-            <span className="text-xs text-stone-400 line-through">
+            <span className="text-[11px] sm:text-xs text-stone-400 line-through">
               ₹{mrpNum}
             </span>
           )}
@@ -200,9 +200,9 @@ function ProductCard({ product }) {
       </div>
 
       {/* Cart Action Button - Exact Match: Forest Green Rounded Button */}
-      <div className="pt-3">
+      <div className="pt-2.5 sm:pt-3">
         {cartItem ? (
-          <div className="w-full flex items-center justify-between bg-stone-100 rounded-xl px-2.5 py-1.5 border border-stone-200">
+          <div className="w-full flex items-center justify-between bg-stone-100 rounded-xl px-2 py-1.5 border border-stone-200">
             <button
               type="button"
               onClick={handleDecrement}
@@ -212,7 +212,7 @@ function ProductCard({ product }) {
               <Minus size={13} />
             </button>
             <span className="font-bold text-xs text-stone-900">
-              {cartItem.quantity} in Bag
+              {cartItem.quantity}<span className="hidden sm:inline"> in Bag</span>
             </span>
             <button
               type="button"
@@ -229,14 +229,14 @@ function ProductCard({ product }) {
             type="button"
             onClick={handleAddToCart}
             disabled={!inStock || adding}
-            className="w-full bg-[#28452e] hover:bg-[#1f3724] text-white py-2.5 px-4 rounded-xl font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className="w-full bg-[#28452e] hover:bg-[#1f3724] text-white py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
           >
             {adding ? (
               <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : added ? (
               <>
                 <Check size={14} className="text-emerald-300" />
-                <span>Added to cart</span>
+                <span>Added</span>
               </>
             ) : (
               <span>Add to cart</span>

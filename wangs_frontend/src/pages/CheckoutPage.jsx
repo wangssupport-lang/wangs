@@ -261,11 +261,11 @@ export default function CheckoutPage() {
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl p-4 border border-stone-200/80 shadow-xs flex items-center justify-between gap-4 transition-all hover:border-stone-300"
+                  className="bg-white rounded-2xl p-3.5 sm:p-4 border border-stone-200/80 shadow-xs flex items-center justify-between gap-3 sm:gap-4 transition-all hover:border-stone-300"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
                     {/* Pastel Jar Thumbnail */}
-                    <div className={`w-16 h-16 rounded-xl ${pastel.bg} shrink-0 flex items-center justify-center p-2 overflow-hidden`}>
+                    <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-xl ${pastel.bg} shrink-0 flex items-center justify-center p-2 overflow-hidden`}>
                       {item.product?.primary_image_url ? (
                         <img
                           src={resolveProductImage(item.product.primary_image_url)}
@@ -284,17 +284,17 @@ export default function CheckoutPage() {
                     <div className="min-w-0">
                       <Link
                         to={`/product/${item.product?.slug}`}
-                        className="font-bold text-sm text-stone-900 hover:text-[#ab331c] transition-colors truncate block"
+                        className="font-bold text-xs sm:text-sm text-stone-900 hover:text-[#ab331c] transition-colors truncate block"
                       >
                         {item.product?.title}
                       </Link>
-                      <p className="text-xs text-stone-500 truncate mt-0.5">
-                        [{weightStr}] · [{makerName}]
+                      <p className="text-[11px] sm:text-xs text-stone-500 truncate mt-0.5">
+                        {weightStr} · {makerName} · Qty {item.quantity}
                       </p>
                       <button
                         type="button"
                         onClick={() => removeFromCart(item.product.id)}
-                        className="text-xs text-[#ab331c] hover:underline font-medium mt-1 cursor-pointer"
+                        className="text-[11px] sm:text-xs text-[#ab331c] hover:underline font-medium mt-1 cursor-pointer"
                       >
                         Remove
                       </button>

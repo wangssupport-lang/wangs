@@ -939,8 +939,8 @@ export default function HomePage() {
       {/* ========================================================
           CATEGORY FILTER PILLS ROW (CENTERED, EXACT MATCH)
           ======================================================== */}
-      <section className="w-full px-4 sm:px-6 lg:px-12 py-6 max-w-[1440px] mx-auto">
-        <div className="flex items-center justify-center gap-2.5 sm:gap-3.5 overflow-x-auto no-scrollbar py-1">
+      <section className="w-full px-4 sm:px-6 lg:px-12 py-4 sm:py-6 max-w-[1440px] mx-auto">
+        <div className="flex items-center justify-start sm:justify-center gap-2 sm:gap-3.5 overflow-x-auto no-scrollbar py-1">
           {[
             { id: 'ALL', label: 'All' },
             { id: 'MEAT', label: 'Meat pickles' },

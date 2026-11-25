@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { Link, NavLink, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import {
   ShoppingBag, Search, User, ChevronDown, ChevronLeft, ChevronRight, ShieldCheck, Store,
   Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight,
@@ -537,22 +537,44 @@ export default function Navbar() {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search pickles, spices..."
+                placeholder="Search pickles, brands..."
                 className="w-full bg-white text-xs text-stone-900 placeholder:text-stone-400 rounded-full pl-4 pr-8 py-2 border border-stone-300 focus:outline-none focus:border-stone-900"
               />
               <button
                 type="submit"
                 className="absolute right-3 text-stone-400 hover:text-stone-800"
+                aria-label="Submit search"
               >
                 <Search size={14} />
               </button>
             </form>
 
-            {/* Mobile Row 3: Category Nav Links */}
-            <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-1 -mx-1 px-1 text-xs font-medium text-stone-700">
-              <Link to="/products" className="whitespace-nowrap hover:text-[#ab331c]">Pickles</Link>
-              <Link to="/gift-boxes" className="whitespace-nowrap hover:text-[#ab331c]">Gift Boxes</Link>
-              <Link to="/brands" className="whitespace-nowrap hover:text-[#ab331c]">Brands</Link>
+            {/* Mobile Row 3: Category Nav Links (Evenly Spaced & Active Highlight) */}
+            <div className="grid grid-cols-3 gap-2 py-0.5 text-xs font-medium text-stone-700 text-center">
+              <NavLink
+                to="/products"
+                className={({ isActive }) =>
+                  `py-1.5 rounded-full transition-colors ${isActive ? 'bg-[#fbf2ec] text-[#ab331c] font-bold' : 'hover:text-[#ab331c]'}`
+                }
+              >
+                Pickles
+              </NavLink>
+              <NavLink
+                to="/gift-boxes"
+                className={({ isActive }) =>
+                  `py-1.5 rounded-full transition-colors ${isActive ? 'bg-[#fbf2ec] text-[#ab331c] font-bold' : 'hover:text-[#ab331c]'}`
+                }
+              >
+                Gift Boxes
+              </NavLink>
+              <NavLink
+                to="/brands"
+                className={({ isActive }) =>
+                  `py-1.5 rounded-full transition-colors ${isActive ? 'bg-[#fbf2ec] text-[#ab331c] font-bold' : 'hover:text-[#ab331c]'}`
+                }
+              >
+                Brands
+              </NavLink>
             </div>
           </div>
 
@@ -589,7 +611,7 @@ export default function Navbar() {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search pickles, spices..."
+                  placeholder="Search pickles, brands..."
                   className="w-44 lg:w-56 bg-white rounded-full pl-4 pr-8 py-1.5 border border-stone-300 text-xs text-stone-900 placeholder:text-stone-400 focus:outline-none focus:border-stone-900 transition-all"
                 />
                 <button
