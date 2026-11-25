@@ -216,15 +216,15 @@ export default function HomePage() {
         const scale = 1 - shrinkFactor * p;
         const tilt = (idx - 2) * 7 * p;
 
-        el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), calc(-50% + ${y.toFixed(2)}px), 0) scale(${scale.toFixed(4)}) rotate(${tilt.toFixed(2)}deg)`;
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${scale.toFixed(4)}) rotate(${tilt.toFixed(2)}deg)`;
       });
     };
 
     const tick = (now) => {
       const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
       lastTime = now;
-      // Frame-rate independent exponential smoothing (silky on 60Hz, 120Hz, 144Hz)
-      const alpha = 1 - Math.exp(-14 * dt);
+      // Snappy frame-rate independent exponential smoothing (120Hz / 60Hz)
+      const alpha = 1 - Math.exp(-18 * dt);
       current += (target - current) * alpha;
 
       if (Math.abs(target - current) < 0.0004) {
@@ -1164,17 +1164,22 @@ export default function HomePage() {
             ref={orbitalSectionRef}
             className="w-full bg-white/80 border-y border-stone-200/50 relative my-6 h-[135vh] md:h-[150vh]"
           >
-            <div className="sticky top-20 h-[calc(100vh-110px)] max-h-[540px] md:max-h-[620px] w-full px-4 sm:px-6 lg:px-12 overflow-hidden flex items-center justify-center relative">
-              {/* Soft Ambient Pastel Radial Glows */}
+            <div
+              className="sticky top-20 h-[calc(100vh-110px)] max-h-[540px] md:max-h-[620px] w-full px-4 sm:px-6 lg:px-12 overflow-hidden flex items-center justify-center relative"
+              style={{ contain: 'layout style paint' }}
+            >
+              {/* Soft Ambient Pastel Radial Glows (Pure radial-gradient, zero GPU blur-3xl cost) */}
               <div
                 ref={orbitalGlowLeftRef}
                 aria-hidden="true"
-                className="absolute -left-24 top-1/4 w-72 md:w-96 h-72 md:h-96 rounded-full bg-[#dcfce7]/65 blur-3xl pointer-events-none"
+                className="absolute -left-24 top-1/4 w-72 md:w-96 h-72 md:h-96 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, rgba(220,252,231,0.75) 0%, rgba(220,252,231,0) 70%)' }}
               />
               <div
                 ref={orbitalGlowRightRef}
                 aria-hidden="true"
-                className="absolute -right-24 bottom-1/4 w-72 md:w-96 h-72 md:h-96 rounded-full bg-[#fef3c7]/75 blur-3xl pointer-events-none"
+                className="absolute -right-24 bottom-1/4 w-72 md:w-96 h-72 md:h-96 rounded-full pointer-events-none"
+                style={{ background: 'radial-gradient(circle, rgba(254,243,199,0.85) 0%, rgba(254,243,199,0) 70%)' }}
               />
 
               {/* Delicate Orbital Arcs (Fade smoothly as cards stack) */}

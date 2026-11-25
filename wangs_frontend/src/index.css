@@ -691,6 +691,8 @@ a, button, input, select, textarea {
   background: #F6C453;
   opacity: 0.55;
   animation: heroDcPulse 6s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .hero-dc-shot {
@@ -700,6 +702,8 @@ a, button, input, select, textarea {
   opacity: 0;
   animation: heroDcEnter 1.1s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) forwards, heroDcFloat 7s 1.4s ease-in-out infinite;
   filter: drop-shadow(0 28px 30px rgba(120, 50, 10, 0.25));
+  will-change: transform, opacity;
+  backface-visibility: hidden;
 }
 
 .hero-dc-chip {
@@ -713,6 +717,8 @@ a, button, input, select, textarea {
   box-shadow: 0 8px 20px rgba(31, 26, 20, 0.14);
   animation: heroDcBob 4s ease-in-out infinite;
   white-space: nowrap;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .hero-dc-spin {
@@ -722,6 +728,8 @@ a, button, input, select, textarea {
   width: 116px;
   height: 116px;
   animation: heroDcSpin 18s linear infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .hero-dc-tick {
@@ -730,6 +738,7 @@ a, button, input, select, textarea {
   overflow: hidden;
   white-space: nowrap;
   padding: 16px 0;
+  contain: layout paint;
 }
 
 .hero-dc-tick-track {
@@ -739,6 +748,8 @@ a, button, input, select, textarea {
   animation: heroDcMarq 26s linear infinite;
   font-weight: 500;
   font-size: 15px;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .hero-dc-tick:hover .hero-dc-tick-track {
@@ -817,28 +828,32 @@ a, button, input, select, textarea {
 
 @keyframes orbitalFloatA {
   0%, 100% {
-    transform: translateY(0px) rotate(-1.5deg);
+    transform: translate3d(0px, 0px, 0) rotate(-1.5deg);
   }
   50% {
-    transform: translateY(-12px) rotate(1.5deg);
+    transform: translate3d(0px, -12px, 0) rotate(1.5deg);
   }
 }
 
 @keyframes orbitalFloatB {
   0%, 100% {
-    transform: translateY(0px) rotate(1.5deg);
+    transform: translate3d(0px, 0px, 0) rotate(1.5deg);
   }
   50% {
-    transform: translateY(10px) rotate(-1.5deg);
+    transform: translate3d(0px, 10px, 0) rotate(-1.5deg);
   }
 }
 
 .animate-orbital-a {
   animation: orbitalFloatA 5.5s ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .animate-orbital-b {
   animation: orbitalFloatB 6.2s ease-in-out infinite;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
