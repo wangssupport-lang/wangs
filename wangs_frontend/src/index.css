@@ -452,40 +452,45 @@ a, button, input, select, textarea {
 
 @keyframes spoonEat {
   0%, 100% {
-    transform: rotate(8deg) translate(2px, 6px);
+    transform: rotate(-10deg) translate(0px, 2px);
   }
-  18% {
-    transform: rotate(12deg) translate(0px, 9px);
+  16% {
+    transform: rotate(-18deg) translate(-4px, 6px);
   }
-  42%, 62% {
-    transform: rotate(-28deg) translate(-10px, -24px);
+  42%, 52% {
+    transform: rotate(38deg) translate(4px, -7px);
   }
-  82% {
-    transform: rotate(2deg) translate(0px, 2px);
+  64% {
+    transform: rotate(18deg) translate(2px, -2px);
+  }
+  84% {
+    transform: rotate(-6deg) translate(0px, 1px);
   }
 }
 
 @keyframes headEnjoy {
   0%, 100% {
-    transform: rotate(0deg) translateY(0px);
+    transform: perspective(600px) rotateX(2deg) rotateY(-3deg) rotateZ(0deg) translateY(0px);
   }
-  20% {
-    transform: rotate(2deg) translateY(1px);
+  16% {
+    transform: perspective(600px) rotateX(6deg) rotateY(-4deg) rotateZ(-2deg) translateY(2px);
   }
-  44%, 58% {
-    transform: rotate(-4deg) translateY(2px);
+  42%, 52% {
+    transform: perspective(600px) rotateX(-5deg) rotateY(2deg) rotateZ(2deg) translateY(-1px);
   }
-  68% {
-    transform: rotate(3deg) translateY(-1px);
+  62%, 74% {
+    transform: perspective(600px) rotateX(4deg) rotateY(5deg) rotateZ(-3deg) translateY(2px);
   }
 }
 
 @keyframes mouthTaste {
-  0%, 36%, 68%, 100% {
-    transform: scaleY(0.35) scaleX(1);
+  0%, 26%, 60%, 100% {
+    transform: scaleY(0.15) scaleX(0.95);
+    opacity: 0.7;
   }
-  44%, 60% {
-    transform: scaleY(1.15) scaleX(0.95);
+  38%, 52% {
+    transform: scaleY(1.15) scaleX(1.05);
+    opacity: 1;
   }
 }
 
@@ -493,20 +498,29 @@ a, button, input, select, textarea {
   0%, 100% {
     transform: rotate(0deg) translateY(0px);
   }
-  18% {
-    transform: rotate(-4deg) translateY(2px);
+  16% {
+    transform: rotate(-5deg) translateY(3px);
   }
-  45%, 65% {
-    transform: rotate(3deg) translateY(-2px);
+  42%, 62% {
+    transform: rotate(4deg) translateY(-2px);
   }
 }
 
 @keyframes bodyBreathe {
   0%, 100% {
-    transform: scaleY(1);
+    transform: perspective(700px) rotateY(-2deg) scaleY(1);
   }
   50% {
-    transform: scaleY(1.015);
+    transform: perspective(700px) rotateY(3deg) scaleY(1.018);
+  }
+}
+
+@keyframes character3DScene {
+  0%, 100% {
+    transform: perspective(900px) rotateY(-3deg) rotateX(1deg);
+  }
+  50% {
+    transform: perspective(900px) rotateY(3deg) rotateX(-1deg);
   }
 }
 
@@ -541,14 +555,18 @@ a, button, input, select, textarea {
 
 .animate-spoon-eat {
   transform-box: fill-box;
-  transform-origin: 85% 75%;
-  animation: spoonEat 3.2s ease-in-out infinite;
+  transform-origin: 82% 16%;
+  animation: spoonEat 3.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
 }
 
 .animate-head-enjoy {
   transform-box: fill-box;
   transform-origin: 50% 85%;
-  animation: headEnjoy 3.2s ease-in-out infinite;
+  animation: headEnjoy 3.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.animate-character-3d {
+  animation: character3DScene 5.2s ease-in-out infinite;
 }
 
 .animate-steam-1 {
