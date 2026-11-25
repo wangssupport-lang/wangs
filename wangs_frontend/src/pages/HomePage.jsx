@@ -168,6 +168,34 @@ export default function HomePage() {
 
   const bannerScrollRef = useRef(null);
   const isInteractingWithBanner = useRef(false);
+  const orbitalSectionRef = useRef(null);
+  const [orbitalProgress, setOrbitalProgress] = useState(0);
+
+  useEffect(() => {
+    let rafId = null;
+    const updateProgress = () => {
+      rafId = null;
+      if (!orbitalSectionRef.current || window.innerWidth < 768) return;
+      const rect = orbitalSectionRef.current.getBoundingClientRect();
+      const vh = window.innerHeight || 800;
+      const scrollable = Math.max(1, rect.height - vh * 0.82);
+      const raw = Math.min(1, Math.max(0, (-rect.top + vh * 0.08) / scrollable));
+      setOrbitalProgress((prev) => (Math.abs(prev - raw) > 0.002 ? raw : prev));
+    };
+
+    const onScroll = () => {
+      if (!rafId) rafId = window.requestAnimationFrame(updateProgress);
+    };
+
+    updateProgress();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll, { passive: true });
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
 
   const displayBanners = (heroBanners && heroBanners.length > 0)
     ? heroBanners
@@ -1043,7 +1071,7 @@ export default function HomePage() {
       </section>
 
       {/* ========================================================
-          ORBITAL FLOATING PRODUCT SHOWCASE (Admin-Managed + Cashfree-style Animation)
+          ORBITAL FLOATING PRODUCT SHOWCASE (Admin-Managed + Cashfree Scroll-Orbit & Stack)
           ======================================================== */}
       {(() => {
         if (orbitalShowcase?.is_active === false) return null;
@@ -1056,90 +1084,71 @@ export default function HomePage() {
         if (orbitalItems.length === 0) return null;
 
         const cardThemes = [
-          { frame: 'bg-[#d9f99d] border-[#bef264]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-a', delay: '0s', pos: 'md:top-6 md:left-[18%] lg:left-[21%]' },
-          { frame: 'bg-[#fde8e8] border-[#f9c6c6]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-b', delay: '-1.5s', pos: 'md:top-10 md:right-[10%] lg:right-[13%]' },
-          { frame: 'bg-[#f6df9d] border-[#ead07e]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-b', delay: '-3s', pos: 'md:top-[38%] md:left-[4%] lg:left-[7%]' },
-          { frame: 'bg-[#28452e] border-[#1e3523]', pill: 'bg-white/95 text-stone-900', anim: 'animate-orbital-a', delay: '-2.2s', pos: 'md:bottom-6 md:left-[24%] lg:left-[27%]' },
-          { frame: 'bg-[#dbeafe] border-[#bfdbfe]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-a', delay: '-0.8s', pos: 'md:bottom-10 md:right-[8%] lg:right-[12%]' },
+          { frame: 'bg-[#d9f99d] border-[#bef264]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-a', delay: '0s', angle: -125 },
+          { frame: 'bg-[#fde8e8] border-[#f9c6c6]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-b', delay: '-1.5s', angle: -28 },
+          { frame: 'bg-[#f6df9d] border-[#ead07e]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-b', delay: '-3s', angle: 175 },
+          { frame: 'bg-[#28452e] border-[#1e3523]', pill: 'bg-white/95 text-stone-900', anim: 'animate-orbital-a', delay: '-2.2s', angle: 112 },
+          { frame: 'bg-[#dbeafe] border-[#bfdbfe]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-a', delay: '-0.8s', angle: 30 },
         ];
 
+        // Smooth ease-in-out curve matching Cashfree orbital convergence & card stacking
+        const t = orbitalProgress;
+        const p = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
         return (
-          <section className="w-full bg-white/80 border-y border-stone-200/50 py-14 sm:py-20 px-4 sm:px-6 lg:px-12 overflow-hidden relative my-6">
-            {/* Soft Ambient Pastel Radial Glows */}
-            <div
-              aria-hidden="true"
-              className="absolute -left-24 top-1/4 w-96 h-96 rounded-full bg-[#dcfce7]/60 blur-3xl pointer-events-none"
-            />
-            <div
-              aria-hidden="true"
-              className="absolute -right-24 bottom-1/4 w-96 h-96 rounded-full bg-[#fef3c7]/70 blur-3xl pointer-events-none"
-            />
+          <section
+            ref={orbitalSectionRef}
+            className="w-full bg-white/80 border-y border-stone-200/50 relative my-6 md:h-[150vh]"
+          >
+            <div className="md:sticky md:top-20 md:h-[calc(100vh-100px)] md:max-h-[620px] w-full py-14 md:py-0 px-4 sm:px-6 lg:px-12 overflow-hidden flex items-center justify-center relative">
+              {/* Soft Ambient Pastel Radial Glows */}
+              <div
+                aria-hidden="true"
+                className="absolute -left-24 top-1/4 w-96 h-96 rounded-full bg-[#dcfce7]/65 blur-3xl pointer-events-none"
+                style={{ opacity: Math.max(0.2, 1 - p * 0.7) }}
+              />
+              <div
+                aria-hidden="true"
+                className="absolute -right-24 bottom-1/4 w-96 h-96 rounded-full bg-[#fef3c7]/75 blur-3xl pointer-events-none"
+                style={{ opacity: Math.max(0.2, 1 - p * 0.7) }}
+              />
 
-            {/* Delicate Orbital Arcs (Desktop) */}
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 1200 560"
-              className="hidden md:block absolute inset-0 w-full h-full pointer-events-none opacity-45"
-              preserveAspectRatio="none"
-            >
-              <path d="M-40 130 Q 600 280 1240 90" fill="none" stroke="#d6d3d1" strokeWidth="1" />
-              <path d="M-40 430 Q 600 260 1240 450" fill="none" stroke="#d6d3d1" strokeWidth="1" />
-              <ellipse cx="600" cy="280" rx="410" ry="215" fill="none" stroke="#e7e5e4" strokeWidth="1" strokeDasharray="4 6" />
-            </svg>
+              {/* Delicate Orbital Arcs (Desktop, fade smoothly as cards stack) */}
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 1200 560"
+                className="hidden md:block absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-200"
+                style={{ opacity: Math.max(0, 0.45 * (1 - p * 1.15)) }}
+                preserveAspectRatio="none"
+              >
+                <path d="M-40 130 Q 600 280 1240 90" fill="none" stroke="#d6d3d1" strokeWidth="1" />
+                <path d="M-40 430 Q 600 260 1240 450" fill="none" stroke="#d6d3d1" strokeWidth="1" />
+                <ellipse cx="600" cy="280" rx="410" ry="215" fill="none" stroke="#e7e5e4" strokeWidth="1" strokeDasharray="4 6" />
+              </svg>
 
-            <div className="max-w-[1240px] mx-auto relative md:min-h-[540px] lg:min-h-[580px] flex flex-col items-center justify-center">
-              {/* Centered Headline (Admin-Managed) */}
-              <div className="relative z-10 text-center max-w-xl mx-auto mb-10 md:mb-0 px-2">
-                <span className="text-[#ab331c] font-bold text-[11px] uppercase tracking-[0.14em] block mb-2">
-                  {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
-                </span>
-                <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
-                  {orbitalShowcase?.headline || 'The whole Nagaland pickle shelf, in one place.'}
-                </h2>
-                <Link
-                  to={orbitalShowcase?.cta_link || '/products'}
-                  className="mt-5 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#ab331c] hover:underline"
+              <div className="max-w-[1240px] w-full mx-auto relative md:h-[540px] flex flex-col items-center justify-center">
+                {/* Centered Headline (Admin-Managed) */}
+                <div
+                  className="relative z-10 text-center max-w-xl mx-auto mb-10 md:mb-0 px-2 will-change-transform"
+                  style={{ transform: `translateY(${-28 * p}px)` }}
                 >
-                  <span>{orbitalShowcase?.cta_text || 'Explore all jars'}</span>
-                  <ArrowRight size={14} />
-                </Link>
-              </div>
-
-              {/* Desktop Floating Orbital Product Cards */}
-              {orbitalItems.map((item, idx) => {
-                const theme = cardThemes[idx % cardThemes.length];
-                const imgUrl = resolveProductImage(
-                  item.primary_image_url || item.images?.[0]?.image_url,
-                  '/images/hero/dried_beef_pickle_signature.jpg'
-                );
-                const priceNum = Math.round(Number(item.price) || 299);
-
-                return (
+                  <span className="text-[#ab331c] font-bold text-[11px] uppercase tracking-[0.14em] block mb-2">
+                    {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
+                  </span>
+                  <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
+                    {orbitalShowcase?.headline || 'The whole Nagaland pickle shelf, in one place.'}
+                  </h2>
                   <Link
-                    key={item.id || idx}
-                    to={`/product/${item.slug}`}
-                    style={{ animationDelay: theme.delay }}
-                    className={`hidden md:flex flex-col justify-between ${theme.pos} ${theme.anim} absolute z-20 w-40 lg:w-44 h-40 lg:h-44 rounded-3xl p-2.5 border shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 group overflow-hidden ${theme.frame}`}
+                    to={orbitalShowcase?.cta_link || '/products'}
+                    className="mt-4 inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#ab331c] hover:underline"
                   >
-                    <div className="w-full h-24 lg:h-28 rounded-2xl overflow-hidden bg-white/90 flex items-center justify-center p-1.5">
-                      <img
-                        src={imgUrl}
-                        alt={item.title}
-                        className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className={`${theme.pill} rounded-xl px-2.5 py-1.5 shadow-xs flex items-center justify-between gap-1.5`}>
-                      <span className="text-[10px] font-bold truncate">{item.title}</span>
-                      <span className="text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
-                    </div>
+                    <span>{orbitalShowcase?.cta_text || 'Explore all jars'}</span>
+                    <ArrowRight size={14} />
                   </Link>
-                );
-              })}
+                </div>
 
-              {/* Mobile 2-Column Floating Product Grid */}
-              <div className="grid grid-cols-2 gap-3 w-full md:hidden relative z-10">
-                {orbitalItems.slice(0, 4).map((item, idx) => {
+                {/* Desktop Scroll-Driven Orbiting & Converging Cards */}
+                {orbitalItems.map((item, idx) => {
                   const theme = cardThemes[idx % cardThemes.length];
                   const imgUrl = resolveProductImage(
                     item.primary_image_url || item.images?.[0]?.image_url,
@@ -1147,28 +1156,81 @@ export default function HomePage() {
                   );
                   const priceNum = Math.round(Number(item.price) || 299);
 
+                  // Orbit clockwise around center & converge into fanned stack under headline
+                  const angleRad = ((theme.angle + p * 115) * Math.PI) / 180;
+                  const rx = 400 * (1 - p);
+                  const ry = 205 * (1 - p);
+                  const stackX = (idx - 2) * 14 * p;
+                  const stackY = 148 * p;
+                  const x = Math.cos(angleRad) * rx + stackX;
+                  const y = Math.sin(angleRad) * ry + stackY;
+                  const scale = 1 - 0.42 * p;
+                  const tilt = (idx - 2) * 7 * p;
+
                   return (
-                    <Link
+                    <div
                       key={item.id || idx}
-                      to={`/product/${item.slug}`}
-                      style={{ animationDelay: theme.delay }}
-                      className={`${theme.anim} rounded-2xl p-2.5 border shadow-md flex flex-col gap-2 overflow-hidden ${theme.frame}`}
+                      className="hidden md:block absolute top-1/2 left-1/2 z-20 will-change-transform"
+                      style={{
+                        transform: `translate(calc(-50% + ${x.toFixed(1)}px), calc(-50% + ${y.toFixed(1)}px)) scale(${scale.toFixed(3)}) rotate(${tilt.toFixed(1)}deg)`,
+                        zIndex: 20 + idx,
+                      }}
                     >
-                      <div className="w-full aspect-square rounded-xl overflow-hidden bg-white/90 flex items-center justify-center p-2">
-                        <img
-                          src={imgUrl}
-                          alt={item.title}
-                          className="w-full h-full object-contain"
-                          loading="lazy"
-                        />
-                      </div>
-                      <div className={`${theme.pill} rounded-lg px-2 py-1 flex items-center justify-between gap-1`}>
-                        <span className="text-[10px] font-bold truncate">{item.title}</span>
-                        <span className="text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
-                      </div>
-                    </Link>
+                      <Link
+                        to={`/product/${item.slug}`}
+                        style={{ animationDelay: theme.delay }}
+                        className={`flex flex-col justify-between ${theme.anim} w-40 lg:w-44 h-40 lg:h-44 rounded-3xl p-2.5 border shadow-lg hover:shadow-2xl hover:scale-105 transition-shadow duration-300 group overflow-hidden ${theme.frame}`}
+                      >
+                        <div className="w-full h-24 lg:h-28 rounded-2xl overflow-hidden bg-white/90 flex items-center justify-center p-1.5">
+                          <img
+                            src={imgUrl}
+                            alt={item.title}
+                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className={`${theme.pill} rounded-xl px-2.5 py-1.5 shadow-xs flex items-center justify-between gap-1.5`}>
+                          <span className="text-[10px] font-bold truncate">{item.title}</span>
+                          <span className="text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
+                        </div>
+                      </Link>
+                    </div>
                   );
                 })}
+
+                {/* Mobile 2-Column Floating Product Grid */}
+                <div className="grid grid-cols-2 gap-3 w-full md:hidden relative z-10">
+                  {orbitalItems.slice(0, 4).map((item, idx) => {
+                    const theme = cardThemes[idx % cardThemes.length];
+                    const imgUrl = resolveProductImage(
+                      item.primary_image_url || item.images?.[0]?.image_url,
+                      '/images/hero/dried_beef_pickle_signature.jpg'
+                    );
+                    const priceNum = Math.round(Number(item.price) || 299);
+
+                    return (
+                      <Link
+                        key={item.id || idx}
+                        to={`/product/${item.slug}`}
+                        style={{ animationDelay: theme.delay }}
+                        className={`${theme.anim} rounded-2xl p-2.5 border shadow-md flex flex-col gap-2 overflow-hidden ${theme.frame}`}
+                      >
+                        <div className="w-full aspect-square rounded-xl overflow-hidden bg-white/90 flex items-center justify-center p-2">
+                          <img
+                            src={imgUrl}
+                            alt={item.title}
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className={`${theme.pill} rounded-lg px-2 py-1 flex items-center justify-between gap-1`}>
+                          <span className="text-[10px] font-bold truncate">{item.title}</span>
+                          <span className="text-[10px] font-extrabold text-[#ab331c] shrink-0">₹{priceNum}</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </section>
