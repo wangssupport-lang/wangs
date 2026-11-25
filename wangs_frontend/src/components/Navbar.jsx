@@ -506,12 +506,17 @@ export default function Navbar() {
             </form>
 
             {/* Mobile Row 3: Category Nav Links */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 -mx-1 px-1 text-xs font-medium text-stone-700">
-              <Link to="/products?category=pickles" className="whitespace-nowrap hover:text-[#ab331c]">Pickles</Link>
-              <Link to="/products?category=chutneys" className="whitespace-nowrap hover:text-[#ab331c]">Chutneys</Link>
-              <Link to="/products?category=spices" className="whitespace-nowrap hover:text-[#ab331c]">Spices</Link>
-              <Link to="/products?bestsellers=true" className="whitespace-nowrap hover:text-[#ab331c]">Gift Boxes</Link>
-              <Link to="/brands" className="whitespace-nowrap hover:text-[#ab331c]">Our Makers</Link>
+            <div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-1 -mx-1 px-1 text-xs font-medium text-stone-700">
+              <Link to="/products" className="whitespace-nowrap hover:text-[#ab331c]">Pickles</Link>
+              <Link to="/gift-boxes" className="whitespace-nowrap hover:text-[#ab331c] inline-flex items-center gap-1.5">
+                <span>Gift Boxes</span>
+                <span className="relative overflow-hidden inline-flex items-center gap-1 bg-[#f6df9d] text-stone-900 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ab331c] animate-pulse" />
+                  <span>Coming Soon</span>
+                  <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-sweep" />
+                </span>
+              </Link>
+              <Link to="/brands" className="whitespace-nowrap hover:text-[#ab331c]">Brands</Link>
             </div>
           </div>
 
@@ -527,22 +532,24 @@ export default function Navbar() {
                 </span>
               </Link>
 
-              {/* Navigation Links (Matching Mockup 1: Pickles, Chutneys, Spices, Gift Boxes, Our Makers) */}
+              {/* Navigation Links: Pickles, Gift Boxes (Coming Soon), Brands */}
               <nav className="flex items-center gap-5 lg:gap-7 text-xs font-medium text-stone-800">
-                <Link to="/products?category=pickles" className="hover:text-[#ab331c] transition-colors">
+                <Link to="/products" className="hover:text-[#ab331c] transition-colors">
                   Pickles
                 </Link>
-                <Link to="/products?category=chutneys" className="hover:text-[#ab331c] transition-colors">
-                  Chutneys
-                </Link>
-                <Link to="/products?category=spices" className="hover:text-[#ab331c] transition-colors">
-                  Spices
-                </Link>
-                <Link to="/products?bestsellers=true" className="hover:text-[#ab331c] transition-colors">
-                  Gift Boxes
+                <Link to="/gift-boxes" className="hover:text-[#ab331c] transition-colors inline-flex items-center gap-1.5 group">
+                  <span>Gift Boxes</span>
+                  <span className="relative overflow-hidden inline-flex items-center gap-1 bg-[#f6df9d] text-stone-900 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-[#e5c465]/60">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ab331c] opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#ab331c]" />
+                    </span>
+                    <span>Coming Soon</span>
+                    <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/60 to-transparent animate-shimmer-sweep" />
+                  </span>
                 </Link>
                 <Link to="/brands" className="hover:text-[#ab331c] transition-colors">
-                  Our Makers
+                  Brands
                 </Link>
               </nav>
             </div>

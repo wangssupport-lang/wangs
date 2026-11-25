@@ -66,6 +66,7 @@ const ManufacturerRegisterPage = lazyWithRetry(() => import('./pages/Manufacture
 const AdminDashboardPage = lazyWithRetry(() => import('./pages/AdminDashboardPage'));
 const DeliveryPage = lazyWithRetry(() => import('./pages/DeliveryPage'));
 const RewardsScanPage = lazyWithRetry(() => import('./pages/RewardsScanPage'));
+const GiftBoxesPage = lazyWithRetry(() => import('./pages/GiftBoxesPage'));
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -126,6 +127,7 @@ function AppLayout() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/brands" element={<BrandsPage />} />
+              <Route path="/gift-boxes" element={<GiftBoxesPage />} />
               <Route path="/products" element={<ProductListPage />} />
               <Route path="/product/:slug" element={<ProductDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
