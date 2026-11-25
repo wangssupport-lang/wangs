@@ -82,6 +82,37 @@ function PageFallback() {
   return <PickleLoadingScreen minHeight="min-h-[55vh]" message="Serving up something fiery..." />;
 }
 
+function StickerSplashOverlay() {
+  const [visible, setVisible] = React.useState(true);
+  const [fading, setFading] = React.useState(false);
+
+  React.useEffect(() => {
+    const fadeTimer = setTimeout(() => setFading(true), 780);
+    const hideTimer = setTimeout(() => setVisible(false), 1050);
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(hideTimer);
+    };
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className={`fixed inset-0 z-[9999] bg-[#fbf8f3] flex items-center justify-center pointer-events-none transition-opacity duration-250 ${
+        fading ? 'opacity-0' : 'opacity-100'
+      }`}
+    >
+      <img
+        src="/wangs-packaging-sticker.png"
+        alt="Wangs"
+        className="w-28 h-28 sm:w-36 sm:h-36 object-contain animate-sticker-wheel drop-shadow-md select-none"
+      />
+    </div>
+  );
+}
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   React.useEffect(() => {
@@ -115,6 +146,7 @@ function AppLayout() {
 
   return (
     <div className={`min-h-screen flex flex-col bg-background text-on-surface selection:bg-primary selection:text-white ${isAdminRoute ? 'pb-0' : isDeliveryRoute ? 'pb-10' : 'pb-20 md:pb-0'}`}>
+      <StickerSplashOverlay />
       <ScrollToTop />
       {!isAdminRoute && !isDeliveryRoute && <Navbar />}
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
