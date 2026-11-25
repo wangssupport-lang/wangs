@@ -716,10 +716,12 @@ export default function HomePage() {
   return (
     <div className="w-full bg-[#fbf8f3] min-h-screen text-[#1c1917]">
       {/* ========================================================
-          HERO SECTION (FULL-WIDTH EDGE-TO-EDGE WHITE + MOBILE PROMO BANNER)
+          HERO SECTION
+          - Mobile (< md): Admin-configured Hero Promo Banner Carousel
+          - Desktop (md+): Exact Hero.dc.html Animated Editorial Hero
           ======================================================== */}
-      <section className="w-full bg-white overflow-hidden relative">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-3 pb-4 md:pt-10 md:pb-14">
+      <section className="w-full bg-[#FBF6EC] md:bg-transparent hero-dc-bg overflow-hidden relative">
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-3 pb-4 md:pt-6 md:pb-14">
           {/* Mobile-Only Hero Promo Banner Carousel (Controlled via Admin Hero Promo Banners) */}
           <div className="md:hidden flex flex-col gap-2">
             <div className="relative">
@@ -842,87 +844,97 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-16 w-full">
-          {/* Left Column: Reaching Left Corner (Eyebrow, 3-Line Headline, Subtitle, CTAs, Checks & Floating Badge) */}
-          <div className="w-full lg:max-w-[460px] xl:max-w-[500px] flex flex-col items-start text-left z-10 shrink-0">
-            {/* Eyebrow */}
-            <span className="text-[#ab331c] font-bold text-xs uppercase tracking-wider mb-2">
-              HANDMADE IN NAGALAND
-            </span>
-
-            {/* Main 3-line Headline with Exact Editorial Typography */}
-            <h1 className="hero-headline font-hero text-4xl sm:text-5xl lg:text-[62px] text-stone-950 leading-[1.05] tracking-tight">
-              Fiery pickles, <br />
-              made the old <br />
-              way.
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-stone-600 text-sm sm:text-base leading-relaxed max-w-md mt-4">
-              Small-batch, hand-ground and slow-fermented by local families. Every jar carries its maker's name.
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-3.5 pt-4">
-              <Link
-                to="/products"
-                className="bg-[#ab331c] hover:bg-[#962c17] active:scale-98 text-white px-7 py-3 rounded-full font-medium text-xs sm:text-sm transition-all shadow-sm"
+          {/* Desktop Animated Hero (Exact Match to Hero.dc.html) */}
+          <div className="hidden md:grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            {/* Left Column: Staggered Rise Editorial Copy & Animated CTAs */}
+            <div className="flex flex-col gap-6 max-w-[520px] items-start text-left z-10">
+              <span
+                className="hero-dc-rise text-[13px] font-semibold tracking-[0.12em] uppercase text-[#B3321F]"
+                style={{ '--i': 1 }}
               >
-                Shop pickles
-              </Link>
-              <Link
-                to="/brands"
-                className="border border-stone-800 hover:bg-stone-50 active:scale-98 text-stone-900 px-7 py-3 rounded-full font-medium text-xs sm:text-sm transition-all"
+                Handmade in Nagaland
+              </span>
+
+              <h1
+                className="font-serif hero-dc-rise m-0 text-5xl lg:text-[66px] font-bold text-[#1F1A14] leading-[1.04] tracking-tight"
+                style={{ '--i': 2 }}
               >
-                Meet the makers
-              </Link>
-            </div>
+                Fiery pickles, made the old way.
+              </h1>
 
-            {/* Trust Checks */}
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-stone-600 font-medium pt-4">
-              <span className="flex items-center gap-1.5">
-                <span className="text-stone-900 font-bold">✓</span> FSSAI certified
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-stone-900 font-bold">✓</span> No preservatives
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="text-stone-900 font-bold">✓</span> Pan-India delivery
-              </span>
-            </div>
+              <p
+                className="hero-dc-rise m-0 text-[19px] leading-[1.65] text-[#4A4036] max-w-[460px]"
+                style={{ '--i': 3 }}
+              >
+                Small-batch, hand-ground and slow-fermented by local families. Every jar carries its maker’s name.
+              </p>
 
-            {/* Floating Product Badge (Fresh this week) */}
-            <Link
-              to={`/product/${featuredHeroPickle.slug || 'pure-raja-mircha-king-chilli-pickle'}`}
-              className="bg-white border border-stone-200/90 rounded-2xl p-2.5 pr-5 flex items-center gap-3 shadow-md hover:shadow-lg transition-all w-fit mt-6 group"
-            >
-              <img
-                src="/hero-bowl-thumb.jpg"
-                alt="Fresh this week"
-                className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-stone-200 group-hover:scale-105 transition-transform"
-              />
-              <div className="text-left">
-                <span className="text-[10px] text-stone-500 font-medium block leading-tight">
-                  Fresh this week
-                </span>
-                <span className="text-xs font-bold text-stone-900 font-serif leading-tight group-hover:text-[#ab331c] transition-colors">
-                  {featuredHeroPickle.title?.split('&')?.[0]?.trim() || 'King Chilli Pickle'} · ₹{parseFloat(featuredHeroPickle.price || 299).toFixed(0)}
-                </span>
+              <div className="hero-dc-rise flex gap-3.5 flex-wrap" style={{ '--i': 4 }}>
+                <Link to="/products" className="hero-dc-btn hero-dc-btn-p">
+                  Shop pickles
+                </Link>
+                <Link to="/brands" className="hero-dc-btn hero-dc-btn-s">
+                  Meet the makers
+                </Link>
               </div>
-            </Link>
-          </div>
 
-          {/* Right Column: Reaching Right Corner (Authentic Nagaland Pickle Photography) */}
-          <div className="w-full flex-1 flex items-center justify-center lg:justify-end select-none">
-            <img
-              src="/hero-pickle-cutout.png"
-              alt="Authentic handcrafted Nagaland pickles, sun-cured spices and cold-pressed mustard oil"
-              className="w-full max-w-[580px] lg:max-w-[660px] xl:max-w-[720px] h-auto object-contain object-right pointer-events-none drop-shadow-sm transition-transform duration-500 hover:scale-[1.02]"
-            />
-          </div>
+              <div
+                className="hero-dc-rise flex gap-[22px] flex-wrap text-sm text-[#4A4036]"
+                style={{ '--i': 5 }}
+              >
+                <span>✓ FSSAI certified</span>
+                <span>✓ No preservatives</span>
+                <span>✓ Pan-India delivery</span>
+              </div>
+            </div>
+
+            {/* Right Column: Animated Stage with Pulsing Blob, Floating Jar, Bobbing Chips & Rotating Stamp */}
+            <div className="hero-dc-stage select-none">
+              <div className="hero-dc-blob" aria-hidden="true" />
+              <img
+                src="/hero-pickle-cutout.png"
+                alt="Open jar and bowl of handmade pickle with chillies and curry leaves"
+                className="hero-dc-shot pointer-events-none"
+              />
+              <span className="hero-dc-chip" style={{ top: '6%', right: '4%' }}>
+                🌶 Very hot
+              </span>
+              <span className="hero-dc-chip" style={{ top: '46%', left: 0, animationDelay: '-2s' }}>
+                ★ Small batch
+              </span>
+              <svg className="hero-dc-spin" viewBox="0 0 120 120" aria-hidden="true">
+                <circle cx="60" cy="60" r="58" fill="#B3321F" />
+                <path id="hero-stamp-circle" d="M60,60 m-42,0 a42,42 0 1,1 84,0 a42,42 0 1,1 -84,0" fill="none" />
+                <text fontSize="11.5" fontWeight="600" fill="#FBF6EC" letterSpacing="2.2">
+                  <textPath href="#hero-stamp-circle">HANDMADE · SMALL BATCH · NAGALAND ·</textPath>
+                </text>
+              </svg>
+            </div>
           </div>
         </div>
       </section>
+
+      {/* ========================================================
+          LOWER MARQUEE RIBBON (DESKTOP, EXACT MATCH TO Hero.dc.html)
+          ======================================================== */}
+      <div className="hidden md:block hero-dc-tick" aria-hidden="true">
+        <div className="hero-dc-tick-track">
+          <span>✓ FSSAI certified</span>
+          <span>✦ Small batch</span>
+          <span>✓ No preservatives</span>
+          <span>✦ Made by local families</span>
+          <span>✓ Pan-India delivery</span>
+          <span>✦ Slow fermented</span>
+        </div>
+        <div className="hero-dc-tick-track">
+          <span>✓ FSSAI certified</span>
+          <span>✦ Small batch</span>
+          <span>✓ No preservatives</span>
+          <span>✦ Made by local families</span>
+          <span>✓ Pan-India delivery</span>
+          <span>✦ Slow fermented</span>
+        </div>
+      </div>
 
       {/* ========================================================
           CATEGORY FILTER PILLS ROW (CENTERED, EXACT MATCH)
