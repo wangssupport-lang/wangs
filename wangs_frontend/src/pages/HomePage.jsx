@@ -719,9 +719,9 @@ export default function HomePage() {
           HERO SECTION (FULL-WIDTH EDGE-TO-EDGE WHITE + MOBILE PROMO BANNER)
           ======================================================== */}
       <section className="w-full bg-white overflow-hidden relative">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-4 sm:pt-10 pb-8 sm:pb-14">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 pt-3 pb-4 md:pt-10 md:pb-14">
           {/* Mobile-Only Hero Promo Banner Carousel (Controlled via Admin Hero Promo Banners) */}
-          <div className="md:hidden flex flex-col gap-2 mb-6">
+          <div className="md:hidden flex flex-col gap-2">
             <div className="relative">
               <div
                 ref={bannerScrollRef}
@@ -842,7 +842,7 @@ export default function HomePage() {
             )}
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-16 w-full">
+          <div className="hidden md:flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-10 xl:gap-16 w-full">
           {/* Left Column: Reaching Left Corner (Eyebrow, 3-Line Headline, Subtitle, CTAs, Checks & Floating Badge) */}
           <div className="w-full lg:max-w-[460px] xl:max-w-[500px] flex flex-col items-start text-left z-10 shrink-0">
             {/* Eyebrow */}
