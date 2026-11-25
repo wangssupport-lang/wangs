@@ -3788,11 +3788,11 @@ class PublicStorefrontNoticeView(views.APIView):
         StorefrontNotice.objects.filter(text__icontains='ubecujwbc').delete()
         StorefrontNotice.objects.filter(text__icontains='wecwe').delete()
 
-        qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
-        if not qs.exists() or StorefrontNotice.objects.count() == 0:
+        if StorefrontNotice.objects.count() == 0:
             for item in DEFAULT_STOREFRONT_NOTICES:
                 StorefrontNotice.objects.get_or_create(text=item['text'], defaults=item)
-            qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
+
+        qs = StorefrontNotice.objects.filter(is_active=True).order_by('display_order', '-created_at')
 
         response = Response(StorefrontNoticeSerializer(qs, many=True).data)
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'

@@ -323,8 +323,7 @@ export default function Navbar() {
       const cached = localStorage.getItem('wangs_storefront_notices_cache') || sessionStorage.getItem('wangs_storefront_notices_cache');
       if (cached) {
         const parsed = JSON.parse(cached);
-        const cleaned = cleanNoticeList(parsed);
-        if (cleaned.length > 0) return cleaned;
+        if (Array.isArray(parsed)) return cleanNoticeList(parsed);
       }
     } catch {}
     return DEFAULT_RIBBON_MESSAGES;
@@ -332,12 +331,14 @@ export default function Navbar() {
 
   useEffect(() => {
     let cancelled = false;
+    let channel = null;
+
     async function loadStorefrontNotices() {
       try {
         const res = await api.getPublicStorefrontNotices();
         const rawList = Array.isArray(res) ? res : res?.results || [];
         const list = cleanNoticeList(rawList);
-        if (!cancelled && list.length > 0) {
+        if (!cancelled) {
           setNotices(list);
           try {
             localStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(list));
@@ -353,52 +354,86 @@ export default function Navbar() {
 
     const handleNoticesChanged = () => loadStorefrontNotices();
     const handleStorageChange = (e) => {
-      if (e.key === 'wangs_storefront_notices_cache' && e.newValue) {
+      if (e.key === 'wangs_storefront_notices_cache' && e.newValue !== null) {
         try {
-          const updated = cleanNoticeList(JSON.parse(e.newValue));
-          if (updated.length > 0) setNotices(updated);
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) setNotices(cleanNoticeList(parsed));
         } catch {}
       } else if (e.key === 'wangs_notices_version') {
         loadStorefrontNotices();
       }
     };
+    const handleVisibilityOrFocus = () => {
+      if (document.visibilityState === 'visible') {
+        loadStorefrontNotices();
+      }
+    };
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel('wangs_notices_sync');
+        channel.onmessage = () => loadStorefrontNotices();
+      }
+    } catch {}
 
     window.addEventListener('wangs_notices_changed', handleNoticesChanged);
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('focus', loadStorefrontNotices);
+    document.addEventListener('visibilitychange', handleVisibilityOrFocus);
+
+    const syncInterval = setInterval(loadStorefrontNotices, 30000);
+
     return () => {
       cancelled = true;
+      clearInterval(syncInterval);
+      if (channel) {
+        try { channel.close(); } catch {}
+      }
       window.removeEventListener('wangs_notices_changed', handleNoticesChanged);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('focus', loadStorefrontNotices);
+      document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
     };
   }, []);
 
-  const activeNotices = notices.length > 0 ? notices : DEFAULT_RIBBON_MESSAGES;
+  const activeNotices = notices;
+
+  useEffect(() => {
+    if (activeNotices.length > 0 && ribbonIndex >= activeNotices.length) {
+      setRibbonIndex(0);
+    }
+  }, [activeNotices.length, ribbonIndex]);
 
   const handlePrevNotice = (e) => {
     e?.stopPropagation?.();
+    if (activeNotices.length <= 1) return;
     setRibbonIndex((prev) => (prev - 1 + activeNotices.length) % activeNotices.length);
   };
 
   const handleNextNotice = (e) => {
     e?.stopPropagation?.();
+    if (activeNotices.length <= 1) return;
     setRibbonIndex((prev) => (prev + 1) % activeNotices.length);
   };
 
   useEffect(() => {
-    if (isRibbonPaused) return;
+    if (isRibbonPaused || activeNotices.length <= 1) return;
     const timer = setInterval(() => {
       setRibbonIndex((prev) => (prev + 1) % activeNotices.length);
     }, 5000);
     return () => clearInterval(timer);
   }, [isRibbonPaused, activeNotices.length]);
 
-  const currentNotice = activeNotices[ribbonIndex % activeNotices.length] || DEFAULT_RIBBON_MESSAGES[0];
+  const currentNotice = activeNotices.length > 0
+    ? activeNotices[ribbonIndex % activeNotices.length]
+    : null;
 
   return (
     <header className="sticky top-0 z-40 bg-[#fbf8f3] shadow-xs w-full select-none border-b border-stone-200/60">
       {/* ========================================================
           1. TOP ANNOUNCEMENT NOTICE RIBBON (Dark Forest Green)
           ======================================================== */}
+      {currentNotice && (
       <div
         className="bg-[#28452e] text-white text-[10px] sm:text-[11.5px] font-medium py-1.5 px-2 sm:px-4 transition-all duration-300 select-none"
         onMouseEnter={() => setIsRibbonPaused(true)}
@@ -411,7 +446,8 @@ export default function Navbar() {
           <button
             type="button"
             onClick={handlePrevNotice}
-            className="p-0.5 rounded text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
+            disabled={activeNotices.length <= 1}
+            className={`p-0.5 rounded text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer ${activeNotices.length <= 1 ? 'opacity-30 pointer-events-none' : ''}`}
             aria-label="Previous Notice"
             title="Previous Notice"
           >
@@ -421,20 +457,26 @@ export default function Navbar() {
           {/* Center Notice Content with Keyed Smooth Fade/Slide */}
           <Link
             to={currentNotice.link || '/products'}
-            key={ribbonIndex}
+            key={`${currentNotice.id || ribbonIndex}-${currentNotice.text}`}
             className="flex-1 min-w-0 flex items-center justify-center gap-1.5 overflow-hidden text-center hover:opacity-95 transition-opacity cursor-pointer animate-in fade-in duration-300"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse hidden xs:inline-block" />
             <span className="truncate tracking-tight font-medium">
-              Handmade in small batches in Nagaland · Free Delivery Across India on orders above ₹499
+              {currentNotice.text}
             </span>
+            {currentNotice.highlight && (
+              <span className={`shrink-0 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full hidden sm:inline-block ${currentNotice.badge_color || 'bg-white/20 text-white'}`}>
+                {currentNotice.highlight}
+              </span>
+            )}
           </Link>
 
           {/* Right Arrow */}
           <button
             type="button"
             onClick={handleNextNotice}
-            className="p-0.5 rounded text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer"
+            disabled={activeNotices.length <= 1}
+            className={`p-0.5 rounded text-white/70 hover:text-white hover:bg-white/10 active:scale-95 transition-all shrink-0 cursor-pointer ${activeNotices.length <= 1 ? 'opacity-30 pointer-events-none' : ''}`}
             aria-label="Next Notice"
             title="Next Notice"
           >
@@ -442,6 +484,7 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+      )}
 
       {/* ========================================================
           2. MAIN NAVIGATION BAR

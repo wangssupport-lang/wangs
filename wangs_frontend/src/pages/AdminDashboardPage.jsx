@@ -1336,6 +1336,11 @@ export default function AdminDashboardPage() {
       localStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(activeOnly));
       sessionStorage.setItem('wangs_storefront_notices_cache', JSON.stringify(activeOnly));
       localStorage.setItem('wangs_notices_version', Date.now().toString());
+      if (typeof BroadcastChannel !== 'undefined') {
+        const ch = new BroadcastChannel('wangs_notices_sync');
+        ch.postMessage({ type: 'updated', ts: Date.now() });
+        ch.close();
+      }
     } catch {}
     window.dispatchEvent(new CustomEvent('wangs_notices_changed'));
   };
