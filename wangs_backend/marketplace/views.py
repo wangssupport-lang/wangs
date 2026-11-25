@@ -3465,7 +3465,7 @@ class AdminCommissionView(views.APIView):
 DEFAULT_ORBITAL_SHOWCASE = {
     'is_active': True,
     'eyebrow': 'ARTISAN COLLECTION',
-    'headline': 'The whole Nagaland pickle shelf, in one place.',
+    'headline': 'The best local pickle shelf, in one place.',
     'cta_text': 'Explore all jars',
     'cta_link': '/products',
     'product_ids': [],

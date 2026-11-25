@@ -119,7 +119,7 @@ export default function HomePage() {
     return {
       is_active: true,
       eyebrow: 'ARTISAN COLLECTION',
-      headline: 'The whole Nagaland pickle shelf, in one place.',
+      headline: 'The best local pickle shelf, in one place.',
       cta_text: 'Explore all jars',
       cta_link: '/products',
       products: [],
@@ -1192,7 +1192,7 @@ export default function HomePage() {
                     {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
                   </span>
                   <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
-                    {orbitalShowcase?.headline || 'The whole Nagaland pickle shelf, in one place.'}
+                    {orbitalShowcase?.headline || 'The best local pickle shelf, in one place.'}
                   </h2>
                   <Link
                     to={orbitalShowcase?.cta_link || '/products'}

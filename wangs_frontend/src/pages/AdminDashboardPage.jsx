@@ -560,7 +560,7 @@ export default function AdminDashboardPage() {
   const [orbitalForm, setOrbitalForm] = useState({
     is_active: true,
     eyebrow: 'ARTISAN COLLECTION',
-    headline: 'The whole Nagaland pickle shelf, in one place.',
+    headline: 'The best local pickle shelf, in one place.',
     cta_text: 'Explore all jars',
     cta_link: '/products',
     product_ids: [],
@@ -679,7 +679,7 @@ export default function AdminDashboardPage() {
         setOrbitalForm({
           is_active: ov.is_active !== false,
           eyebrow: ov.eyebrow || 'ARTISAN COLLECTION',
-          headline: ov.headline || 'The whole Nagaland pickle shelf, in one place.',
+          headline: ov.headline || 'The best local pickle shelf, in one place.',
           cta_text: ov.cta_text || 'Explore all jars',
           cta_link: ov.cta_link || '/products',
           product_ids: Array.isArray(ov.product_ids) ? ov.product_ids : [],
@@ -2948,7 +2948,7 @@ export default function AdminDashboardPage() {
                   rows={2}
                   value={orbitalForm.headline}
                   onChange={(e) => setOrbitalForm({ ...orbitalForm, headline: e.target.value })}
-                  placeholder="The whole Nagaland pickle shelf, in one place."
+                  placeholder="The best local pickle shelf, in one place."
                   className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-forest-800"
                 />
               </div>
