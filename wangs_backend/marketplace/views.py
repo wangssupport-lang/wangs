@@ -3483,7 +3483,7 @@ def get_orbital_showcase_payload(current, request=None):
         'product_ids': [int(pid) for pid in (raw.get('product_ids') or []) if str(pid).isdigit()][:5],
     }
 
-    base_qs = Product.objects.filter(is_active=True).select_related('category', 'manufacturer').prefetch_related('images')
+    base_qs = Product.objects.filter(is_active=True).prefetch_related('images')
     selected_products = []
     if config['product_ids']:
         by_id = {p.id: p for p in base_qs.filter(id__in=config['product_ids'])}
@@ -3491,8 +3491,22 @@ def get_orbital_showcase_payload(current, request=None):
     if not selected_products:
         selected_products = list(base_qs.order_by('-is_bestseller', '-created_at')[:5])
 
-    ctx = {'request': request} if request else {}
-    config['products'] = ProductSerializer(selected_products, many=True, context=ctx).data
+    # Lightweight payload (zero N+1 serializer queries) for instant response
+    products_payload = []
+    for p in selected_products:
+        img = p.primary_image_url
+        if not img:
+            first_img = p.images.first()
+            img = first_img.image_url if first_img else ''
+        products_payload.append({
+            'id': p.id,
+            'title': p.title,
+            'slug': p.slug,
+            'price': str(p.price),
+            'primary_image_url': img or '',
+        })
+
+    config['products'] = products_payload
     return config
 
 

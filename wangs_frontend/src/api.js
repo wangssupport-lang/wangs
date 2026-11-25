@@ -473,9 +473,10 @@ export const api = {
   resetAdminStorefrontNotices: () => apiRequest('/admin/storefront-notices/reset_defaults/', { method: 'POST' }),
 
   // Orbital Floating Product Showcase Management
-  getAdminOrbitalShowcase: () => apiRequest(`/admin/orbital-showcase/?_t=${Date.now()}`),
+  getAdminOrbitalShowcase: () => apiRequest(`/admin/orbital-showcase/?_t=${Date.now()}`, { timeout: 12000 }),
   updateAdminOrbitalShowcase: (body) => apiRequest('/admin/orbital-showcase/', {
     method: 'PUT',
+    timeout: 12000,
     body: JSON.stringify(body),
   }),
 
