@@ -41,6 +41,14 @@ export function AboutPage() {
         title="About Wangs | Indian Regional Food Marketplace"
         description="Wangs is an India-based online marketplace developed in Nagaland, connecting customers with authentic regional food products and independent food makers."
         canonicalPath="/about"
+        structuredData={{
+          '@context': 'https://schema.org',
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wangs.in/' },
+            { '@type': 'ListItem', position: 2, name: 'About Wangs', item: 'https://wangs.in/about' },
+          ],
+        }}
       />
 
       {/* About Wangs */}
@@ -67,7 +75,7 @@ export function AboutPage() {
             to="/products"
             className="px-4 py-2 rounded-full bg-[#ab331c] text-white hover:bg-[#8e2815] transition-colors"
           >
-            Explore Pickles &amp; Foods
+            Shop Naga Pickles &amp; Foods
           </Link>
           <Link
             to="/brands"
@@ -80,6 +88,18 @@ export function AboutPage() {
             className="px-4 py-2 rounded-full border border-stone-300 bg-white text-stone-800 hover:border-stone-900 transition-colors"
           >
             Become a Seller
+          </Link>
+          <Link
+            to="/contact"
+            className="px-4 py-2 rounded-full border border-stone-300 bg-white text-stone-800 hover:border-stone-900 transition-colors"
+          >
+            Contact Wangs
+          </Link>
+          <Link
+            to="/"
+            className="px-4 py-2 rounded-full border border-stone-300 bg-white text-stone-800 hover:border-stone-900 transition-colors"
+          >
+            Wangs Home
           </Link>
         </div>
       </section>

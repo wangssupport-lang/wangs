@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 
 const SITE_URL = 'https://wangs.in';
-const DEFAULT_TITLE = 'Wangs | Authentic Regional Pickles & Foods from India';
+const DEFAULT_TITLE = 'Wangs | Authentic Regional Pickles & Foods from Nagaland, India';
 const DEFAULT_DESCRIPTION =
-  'Discover authentic Naga pickles and regional food products at Wangs. Explore traditional flavours from independent food makers across India.';
+  'Wangs is an online regional food marketplace from Nagaland, India, connecting customers with authentic Naga pickles and traditional food products from independent makers.';
 const DEFAULT_IMAGE = `${SITE_URL}/hero-pickle-artisan.jpg`;
 
 function upsertMeta(attrName, attrValue, content) {
@@ -35,7 +35,10 @@ export default function SeoHead({
   image = DEFAULT_IMAGE,
   ogType = 'website',
   robots = 'index, follow',
+  structuredData = null,
 }) {
+  const structuredJson = structuredData ? JSON.stringify(structuredData) : '';
+
   useEffect(() => {
     const cleanPath = canonicalPath.startsWith('http')
       ? canonicalPath
@@ -60,7 +63,25 @@ export default function SeoHead({
     upsertMeta('name', 'twitter:title', title);
     upsertMeta('name', 'twitter:description', description);
     upsertMeta('name', 'twitter:image', resolvedImage);
-  }, [title, description, canonicalPath, image, ogType, robots]);
+
+    const existingScript = document.head.querySelector('script[data-seo-head="true"]');
+    if (structuredJson) {
+      const scriptEl = existingScript || document.createElement('script');
+      scriptEl.setAttribute('type', 'application/ld+json');
+      scriptEl.setAttribute('data-seo-head', 'true');
+      scriptEl.textContent = structuredJson;
+      if (!existingScript) {
+        document.head.appendChild(scriptEl);
+      }
+    } else if (existingScript) {
+      existingScript.remove();
+    }
+
+    return () => {
+      const stale = document.head.querySelector('script[data-seo-head="true"]');
+      if (stale) stale.remove();
+    };
+  }, [title, description, canonicalPath, image, ogType, robots, structuredJson]);
 
   return null;
 }

@@ -188,8 +188,45 @@ export default function ProductDetailPage() {
   const seoDescription = rawDescription
     ? (rawDescription.length > 155 ? `${rawDescription.slice(0, 152)}...` : rawDescription)
     : `Buy ${product.title} online at Wangs. Authentic regional pickle and food product from independent makers.`;
-  const productImageRaw = product.images?.[0]?.image_url || product.image_url || '';
+  const productImageRaw = product.primary_image_url || product.images?.[0]?.image_url || product.image_url || '';
   const seoImage = productImageRaw ? resolveProductImage(productImageRaw) : undefined;
+  const canonicalProductUrl = `https://wangs.in/product/${product.slug || slug}`;
+  const numericPrice = Number(product.selling_price ?? product.price ?? 0);
+
+  const productStructuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wangs.in/' },
+          { '@type': 'ListItem', position: 2, name: 'Pickles', item: 'https://wangs.in/products' },
+          { '@type': 'ListItem', position: 3, name: product.title, item: canonicalProductUrl },
+        ],
+      },
+      {
+        '@type': 'Product',
+        name: product.title,
+        description: seoDescription,
+        sku: product.slug || slug,
+        ...(seoImage ? { image: [seoImage] } : {}),
+        ...(product.manufacturer?.business_name
+          ? { brand: { '@type': 'Brand', name: product.manufacturer.business_name } }
+          : {}),
+        ...(numericPrice > 0
+          ? {
+              offers: {
+                '@type': 'Offer',
+                url: canonicalProductUrl,
+                priceCurrency: 'INR',
+                price: numericPrice.toFixed(2),
+                availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+              },
+            }
+          : {}),
+      },
+    ],
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 space-y-12 sm:space-y-16">
@@ -199,6 +236,7 @@ export default function ProductDetailPage() {
         canonicalPath={`/product/${product.slug || slug}`}
         image={seoImage}
         ogType="product"
+        structuredData={productStructuredData}
       />
       {/* Breadcrumb Navigation */}
       <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-medium text-stone-500">
