@@ -169,31 +169,91 @@ export default function HomePage() {
   const bannerScrollRef = useRef(null);
   const isInteractingWithBanner = useRef(false);
   const orbitalSectionRef = useRef(null);
-  const [orbitalProgress, setOrbitalProgress] = useState(0);
+  const orbitalCardRefs = useRef([]);
+  const orbitalHeadlineRef = useRef(null);
+  const orbitalArcsRef = useRef(null);
+  const orbitalGlowLeftRef = useRef(null);
+  const orbitalGlowRightRef = useRef(null);
 
   useEffect(() => {
+    const baseAngles = [-125, -28, 175, 112, 30];
+    let target = 0;
+    let current = 0;
     let rafId = null;
-    const updateProgress = () => {
-      rafId = null;
+    let lastTime = performance.now();
+
+    const applyTransforms = (rawT) => {
+      const p = rawT < 0.5 ? 2 * rawT * rawT : 1 - Math.pow(-2 * rawT + 2, 2) / 2;
+
+      if (orbitalHeadlineRef.current) {
+        orbitalHeadlineRef.current.style.transform = `translate3d(0, ${(-28 * p).toFixed(2)}px, 0)`;
+      }
+      if (orbitalArcsRef.current) {
+        orbitalArcsRef.current.style.opacity = String(Math.max(0, 0.45 * (1 - p * 1.15)).toFixed(3));
+      }
+      const glowOpacity = String(Math.max(0.2, 1 - p * 0.7).toFixed(3));
+      if (orbitalGlowLeftRef.current) orbitalGlowLeftRef.current.style.opacity = glowOpacity;
+      if (orbitalGlowRightRef.current) orbitalGlowRightRef.current.style.opacity = glowOpacity;
+
+      orbitalCardRefs.current.forEach((el, idx) => {
+        if (!el) return;
+        const baseAngle = baseAngles[idx % baseAngles.length];
+        const angleRad = ((baseAngle + p * 115) * Math.PI) / 180;
+        const rx = 400 * (1 - p);
+        const ry = 205 * (1 - p);
+        const stackX = (idx - 2) * 14 * p;
+        const stackY = 148 * p;
+        const x = Math.cos(angleRad) * rx + stackX;
+        const y = Math.sin(angleRad) * ry + stackY;
+        const scale = 1 - 0.42 * p;
+        const tilt = (idx - 2) * 7 * p;
+
+        el.style.transform = `translate3d(calc(-50% + ${x.toFixed(2)}px), calc(-50% + ${y.toFixed(2)}px), 0) scale(${scale.toFixed(4)}) rotate(${tilt.toFixed(2)}deg)`;
+      });
+    };
+
+    const tick = (now) => {
+      const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+      lastTime = now;
+      // Frame-rate independent exponential smoothing (silky on 60Hz, 120Hz, 144Hz)
+      const alpha = 1 - Math.exp(-14 * dt);
+      current += (target - current) * alpha;
+
+      if (Math.abs(target - current) < 0.0004) {
+        current = target;
+        applyTransforms(current);
+        rafId = null;
+        return;
+      }
+
+      applyTransforms(current);
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    const measureScroll = () => {
       if (!orbitalSectionRef.current || window.innerWidth < 768) return;
       const rect = orbitalSectionRef.current.getBoundingClientRect();
       const vh = window.innerHeight || 800;
       const scrollable = Math.max(1, rect.height - vh * 0.82);
-      const raw = Math.min(1, Math.max(0, (-rect.top + vh * 0.08) / scrollable));
-      setOrbitalProgress((prev) => (Math.abs(prev - raw) > 0.002 ? raw : prev));
+      target = Math.min(1, Math.max(0, (-rect.top + vh * 0.08) / scrollable));
+
+      if (!rafId) {
+        lastTime = performance.now();
+        rafId = window.requestAnimationFrame(tick);
+      }
     };
 
-    const onScroll = () => {
-      if (!rafId) rafId = window.requestAnimationFrame(updateProgress);
-    };
+    // Initial snap without lag
+    measureScroll();
+    current = target;
+    applyTransforms(current);
 
-    updateProgress();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll, { passive: true });
+    window.addEventListener('scroll', measureScroll, { passive: true });
+    window.addEventListener('resize', measureScroll, { passive: true });
     return () => {
       if (rafId) window.cancelAnimationFrame(rafId);
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener('scroll', measureScroll);
+      window.removeEventListener('resize', measureScroll);
     };
   }, []);
 
@@ -1091,10 +1151,6 @@ export default function HomePage() {
           { frame: 'bg-[#dbeafe] border-[#bfdbfe]', pill: 'bg-white text-stone-900', anim: 'animate-orbital-a', delay: '-0.8s', angle: 30 },
         ];
 
-        // Smooth ease-in-out curve matching Cashfree orbital convergence & card stacking
-        const t = orbitalProgress;
-        const p = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-
         return (
           <section
             ref={orbitalSectionRef}
@@ -1103,22 +1159,22 @@ export default function HomePage() {
             <div className="md:sticky md:top-20 md:h-[calc(100vh-100px)] md:max-h-[620px] w-full py-14 md:py-0 px-4 sm:px-6 lg:px-12 overflow-hidden flex items-center justify-center relative">
               {/* Soft Ambient Pastel Radial Glows */}
               <div
+                ref={orbitalGlowLeftRef}
                 aria-hidden="true"
                 className="absolute -left-24 top-1/4 w-96 h-96 rounded-full bg-[#dcfce7]/65 blur-3xl pointer-events-none"
-                style={{ opacity: Math.max(0.2, 1 - p * 0.7) }}
               />
               <div
+                ref={orbitalGlowRightRef}
                 aria-hidden="true"
                 className="absolute -right-24 bottom-1/4 w-96 h-96 rounded-full bg-[#fef3c7]/75 blur-3xl pointer-events-none"
-                style={{ opacity: Math.max(0.2, 1 - p * 0.7) }}
               />
 
               {/* Delicate Orbital Arcs (Desktop, fade smoothly as cards stack) */}
               <svg
+                ref={orbitalArcsRef}
                 aria-hidden="true"
                 viewBox="0 0 1200 560"
-                className="hidden md:block absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-200"
-                style={{ opacity: Math.max(0, 0.45 * (1 - p * 1.15)) }}
+                className="hidden md:block absolute inset-0 w-full h-full pointer-events-none opacity-45"
                 preserveAspectRatio="none"
               >
                 <path d="M-40 130 Q 600 280 1240 90" fill="none" stroke="#d6d3d1" strokeWidth="1" />
@@ -1129,8 +1185,8 @@ export default function HomePage() {
               <div className="max-w-[1240px] w-full mx-auto relative md:h-[540px] flex flex-col items-center justify-center">
                 {/* Centered Headline (Admin-Managed) */}
                 <div
+                  ref={orbitalHeadlineRef}
                   className="relative z-10 text-center max-w-xl mx-auto mb-10 md:mb-0 px-2 will-change-transform"
-                  style={{ transform: `translateY(${-28 * p}px)` }}
                 >
                   <span className="text-[#ab331c] font-bold text-[11px] uppercase tracking-[0.14em] block mb-2">
                     {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
@@ -1147,7 +1203,7 @@ export default function HomePage() {
                   </Link>
                 </div>
 
-                {/* Desktop Scroll-Driven Orbiting & Converging Cards */}
+                {/* Desktop Scroll-Driven Orbiting & Converging Cards (GPU-Composited, Zero React Rerenders) */}
                 {orbitalItems.map((item, idx) => {
                   const theme = cardThemes[idx % cardThemes.length];
                   const imgUrl = resolveProductImage(
@@ -1156,25 +1212,12 @@ export default function HomePage() {
                   );
                   const priceNum = Math.round(Number(item.price) || 299);
 
-                  // Orbit clockwise around center & converge into fanned stack under headline
-                  const angleRad = ((theme.angle + p * 115) * Math.PI) / 180;
-                  const rx = 400 * (1 - p);
-                  const ry = 205 * (1 - p);
-                  const stackX = (idx - 2) * 14 * p;
-                  const stackY = 148 * p;
-                  const x = Math.cos(angleRad) * rx + stackX;
-                  const y = Math.sin(angleRad) * ry + stackY;
-                  const scale = 1 - 0.42 * p;
-                  const tilt = (idx - 2) * 7 * p;
-
                   return (
                     <div
                       key={item.id || idx}
-                      className="hidden md:block absolute top-1/2 left-1/2 z-20 will-change-transform"
-                      style={{
-                        transform: `translate(calc(-50% + ${x.toFixed(1)}px), calc(-50% + ${y.toFixed(1)}px)) scale(${scale.toFixed(3)}) rotate(${tilt.toFixed(1)}deg)`,
-                        zIndex: 20 + idx,
-                      }}
+                      ref={(el) => { orbitalCardRefs.current[idx] = el; }}
+                      className="hidden md:block absolute top-1/2 left-1/2 will-change-transform"
+                      style={{ zIndex: 20 + idx }}
                     >
                       <Link
                         to={`/product/${item.slug}`}
