@@ -197,16 +197,19 @@ export default function HomePage() {
       if (orbitalGlowLeftRef.current) orbitalGlowLeftRef.current.style.opacity = glowOpacity;
       if (orbitalGlowRightRef.current) orbitalGlowRightRef.current.style.opacity = glowOpacity;
 
-      const maxRx = isMobile ? Math.min(138, vw * 0.34) : 400;
-      const maxRy = isMobile ? 168 : 205;
+      const mobileAngles = [-130, -45, 138, 90, 42];
+      const maxRx = isMobile ? Math.min(132, vw * 0.33) : 400;
+      const maxRy = isMobile ? 182 : 205;
       const stackSpread = isMobile ? 10 : 14;
-      const stackDrop = isMobile ? 118 : 148;
-      const shrinkFactor = isMobile ? 0.28 : 0.42;
+      const stackDrop = isMobile ? 124 : 148;
+      const shrinkFactor = isMobile ? 0.25 : 0.42;
 
       orbitalCardRefs.current.forEach((el, idx) => {
         if (!el) return;
-        const baseAngle = baseAngles[idx % baseAngles.length];
-        const angleRad = ((baseAngle + p * 115) * Math.PI) / 180;
+        const baseAngle = isMobile
+          ? mobileAngles[idx % mobileAngles.length]
+          : baseAngles[idx % baseAngles.length];
+        const angleRad = ((baseAngle + p * (isMobile ? 95 : 115)) * Math.PI) / 180;
         const rx = maxRx * (1 - p);
         const ry = maxRy * (1 - p);
         const stackX = (idx - 2) * stackSpread * p;
@@ -1199,12 +1202,12 @@ export default function HomePage() {
                 {/* Centered Headline (Admin-Managed) */}
                 <div
                   ref={orbitalHeadlineRef}
-                  className="relative z-10 text-center max-w-[260px] sm:max-w-xl mx-auto px-2 will-change-transform"
+                  className="relative z-30 text-center max-w-[220px] sm:max-w-xl mx-auto px-2 will-change-transform"
                 >
-                  <span className="text-[#ab331c] font-bold text-[10px] sm:text-[11px] uppercase tracking-[0.14em] block mb-1.5 sm:mb-2">
+                  <span className="text-[#ab331c] font-bold text-[10px] sm:text-[11px] uppercase tracking-[0.14em] block mb-1 sm:mb-2">
                     {orbitalShowcase?.eyebrow || 'ARTISAN COLLECTION'}
                   </span>
-                  <h2 className="font-serif text-2xl sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.1] tracking-tight">
+                  <h2 className="font-serif text-[21px] sm:text-4xl lg:text-5xl font-bold text-stone-950 leading-[1.12] tracking-tight">
                     {orbitalShowcase?.headline || 'The best local pickle shelf, in one place.'}
                   </h2>
                   <Link
@@ -1235,9 +1238,9 @@ export default function HomePage() {
                       <Link
                         to={`/product/${item.slug}`}
                         style={{ animationDelay: theme.delay }}
-                        className={`flex flex-col justify-between ${theme.anim} w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 lg:w-44 lg:h-44 rounded-2xl sm:rounded-3xl p-1.5 sm:p-2.5 border shadow-lg hover:shadow-2xl hover:scale-105 transition-shadow duration-300 group overflow-hidden ${theme.frame}`}
+                        className={`flex flex-col justify-between ${theme.anim} w-20 h-20 sm:w-36 sm:h-36 md:w-40 md:h-40 lg:w-44 lg:h-44 rounded-2xl sm:rounded-3xl p-1 sm:p-2.5 border shadow-lg hover:shadow-2xl hover:scale-105 transition-shadow duration-300 group overflow-hidden ${theme.frame}`}
                       >
-                        <div className="w-full h-14 sm:h-22 md:h-24 lg:h-28 rounded-xl sm:rounded-2xl overflow-hidden bg-white/90 flex items-center justify-center p-1 sm:p-1.5">
+                        <div className="w-full h-11 sm:h-22 md:h-24 lg:h-28 rounded-xl sm:rounded-2xl overflow-hidden bg-white/90 flex items-center justify-center p-0.5 sm:p-1.5">
                           <img
                             src={imgUrl}
                             alt={item.title}
