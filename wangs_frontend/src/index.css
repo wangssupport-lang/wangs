@@ -815,6 +815,32 @@ a, button, input, select, textarea {
   }
 }
 
+@keyframes orbitalFloatA {
+  0%, 100% {
+    transform: translateY(0px) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1.5deg);
+  }
+}
+
+@keyframes orbitalFloatB {
+  0%, 100% {
+    transform: translateY(0px) rotate(1.5deg);
+  }
+  50% {
+    transform: translateY(10px) rotate(-1.5deg);
+  }
+}
+
+.animate-orbital-a {
+  animation: orbitalFloatA 5.5s ease-in-out infinite;
+}
+
+.animate-orbital-b {
+  animation: orbitalFloatB 6.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-dc-rise,
   .hero-dc-shot,
