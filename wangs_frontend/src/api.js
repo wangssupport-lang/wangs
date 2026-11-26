@@ -431,8 +431,8 @@ export const api = {
   getAdminSettlementsOverview: () => apiRequest('/admin/settlements/'),
 
   // Hero Banners Management
-  getHeroBanners: () => apiRequest('/hero-banners/'),
-  getAdminHeroBanners: () => apiRequest('/admin/hero-banners/'),
+  getHeroBanners: () => apiRequest(`/hero-banners/?_t=${Date.now()}`),
+  getAdminHeroBanners: () => apiRequest(`/admin/hero-banners/?_t=${Date.now()}`),
   createAdminHeroBanner: (body) => apiRequest('/admin/hero-banners/', {
     method: 'POST',
     body: typeof FormData !== 'undefined' && body instanceof FormData ? body : JSON.stringify(body),

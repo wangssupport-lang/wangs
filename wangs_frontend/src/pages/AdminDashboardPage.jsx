@@ -548,12 +548,15 @@ export default function AdminDashboardPage() {
     cta_link: '/products?category=andhra-gongura',
     bg_color: '#9b4100',
     image_url: '',
+    video_url: '',
     is_image_only: false,
     is_active: true,
     display_order: 0,
   });
   const [bannerImageFile, setBannerImageFile] = useState(null);
   const [bannerImagePreview, setBannerImagePreview] = useState('');
+  const [bannerVideoFile, setBannerVideoFile] = useState(null);
+  const [bannerVideoPreview, setBannerVideoPreview] = useState('');
 
   // Orbital Floating Product Showcase State
   const [orbitalSaving, setOrbitalSaving] = useState(false);
@@ -1141,10 +1144,27 @@ export default function AdminDashboardPage() {
     setBannerImagePreview(URL.createObjectURL(file));
   };
 
+  const handleBannerVideoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      toast.error('Please select a valid video file (MP4, WebM, MOV)');
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      toast.error('Video file size must be under 50MB');
+      return;
+    }
+    setBannerVideoFile(file);
+    setBannerVideoPreview(URL.createObjectURL(file));
+  };
+
   const handleResetBannerForm = () => {
     setEditingBannerId(null);
     setBannerImageFile(null);
     setBannerImagePreview('');
+    setBannerVideoFile(null);
+    setBannerVideoPreview('');
     setBannerForm({
       title: 'The Great Achar Season',
       subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.',
@@ -1154,6 +1174,7 @@ export default function AdminDashboardPage() {
       cta_link: '/products?category=andhra-gongura',
       bg_color: '#9b4100',
       image_url: '',
+      video_url: '',
       is_image_only: false,
       is_active: true,
       display_order: 0,
@@ -1171,12 +1192,15 @@ export default function AdminDashboardPage() {
       cta_link: b.cta_link || '/products',
       bg_color: b.bg_color || '#9b4100',
       image_url: b.image_url || '',
+      video_url: b.video_url || '',
       is_image_only: !!b.is_image_only,
       is_active: b.is_active ?? true,
       display_order: b.display_order ?? 0,
     });
     setBannerImageFile(null);
     setBannerImagePreview(b.effective_image_url || b.image_url || b.image || '');
+    setBannerVideoFile(null);
+    setBannerVideoPreview(b.effective_video_url || b.video_url || b.video || '');
   };
 
   const handleSaveBanner = async (e) => {
@@ -1185,16 +1209,24 @@ export default function AdminDashboardPage() {
       toast.error('Campaign Title / Headline is required for text overlay banners');
       return;
     }
-    if (bannerForm.is_image_only && !bannerImageFile && !bannerForm.image_url.trim() && !bannerImagePreview) {
-      toast.error('Please upload an image or provide an image URL for Image-Only banner');
+    if (
+      bannerForm.is_image_only &&
+      !bannerImageFile &&
+      !bannerForm.image_url.trim() &&
+      !bannerImagePreview &&
+      !bannerVideoFile &&
+      !bannerForm.video_url.trim() &&
+      !bannerVideoPreview
+    ) {
+      toast.error('Please upload an image/video or provide a media URL for Media-Only banner');
       return;
     }
 
     setBannerUploading(true);
     try {
-      const bannerTitle = bannerForm.title.trim() || (bannerForm.is_image_only ? 'Graphic Promo Banner' : 'Campaign Banner');
+      const bannerTitle = bannerForm.title.trim() || (bannerForm.is_image_only ? 'Media Promo Banner' : 'Campaign Banner');
       let payload;
-      if (bannerImageFile) {
+      if (bannerImageFile || bannerVideoFile) {
         payload = new FormData();
         payload.append('title', bannerTitle);
         payload.append('subtitle', bannerForm.is_image_only ? '' : (bannerForm.subtitle || ''));
@@ -1206,7 +1238,16 @@ export default function AdminDashboardPage() {
         payload.append('is_image_only', String(bannerForm.is_image_only));
         payload.append('is_active', String(bannerForm.is_active));
         payload.append('display_order', String(bannerForm.display_order));
-        payload.append('image', bannerImageFile);
+        if (bannerImageFile) {
+          payload.append('image', bannerImageFile);
+        } else {
+          payload.append('image_url', bannerForm.image_url || '');
+        }
+        if (bannerVideoFile) {
+          payload.append('video', bannerVideoFile);
+        } else {
+          payload.append('video_url', bannerForm.video_url || '');
+        }
       } else {
         payload = {
           title: bannerTitle,
@@ -1217,6 +1258,7 @@ export default function AdminDashboardPage() {
           cta_link: bannerForm.cta_link || '/products',
           bg_color: bannerForm.bg_color || '#9b4100',
           image_url: bannerForm.image_url || '',
+          video_url: bannerForm.video_url || '',
           is_image_only: bannerForm.is_image_only,
           is_active: bannerForm.is_active,
           display_order: bannerForm.display_order,
@@ -1232,7 +1274,18 @@ export default function AdminDashboardPage() {
       }
 
       const updatedBanners = await api.getAdminHeroBanners();
-      setHeroBanners(extractList(updatedBanners));
+      const bannerList = extractList(updatedBanners);
+      setHeroBanners(bannerList);
+      try {
+        sessionStorage.removeItem('wangs_banners_cache_v2');
+        localStorage.removeItem('wangs_banners_cache_v2');
+        window.dispatchEvent(new Event('wangs_banners_changed'));
+        if (typeof BroadcastChannel !== 'undefined') {
+          const ch = new BroadcastChannel('wangs_banners_sync');
+          ch.postMessage({ type: 'updated', ts: Date.now() });
+          ch.close();
+        }
+      } catch {}
       handleResetBannerForm();
     } catch (err) {
       console.error('Failed to save banner', err);
@@ -1248,6 +1301,15 @@ export default function AdminDashboardPage() {
       setHeroBanners((prev) =>
         prev.map((b) => (b.id === bannerId ? { ...b, is_active: res.is_active ?? !b.is_active } : b))
       );
+      try {
+        sessionStorage.removeItem('wangs_banners_cache_v2');
+        window.dispatchEvent(new Event('wangs_banners_changed'));
+        if (typeof BroadcastChannel !== 'undefined') {
+          const ch = new BroadcastChannel('wangs_banners_sync');
+          ch.postMessage({ type: 'toggled', ts: Date.now() });
+          ch.close();
+        }
+      } catch {}
       toast.success(`Banner #${bannerId} status updated`);
     } catch (err) {
       toast.error('Failed to toggle banner status');
@@ -3229,6 +3291,74 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
+              {/* Video Upload Area (Mobile Hero Video) */}
+              <div className="space-y-2">
+                <label className="block font-bold text-stone-700">
+                  Mobile Hero Video (Optional — Loops Silently)
+                </label>
+                <div className="border-2 border-dashed border-stone-300 hover:border-forest-600 rounded-xl p-4 bg-stone-50/60 transition-colors">
+                  {bannerVideoPreview ? (
+                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative w-36 h-20 rounded-lg overflow-hidden border border-stone-200 shrink-0 shadow-xs bg-black">
+                        <video
+                          src={bannerVideoPreview}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="space-y-1.5 text-center sm:text-left">
+                        <p className="font-bold text-stone-800 text-xs">Video Attached</p>
+                        <p className="text-[11px] text-stone-500">
+                          {bannerVideoFile ? bannerVideoFile.name : 'Current Hero Video'}
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <label className="px-3 py-1 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-md font-bold text-[11px] cursor-pointer shadow-2xs">
+                            Replace Video
+                            <input
+                              type="file"
+                              accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                              onChange={handleBannerVideoSelect}
+                              className="hidden"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setBannerVideoFile(null);
+                              setBannerVideoPreview('');
+                              setBannerForm((prev) => ({ ...prev, video_url: '' }));
+                            }}
+                            className="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-md font-bold text-[11px] cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center gap-2 cursor-pointer py-3">
+                      <div className="w-10 h-10 rounded-full bg-forest-50 text-forest-800 flex items-center justify-center">
+                        <UploadCloud size={20} />
+                      </div>
+                      <div className="text-center">
+                        <span className="font-bold text-forest-900 underline">Click to select video</span>
+                        <span className="text-stone-500"> or drag and drop</span>
+                        <p className="text-[10px] text-stone-400 mt-0.5">MP4, WebM, or MOV up to 50MB (muted autoplay loop on mobile)</p>
+                      </div>
+                      <input
+                        type="file"
+                        accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                        onChange={handleBannerVideoSelect}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
               {/* Recommended Banner Image Size Specification Box */}
               <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 space-y-1.5 text-xs">
                 <div className="flex items-center gap-1.5 font-bold text-amber-950">
@@ -3509,24 +3639,34 @@ export default function AdminDashboardPage() {
                 <div className="bg-[#121212] p-3 rounded-2xl border border-stone-800">
                   {bannerForm.is_image_only ? (
                     <div
-                      className="relative w-full overflow-hidden rounded-xl shadow-lg min-h-[165px] aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer"
+                      className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer"
                       style={{ backgroundColor: bannerForm.bg_color || '#9b4100' }}
                     >
-                      {bannerImagePreview ? (
+                      {bannerVideoPreview ? (
+                        <video
+                          src={bannerVideoPreview}
+                          poster={bannerImagePreview || undefined}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          className="w-full h-full object-contain rounded-xl"
+                        />
+                      ) : bannerImagePreview ? (
                         <img
                           src={bannerImagePreview}
                           alt={bannerForm.title || 'Graphic Banner'}
-                          className="w-full h-full object-cover rounded-xl"
+                          className="w-full h-full object-contain rounded-xl"
                         />
                       ) : (
                         <div className="text-center p-4 text-white/80">
                           <ImageIcon size={32} className="mx-auto mb-2 opacity-60" />
-                          <p className="text-xs font-semibold">Image Only Banner Mode</p>
-                          <p className="text-[10px] text-white/60">Upload artwork or enter image URL</p>
+                          <p className="text-xs font-semibold">Media Only Banner Mode</p>
+                          <p className="text-[10px] text-white/60">Upload artwork/video or enter media URL</p>
                         </div>
                       )}
                       <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[9px] font-bold text-white flex items-center gap-1 pointer-events-none">
-                        <Eye size={10} /> Clean Artwork (No Text Overlay)
+                        <Eye size={10} /> Clean Media (No Text Overlay)
                       </div>
                       {/* Slide Indicator Dots Inside Card */}
                       <div className="absolute bottom-2.5 right-3 flex items-center gap-1 z-20 bg-black/40 backdrop-blur-xs px-2 py-1 rounded-full pointer-events-none">
@@ -3539,13 +3679,29 @@ export default function AdminDashboardPage() {
                       className="relative w-full overflow-hidden rounded-xl shadow-lg min-h-[160px] p-4 flex flex-col justify-between text-white transition-all duration-300"
                       style={{
                         backgroundColor: bannerForm.bg_color || '#9b4100',
-                        backgroundImage: bannerImagePreview
+                        backgroundImage: !bannerVideoPreview && bannerImagePreview
                           ? `linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, rgba(0,0,0,0.25) 100%), url(${bannerImagePreview})`
-                          : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                          : !bannerVideoPreview
+                          ? 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)'
+                          : undefined,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                       }}
                     >
+                      {bannerVideoPreview && (
+                        <>
+                          <video
+                            src={bannerVideoPreview}
+                            poster={bannerImagePreview || undefined}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            className="absolute inset-0 w-full h-full object-cover z-0"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/25 z-0 pointer-events-none" />
+                        </>
+                      )}
                       <div className="flex flex-col gap-1 z-10">
                         {bannerForm.badge_text && (
                           <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white font-label-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">

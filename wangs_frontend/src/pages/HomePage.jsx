@@ -167,6 +167,50 @@ export default function HomePage() {
     };
   }, []);
 
+  // Real-time Hero Banner Synchronization across tabs & Admin edits
+  useEffect(() => {
+    let cancelled = false;
+    let bannerChannel = null;
+
+    async function refreshHeroBanners() {
+      try {
+        const res = await api.getHeroBanners();
+        const list = res?.results || res || [];
+        if (!cancelled && Array.isArray(list) && list.length > 0) {
+          setHeroBanners(list);
+          try {
+            sessionStorage.setItem('wangs_banners_cache_v2', JSON.stringify(list));
+          } catch {}
+        }
+      } catch {}
+    }
+
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bannerChannel = new BroadcastChannel('wangs_banners_sync');
+        bannerChannel.onmessage = () => refreshHeroBanners();
+      }
+    } catch {}
+
+    const handleBannersChanged = () => refreshHeroBanners();
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') refreshHeroBanners();
+    };
+    window.addEventListener('wangs_banners_changed', handleBannersChanged);
+    window.addEventListener('focus', refreshHeroBanners);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      cancelled = true;
+      if (bannerChannel) {
+        try { bannerChannel.close(); } catch {}
+      }
+      window.removeEventListener('wangs_banners_changed', handleBannersChanged);
+      window.removeEventListener('focus', refreshHeroBanners);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
   const bannerScrollRef = useRef(null);
   const isInteractingWithBanner = useRef(false);
   const orbitalSectionRef = useRef(null);
@@ -883,7 +927,7 @@ export default function HomePage() {
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-3 pb-4 md:pt-6 md:pb-14">
           {/* Mobile-Only Hero Promo Banner Carousel (Controlled via Admin Hero Promo Banners) */}
           <div className="md:hidden flex flex-col gap-2">
-            <div className="relative">
+            <div className="relative rounded-2xl overflow-hidden shadow-md">
               <div
                 ref={bannerScrollRef}
                 onScroll={handleBannerScroll}
@@ -891,7 +935,7 @@ export default function HomePage() {
                 onTouchEnd={handleTouchEnd}
                 onMouseEnter={() => { isInteractingWithBanner.current = true; }}
                 onMouseLeave={() => { isInteractingWithBanner.current = false; }}
-                className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap gap-3 no-scrollbar py-0.5 touch-pan-x"
+                className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap no-scrollbar touch-pan-x"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                   scrollSnapType: 'x mandatory',
@@ -899,24 +943,39 @@ export default function HomePage() {
               >
                 {displayBanners.map((banner, index) => {
                   const bgImg = banner.effective_image_url || banner.image_url || banner.image;
+                  const bgVideo = banner.effective_video_url || banner.video_url || banner.video;
 
-                  if (banner.is_image_only && bgImg) {
+                  if (banner.is_image_only && (bgVideo || bgImg)) {
                     return (
                       <Link
                         key={banner.id || index}
                         to={banner.cta_link || '/products'}
-                        className="w-full min-w-full snap-start shrink-0 relative overflow-hidden rounded-2xl shadow-md min-h-[165px] aspect-[2/1] block cursor-pointer group active:scale-[0.99] transition-transform"
+                        className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] flex items-center justify-center cursor-pointer group select-none active:opacity-95 transition-opacity"
                         style={{ backgroundColor: banner.bg_color || '#9b4100' }}
                       >
-                        <img
-                          src={bgImg}
-                          alt={banner.title || 'Promotional Banner'}
-                          className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500 rounded-2xl"
-                          onError={(e) => {
-                            e.currentTarget.onerror = null;
-                            e.currentTarget.src = '/images/hero/dried_beef_pickle_signature.jpg';
-                          }}
-                        />
+                        {bgVideo ? (
+                          <video
+                            src={bgVideo}
+                            poster={bgImg || undefined}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            disablePictureInPicture
+                            preload="metadata"
+                            className="w-full h-full object-contain pointer-events-none"
+                          />
+                        ) : (
+                          <img
+                            src={bgImg}
+                            alt={banner.title || 'Promotional Banner'}
+                            className="w-full h-full object-contain group-hover:scale-[1.01] transition-transform duration-500"
+                            onError={(e) => {
+                              e.currentTarget.onerror = null;
+                              e.currentTarget.src = '/images/hero/dried_beef_pickle_signature.jpg';
+                            }}
+                          />
+                        )}
                       </Link>
                     );
                   }
@@ -924,24 +983,43 @@ export default function HomePage() {
                   return (
                     <div
                       key={banner.id || index}
-                      className="w-full min-w-full snap-start shrink-0 relative overflow-hidden rounded-2xl shadow-md text-white min-h-[165px] p-4 flex flex-col justify-between"
+                      className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden text-white min-h-[168px] aspect-[2/1] p-4 flex flex-col justify-between"
                       style={{
                         backgroundColor: banner.bg_color || '#9b4100',
-                        backgroundImage: bgImg
+                        backgroundImage: !bgVideo && bgImg
                           ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url(${bgImg})`
-                          : 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)',
+                          : !bgVideo
+                          ? 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)'
+                          : undefined,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                       }}
                     >
-                      <div className="flex flex-col gap-1 z-10">
+                      {bgVideo && (
+                        <>
+                          <video
+                            src={bgVideo}
+                            poster={bgImg || undefined}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            disablePictureInPicture
+                            preload="metadata"
+                            aria-hidden="true"
+                            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/25 z-0 pointer-events-none" />
+                        </>
+                      )}
+                      <div className="flex flex-col gap-1 z-10 min-w-0">
                         {banner.badge_text && (
                           <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-xs text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-fit">
-                            <Flame size={12} className="text-amber-400" />
-                            <span>{banner.badge_text}</span>
+                            <Flame size={12} className="text-amber-400 shrink-0" />
+                            <span className="truncate">{banner.badge_text}</span>
                           </span>
                         )}
-                        <h2 className="text-[22px] font-serif font-bold text-white leading-tight mt-0.5 drop-shadow-xs">
+                        <h2 className="text-xl font-serif font-bold text-white leading-tight mt-0.5 line-clamp-2 drop-shadow-xs">
                           {banner.title}
                         </h2>
                         {banner.subtitle && (
@@ -951,7 +1029,7 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between z-10 pt-2">
+                      <div className="flex items-center justify-between gap-2 z-10 pt-2">
                         {banner.coupon_code ? (
                           <button
                             type="button"
@@ -960,7 +1038,7 @@ export default function HomePage() {
                               navigator.clipboard?.writeText(banner.coupon_code);
                               toast.success(`Coupon code ${banner.coupon_code} copied!`);
                             }}
-                            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer"
+                            className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-xs px-2.5 py-1 rounded-lg transition-transform active:scale-95 cursor-pointer shrink-0"
                             title="Tap to copy code"
                           >
                             <span className="text-[10px] text-amber-100">CODE:</span>
@@ -972,7 +1050,7 @@ export default function HomePage() {
 
                         <Link
                           to={banner.cta_link || '/products'}
-                          className="px-3.5 py-1.5 rounded-full bg-white text-[#ab331c] text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1"
+                          className="px-3.5 py-1.5 rounded-full bg-white text-[#ab331c] text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1 shrink-0"
                         >
                           <span>{banner.cta_text || 'Shop Now'}</span>
                           <ArrowRight size={13} />

@@ -108,7 +108,7 @@ function StickerSplashOverlay() {
       <img
         src="/wangs-packaging-sticker.png"
         alt="Wangs"
-        className="w-28 h-28 sm:w-36 sm:h-36 object-contain animate-sticker-wheel drop-shadow-md select-none"
+        className="w-36 h-36 sm:w-44 sm:h-44 object-contain animate-sticker-wheel drop-shadow-md select-none"
       />
     </div>
   );

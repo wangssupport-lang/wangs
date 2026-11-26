@@ -1202,6 +1202,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
 
 class HeroBannerSerializer(serializers.ModelSerializer):
     effective_image_url = serializers.SerializerMethodField()
+    effective_video_url = serializers.SerializerMethodField()
     title = serializers.CharField(required=False, allow_blank=True, default="Hero Banner")
     badge_text = serializers.CharField(required=False, allow_blank=True, default="")
     cta_text = serializers.CharField(required=False, allow_blank=True, default="Shop Now")
@@ -1211,6 +1212,7 @@ class HeroBannerSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'subtitle', 'badge_text', 'coupon_code',
             'cta_text', 'cta_link', 'image', 'image_url', 'effective_image_url',
+            'video', 'video_url', 'effective_video_url',
             'bg_color', 'is_image_only', 'is_active', 'display_order', 'created_at', 'updated_at'
         ]
 
@@ -1224,12 +1226,26 @@ class HeroBannerSerializer(serializers.ModelSerializer):
             return obj.image.url
         return obj.image_url or ''
 
+    def get_effective_video_url(self, obj):
+        if obj.video_url and obj.video_url.startswith('https://res.cloudinary.com'):
+            return obj.video_url
+        if obj.video:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.video.url)
+            return obj.video.url
+        return obj.video_url or ''
+
     def create(self, validated_data):
         instance = super().create(validated_data)
         self._sync_cloudinary(instance)
         return instance
 
     def update(self, instance, validated_data):
+        if 'video_url' in validated_data and not validated_data.get('video_url') and 'video' not in validated_data:
+            instance.video = None
+        if 'image_url' in validated_data and not validated_data.get('image_url') and 'image' not in validated_data:
+            instance.image = None
         instance = super().update(instance, validated_data)
         self._sync_cloudinary(instance)
         return instance
@@ -1248,6 +1264,27 @@ class HeroBannerSerializer(serializers.ModelSerializer):
                     if cloud_url:
                         instance.image_url = cloud_url
                         instance.save(update_fields=['image_url'])
+
+                if instance.video:
+                    cloud_vid_url = upload_image_to_cloudinary(
+                        instance.video.path,
+                        folder="wangs/banners/videos",
+                        public_id=f"banner_video_{instance.id}",
+                        resource_type="video",
+                    )
+                    if cloud_vid_url:
+                        instance.video_url = cloud_vid_url
+                        instance.save(update_fields=['video_url'])
+                elif instance.video_url and not instance.video_url.startswith('https://res.cloudinary.com'):
+                    cloud_vid_url = upload_image_to_cloudinary(
+                        instance.video_url,
+                        folder="wangs/banners/videos",
+                        public_id=f"banner_video_{instance.id}",
+                        resource_type="video",
+                    )
+                    if cloud_vid_url:
+                        instance.video_url = cloud_vid_url
+                        instance.save(update_fields=['video_url'])
         except Exception:
             pass
 

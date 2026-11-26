@@ -3775,6 +3775,12 @@ class AdminResearchReportView(views.APIView):
 class HeroBannerViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     serializer_class = HeroBannerSerializer
+    pagination_class = None
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        res = super().finalize_response(request, response, *args, **kwargs)
+        res['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return res
 
     def get_queryset(self):
         qs = HeroBanner.objects.filter(is_active=True).order_by('display_order', '-created_at')
@@ -3800,6 +3806,12 @@ class AdminHeroBannerViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     serializer_class = HeroBannerSerializer
     queryset = HeroBanner.objects.all().order_by('display_order', '-created_at')
+    pagination_class = None
+
+    def finalize_response(self, request, response, *args, **kwargs):
+        res = super().finalize_response(request, response, *args, **kwargs)
+        res['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return res
 
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):

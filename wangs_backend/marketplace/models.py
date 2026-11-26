@@ -786,6 +786,8 @@ class HeroBanner(models.Model):
     cta_link = models.CharField(max_length=255, default="/products")
     image = models.ImageField(upload_to='banners/', blank=True, null=True)
     image_url = models.TextField(blank=True, default="")
+    video = models.FileField(upload_to='banners/videos/', blank=True, null=True)
+    video_url = models.TextField(blank=True, default="")
     bg_color = models.CharField(max_length=50, blank=True, default="#9b4100")
     is_image_only = models.BooleanField(default=False, help_text="Display full graphic image without text or button overlays")
     is_active = models.BooleanField(default=True)
