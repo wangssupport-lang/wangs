@@ -10,7 +10,7 @@ import { resolveProductImage } from '../utils/image';
 import {
   Flame, ArrowRight, Zap, Timer, ChevronRight, ChevronLeft,
   Star, CheckCircle2, SlidersHorizontal, Heart, Plus,
-  ShieldCheck, Sparkles, Utensils, Store, Sun, Volume2, VolumeX
+  ShieldCheck, Sparkles, Utensils, Store, Sun, Volume2, VolumeX, Play, Pause
 } from 'lucide-react';
 
 // Isolated Memoized Countdown Component to prevent whole HomePage from re-rendering every second
@@ -91,6 +91,7 @@ export default function HomePage() {
   });
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
   const [isBannerVideoMuted, setIsBannerVideoMuted] = useState(true);
+  const [isBannerVideoPaused, setIsBannerVideoPaused] = useState(false);
   const bannerVideoRefs = useRef({});
 
   // Real Verified Community Reviews
@@ -427,18 +428,18 @@ export default function HomePage() {
     }, 3000);
   };
 
-  // Smooth 15s carousel auto-rotation paused during user swipe
+  // Smooth 15s carousel auto-rotation paused during user swipe or video pause
   useEffect(() => {
     if (displayBanners.length <= 1) return;
     const interval = setInterval(() => {
-      if (isInteractingWithBanner.current) return;
+      if (isInteractingWithBanner.current || isBannerVideoPaused) return;
       if (!bannerScrollRef.current) return;
       const nextIndex = (activeBannerIndexRef.current + 1) % displayBanners.length;
       scrollToBanner(nextIndex);
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [displayBanners.length, scrollToBanner]);
+  }, [displayBanners.length, scrollToBanner, isBannerVideoPaused]);
 
   useEffect(() => {
     async function loadData() {
@@ -980,12 +981,16 @@ export default function HomePage() {
                                   el.defaultMuted = true;
                                   el.muted = isBannerVideoMuted || activeBannerIndex !== index;
                                   el.playsInline = true;
-                                  el.play().catch(() => {});
+                                  if (isBannerVideoPaused) {
+                                    el.pause();
+                                  } else {
+                                    el.play().catch(() => {});
+                                  }
                                 }
                               }}
                               src={bgVideo}
                               poster={videoPoster}
-                              autoPlay
+                              autoPlay={!isBannerVideoPaused}
                               muted={isBannerVideoMuted || activeBannerIndex !== index}
                               loop
                               playsInline
@@ -993,24 +998,47 @@ export default function HomePage() {
                               preload="auto"
                               className="w-full h-full object-cover pointer-events-none"
                             />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const nextMuted = !isBannerVideoMuted;
-                                setIsBannerVideoMuted(nextMuted);
-                                const vid = bannerVideoRefs.current[index];
-                                if (vid) {
-                                  vid.muted = nextMuted;
-                                  if (!nextMuted) vid.play().catch(() => {});
-                                }
-                              }}
-                              aria-label={isBannerVideoMuted ? 'Unmute video' : 'Mute video'}
-                              className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
-                            >
-                              {isBannerVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                            </button>
+                            <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const nextPaused = !isBannerVideoPaused;
+                                  setIsBannerVideoPaused(nextPaused);
+                                  const vid = bannerVideoRefs.current[index];
+                                  if (vid) {
+                                    if (nextPaused) {
+                                      vid.pause();
+                                    } else {
+                                      vid.play().catch(() => {});
+                                    }
+                                  }
+                                }}
+                                aria-label={isBannerVideoPaused ? 'Play video' : 'Pause video'}
+                                className="w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
+                              >
+                                {isBannerVideoPaused ? <Play size={14} className="ml-0.5" /> : <Pause size={14} />}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  const nextMuted = !isBannerVideoMuted;
+                                  setIsBannerVideoMuted(nextMuted);
+                                  const vid = bannerVideoRefs.current[index];
+                                  if (vid) {
+                                    vid.muted = nextMuted;
+                                    if (!nextMuted && !isBannerVideoPaused) vid.play().catch(() => {});
+                                  }
+                                }}
+                                aria-label={isBannerVideoMuted ? 'Unmute video' : 'Mute video'}
+                                className="w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
+                              >
+                                {isBannerVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                              </button>
+                            </div>
                           </>
                         ) : (
                           <img
@@ -1054,44 +1082,71 @@ export default function HomePage() {
                           ) : (
                             <>
                               <video
-                              ref={(el) => {
-                                bannerVideoRefs.current[index] = el;
-                                if (el) {
-                                  el.defaultMuted = true;
-                                  el.muted = isBannerVideoMuted || activeBannerIndex !== index;
-                                  el.playsInline = true;
-                                  el.play().catch(() => {});
-                                }
-                              }}
-                              src={bgVideo}
-                              poster={videoPoster}
-                              autoPlay
-                              muted={isBannerVideoMuted || activeBannerIndex !== index}
-                              loop
-                              playsInline
-                              disablePictureInPicture
-                              preload="auto"
-                              aria-hidden="true"
-                              className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-                            />
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                const nextMuted = !isBannerVideoMuted;
-                                setIsBannerVideoMuted(nextMuted);
-                                const vid = bannerVideoRefs.current[index];
-                                if (vid) {
-                                  vid.muted = nextMuted;
-                                  if (!nextMuted) vid.play().catch(() => {});
-                                }
-                              }}
-                              aria-label={isBannerVideoMuted ? 'Unmute video' : 'Mute video'}
-                              className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
-                            >
-                              {isBannerVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-                            </button>
+                                ref={(el) => {
+                                  bannerVideoRefs.current[index] = el;
+                                  if (el) {
+                                    el.defaultMuted = true;
+                                    el.muted = isBannerVideoMuted || activeBannerIndex !== index;
+                                    el.playsInline = true;
+                                    if (isBannerVideoPaused) {
+                                      el.pause();
+                                    } else {
+                                      el.play().catch(() => {});
+                                    }
+                                  }
+                                }}
+                                src={bgVideo}
+                                poster={videoPoster}
+                                autoPlay={!isBannerVideoPaused}
+                                muted={isBannerVideoMuted || activeBannerIndex !== index}
+                                loop
+                                playsInline
+                                disablePictureInPicture
+                                preload="auto"
+                                aria-hidden="true"
+                                className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+                              />
+                              <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const nextPaused = !isBannerVideoPaused;
+                                    setIsBannerVideoPaused(nextPaused);
+                                    const vid = bannerVideoRefs.current[index];
+                                    if (vid) {
+                                      if (nextPaused) {
+                                        vid.pause();
+                                      } else {
+                                        vid.play().catch(() => {});
+                                      }
+                                    }
+                                  }}
+                                  aria-label={isBannerVideoPaused ? 'Play video' : 'Pause video'}
+                                  className="w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
+                                >
+                                  {isBannerVideoPaused ? <Play size={14} className="ml-0.5" /> : <Pause size={14} />}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    const nextMuted = !isBannerVideoMuted;
+                                    setIsBannerVideoMuted(nextMuted);
+                                    const vid = bannerVideoRefs.current[index];
+                                    if (vid) {
+                                      vid.muted = nextMuted;
+                                      if (!nextMuted && !isBannerVideoPaused) vid.play().catch(() => {});
+                                    }
+                                  }}
+                                  aria-label={isBannerVideoMuted ? 'Unmute video' : 'Mute video'}
+                                  className="w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
+                                >
+                                  {isBannerVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                                </button>
+                              </div>
                             </>
                           )}
                           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/25 z-0 pointer-events-none" />
