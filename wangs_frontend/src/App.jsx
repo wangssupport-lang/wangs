@@ -89,8 +89,8 @@ function StickerSplashOverlay() {
   const [fading, setFading] = React.useState(false);
 
   React.useEffect(() => {
-    const fadeTimer = setTimeout(() => setFading(true), 780);
-    const hideTimer = setTimeout(() => setVisible(false), 1050);
+    const fadeTimer = setTimeout(() => setFading(true), 320);
+    const hideTimer = setTimeout(() => setVisible(false), 520);
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(hideTimer);

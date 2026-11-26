@@ -5,6 +5,7 @@ import {
   RefreshCw, Search, X, Edit3
 } from 'lucide-react';
 import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
 import { resolveProductImage } from '../utils/image';
@@ -13,6 +14,7 @@ import SeoHead from '../components/SeoHead';
 const STORAGE_KEY = 'wangs_get_it_today_location_v1';
 
 export default function GetItTodayPage() {
+  const { user } = useAuth();
   const { addToCart } = useCart();
   const toast = useToast();
 
@@ -81,6 +83,32 @@ export default function GetItTodayPage() {
       })
       .catch(() => {});
   }, []);
+
+  // Derive location from logged-in user's saved address if no location was manually set
+  useEffect(() => {
+    if (!user || hasSelectedLocation) return;
+    let cancelled = false;
+    api.getAddresses()
+      .then((res) => {
+        if (cancelled) return;
+        const list = Array.isArray(res) ? res : (res?.results || []);
+        if (!list.length) return;
+        const chosen = list.find((a) => a.is_default) || list[0];
+        const userLoc = {
+          postal_code: (chosen.postal_code || '').trim(),
+          town: (chosen.city || '').trim(),
+          district: (chosen.city || '').trim(),
+          state: (chosen.state || '').trim(),
+        };
+        if (userLoc.postal_code || userLoc.town) {
+          setLocationState(userLoc);
+          setFormLoc(userLoc);
+          setEditingLocation(false);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user, hasSelectedLocation]);
 
   useEffect(() => {
     if (hasSelectedLocation) {

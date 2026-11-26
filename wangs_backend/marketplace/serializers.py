@@ -976,12 +976,12 @@ class ProductSerializer(serializers.ModelSerializer):
         }
 
     def get_reviews_count(self, obj):
-        return obj.reviews.count()
+        return len(obj.reviews.all())
 
     def get_average_rating(self, obj):
-        revs = obj.reviews.all()
-        if revs.exists():
-            return round(sum(r.rating for r in revs) / revs.count(), 1)
+        revs = list(obj.reviews.all())
+        if revs:
+            return round(sum(r.rating for r in revs) / len(revs), 1)
         return None
 
     def validate_price(self, value):
