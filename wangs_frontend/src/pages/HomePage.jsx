@@ -1442,11 +1442,11 @@ export default function HomePage() {
                 >
                   <div className="absolute inset-0 rounded-full border border-dashed border-[#ab331c]/35 animate-[spin_16s_linear_infinite]" />
                   <div className="absolute inset-2 rounded-full border border-[#28452e]/20 animate-[spin_10s_linear_infinite_reverse]" />
-                  <div className="w-8 h-8 rounded-full bg-white border border-[#ab331c]/20 flex items-center justify-center shadow-sm p-1 animate-orbital-a">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center animate-orbital-a">
                     <img
-                      src="/images/wangs-emblem-orange.png"
+                      src="/images/wangs-logo-circle.png"
                       alt="Wangs Logo"
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain drop-shadow-sm"
                     />
                   </div>
                   <span className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded-full bg-[#28452e] text-white text-[7.5px] font-bold shadow-xs animate-orbital-b">
