@@ -10,7 +10,7 @@ import { resolveProductImage } from '../utils/image';
 import {
   Flame, ArrowRight, Zap, Timer, ChevronRight, ChevronLeft,
   Star, CheckCircle2, SlidersHorizontal, Heart, Plus,
-  ShieldCheck, Sparkles, Utensils, Store, Sun
+  ShieldCheck, Sparkles, Utensils, Store, Sun, Volume2, VolumeX
 } from 'lucide-react';
 
 // Isolated Memoized Countdown Component to prevent whole HomePage from re-rendering every second
@@ -90,6 +90,8 @@ export default function HomePage() {
     return [];
   });
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
+  const [isBannerVideoMuted, setIsBannerVideoMuted] = useState(true);
+  const bannerVideoRefs = useRef({});
 
   // Real Verified Community Reviews
   const [communityReviews, setCommunityReviews] = useState(() => {
@@ -425,7 +427,7 @@ export default function HomePage() {
     }, 3000);
   };
 
-  // Smooth, snappy 4.2s carousel auto-rotation paused during user swipe
+  // Smooth 15s carousel auto-rotation paused during user swipe
   useEffect(() => {
     if (displayBanners.length <= 1) return;
     const interval = setInterval(() => {
@@ -433,7 +435,7 @@ export default function HomePage() {
       if (!bannerScrollRef.current) return;
       const nextIndex = (activeBannerIndexRef.current + 1) % displayBanners.length;
       scrollToBanner(nextIndex);
-    }, 4200);
+    }, 15000);
 
     return () => clearInterval(interval);
   }, [displayBanners.length, scrollToBanner]);
@@ -953,7 +955,7 @@ export default function HomePage() {
                   const rawSafeVideo = isSafeMedia(rawVideo) ? rawVideo : '';
                   const isBgVideoGif = Boolean(rawSafeVideo && /\.gif(\?|#|$)/i.test(rawSafeVideo));
                   const bgVideo = (!isBgVideoGif && rawSafeVideo && rawSafeVideo.includes('res.cloudinary.com/') && rawSafeVideo.includes('/video/upload/') && !rawSafeVideo.includes('/video/upload/f_'))
-                    ? rawSafeVideo.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,ac_none,q_auto,w_900/').replace(/\.[^./?#]+(\?.*)?$/, '.mp4')
+                    ? rawSafeVideo.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,q_auto,w_900/').replace(/\.[^./?#]+(\?.*)?$/, '.mp4')
                     : rawSafeVideo;
                   const safeBgColor = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(banner.bg_color || '') ? banner.bg_color : '#9b4100';
                   const safeCtaLink = (banner.cta_link && banner.cta_link.startsWith('/') && !banner.cta_link.startsWith('//')) ? banner.cta_link : '/products';
@@ -970,25 +972,46 @@ export default function HomePage() {
                         style={{ backgroundColor: safeBgColor }}
                       >
                         {bgVideo && !isBgVideoGif ? (
-                          <video
-                            ref={(el) => {
-                              if (el) {
-                                el.defaultMuted = true;
-                                el.muted = true;
-                                el.playsInline = true;
-                                el.play().catch(() => {});
-                              }
-                            }}
-                            src={bgVideo}
-                            poster={videoPoster}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            disablePictureInPicture
-                            preload="auto"
-                            className="w-full h-full object-cover pointer-events-none"
-                          />
+                          <>
+                            <video
+                              ref={(el) => {
+                                bannerVideoRefs.current[index] = el;
+                                if (el) {
+                                  el.defaultMuted = true;
+                                  el.muted = isBannerVideoMuted || activeBannerIndex !== index;
+                                  el.playsInline = true;
+                                  el.play().catch(() => {});
+                                }
+                              }}
+                              src={bgVideo}
+                              poster={videoPoster}
+                              autoPlay
+                              muted={isBannerVideoMuted || activeBannerIndex !== index}
+                              loop
+                              playsInline
+                              disablePictureInPicture
+                              preload="auto"
+                              className="w-full h-full object-cover pointer-events-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const nextMuted = !isBannerVideoMuted;
+                                setIsBannerVideoMuted(nextMuted);
+                                const vid = bannerVideoRefs.current[index];
+                                if (vid) {
+                                  vid.muted = nextMuted;
+                                  if (!nextMuted) vid.play().catch(() => {});
+                                }
+                              }}
+                              aria-label={isBannerVideoMuted ? 'Unmute video' : 'Mute video'}
+                              className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
+                            >
+                              {isBannerVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                            </button>
+                          </>
                         ) : (
                           <img
                             src={isBgVideoGif ? bgVideo : bgImg}
@@ -1029,11 +1052,13 @@ export default function HomePage() {
                               className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
                             />
                           ) : (
-                            <video
+                            <>
+                              <video
                               ref={(el) => {
+                                bannerVideoRefs.current[index] = el;
                                 if (el) {
                                   el.defaultMuted = true;
-                                  el.muted = true;
+                                  el.muted = isBannerVideoMuted || activeBannerIndex !== index;
                                   el.playsInline = true;
                                   el.play().catch(() => {});
                                 }
@@ -1041,7 +1066,7 @@ export default function HomePage() {
                               src={bgVideo}
                               poster={videoPoster}
                               autoPlay
-                              muted
+                              muted={isBannerVideoMuted || activeBannerIndex !== index}
                               loop
                               playsInline
                               disablePictureInPicture
@@ -1049,6 +1074,25 @@ export default function HomePage() {
                               aria-hidden="true"
                               className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
                             />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const nextMuted = !isBannerVideoMuted;
+                                setIsBannerVideoMuted(nextMuted);
+                                const vid = bannerVideoRefs.current[index];
+                                if (vid) {
+                                  vid.muted = nextMuted;
+                                  if (!nextMuted) vid.play().catch(() => {});
+                                }
+                              }}
+                              aria-label={isBannerVideoMuted ? 'Unmute video' : 'Mute video'}
+                              className="absolute top-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-black/55 hover:bg-black/75 backdrop-blur-xs text-white flex items-center justify-center border border-white/20 shadow-sm active:scale-95 transition-all cursor-pointer"
+                            >
+                              {isBannerVideoMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+                            </button>
+                            </>
                           )}
                           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/25 z-0 pointer-events-none" />
                         </>
