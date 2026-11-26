@@ -50,18 +50,38 @@ class Command(BaseCommand):
                         uploaded_count += 1
                         self.stdout.write(self.style.SUCCESS(f"  -> Saved to Cloudinary: {cloud_url}"))
 
-        # 3. Hero Promo Banners
+        # 3. Hero Promo Banners (Images & Videos)
         for banner in HeroBanner.objects.all():
             img_val = banner.image_url
-            if img_val and not img_val.startswith('https://res.cloudinary.com'):
-                self.stdout.write(f"Uploading HeroBanner #{banner.id}...")
+            if banner.image or (img_val and img_val.startswith(('http://', 'https://', 'data:')) and not img_val.startswith('https://res.cloudinary.com')):
+                self.stdout.write(f"Uploading HeroBanner #{banner.id} image...")
                 if not dry_run:
-                    cloud_url = upload_image_to_cloudinary(img_val, folder="wangs/banners", public_id=f"banner_{banner.id}")
+                    src = banner.image.open('rb').read() if banner.image else img_val
+                    cloud_url = upload_image_to_cloudinary(src, folder="wangs/banners", public_id=f"banner_{banner.id}")
                     if cloud_url:
                         banner.image_url = cloud_url
-                        banner.save(update_fields=['image_url'])
+                        banner.image = None
+                        banner.save(update_fields=['image_url', 'image'])
                         uploaded_count += 1
-                        self.stdout.write(self.style.SUCCESS(f"  -> Saved to Cloudinary: {cloud_url}"))
+                        self.stdout.write(self.style.SUCCESS(f"  -> Saved image to Cloudinary: {cloud_url}"))
+
+            vid_val = banner.video_url
+            if banner.video or (vid_val and vid_val.startswith(('http://', 'https://', 'data:')) and not vid_val.startswith('https://res.cloudinary.com')):
+                self.stdout.write(f"Uploading HeroBanner #{banner.id} video...")
+                if not dry_run:
+                    vid_src = banner.video.open('rb').read() if banner.video else vid_val
+                    cloud_vid_url = upload_image_to_cloudinary(
+                        vid_src,
+                        folder="wangs/banners/videos",
+                        public_id=f"banner_video_{banner.id}",
+                        resource_type="video",
+                    )
+                    if cloud_vid_url:
+                        banner.video_url = cloud_vid_url
+                        banner.video = None
+                        banner.save(update_fields=['video_url', 'video'])
+                        uploaded_count += 1
+                        self.stdout.write(self.style.SUCCESS(f"  -> Saved video to Cloudinary: {cloud_vid_url}"))
 
         # 4. Manufacturer Logos & Banners
         for mfg in ManufacturerProfile.objects.all():

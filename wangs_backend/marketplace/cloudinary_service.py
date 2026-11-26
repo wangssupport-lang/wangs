@@ -69,11 +69,17 @@ def upload_image_to_cloudinary(file_source, folder="wangs/products", public_id=N
         if public_id:
             upload_options["public_id"] = public_id
 
-        # Handle base64 data URI or raw bytes
+        # Handle base64 data URI or raw bytes (use upload_large for videos > 10MB)
         if isinstance(file_source, bytes):
-            result = cloudinary.uploader.upload(io.BytesIO(file_source), **upload_options)
+            if resource_type == "video" and len(file_source) > 10 * 1024 * 1024:
+                result = cloudinary.uploader.upload_large(io.BytesIO(file_source), **upload_options)
+            else:
+                result = cloudinary.uploader.upload(io.BytesIO(file_source), **upload_options)
         else:
-            result = cloudinary.uploader.upload(file_source, **upload_options)
+            if resource_type == "video":
+                result = cloudinary.uploader.upload_large(file_source, **upload_options)
+            else:
+                result = cloudinary.uploader.upload(file_source, **upload_options)
 
         secure_url = result.get("secure_url") or result.get("url")
         if secure_url:
