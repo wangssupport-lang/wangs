@@ -3678,7 +3678,7 @@ export default function AdminDashboardPage() {
                 <div className="bg-[#121212] p-3 rounded-2xl border border-stone-800">
                   {bannerForm.is_image_only ? (
                     <div
-                      className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer bg-stone-950"
+                      className={`relative w-full overflow-hidden rounded-xl shadow-lg ${bannerVideoPreview ? 'aspect-[16/9]' : 'aspect-[2/1]'} transition-all duration-300 flex items-center justify-center cursor-pointer bg-stone-950`}
                     >
                       {(bannerVideoPreview || bannerImagePreview) && (
                         bannerVideoPreview ? (
@@ -3724,7 +3724,7 @@ export default function AdminDashboardPage() {
                           <p className="text-[10px] text-white/60">Upload artwork/video or enter media URL</p>
                         </div>
                       )}
-                      <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[9px] font-bold text-white flex items-center gap-1 pointer-events-none">
+                      <div className="absolute top-2 right-2 z-20 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-xs text-[9px] font-bold text-white flex items-center gap-1 pointer-events-none">
                         <Eye size={10} /> Clean Media (No Text Overlay)
                       </div>
                       {/* Slide Indicator Dots Inside Card */}

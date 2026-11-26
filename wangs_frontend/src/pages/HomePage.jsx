@@ -953,7 +953,7 @@ export default function HomePage() {
                       <Link
                         key={banner.id || index}
                         to={banner.cta_link || '/products'}
-                        className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] flex items-center justify-center cursor-pointer group select-none active:opacity-95 transition-opacity bg-stone-950"
+                        className={`w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden ${bgVideo ? 'aspect-[16/9]' : 'aspect-[2/1]'} flex items-center justify-center cursor-pointer group select-none active:opacity-95 transition-opacity bg-stone-950`}
                       >
                         {/* Ambient Blurred Backdrop for Vertical/Square Media (Zero Ugly Sidebars) */}
                         {bgVideo ? (
