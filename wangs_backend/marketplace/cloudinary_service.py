@@ -64,6 +64,7 @@ def upload_image_to_cloudinary(file_source, folder="wangs/products", public_id=N
             "folder": folder,
             "resource_type": resource_type or "auto",
             "overwrite": True,
+            "invalidate": True,
         }
         if public_id:
             upload_options["public_id"] = public_id

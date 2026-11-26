@@ -1251,42 +1251,74 @@ class HeroBannerSerializer(serializers.ModelSerializer):
         return instance
 
     def _sync_cloudinary(self, instance):
+        import logging
+        logger = logging.getLogger(__name__)
         try:
             from .cloudinary_service import upload_image_to_cloudinary, is_cloudinary_configured
-            if is_cloudinary_configured():
-                if instance.image:
-                    cloud_url = upload_image_to_cloudinary(instance.image.path, folder="wangs/banners", public_id=f"banner_{instance.id}")
-                    if cloud_url:
-                        instance.image_url = cloud_url
-                        instance.save(update_fields=['image_url'])
-                elif instance.image_url and not instance.image_url.startswith('https://res.cloudinary.com'):
-                    cloud_url = upload_image_to_cloudinary(instance.image_url, folder="wangs/banners", public_id=f"banner_{instance.id}")
-                    if cloud_url:
-                        instance.image_url = cloud_url
-                        instance.save(update_fields=['image_url'])
+            if not is_cloudinary_configured():
+                return
 
-                if instance.video:
+            if instance.image:
+                try:
+                    with instance.image.open('rb') as f:
+                        img_bytes = f.read()
+                    cloud_url = upload_image_to_cloudinary(
+                        img_bytes,
+                        folder="wangs/banners",
+                        public_id=f"banner_{instance.id}",
+                    )
+                    if cloud_url:
+                        instance.image_url = cloud_url
+                        instance.image = None
+                        instance.save(update_fields=['image_url', 'image'])
+                except Exception as exc:
+                    logger.warning("HeroBanner image Cloudinary sync failed for #%s: %s", instance.id, exc)
+            elif (
+                instance.image_url
+                and instance.image_url.startswith(('http://', 'https://', 'data:'))
+                and not instance.image_url.startswith('https://res.cloudinary.com')
+            ):
+                cloud_url = upload_image_to_cloudinary(
+                    instance.image_url,
+                    folder="wangs/banners",
+                    public_id=f"banner_{instance.id}",
+                )
+                if cloud_url:
+                    instance.image_url = cloud_url
+                    instance.save(update_fields=['image_url'])
+
+            if instance.video:
+                try:
+                    with instance.video.open('rb') as f:
+                        vid_bytes = f.read()
                     cloud_vid_url = upload_image_to_cloudinary(
-                        instance.video.path,
+                        vid_bytes,
                         folder="wangs/banners/videos",
                         public_id=f"banner_video_{instance.id}",
                         resource_type="video",
                     )
                     if cloud_vid_url:
                         instance.video_url = cloud_vid_url
-                        instance.save(update_fields=['video_url'])
-                elif instance.video_url and not instance.video_url.startswith('https://res.cloudinary.com'):
-                    cloud_vid_url = upload_image_to_cloudinary(
-                        instance.video_url,
-                        folder="wangs/banners/videos",
-                        public_id=f"banner_video_{instance.id}",
-                        resource_type="video",
-                    )
-                    if cloud_vid_url:
-                        instance.video_url = cloud_vid_url
-                        instance.save(update_fields=['video_url'])
-        except Exception:
-            pass
+                        instance.video = None
+                        instance.save(update_fields=['video_url', 'video'])
+                except Exception as exc:
+                    logger.warning("HeroBanner video Cloudinary sync failed for #%s: %s", instance.id, exc)
+            elif (
+                instance.video_url
+                and instance.video_url.startswith(('http://', 'https://', 'data:'))
+                and not instance.video_url.startswith('https://res.cloudinary.com')
+            ):
+                cloud_vid_url = upload_image_to_cloudinary(
+                    instance.video_url,
+                    folder="wangs/banners/videos",
+                    public_id=f"banner_video_{instance.id}",
+                    resource_type="video",
+                )
+                if cloud_vid_url:
+                    instance.video_url = cloud_vid_url
+                    instance.save(update_fields=['video_url'])
+        except Exception as exc:
+            logger.warning("HeroBanner Cloudinary sync error for #%s: %s", instance.id, exc)
 
 
 class StorefrontNoticeSerializer(serializers.ModelSerializer):

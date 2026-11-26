@@ -3806,23 +3806,35 @@ export default function AdminDashboardPage() {
                 <tbody className="divide-y divide-stone-100 font-medium">
                   {heroBanners.map((b) => {
                     const imgUrl = b.effective_image_url || b.image_url || b.image;
+                    const videoUrl = b.effective_video_url || b.video_url || b.video;
                     return (
                       <tr key={b.id} className="hover:bg-stone-50/70 transition-colors">
                         <td className="py-3 px-4">
-                          <div className="w-20 h-12 rounded-lg overflow-hidden border border-stone-200 shadow-2xs relative shrink-0">
-                            {imgUrl ? (
+                          <div
+                            className="w-20 h-12 rounded-lg overflow-hidden border border-stone-200 shadow-2xs relative shrink-0 flex items-center justify-center"
+                            style={{ backgroundColor: b.bg_color || '#9b4100' }}
+                          >
+                            {videoUrl && !imgUrl ? (
+                              <video
+                                src={videoUrl}
+                                muted
+                                loop
+                                playsInline
+                                className="w-full h-full object-cover"
+                              />
+                            ) : imgUrl ? (
                               <img
                                 src={imgUrl}
                                 alt={b.title}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
                               />
                             ) : (
-                              <div
-                                className="w-full h-full flex items-center justify-center text-white font-bold text-[10px]"
-                                style={{ backgroundColor: b.bg_color || '#9b4100' }}
-                              >
+                              <span className="text-white font-bold text-[10px]">
                                 {b.bg_color || 'Theme'}
-                              </div>
+                              </span>
                             )}
                           </div>
                         </td>
