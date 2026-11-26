@@ -3807,6 +3807,9 @@ export default function AdminDashboardPage() {
                   {heroBanners.map((b) => {
                     const imgUrl = b.effective_image_url || b.image_url || b.image;
                     const videoUrl = b.effective_video_url || b.video_url || b.video;
+                    const videoPoster = videoUrl && videoUrl.includes('res.cloudinary.com')
+                      ? videoUrl.replace(/\.[^./?#]+(\?.*)?$/, '.jpg')
+                      : undefined;
                     return (
                       <tr key={b.id} className="hover:bg-stone-50/70 transition-colors">
                         <td className="py-3 px-4">
@@ -3817,9 +3820,12 @@ export default function AdminDashboardPage() {
                             {videoUrl && !imgUrl ? (
                               <video
                                 src={videoUrl}
+                                poster={videoPoster}
+                                autoPlay
                                 muted
                                 loop
                                 playsInline
+                                preload="metadata"
                                 className="w-full h-full object-cover"
                               />
                             ) : imgUrl ? (

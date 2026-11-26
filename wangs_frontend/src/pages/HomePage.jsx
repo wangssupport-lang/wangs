@@ -944,6 +944,9 @@ export default function HomePage() {
                 {displayBanners.map((banner, index) => {
                   const bgImg = banner.effective_image_url || banner.image_url || banner.image;
                   const bgVideo = banner.effective_video_url || banner.video_url || banner.video;
+                  const videoPoster = bgImg || (bgVideo && bgVideo.includes('res.cloudinary.com')
+                    ? bgVideo.replace(/\.[^./?#]+(\?.*)?$/, '.jpg')
+                    : undefined);
 
                   if (banner.is_image_only && (bgVideo || bgImg)) {
                     return (
@@ -956,7 +959,7 @@ export default function HomePage() {
                         {bgVideo ? (
                           <video
                             src={bgVideo}
-                            poster={bgImg || undefined}
+                            poster={videoPoster}
                             autoPlay
                             muted
                             loop
@@ -978,7 +981,7 @@ export default function HomePage() {
                         {bgVideo ? (
                           <video
                             src={bgVideo}
-                            poster={bgImg || undefined}
+                            poster={videoPoster}
                             autoPlay
                             muted
                             loop
@@ -1021,7 +1024,7 @@ export default function HomePage() {
                         <>
                           <video
                             src={bgVideo}
-                            poster={bgImg || undefined}
+                            poster={videoPoster}
                             autoPlay
                             muted
                             loop
