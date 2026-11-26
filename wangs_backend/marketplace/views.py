@@ -3802,22 +3802,7 @@ class HeroBannerViewSet(viewsets.ReadOnlyModelViewSet):
         return res
 
     def get_queryset(self):
-        qs = HeroBanner.objects.filter(is_active=True).order_by('display_order', '-created_at')
-        if not qs.exists():
-            default_banner = HeroBanner.objects.create(
-                title="The Great Achar Season",
-                subtitle="Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
-                badge_text="FRESH BATCH LIVE",
-                coupon_code="ACHAR15",
-                cta_text="Shop Now",
-                cta_link="/products",
-                image_url="/images/hero/wangs_signature_pickle_hero.jpg",
-                bg_color="#9b4100",
-                is_active=True,
-                display_order=0
-            )
-            return HeroBanner.objects.filter(id=default_banner.id)
-        return qs
+        return HeroBanner.objects.filter(is_active=True).order_by('display_order', '-created_at')
 
 
 class AdminHeroBannerViewSet(viewsets.ModelViewSet):
@@ -3831,6 +3816,38 @@ class AdminHeroBannerViewSet(viewsets.ModelViewSet):
         res = super().finalize_response(request, response, *args, **kwargs)
         res['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
         return res
+
+    def perform_create(self, serializer):
+        banner = serializer.save()
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='HERO_BANNER_CREATED',
+            target_model='HeroBanner',
+            target_id=str(banner.id),
+            details={'title': banner.title, 'is_image_only': banner.is_image_only}
+        )
+
+    def perform_update(self, serializer):
+        banner = serializer.save()
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='HERO_BANNER_UPDATED',
+            target_model='HeroBanner',
+            target_id=str(banner.id),
+            details={'title': banner.title, 'is_image_only': banner.is_image_only}
+        )
+
+    def perform_destroy(self, instance):
+        bid = str(instance.id)
+        title = instance.title
+        instance.delete()
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='HERO_BANNER_DELETED',
+            target_model='HeroBanner',
+            target_id=bid,
+            details={'title': title}
+        )
 
     @action(detail=True, methods=['post'])
     def toggle_active(self, request, pk=None):

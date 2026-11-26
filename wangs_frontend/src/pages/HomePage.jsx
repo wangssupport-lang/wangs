@@ -942,8 +942,17 @@ export default function HomePage() {
                 }}
               >
                 {displayBanners.map((banner, index) => {
-                  const bgImg = banner.effective_image_url || banner.image_url || banner.image;
-                  const bgVideo = banner.effective_video_url || banner.video_url || banner.video;
+                  const rawImg = banner.effective_image_url || banner.image_url || banner.image;
+                  const rawVideo = banner.effective_video_url || banner.video_url || banner.video;
+                  const isSafeMedia = (u) => {
+                    const s = String(u || '').trim();
+                    if (!s || /["'()<>\n\r]/.test(s)) return false;
+                    return (s.startsWith('/') && !s.startsWith('//')) || s.startsWith('https://') || s.startsWith('http://') || s.startsWith('data:image/');
+                  };
+                  const bgImg = isSafeMedia(rawImg) ? rawImg : '';
+                  const bgVideo = isSafeMedia(rawVideo) ? rawVideo : '';
+                  const safeBgColor = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(banner.bg_color || '') ? banner.bg_color : '#9b4100';
+                  const safeCtaLink = (banner.cta_link && banner.cta_link.startsWith('/') && !banner.cta_link.startsWith('//')) ? banner.cta_link : '/products';
                   const isBgVideoGif = Boolean(bgVideo && /\.gif(\?|#|$)/i.test(bgVideo));
                   const videoPoster = bgImg || (bgVideo && !isBgVideoGif && bgVideo.includes('res.cloudinary.com')
                     ? bgVideo.replace(/\.[^./?#]+(\?.*)?$/, '.jpg')
@@ -953,9 +962,9 @@ export default function HomePage() {
                     return (
                       <Link
                         key={banner.id || index}
-                        to={banner.cta_link || '/products'}
+                        to={safeCtaLink}
                         className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] block cursor-pointer group select-none active:opacity-95 transition-opacity"
-                        style={{ backgroundColor: banner.bg_color || '#9b4100' }}
+                        style={{ backgroundColor: safeBgColor }}
                       >
                         {bgVideo && !isBgVideoGif ? (
                           <video
@@ -989,9 +998,9 @@ export default function HomePage() {
                       key={banner.id || index}
                       className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden text-white aspect-[2/1] p-4 flex flex-col justify-between"
                       style={{
-                        backgroundColor: banner.bg_color || '#9b4100',
+                        backgroundColor: safeBgColor,
                         backgroundImage: !bgVideo && bgImg
-                          ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url(${bgImg})`
+                          ? `linear-gradient(to right, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.25) 100%), url("${bgImg}")`
                           : !bgVideo
                           ? 'linear-gradient(135deg, #9b4100 0%, #bb5000 50%, #7d3400 100%)'
                           : undefined,
@@ -1062,7 +1071,7 @@ export default function HomePage() {
                         ) : <div />}
 
                         <Link
-                          to={banner.cta_link || '/products'}
+                          to={safeCtaLink}
                           className="px-3.5 py-1.5 rounded-full bg-white text-[#ab331c] text-xs font-bold shadow-sm active:scale-95 transition-transform flex items-center gap-1 shrink-0"
                         >
                           <span>{banner.cta_text || 'Shop Now'}</span>

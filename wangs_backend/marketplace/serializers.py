@@ -1203,9 +1203,14 @@ class AuditLogSerializer(serializers.ModelSerializer):
 class HeroBannerSerializer(serializers.ModelSerializer):
     effective_image_url = serializers.SerializerMethodField()
     effective_video_url = serializers.SerializerMethodField()
-    title = serializers.CharField(required=False, allow_blank=True, default="Hero Banner")
-    badge_text = serializers.CharField(required=False, allow_blank=True, default="")
-    cta_text = serializers.CharField(required=False, allow_blank=True, default="Shop Now")
+    title = serializers.CharField(required=False, allow_blank=True, default="Hero Banner", max_length=200)
+    badge_text = serializers.CharField(required=False, allow_blank=True, default="", max_length=100)
+    cta_text = serializers.CharField(required=False, allow_blank=True, default="Shop Now", max_length=100)
+
+    ALLOWED_IMAGE_EXTS = ('.png', '.jpg', '.jpeg', '.webp', '.gif')
+    ALLOWED_VIDEO_EXTS = ('.mp4', '.webm', '.mov', '.m4v', '.ogg', '.gif')
+    MAX_IMAGE_BYTES = 10 * 1024 * 1024
+    MAX_VIDEO_BYTES = 50 * 1024 * 1024
 
     class Meta:
         model = HeroBanner
@@ -1215,6 +1220,68 @@ class HeroBannerSerializer(serializers.ModelSerializer):
             'video', 'video_url', 'effective_video_url',
             'bg_color', 'is_image_only', 'is_active', 'display_order', 'created_at', 'updated_at'
         ]
+
+    @staticmethod
+    def _is_safe_media_url(val):
+        s = (val or '').strip()
+        if not s:
+            return True
+        if any(c in s for c in ('"', "'", '(', ')', '<', '>', '\n', '\r')):
+            return False
+        lower = s.lower()
+        if lower.startswith('/') and not lower.startswith('//'):
+            return True
+        if lower.startswith(('https://', 'http://')):
+            return True
+        if lower.startswith(('data:image/png;base64,', 'data:image/jpeg;base64,', 'data:image/jpg;base64,', 'data:image/webp;base64,', 'data:image/gif;base64,')):
+            return True
+        return False
+
+    def validate_cta_link(self, value):
+        s = (value or '').strip() or '/products'
+        lower = s.lower()
+        if (lower.startswith('/') and not lower.startswith('//')) or lower.startswith(('https://', 'http://')):
+            return s
+        raise serializers.ValidationError("CTA link must start with '/', 'https://', or 'http://'.")
+
+    def validate_bg_color(self, value):
+        import re
+        s = (value or '').strip() or '#9b4100'
+        if not re.match(r'^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$', s):
+            raise serializers.ValidationError("Background color must be a valid hex color (e.g. #9b4100).")
+        return s
+
+    def validate_image_url(self, value):
+        s = (value or '').strip()
+        if not self._is_safe_media_url(s):
+            raise serializers.ValidationError("Invalid or unsafe image URL.")
+        return s
+
+    def validate_video_url(self, value):
+        s = (value or '').strip()
+        if not self._is_safe_media_url(s):
+            raise serializers.ValidationError("Invalid or unsafe video URL.")
+        return s
+
+    def validate_image(self, value):
+        if not value:
+            return value
+        if getattr(value, 'size', 0) > self.MAX_IMAGE_BYTES:
+            raise serializers.ValidationError("Banner image must be 10MB or smaller.")
+        name = str(getattr(value, 'name', '') or '').lower()
+        if not name.endswith(self.ALLOWED_IMAGE_EXTS):
+            raise serializers.ValidationError("Allowed image formats: PNG, JPG, JPEG, WebP, GIF.")
+        return value
+
+    def validate_video(self, value):
+        if not value:
+            return value
+        if getattr(value, 'size', 0) > self.MAX_VIDEO_BYTES:
+            raise serializers.ValidationError("Banner video/GIF must be 50MB or smaller.")
+        name = str(getattr(value, 'name', '') or '').lower()
+        if not name.endswith(self.ALLOWED_VIDEO_EXTS):
+            raise serializers.ValidationError("Allowed video/GIF formats: MP4, WebM, MOV, M4V, OGG, GIF.")
+        return value
 
     def get_effective_image_url(self, obj):
         if obj.image_url and obj.image_url.startswith('https://res.cloudinary.com'):
