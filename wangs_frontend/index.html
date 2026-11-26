@@ -82,5 +82,31 @@
   <body class="bg-[#fbf8f3] text-[#1c1917] font-sans antialiased min-h-screen selection:bg-[#ab331c] selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+    <script>
+      // Self-healing CSS guard: if the main stylesheet fails to load or is blocked by a stale cache on any mobile/in-app browser, re-fetch it with a cache-buster.
+      window.addEventListener('load', function() {
+        try {
+          var bg = window.getComputedStyle(document.body).backgroundColor;
+          if (!bg || bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent') {
+            var links = document.querySelectorAll('link[rel="stylesheet"]');
+            var retried = false;
+            for (var i = 0; i < links.length; i++) {
+              var href = links[i].getAttribute('href') || '';
+              if (href.indexOf('/assets/') !== -1 && href.indexOf('_csscb=') === -1) {
+                var fresh = document.createElement('link');
+                fresh.rel = 'stylesheet';
+                fresh.href = href + (href.indexOf('?') === -1 ? '?' : '&') + '_csscb=' + Date.now();
+                document.head.appendChild(fresh);
+                retried = true;
+              }
+            }
+            if (!retried && !sessionStorage.getItem('wangs_css_reloaded')) {
+              sessionStorage.setItem('wangs_css_reloaded', '1');
+              window.location.reload();
+            }
+          }
+        } catch (e) {}
+      });
+    </script>
   </body>
 </html>

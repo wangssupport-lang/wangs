@@ -5,8 +5,9 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    target: 'esnext',
-    cssCodeSplit: true,
+    target: 'es2020',
+    cssTarget: 'chrome80',
+    cssCodeSplit: false,
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
