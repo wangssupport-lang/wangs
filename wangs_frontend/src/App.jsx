@@ -198,7 +198,7 @@ function AppLayout() {
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
       <AuthModal />
 
-      <main className={`flex-1 ${hasMobileBottomNav ? 'pb-20 md:pb-0' : ''}`}>
+      <main className="flex-1">
         <ErrorBoundary>
           <React.Suspense fallback={<PageFallback />}>
             <Routes>
