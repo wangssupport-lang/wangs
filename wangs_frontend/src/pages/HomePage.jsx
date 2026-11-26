@@ -935,7 +935,7 @@ export default function HomePage() {
                 onTouchEnd={handleTouchEnd}
                 onMouseEnter={() => { isInteractingWithBanner.current = true; }}
                 onMouseLeave={() => { isInteractingWithBanner.current = false; }}
-                className="w-full overflow-x-auto snap-x snap-mandatory flex flex-nowrap no-scrollbar touch-pan-x"
+                className="w-full overflow-x-auto snap-x snap-mandatory flex items-start flex-nowrap no-scrollbar touch-pan-x"
                 style={{
                   WebkitOverflowScrolling: 'touch',
                   scrollSnapType: 'x mandatory',
