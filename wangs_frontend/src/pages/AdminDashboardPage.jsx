@@ -9,7 +9,7 @@ import {
   Home, LogOut, Download, Copy, Check, Landmark,
   Image as ImageIcon, Plus, UploadCloud, Edit3, Flame, ExternalLink, Type, Tags,
   Megaphone, Bell, Menu, ChevronDown, ShoppingBag, BarChart3, Activity,
-  RotateCcw, Truck
+  RotateCcw, Truck, Video
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -557,6 +557,7 @@ export default function AdminDashboardPage() {
   const [bannerImagePreview, setBannerImagePreview] = useState('');
   const [bannerVideoFile, setBannerVideoFile] = useState(null);
   const [bannerVideoPreview, setBannerVideoPreview] = useState('');
+  const [bannerLayoutMode, setBannerLayoutMode] = useState('standard'); // 'standard' | 'image' | 'video'
 
   // Orbital Floating Product Showcase State
   const [orbitalSaving, setOrbitalSaving] = useState(false);
@@ -1165,6 +1166,7 @@ export default function AdminDashboardPage() {
     setBannerImagePreview('');
     setBannerVideoFile(null);
     setBannerVideoPreview('');
+    setBannerLayoutMode('standard');
     setBannerForm({
       title: 'The Great Achar Season',
       subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.',
@@ -1201,16 +1203,30 @@ export default function AdminDashboardPage() {
     setBannerImagePreview(b.effective_image_url || b.image_url || b.image || '');
     setBannerVideoFile(null);
     setBannerVideoPreview(b.effective_video_url || b.video_url || b.video || '');
+    setBannerLayoutMode(
+      b.is_image_only
+        ? ((b.effective_video_url || b.video_url || b.video) ? 'video' : 'image')
+        : 'standard'
+    );
   };
 
   const handleSaveBanner = async (e) => {
     e.preventDefault();
-    if (!bannerForm.is_image_only && !bannerForm.title.trim()) {
+    if (bannerLayoutMode === 'standard' && !bannerForm.title.trim()) {
       toast.error('Campaign Title / Headline is required for text overlay banners');
       return;
     }
     if (
-      bannerForm.is_image_only &&
+      bannerLayoutMode === 'video' &&
+      !bannerVideoFile &&
+      !bannerForm.video_url.trim() &&
+      !bannerVideoPreview
+    ) {
+      toast.error('Please upload a video for Video-Only banner mode');
+      return;
+    }
+    if (
+      bannerLayoutMode === 'image' &&
       !bannerImageFile &&
       !bannerForm.image_url.trim() &&
       !bannerImagePreview &&
@@ -1218,7 +1234,7 @@ export default function AdminDashboardPage() {
       !bannerForm.video_url.trim() &&
       !bannerVideoPreview
     ) {
-      toast.error('Please upload an image/video or provide a media URL for Media-Only banner');
+      toast.error('Please upload an image or provide an image URL for Image-Only banner');
       return;
     }
 
@@ -3188,41 +3204,64 @@ export default function AdminDashboardPage() {
                 )}
               </div>
 
-              {/* Layout Mode Selector (Standard vs Image Only) */}
+              {/* Layout Mode Selector (Standard vs Image Only vs Video Only) */}
               <div className="space-y-1.5 p-3 rounded-xl bg-stone-50 border border-stone-200">
                 <label className="block font-bold text-xs text-stone-800">
                   Banner Layout Mode
                 </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
                     type="button"
-                    onClick={() => setBannerForm({ ...bannerForm, is_image_only: false })}
-                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
-                      !bannerForm.is_image_only
+                    onClick={() => {
+                      setBannerLayoutMode('standard');
+                      setBannerForm({ ...bannerForm, is_image_only: false });
+                    }}
+                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      bannerLayoutMode === 'standard'
                         ? 'bg-forest-900 text-white border-forest-900 shadow-xs'
                         : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
                     }`}
                   >
-                    <Type size={15} />
-                    <span>Standard (Text &amp; Button Overlay)</span>
+                    <Type size={14} />
+                    <span>Standard Overlay</span>
                   </button>
                   <button
                     type="button"
-                    onClick={() => setBannerForm({ ...bannerForm, is_image_only: true })}
-                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-2 cursor-pointer transition-all ${
-                      bannerForm.is_image_only
+                    onClick={() => {
+                      setBannerLayoutMode('image');
+                      setBannerForm({ ...bannerForm, is_image_only: true });
+                    }}
+                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      bannerLayoutMode === 'image'
                         ? 'bg-forest-900 text-white border-forest-900 shadow-xs'
                         : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
                     }`}
                   >
-                    <ImageIcon size={15} />
-                    <span>Image Only (Full Graphic Banner)</span>
+                    <ImageIcon size={14} />
+                    <span>Image Only</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerLayoutMode('video');
+                      setBannerForm({ ...bannerForm, is_image_only: true });
+                    }}
+                    className={`px-3 py-2.5 rounded-lg border text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer transition-all ${
+                      bannerLayoutMode === 'video'
+                        ? 'bg-forest-900 text-white border-forest-900 shadow-xs'
+                        : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100'
+                    }`}
+                  >
+                    <Video size={14} />
+                    <span>Video Only</span>
                   </button>
                 </div>
                 <p className="text-[11px] text-stone-500">
-                  {bannerForm.is_image_only
-                    ? 'Image Only mode displays your artwork cleanly with 0 text/button overlays and no dark gradient. Tapping anywhere on the banner navigates to the destination link.'
-                    : 'Standard mode overlays your headline, subtitle, badge pill, coupon code, and CTA button on top of your background photo.'}
+                  {bannerLayoutMode === 'video'
+                    ? 'Video Only mode loops your uploaded video cleanly with zero text/button overlays. Tapping the video navigates to your destination link.'
+                    : bannerLayoutMode === 'image'
+                    ? 'Image Only mode displays your graphic artwork cleanly with zero text/button overlays. Tapping anywhere navigates to your destination link.'
+                    : 'Standard mode overlays your headline, subtitle, badge pill, coupon code, and CTA button on top of your background photo or video.'}
                 </p>
               </div>
 
@@ -3849,8 +3888,10 @@ export default function AdminDashboardPage() {
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <p className="font-bold text-stone-900 font-serif text-sm">{b.title || 'Graphic Promo Banner'}</p>
                               {b.is_image_only && (
-                                <span className="px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 text-[9px] font-bold uppercase tracking-wider shrink-0">
-                                  Image Only
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 ${
+                                  videoUrl ? 'bg-emerald-100 text-emerald-800' : 'bg-purple-100 text-purple-800'
+                                }`}>
+                                  {videoUrl ? 'Video Only' : 'Image Only'}
                                 </span>
                               )}
                             </div>
