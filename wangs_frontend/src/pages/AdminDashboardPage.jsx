@@ -466,6 +466,8 @@ export default function AdminDashboardPage() {
   const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [sessionError, setSessionError] = useState(null);
   const [loggingIn, setLoggingIn] = useState(false);
+  const [authWaitTimedOut, setAuthWaitTimedOut] = useState(false);
+  const [bypassAuthWait, setBypassAuthWait] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [secondaryLoading, setSecondaryLoading] = useState(false);
   const [togglingSellerReg, setTogglingSellerReg] = useState(false);
@@ -638,18 +640,20 @@ export default function AdminDashboardPage() {
       // Unblock the UI immediately!
       setLoading(false);
 
-      // PHASE 2: Secondary Tab Data loaded smoothly in background with Promise.allSettled
+      // PHASE 2: Secondary Tab Data loaded in 2 sequential batches so we don't saturate a single/small Render worker
       setSecondaryLoading(true);
-      const [prodsRes, ordsRes, commRes, stlRes, logsRes, usrsRes, subsRes, bannersRes, catsRes, noticesRes, couriersRes, orbitalRes] = await Promise.allSettled([
+      const [prodsRes, ordsRes, commRes, stlRes, bannersRes, catsRes] = await Promise.allSettled([
         api.getAdminProducts(),
         api.getAdminOrders(),
         api.getCommissionSettings(),
         api.getSettlements(),
+        api.getAdminHeroBanners(),
+        api.getAdminCategories(),
+      ]);
+      const [logsRes, usrsRes, subsRes, noticesRes, couriersRes, orbitalRes] = await Promise.allSettled([
         api.getAuditLogs(),
         api.getAdminUsers(),
         api.getMaintenanceSubscribers(),
-        api.getAdminHeroBanners(),
-        api.getAdminCategories(),
         api.getAdminStorefrontNotices(),
         api.getAdminCouriers(),
         api.getAdminOrbitalShowcase(),
@@ -1771,8 +1775,44 @@ export default function AdminDashboardPage() {
     return points;
   }, [ordersList, manufacturersList, sellerRequestsList, usersList, chartTimeRange, metrics]);
 
-  if (authLoading) {
-    return <PickleLoadingScreen minHeight="min-h-[60vh]" message="Verifying admin session..." />;
+  useEffect(() => {
+    if (!authLoading || isAdmin) {
+      setAuthWaitTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(() => setAuthWaitTimedOut(true), 6000);
+    return () => clearTimeout(timer);
+  }, [authLoading, isAdmin]);
+
+  if (authLoading && !isAdmin && !bypassAuthWait) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
+        <PickleLoadingScreen minHeight="min-h-[40vh]" message="Verifying admin session..." />
+        {authWaitTimedOut && (
+          <div className="mt-4 max-w-md w-full bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center space-y-3 shadow-sm">
+            <p className="text-xs text-amber-900 leading-relaxed">
+              The backend server is taking longer than usual to respond (it may be waking up or redeploying).
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="px-3.5 py-1.5 rounded-xl bg-forest-900 text-white text-xs font-medium hover:bg-forest-800 transition-colors cursor-pointer"
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={() => setBypassAuthWait(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-white border border-stone-300 text-stone-700 text-xs font-medium hover:bg-stone-50 transition-colors cursor-pointer"
+              >
+                Continue to Login
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
   }
 
   if (!isAdmin || sessionError) {
