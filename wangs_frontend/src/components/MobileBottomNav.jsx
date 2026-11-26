@@ -1,12 +1,12 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, Compass, Heart, User, ShoppingBag } from 'lucide-react';
+import { Home, Compass, Heart, User } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 
-export default function MobileBottomNav({ onOpenCart }) {
-  const { itemsCount, isDrawerOpen } = useCart();
+export default function MobileBottomNav() {
+  const { isDrawerOpen } = useCart();
   const { user } = useAuth();
   const { wishlistCount } = useWishlist();
 
@@ -86,25 +86,7 @@ export default function MobileBottomNav({ onOpenCart }) {
         )}
       </NavLink>
 
-      {/* 4. Cart Bag (Center Highlight or Primary Action) */}
-      <button
-        type="button"
-        onClick={onOpenCart}
-        className="flex flex-col items-center justify-center min-h-12 flex-1 max-w-[76px] py-1 px-1 rounded-xl bg-[#28452e] text-white shadow-sm transition-all duration-200 cursor-pointer active:scale-95 relative"
-        aria-label={`Shopping Basket with ${itemsCount} items`}
-      >
-        <div className="relative">
-          <ShoppingBag size={20} strokeWidth={2.2} />
-          {itemsCount > 0 && (
-            <span className="absolute -top-1.5 -right-2.5 min-w-[17px] h-[17px] px-1 bg-[#9b4100] text-white font-bold text-[9px] leading-tight rounded-full flex items-center justify-center shadow-xs ring-2 ring-[#fffaf6]">
-              {itemsCount > 99 ? '99+' : itemsCount}
-            </span>
-          )}
-        </div>
-        <span className="text-[11px] tracking-tight mt-0.5">Basket</span>
-      </button>
-
-      {/* 5. Account / Profile */}
+      {/* 4. Account / Profile */}
       <NavLink
         to={user ? "/account" : "/login"}
         className={({ isActive }) =>

@@ -1412,38 +1412,74 @@ export default function HomePage() {
       {/* ========================================================
           BRAND INTRODUCTION SECTION (ABOUT WANGS)
           ======================================================== */}
-      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 mt-12">
-        <div className="rounded-3xl bg-white border border-stone-200/80 px-6 py-8 sm:px-10 sm:py-10 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xs">
-          <div className="max-w-2xl space-y-2.5">
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#ab331c]">
-              Indian Regional Food Marketplace · Nagaland
-            </span>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-stone-900">
-              Discover Authentic Regional Flavours.
-            </h2>
-            <p className="text-sm text-stone-600 leading-relaxed">
-              Wangs (Wangs Marketplace) is an Indian online regional food marketplace that originated in Nagaland, India. Starting with authentic Naga pickles, Wangs connects independent regional food makers directly with customers for online shopping and plans to expand its catalogue of regional food products across India.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <Link
-              to="/about"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-[#ab331c] text-white text-xs font-semibold hover:bg-[#8e2815] transition-colors"
-            >
-              About Wangs Marketplace <ArrowRight size={14} />
-            </Link>
-            <Link
-              to="/products"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-xs font-semibold hover:border-stone-900 transition-colors"
-            >
-              Shop Naga Pickles
-            </Link>
-            <Link
-              to="/brands"
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-xs font-semibold hover:border-stone-900 transition-colors"
-            >
-              Browse Regional Makers
-            </Link>
+      <section className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 mt-8 sm:mt-12">
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#fffdf9] via-white to-[#fdf4ec] border border-stone-200/80 px-5 py-5 sm:px-9 sm:py-8 shadow-xs">
+          {/* Ambient Orbital Glow & Rotating Rings */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-12 -top-12 w-52 h-52 sm:w-72 sm:h-72 rounded-full bg-radial from-[#ab331c]/10 via-[#e8a87c]/10 to-transparent blur-xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -right-6 -bottom-10 w-44 h-44 sm:w-64 sm:h-64 rounded-full border border-dashed border-[#ab331c]/20 animate-[spin_28s_linear_infinite]"
+          />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+            <div className="flex items-start justify-between gap-3 max-w-2xl">
+              <div className="space-y-1.5 sm:space-y-2.5 min-w-0">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ab331c]/8 border border-[#ab331c]/15">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#ab331c] animate-pulse shrink-0" />
+                  <span className="text-[9.5px] sm:text-[11px] font-bold uppercase tracking-[0.14em] sm:tracking-[0.18em] text-[#ab331c] truncate">
+                    Indian Regional Food Marketplace · Nagaland
+                  </span>
+                </div>
+                <h2 className="font-serif text-xl sm:text-3xl font-bold text-stone-900 leading-snug">
+                  Discover Authentic Regional Flavours.
+                </h2>
+                <p className="text-xs sm:text-sm text-stone-600 leading-relaxed line-clamp-3 sm:line-clamp-none">
+                  Wangs (Wangs Marketplace) is an Indian online regional food marketplace that originated in Nagaland, India. Starting with authentic Naga pickles, Wangs connects independent regional food makers directly with customers for online shopping and plans to expand its catalogue of regional food products across India.
+                </p>
+              </div>
+
+              {/* Compact Mobile & Tablet Orbital Emblem */}
+              <div
+                aria-hidden="true"
+                className="relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 md:hidden flex items-center justify-center mt-1"
+              >
+                <div className="absolute inset-0 rounded-full border border-dashed border-[#ab331c]/30 animate-[spin_18s_linear_infinite]" />
+                <div className="absolute inset-2.5 rounded-full border border-[#28452e]/20 animate-[spin_12s_linear_infinite_reverse]" />
+                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#ab331c] to-[#7d2312] text-white flex items-center justify-center shadow-md animate-orbital-a">
+                  <span className="font-serif text-xs font-bold tracking-tight">W</span>
+                </div>
+                <span className="absolute -top-0.5 right-1 px-1.5 py-0.5 rounded-full bg-[#28452e] text-white text-[8px] font-bold shadow-xs animate-orbital-b">
+                  Naga
+                </span>
+                <span className="absolute -bottom-0.5 left-0 px-1.5 py-0.5 rounded-full bg-[#fffaf6] border border-[#ab331c]/25 text-[#ab331c] text-[8px] font-bold shadow-xs animate-orbital-a">
+                  Pure
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
+              <Link
+                to="/about"
+                className="inline-flex items-center gap-1.5 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full bg-[#ab331c] text-white text-[11px] sm:text-xs font-semibold hover:bg-[#8e2815] active:scale-95 transition-all shadow-xs"
+              >
+                About Wangs <ArrowRight size={13} />
+              </Link>
+              <Link
+                to="/products"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-[11px] sm:text-xs font-semibold hover:border-stone-900 active:scale-95 transition-all"
+              >
+                Shop Pickles
+              </Link>
+              <Link
+                to="/brands"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-5 sm:py-2.5 rounded-full border border-stone-300 bg-[#fbf8f3] text-stone-800 text-[11px] sm:text-xs font-semibold hover:border-stone-900 active:scale-95 transition-all"
+              >
+                Regional Makers
+              </Link>
+            </div>
           </div>
         </div>
       </section>
