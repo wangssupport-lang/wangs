@@ -3398,24 +3398,24 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Recommended Banner Image Size Specification Box */}
+              {/* Recommended Home Hero Banner Size Specification Box */}
               <div className="bg-amber-50/90 border border-amber-200 rounded-xl p-3.5 space-y-1.5 text-xs">
                 <div className="flex items-center gap-1.5 font-bold text-amber-950">
                   <Sparkles size={14} className="text-amber-700 shrink-0" />
-                  <span>Recommended Banner Image Specifications:</span>
+                  <span>Home Hero Banner Size (Mobile — Same Size for Images &amp; Videos):</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-amber-900 leading-normal">
                   <div>
-                    <span className="font-bold text-amber-950">Optimal Resolution:</span> 1200 × 600 px (2:1 Ratio)
+                    <span className="font-bold text-amber-950">Recommended Size:</span> 1200 × 600 px (2:1 Ratio)
                   </div>
                   <div>
-                    <span className="font-bold text-amber-950">Minimum Resolution:</span> 800 × 400 px
+                    <span className="font-bold text-amber-950">Minimum Size:</span> 800 × 400 px (2:1 Ratio)
                   </div>
                   <div>
-                    <span className="font-bold text-amber-950">Formats &amp; Size:</span> JPG, PNG, WebP (under 5MB)
+                    <span className="font-bold text-amber-950">Image Formats:</span> JPG, PNG, WebP (up to 10MB)
                   </div>
                   <div>
-                    <span className="font-bold text-amber-950">Image-Only Tip:</span> Keep critical design/copy inside central 90%
+                    <span className="font-bold text-amber-950">Video Formats:</span> MP4, WebM, MOV (2:1 recommended, up to 50MB)
                   </div>
                 </div>
               </div>
@@ -3678,29 +3678,9 @@ export default function AdminDashboardPage() {
                 <div className="bg-[#121212] p-3 rounded-2xl border border-stone-800">
                   {bannerForm.is_image_only ? (
                     <div
-                      className={`relative w-full overflow-hidden rounded-xl shadow-lg ${bannerVideoPreview ? 'aspect-[16/9]' : 'aspect-[2/1]'} transition-all duration-300 flex items-center justify-center cursor-pointer bg-stone-950`}
+                      className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer"
+                      style={{ backgroundColor: bannerForm.bg_color || '#9b4100' }}
                     >
-                      {(bannerVideoPreview || bannerImagePreview) && (
-                        bannerVideoPreview ? (
-                          <video
-                            src={bannerVideoPreview}
-                            poster={bannerImagePreview || undefined}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            aria-hidden="true"
-                            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none"
-                          />
-                        ) : (
-                          <img
-                            src={bannerImagePreview}
-                            alt=""
-                            aria-hidden="true"
-                            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none"
-                          />
-                        )
-                      )}
                       {bannerVideoPreview ? (
                         <video
                           src={bannerVideoPreview}
@@ -3709,13 +3689,13 @@ export default function AdminDashboardPage() {
                           muted
                           loop
                           playsInline
-                          className="relative z-10 w-full h-full object-contain rounded-xl"
+                          className="w-full h-full object-cover rounded-xl"
                         />
                       ) : bannerImagePreview ? (
                         <img
                           src={bannerImagePreview}
                           alt={bannerForm.title || 'Graphic Banner'}
-                          className="relative z-10 w-full h-full object-contain rounded-xl"
+                          className="w-full h-full object-cover rounded-xl"
                         />
                       ) : (
                         <div className="text-center p-4 text-white/80">
