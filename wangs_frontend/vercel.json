@@ -1,11 +1,20 @@
 {
   "headers": [
     {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/index.html",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=0, must-revalidate"
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     },
@@ -79,7 +88,7 @@
       "destination": "https://wangs.onrender.com/media/$1"
     },
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/|api/|media/|images/|.*\\..*).*)",
       "destination": "/index.html"
     }
   ]
