@@ -26,6 +26,8 @@ export default function CheckoutPage() {
 
   // Payment radio options: 'UPI', 'CARD', 'COD'
   const [paymentOption, setPaymentOption] = useState('UPI');
+  const [deliveryMethod, setDeliveryMethod] = useState('STANDARD');
+  const [sameDayQuote, setSameDayQuote] = useState({ checking: false, eligible: false, reason: '' });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [pendingOrder, setPendingOrder] = useState(null);
@@ -108,6 +110,37 @@ export default function CheckoutPage() {
     total_amount: '0.00',
   };
 
+  useEffect(() => {
+    const pin = (formData.shipping_postal_code || '').trim();
+    const city = (formData.shipping_city || '').trim();
+    if (!items.length || (pin.length < 6 && !city)) {
+      setSameDayQuote({ checking: false, eligible: false, reason: '' });
+      return;
+    }
+    let cancelled = false;
+    setSameDayQuote((prev) => ({ ...prev, checking: true }));
+    api.getShippingQuote({
+      postal_code: pin,
+      city,
+      state: formData.shipping_state || '',
+      delivery_method: 'SAME_DAY',
+    })
+      .then((q) => {
+        if (cancelled) return;
+        setSameDayQuote({
+          checking: false,
+          eligible: Boolean(q?.same_day_eligible),
+          reason: q?.same_day_reason || '',
+        });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSameDayQuote({ checking: false, eligible: false, reason: '' });
+        }
+      });
+    return () => { cancelled = true; };
+  }, [items.length, formData.shipping_postal_code, formData.shipping_city, formData.shipping_state]);
+
   const itemsSubtotal = parseFloat(summary.items_subtotal) || 0;
   const deliveryFee = parseFloat(summary.delivery_fee) || 0;
   const totalAmount = Math.max(0, itemsSubtotal + deliveryFee);
@@ -154,7 +187,14 @@ export default function CheckoutPage() {
         payment_method: paymentMethodBackend,
         shipping_city: formData.shipping_city || 'Kohima',
         shipping_state: formData.shipping_state || 'Nagaland',
+        shipping_delivery_method: deliveryMethod,
       };
+
+      if (deliveryMethod === 'SAME_DAY' && !sameDayQuote.eligible) {
+        setErrorMessage(sameDayQuote.reason || 'Same-day delivery is not eligible for this address or cart.');
+        setLoading(false);
+        return;
+      }
 
       const res = await api.createOrder(orderPayload);
       setPendingOrder(res.order);
@@ -378,6 +418,82 @@ export default function CheckoutPage() {
                   placeholder="6-digit Indian PIN"
                   className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#ab331c]"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">
+                    Town / City
+                  </label>
+                  <input
+                    type="text"
+                    name="shipping_city"
+                    required
+                    value={formData.shipping_city}
+                    onChange={handleChange}
+                    placeholder="e.g. Kohima"
+                    className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#ab331c]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-stone-600 mb-1">
+                    State
+                  </label>
+                  <input
+                    type="text"
+                    name="shipping_state"
+                    required
+                    value={formData.shipping_state}
+                    onChange={handleChange}
+                    placeholder="e.g. Nagaland"
+                    className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-[#ab331c]"
+                  />
+                </div>
+              </div>
+
+              {/* Delivery Speed Selector */}
+              <div className="pt-2 space-y-2">
+                <label className="block text-xs font-medium text-stone-600">
+                  Delivery Speed
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('STANDARD')}
+                    className={`p-3 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                      deliveryMethod === 'STANDARD'
+                        ? 'border-[#28452e] bg-emerald-50/60 font-bold text-stone-900'
+                        : 'border-stone-200 bg-white text-stone-700'
+                    }`}
+                  >
+                    <p className="font-bold">Standard Delivery</p>
+                    <p className="text-[11px] font-normal text-stone-500 mt-0.5">Regular courier dispatch</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('SAME_DAY')}
+                    className={`p-3 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                      deliveryMethod === 'SAME_DAY'
+                        ? 'border-[#ab331c] bg-[#fbf2ec] font-bold text-stone-900'
+                        : 'border-stone-200 bg-white text-stone-700'
+                    }`}
+                  >
+                    <p className="font-bold text-[#ab331c]">Get It Today (Same-Day)</p>
+                    <p className="text-[11px] font-normal text-stone-500 mt-0.5">
+                      {sameDayQuote.checking
+                        ? 'Checking eligibility...'
+                        : sameDayQuote.eligible
+                          ? 'Eligible for your location'
+                          : 'Checks local seller & cutoff'}
+                    </p>
+                  </button>
+                </div>
+                {deliveryMethod === 'SAME_DAY' && !sameDayQuote.checking && !sameDayQuote.eligible && sameDayQuote.reason && (
+                  <p className="text-[11px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {sameDayQuote.reason}
+                  </p>
+                )}
               </div>
             </div>
           </div>

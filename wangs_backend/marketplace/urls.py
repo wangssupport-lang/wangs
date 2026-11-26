@@ -38,6 +38,7 @@ from .views import (
     AdminShippingPromotionDetailView, AdminToggleMfgRateApprovalRequirementView,
     ManufacturerDeliveryRateListCreateView, ManufacturerDeliveryRateDetailView,
     ManufacturerDeliveryQuotePreviewView, ManufacturerShippingHistoryView,
+    GetItTodayProductsView, GetItTodayDetectLocationView, ManufacturerSameDaySettingsView,
     PaymentCreateOrderView, PaymentVerifyUnifiedView, PaymentWebhookUnifiedView,
     PaymentStatusDetailView, SellerPaymentProfileView, SellerSettlementsView,
     SellerTransactionsView, AdminPaymentsOverviewView, AdminCommissionsOverviewView,
@@ -78,6 +79,8 @@ urlpatterns = [
     path('brands/', BrandListView.as_view(), name='brands-list'),
     path('brands/<slug:slug>/', BrandDetailView.as_view(), name='brand-detail'),
     path('pincode/check/', check_pincode_serviceability, name='pincode-check'),
+    path('get-it-today/', GetItTodayProductsView.as_view(), name='get-it-today'),
+    path('get-it-today/detect-location/', GetItTodayDetectLocationView.as_view(), name='get-it-today-detect-location'),
     
     # Cart & Checkout
     path('cart/', CartView.as_view(), name='cart'),
@@ -141,6 +144,7 @@ urlpatterns = [
     path('manufacturer/delivery/rates/<int:pk>/', ManufacturerDeliveryRateDetailView.as_view(), name='mfg-delivery-rate-detail'),
     path('manufacturer/delivery/quote-preview/', ManufacturerDeliveryQuotePreviewView.as_view(), name='mfg-delivery-quote-preview'),
     path('manufacturer/delivery/shipping-history/', ManufacturerShippingHistoryView.as_view(), name='mfg-delivery-shipping-history'),
+    path('manufacturer/same-day-settings/', ManufacturerSameDaySettingsView.as_view(), name='mfg-same-day-settings'),
     path('seller/rules-pdf/', SellerRulesPDFView.as_view(), name='seller-rules-pdf'),
 
     # Seller Payment Profile & Settlements (Marketplace Architecture)

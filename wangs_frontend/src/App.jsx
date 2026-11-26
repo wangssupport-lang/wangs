@@ -70,6 +70,7 @@ const DeliveryPage = lazyWithRetry(() => import('./pages/DeliveryPage'));
 const RewardsScanPage = lazyWithRetry(() => import('./pages/RewardsScanPage'));
 const GiftBoxesPage = lazyWithRetry(() => import('./pages/GiftBoxesPage'));
 const WishlistPage = lazyWithRetry(() => import('./pages/WishlistPage'));
+const GetItTodayPage = lazyWithRetry(() => import('./pages/GetItTodayPage'));
 
 import {
   AboutPage, TermsPage, PrivacyPage,
@@ -202,6 +203,7 @@ function AppLayout() {
           <React.Suspense fallback={<PageFallback />}>
             <Routes>
               <Route path="/" element={<HomePage />} />
+              <Route path="/get-it-today" element={<GetItTodayPage />} />
               <Route path="/brands" element={<BrandsPage />} />
               <Route path="/gift-boxes" element={<GiftBoxesPage />} />
               <Route path="/wishlist" element={<WishlistPage />} />

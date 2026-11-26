@@ -444,6 +444,29 @@ export const api = {
   deleteAdminHeroBanner: (id) => apiRequest(`/admin/hero-banners/${id}/`, { method: 'DELETE' }),
   toggleAdminHeroBanner: (id) => apiRequest(`/admin/hero-banners/${id}/toggle_active/`, { method: 'POST' }),
 
+  // Get It Today (Location-Based Same-Day Shopping)
+  getItTodayProducts: (params = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== '') {
+        qs.append(k, String(v).trim());
+      }
+    });
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return apiRequest(`/get-it-today/${suffix}`);
+  },
+  detectGetItTodayLocation: (body) =>
+    apiRequest('/get-it-today/detect-location/', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getManufacturerSameDaySettings: () => apiRequest('/manufacturer/same-day-settings/'),
+  updateManufacturerSameDaySettings: (body) =>
+    apiRequest('/manufacturer/same-day-settings/', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   // Categories Management (Admin CRUD)
   getAdminCategories: () => apiRequest('/admin/categories/'),
   createAdminCategory: (body) => apiRequest('/admin/categories/', {

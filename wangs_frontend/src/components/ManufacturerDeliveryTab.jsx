@@ -6,6 +6,7 @@ import {
   ChevronRight, ExternalLink, ArrowRight, Eye, Trash2, Edit3
 } from 'lucide-react';
 import { api } from '../api';
+import SellerSameDayConfigCard from './SellerSameDayConfigCard';
 
 export default function ManufacturerDeliveryTab({ profile, toast }) {
   const [loading, setLoading] = useState(true);
@@ -253,6 +254,8 @@ export default function ManufacturerDeliveryTab({ profile, toast }) {
       </div>
 
       {/* Navigation Sub-Tabs */}
+      <SellerSameDayConfigCard toast={toast} />
+
       <div className="flex items-center gap-2 border-b border-stone-200 pb-2 overflow-x-auto text-xs font-bold">
         <button
           onClick={() => setActiveSubTab('rates')}

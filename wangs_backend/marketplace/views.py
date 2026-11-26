@@ -57,6 +57,7 @@ from .payments import (
     PaymentError, PaymentVerificationError, WebhookSignatureError, IdempotencyError
 )
 from .delivery_service import DeliveryService, DeliveryCalculator
+from .same_day_service import SameDayService
 from .resend_service import (
     send_otp_email, send_courier_approval_email, send_courier_rejection_email,
     send_courier_suspension_email, send_admin_new_courier_registration_email
@@ -1115,6 +1116,24 @@ class CheckoutShippingQuoteView(views.APIView):
             state=state,
             requested_method=delivery_method
         )
+        # Check Get It Today same-day eligibility for the entire cart
+        try:
+            SameDayService.validate_cart_same_day(items, {
+                'postal_code': postal_code,
+                'city': city,
+                'district': request.data.get('district', '').strip() or city,
+                'state': state,
+            })
+            quote['same_day_eligible'] = True
+            quote['same_day_reason'] = ''
+        except ValueError as exc:
+            quote['same_day_eligible'] = False
+            quote['same_day_reason'] = str(exc)
+
+        if str(delivery_method or '').upper() in ('SAME_DAY', 'SAME-DAY', 'SAME-DAY DELIVERY') and not quote['same_day_eligible']:
+            quote['is_deliverable'] = False
+            quote['error'] = quote['same_day_reason']
+
         # Wangs customer policy: 100% Free Delivery to all customers!
         # Courier costs are incorporated into the original product listed price.
         if quote.get('is_deliverable'):
@@ -5270,6 +5289,216 @@ class AdminSettlementsOverviewView(views.APIView):
             'settlements': SettlementSerializer(settlements[:50], many=True).data,
             'recent_allocations': SellerAllocationSerializer(allocations.order_by('-created_at')[:50], many=True).data
         })
+
+
+class GetItTodayProductsView(views.APIView):
+    """
+    GET /api/get-it-today/?postal_code=...&town=...&district=...&state=...
+    Returns customer-facing state, local sellers, and strictly eligible same-day products.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        postal_code = request.query_params.get('postal_code', '').strip()
+        town = request.query_params.get('town', '').strip()
+        district = request.query_params.get('district', '').strip()
+        state = request.query_params.get('state', '').strip()
+
+        result = SameDayService.get_available_for_location(
+            postal_code=postal_code,
+            town=town,
+            district=district,
+            state=state,
+        )
+
+        serialized_products = []
+        for product, check in result['products']:
+            item_data = ProductSerializer(product, context={'request': request}).data
+            seller = product.manufacturer
+            item_data['same_day_info'] = {
+                'seller_name': seller.business_name,
+                'seller_slug': seller.slug,
+                'seller_location': (
+                    seller.same_day_dispatch_town
+                    or seller.same_day_dispatch_district
+                    or seller.location_district
+                ),
+                'estimated_delivery_window': check.get('estimated_window'),
+                'cutoff_time': SameDayService.format_cutoff(seller.same_day_cutoff_time),
+            }
+            serialized_products.append(item_data)
+
+        return Response({
+            'status_code': result['status_code'],
+            'message': result['message'],
+            'location': result['location'],
+            'local_sellers': result['local_sellers'],
+            'products': serialized_products,
+        })
+
+
+class GetItTodayDetectLocationView(views.APIView):
+    """
+    POST /api/get-it-today/detect-location/
+    Validates detected/manual customer location against active DeliveryZones.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        postal_code = str(request.data.get('postal_code', '') or '').strip()
+        town = str(request.data.get('town', '') or request.data.get('city', '') or '').strip()
+        district = str(request.data.get('district', '') or '').strip()
+        state = str(request.data.get('state', '') or '').strip()
+
+        loc = SameDayService.match_location(
+            postal_code=postal_code,
+            town=town,
+            district=district,
+            state=state,
+        )
+        platform_coverage = SameDayService.get_supported_platform_coverage()
+        zone = loc.get('zone')
+        supported_zone_ids = {z['id'] for z in platform_coverage['zones']}
+
+        return Response({
+            'location': SameDayService._serialize_location(loc),
+            'platform_same_day_supported': bool(zone and zone.id in supported_zone_ids),
+            'available_zones': platform_coverage['zones'],
+        })
+
+
+class ManufacturerSameDaySettingsView(views.APIView):
+    """
+    GET / PATCH /api/manufacturer/same-day-settings/
+    Allows approved sellers to configure Get It Today same-day fulfilment
+    within platform-supported delivery zones and manage per-product eligibility/stock.
+    """
+    permission_classes = [IsApprovedManufacturer]
+
+    def _serialize_payload(self, seller, platform_coverage):
+        products = Product.objects.filter(manufacturer=seller).order_by('-created_at')
+        cutoff_str = seller.same_day_cutoff_time.strftime('%H:%M') if seller.same_day_cutoff_time else ''
+        return {
+            'settings': {
+                'same_day_enabled': seller.same_day_enabled,
+                'same_day_paused': seller.same_day_paused,
+                'same_day_dispatch_town': seller.same_day_dispatch_town,
+                'same_day_dispatch_district': seller.same_day_dispatch_district,
+                'same_day_dispatch_state': seller.same_day_dispatch_state,
+                'same_day_operating_days': seller.same_day_operating_days or [0, 1, 2, 3, 4, 5],
+                'same_day_cutoff_time': cutoff_str,
+                'same_day_covered_towns': seller.same_day_covered_towns or [],
+                'same_day_covered_pincodes': seller.same_day_covered_pincodes or [],
+            },
+            'products': [
+                {
+                    'id': p.id,
+                    'title': p.title,
+                    'slug': p.slug,
+                    'price': str(p.price),
+                    'stock_quantity': p.stock_quantity,
+                    'status': p.status,
+                    'is_active': p.is_active,
+                    'same_day_eligible': p.same_day_eligible,
+                    'primary_image_url': p.primary_image_url,
+                }
+                for p in products
+            ],
+            'platform_coverage': platform_coverage,
+        }
+
+    def get(self, request):
+        seller = request.user.manufacturer_profile
+        platform_coverage = SameDayService.get_supported_platform_coverage()
+        return Response(self._serialize_payload(seller, platform_coverage))
+
+    def patch(self, request):
+        seller = request.user.manufacturer_profile
+        platform_coverage = SameDayService.get_supported_platform_coverage()
+        allowed_towns_l = {t.lower() for t in platform_coverage['supported_towns']}
+        allowed_pins = set(platform_coverage['supported_pincodes'])
+
+        data = request.data or {}
+
+        if 'same_day_enabled' in data:
+            seller.same_day_enabled = bool(data['same_day_enabled'])
+        if 'same_day_paused' in data:
+            seller.same_day_paused = bool(data['same_day_paused'])
+        if 'same_day_dispatch_town' in data:
+            seller.same_day_dispatch_town = str(data['same_day_dispatch_town'] or '').strip()
+        if 'same_day_dispatch_district' in data:
+            seller.same_day_dispatch_district = str(data['same_day_dispatch_district'] or '').strip()
+        if 'same_day_dispatch_state' in data:
+            seller.same_day_dispatch_state = str(data['same_day_dispatch_state'] or '').strip()
+
+        if 'same_day_operating_days' in data:
+            raw_days = data.get('same_day_operating_days') or []
+            clean_days = sorted({int(d) for d in raw_days if str(d).isdigit() and 0 <= int(d) <= 6})
+            seller.same_day_operating_days = clean_days
+
+        if 'same_day_cutoff_time' in data:
+            raw_cutoff = str(data.get('same_day_cutoff_time') or '').strip()
+            if raw_cutoff:
+                from datetime import datetime
+                parsed_time = None
+                for fmt in ('%H:%M', '%H:%M:%S'):
+                    try:
+                        parsed_time = datetime.strptime(raw_cutoff, fmt).time()
+                        break
+                    except ValueError:
+                        continue
+                if parsed_time is None:
+                    return Response({'detail': 'Invalid cutoff time format. Use HH:MM (24-hour).'}, status=400)
+                seller.same_day_cutoff_time = parsed_time
+            else:
+                seller.same_day_cutoff_time = None
+
+        if 'same_day_covered_towns' in data:
+            req_towns = SameDayService.normalize_list(data.get('same_day_covered_towns'))
+            unsupported_towns = [t for t in req_towns if t.lower() not in allowed_towns_l]
+            if unsupported_towns:
+                return Response(
+                    {'detail': f"Unsupported same-day delivery town(s): {', '.join(unsupported_towns)}. Sellers can only select towns supported by platform delivery zones."},
+                    status=400,
+                )
+            seller.same_day_covered_towns = req_towns
+
+        if 'same_day_covered_pincodes' in data:
+            req_pins = SameDayService.normalize_list(data.get('same_day_covered_pincodes'))
+            unsupported_pins = [p for p in req_pins if p not in allowed_pins]
+            if unsupported_pins:
+                return Response(
+                    {'detail': f"Unsupported same-day PIN code(s): {', '.join(unsupported_pins)}. Sellers can only select PIN codes supported by platform delivery zones."},
+                    status=400,
+                )
+            seller.same_day_covered_pincodes = req_pins
+
+        seller.save()
+
+        product_updates = data.get('product_updates')
+        if isinstance(product_updates, list):
+            for upd in product_updates:
+                pid = upd.get('id')
+                if not pid:
+                    continue
+                prod = Product.objects.filter(id=pid, manufacturer=seller).first()
+                if not prod:
+                    continue
+                changed_fields = []
+                if 'same_day_eligible' in upd:
+                    prod.same_day_eligible = bool(upd['same_day_eligible'])
+                    changed_fields.append('same_day_eligible')
+                if 'stock_quantity' in upd:
+                    try:
+                        qty = max(0, int(upd['stock_quantity']))
+                        prod.stock_quantity = qty
+                        changed_fields.append('stock_quantity')
+                    except (TypeError, ValueError):
+                        pass
+                if changed_fields:
+                    prod.save(update_fields=changed_fields)
+
+        return Response(self._serialize_payload(seller, platform_coverage))
 
 
 

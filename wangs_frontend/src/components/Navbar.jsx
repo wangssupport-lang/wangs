@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate, useLocation, useSearchParams } from 'react-
 import {
   ShoppingBag, Search, User, ChevronDown, ChevronLeft, ChevronRight, ShieldCheck, Store,
   Sparkles, LogOut, Package, Heart, Truck, X, MapPin, Bell, ArrowRight,
-  Trash2, Check, CheckSquare, Square, Mic
+  Trash2, Check, CheckSquare, Square, Mic, Zap
 } from 'lucide-react';
 import SwipeableNotificationItem from './SwipeableNotificationItem';
 import { useAuth } from '../context/AuthContext';
@@ -563,12 +563,12 @@ export default function Navbar() {
             {/* Mobile Row 3: Segmented Category Switcher */}
             <nav
               aria-label="Mobile categories"
-              className="grid grid-cols-3 gap-1 p-1 bg-[#f8f5ef] border border-stone-200/70 rounded-full text-xs text-center"
+              className="flex items-center justify-between gap-0.5 p-1 bg-[#f8f5ef] border border-stone-200/70 rounded-full text-[11px] text-center overflow-x-auto no-scrollbar"
             >
               <NavLink
                 to="/products"
                 className={({ isActive }) =>
-                  `py-1.5 rounded-full transition-all ${
+                  `py-1.5 px-2.5 rounded-full transition-all whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-white text-[#ab331c] font-bold shadow-xs'
                       : 'text-stone-600 font-medium hover:text-stone-900'
@@ -578,9 +578,21 @@ export default function Navbar() {
                 Pickles
               </NavLink>
               <NavLink
+                to="/get-it-today"
+                className={({ isActive }) =>
+                  `py-1.5 px-2.5 rounded-full transition-all whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? 'bg-white text-[#28452e] font-bold shadow-xs'
+                      : 'text-[#28452e] font-semibold hover:text-stone-900'
+                  }`
+                }
+              >
+                Get It Today
+              </NavLink>
+              <NavLink
                 to="/gift-boxes"
                 className={({ isActive }) =>
-                  `py-1.5 rounded-full transition-all ${
+                  `py-1.5 px-2.5 rounded-full transition-all whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-white text-[#ab331c] font-bold shadow-xs'
                       : 'text-stone-600 font-medium hover:text-stone-900'
@@ -592,7 +604,7 @@ export default function Navbar() {
               <NavLink
                 to="/brands"
                 className={({ isActive }) =>
-                  `py-1.5 rounded-full transition-all ${
+                  `py-1.5 px-2.5 rounded-full transition-all whitespace-nowrap shrink-0 ${
                     isActive
                       ? 'bg-white text-[#ab331c] font-bold shadow-xs'
                       : 'text-stone-600 font-medium hover:text-stone-900'
@@ -616,10 +628,17 @@ export default function Navbar() {
                 </span>
               </Link>
 
-              {/* Navigation Links: Pickles, Gift Boxes, Brands */}
+              {/* Navigation Links: Pickles, Get It Today, Gift Boxes, Brands */}
               <nav className="flex items-center gap-5 lg:gap-7 text-xs font-medium text-stone-800">
                 <Link to="/products" className="hover:text-[#ab331c] transition-colors">
                   Pickles
+                </Link>
+                <Link
+                  to="/get-it-today"
+                  className="inline-flex items-center gap-1 text-[#28452e] font-semibold hover:text-[#ab331c] transition-colors"
+                >
+                  <Zap size={13} className="text-amber-600" />
+                  <span>Get It Today</span>
                 </Link>
                 <Link to="/gift-boxes" className="hover:text-[#ab331c] transition-colors">
                   Gift Boxes

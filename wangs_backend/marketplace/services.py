@@ -147,6 +147,12 @@ class OrderService:
             if product.stock_quantity < item.quantity:
                 raise ValueError(f"Insufficient stock for '{product.title}'. Only {product.stock_quantity} left in stock.")
 
+        # Validate same-day delivery eligibility if SAME_DAY is requested
+        effective_method = requested_method or shipping_details.get('delivery_method') or ''
+        if str(effective_method).upper() in ('SAME_DAY', 'SAME-DAY', 'SAME-DAY DELIVERY'):
+            from .same_day_service import SameDayService
+            SameDayService.validate_cart_same_day(cart_items, shipping_details)
+
         commission_setting = CommissionSetting.get_current()
         calc = FinancialCalculator.calculate_order_financials(
             cart_items=cart_items,

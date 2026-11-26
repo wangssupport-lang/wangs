@@ -144,6 +144,33 @@ class ManufacturerProfile(models.Model):
     contact_phone = models.CharField(max_length=20)
     business_address = models.TextField()
     postal_code = models.CharField(max_length=10)
+
+    # Get It Today (Same-Day Fulfilment Configuration)
+    same_day_enabled = models.BooleanField(default=False)
+    same_day_paused = models.BooleanField(default=False)
+    same_day_dispatch_town = models.CharField(max_length=100, blank=True, default='')
+    same_day_dispatch_district = models.CharField(max_length=100, blank=True, default='')
+    same_day_dispatch_state = models.CharField(max_length=100, blank=True, default='Nagaland')
+    same_day_operating_days = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of operating weekday integers (0=Monday .. 6=Sunday)"
+    )
+    same_day_cutoff_time = models.TimeField(
+        null=True,
+        blank=True,
+        help_text="Daily order cutoff time in IST (Asia/Kolkata)"
+    )
+    same_day_covered_towns = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of towns/districts covered for same-day delivery"
+    )
+    same_day_covered_pincodes = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of 6-digit PIN codes covered for same-day delivery"
+    )
     
     # Compliance & Food Licensing
     fssai_license_number = models.CharField(max_length=50, blank=True, default='')
@@ -321,6 +348,7 @@ class Product(models.Model):
     is_featured = models.BooleanField(default=False)
     is_bestseller = models.BooleanField(default=False)
     is_deal_of_the_day = models.BooleanField(default=False, help_text="Highlight as Deal of the Day (high value for quantity and price)")
+    same_day_eligible = models.BooleanField(default=False, help_text="Seller opt-in for Get It Today same-day delivery")
     primary_image_url = models.TextField(blank=True, default='')
     
     created_at = models.DateTimeField(auto_now_add=True)

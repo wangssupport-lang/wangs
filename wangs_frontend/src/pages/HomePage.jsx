@@ -1079,6 +1079,23 @@ export default function HomePage() {
                 ))}
               </div>
             )}
+
+            {/* Mobile Quick-Access Strip for Get It Today */}
+            <Link
+              to="/get-it-today"
+              className="mt-1 flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-[#28452e] text-white shadow-xs active:scale-[0.99] transition-transform"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <Zap size={14} className="text-amber-300 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-xs font-bold leading-none">Get It Today</p>
+                  <p className="text-[10px] text-stone-200 truncate mt-0.5">Same-day delivery near your location</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold bg-white text-[#28452e] px-2.5 py-1 rounded-full shrink-0">
+                Check →
+              </span>
+            </Link>
           </div>
 
           {/* Desktop Animated Hero (Exact Match to Hero.dc.html) */}
@@ -1109,6 +1126,9 @@ export default function HomePage() {
               <div className="hero-dc-rise flex gap-3.5 flex-wrap" style={{ '--i': 4 }}>
                 <Link to="/products" className="hero-dc-btn hero-dc-btn-p">
                   Shop pickles
+                </Link>
+                <Link to="/get-it-today" className="hero-dc-btn hero-dc-btn-s">
+                  Get It Today
                 </Link>
                 <Link to="/brands" className="hero-dc-btn hero-dc-btn-s">
                   Meet the makers
