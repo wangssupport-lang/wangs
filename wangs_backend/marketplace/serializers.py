@@ -1291,11 +1291,13 @@ class HeroBannerSerializer(serializers.ModelSerializer):
                 try:
                     with instance.video.open('rb') as f:
                         vid_bytes = f.read()
+                    vid_name = str(getattr(instance.video, 'name', '') or '').lower()
+                    res_type = "image" if vid_name.endswith('.gif') else "video"
                     cloud_vid_url = upload_image_to_cloudinary(
                         vid_bytes,
                         folder="wangs/banners/videos",
                         public_id=f"banner_video_{instance.id}",
-                        resource_type="video",
+                        resource_type=res_type,
                     )
                     if cloud_vid_url:
                         instance.video_url = cloud_vid_url

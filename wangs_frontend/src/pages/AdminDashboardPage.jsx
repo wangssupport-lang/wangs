@@ -1134,11 +1134,14 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const isGifMedia = (url, file) =>
+    Boolean(file?.type === 'image/gif' || /\.gif(\?|#|$)/i.test(url || ''));
+
   const handleBannerFileSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file (PNG, JPG, WebP)');
+      toast.error('Please select a valid image or GIF file (PNG, JPG, WebP, GIF)');
       return;
     }
     setBannerImageFile(file);
@@ -1148,12 +1151,12 @@ export default function AdminDashboardPage() {
   const handleBannerVideoSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('video/')) {
-      toast.error('Please select a valid video file (MP4, WebM, MOV)');
+    if (!file.type.startsWith('video/') && file.type !== 'image/gif') {
+      toast.error('Please select a valid video or animated GIF (MP4, WebM, MOV, GIF)');
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video file size must be under 50MB');
+      toast.error('Video/GIF file size must be under 50MB');
       return;
     }
     setBannerVideoFile(file);
@@ -3315,13 +3318,13 @@ export default function AdminDashboardPage() {
                         <UploadCloud size={20} />
                       </div>
                       <div className="text-center">
-                        <span className="font-bold text-forest-900 underline">Click to select photo</span>
+                        <span className="font-bold text-forest-900 underline">Click to select photo or GIF</span>
                         <span className="text-stone-500"> or drag and drop</span>
-                        <p className="text-[10px] text-stone-400 mt-0.5">PNG, JPG, or WebP up to 10MB</p>
+                        <p className="text-[10px] text-stone-400 mt-0.5">PNG, JPG, WebP, or GIF up to 10MB</p>
                       </div>
                       <input
                         type="file"
-                        accept="image/png,image/jpeg,image/webp,image/jpg"
+                        accept="image/png,image/jpeg,image/webp,image/jpg,image/gif"
                         onChange={handleBannerFileSelect}
                         className="hidden"
                       />
@@ -3330,35 +3333,45 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* Video Upload Area (Mobile Hero Video) */}
+              {/* Video / Animated GIF Upload Area (Mobile Hero Video) */}
               <div className="space-y-2">
                 <label className="block font-bold text-stone-700">
-                  Mobile Hero Video (Optional — Loops Silently)
+                  Mobile Hero Video or Animated GIF (Optional — Loops Silently)
                 </label>
                 <div className="border-2 border-dashed border-stone-300 hover:border-forest-600 rounded-xl p-4 bg-stone-50/60 transition-colors">
                   {bannerVideoPreview ? (
                     <div className="flex flex-col sm:flex-row items-center gap-4">
                       <div className="relative w-36 h-20 rounded-lg overflow-hidden border border-stone-200 shrink-0 shadow-xs bg-black">
-                        <video
-                          src={bannerVideoPreview}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
+                        {isGifMedia(bannerVideoPreview, bannerVideoFile) ? (
+                          <img
+                            src={bannerVideoPreview}
+                            alt="Hero GIF preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <video
+                            src={bannerVideoPreview}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            className="w-full h-full object-cover"
+                          />
+                        )}
                       </div>
                       <div className="space-y-1.5 text-center sm:text-left">
-                        <p className="font-bold text-stone-800 text-xs">Video Attached</p>
+                        <p className="font-bold text-stone-800 text-xs">
+                          {isGifMedia(bannerVideoPreview, bannerVideoFile) ? 'Animated GIF Attached' : 'Video Attached'}
+                        </p>
                         <p className="text-[11px] text-stone-500">
-                          {bannerVideoFile ? bannerVideoFile.name : 'Current Hero Video'}
+                          {bannerVideoFile ? bannerVideoFile.name : 'Current Hero Media'}
                         </p>
                         <div className="flex items-center gap-2 pt-1">
                           <label className="px-3 py-1 bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 rounded-md font-bold text-[11px] cursor-pointer shadow-2xs">
-                            Replace Video
+                            Replace Video / GIF
                             <input
                               type="file"
-                              accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                              accept="video/mp4,video/webm,video/quicktime,video/ogg,image/gif"
                               onChange={handleBannerVideoSelect}
                               className="hidden"
                             />
@@ -3383,13 +3396,13 @@ export default function AdminDashboardPage() {
                         <UploadCloud size={20} />
                       </div>
                       <div className="text-center">
-                        <span className="font-bold text-forest-900 underline">Click to select video</span>
+                        <span className="font-bold text-forest-900 underline">Click to select video or GIF</span>
                         <span className="text-stone-500"> or drag and drop</span>
-                        <p className="text-[10px] text-stone-400 mt-0.5">MP4, WebM, or MOV up to 50MB (muted autoplay loop on mobile)</p>
+                        <p className="text-[10px] text-stone-400 mt-0.5">MP4, WebM, MOV, or Animated GIF up to 50MB (loops on mobile)</p>
                       </div>
                       <input
                         type="file"
-                        accept="video/mp4,video/webm,video/quicktime,video/ogg"
+                        accept="video/mp4,video/webm,video/quicktime,video/ogg,image/gif"
                         onChange={handleBannerVideoSelect}
                         className="hidden"
                       />
@@ -3412,10 +3425,10 @@ export default function AdminDashboardPage() {
                     <span className="font-bold text-amber-950">Minimum Size:</span> 800 × 400 px (2:1 Ratio)
                   </div>
                   <div>
-                    <span className="font-bold text-amber-950">Image Formats:</span> JPG, PNG, WebP (up to 10MB)
+                    <span className="font-bold text-amber-950">Image Formats:</span> JPG, PNG, WebP, GIF (up to 10MB)
                   </div>
                   <div>
-                    <span className="font-bold text-amber-950">Video Formats:</span> MP4, WebM, MOV (2:1 recommended, up to 50MB)
+                    <span className="font-bold text-amber-950">Video / GIF Formats:</span> MP4, WebM, MOV, GIF (2:1 ratio, up to 50MB)
                   </div>
                 </div>
               </div>
@@ -3682,15 +3695,23 @@ export default function AdminDashboardPage() {
                       style={{ backgroundColor: bannerForm.bg_color || '#9b4100' }}
                     >
                       {bannerVideoPreview ? (
-                        <video
-                          src={bannerVideoPreview}
-                          poster={bannerImagePreview || undefined}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          className="w-full h-full object-cover rounded-xl"
-                        />
+                        isGifMedia(bannerVideoPreview, bannerVideoFile) ? (
+                          <img
+                            src={bannerVideoPreview}
+                            alt={bannerForm.title || 'Hero GIF'}
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        ) : (
+                          <video
+                            src={bannerVideoPreview}
+                            poster={bannerImagePreview || undefined}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            className="w-full h-full object-cover rounded-xl"
+                          />
+                        )
                       ) : bannerImagePreview ? (
                         <img
                           src={bannerImagePreview}

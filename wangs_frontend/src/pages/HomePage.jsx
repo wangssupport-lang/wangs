@@ -944,7 +944,8 @@ export default function HomePage() {
                 {displayBanners.map((banner, index) => {
                   const bgImg = banner.effective_image_url || banner.image_url || banner.image;
                   const bgVideo = banner.effective_video_url || banner.video_url || banner.video;
-                  const videoPoster = bgImg || (bgVideo && bgVideo.includes('res.cloudinary.com')
+                  const isBgVideoGif = Boolean(bgVideo && /\.gif(\?|#|$)/i.test(bgVideo));
+                  const videoPoster = bgImg || (bgVideo && !isBgVideoGif && bgVideo.includes('res.cloudinary.com')
                     ? bgVideo.replace(/\.[^./?#]+(\?.*)?$/, '.jpg')
                     : undefined);
 
@@ -956,7 +957,7 @@ export default function HomePage() {
                         className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] block cursor-pointer group select-none active:opacity-95 transition-opacity"
                         style={{ backgroundColor: banner.bg_color || '#9b4100' }}
                       >
-                        {bgVideo ? (
+                        {bgVideo && !isBgVideoGif ? (
                           <video
                             src={bgVideo}
                             poster={videoPoster}
@@ -970,7 +971,7 @@ export default function HomePage() {
                           />
                         ) : (
                           <img
-                            src={bgImg}
+                            src={isBgVideoGif ? bgVideo : bgImg}
                             alt={banner.title || 'Promotional Banner'}
                             className="w-full h-full object-cover group-hover:scale-[1.01] transition-transform duration-500"
                             onError={(e) => {
@@ -1000,18 +1001,27 @@ export default function HomePage() {
                     >
                       {bgVideo && (
                         <>
-                          <video
-                            src={bgVideo}
-                            poster={videoPoster}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
-                            disablePictureInPicture
-                            preload="metadata"
-                            aria-hidden="true"
-                            className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
-                          />
+                          {isBgVideoGif ? (
+                            <img
+                              src={bgVideo}
+                              alt=""
+                              aria-hidden="true"
+                              className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+                            />
+                          ) : (
+                            <video
+                              src={bgVideo}
+                              poster={videoPoster}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              disablePictureInPicture
+                              preload="metadata"
+                              aria-hidden="true"
+                              className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+                            />
+                          )}
                           <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/25 z-0 pointer-events-none" />
                         </>
                       )}
