@@ -950,12 +950,15 @@ export default function HomePage() {
                     return (s.startsWith('/') && !s.startsWith('//')) || s.startsWith('https://') || s.startsWith('http://') || s.startsWith('data:image/');
                   };
                   const bgImg = isSafeMedia(rawImg) ? rawImg : '';
-                  const bgVideo = isSafeMedia(rawVideo) ? rawVideo : '';
+                  const rawSafeVideo = isSafeMedia(rawVideo) ? rawVideo : '';
+                  const isBgVideoGif = Boolean(rawSafeVideo && /\.gif(\?|#|$)/i.test(rawSafeVideo));
+                  const bgVideo = (!isBgVideoGif && rawSafeVideo && rawSafeVideo.includes('res.cloudinary.com/') && rawSafeVideo.includes('/video/upload/') && !rawSafeVideo.includes('/video/upload/f_'))
+                    ? rawSafeVideo.replace('/video/upload/', '/video/upload/f_mp4,vc_h264,ac_none,q_auto,w_900/').replace(/\.[^./?#]+(\?.*)?$/, '.mp4')
+                    : rawSafeVideo;
                   const safeBgColor = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(banner.bg_color || '') ? banner.bg_color : '#9b4100';
                   const safeCtaLink = (banner.cta_link && banner.cta_link.startsWith('/') && !banner.cta_link.startsWith('//')) ? banner.cta_link : '/products';
-                  const isBgVideoGif = Boolean(bgVideo && /\.gif(\?|#|$)/i.test(bgVideo));
-                  const videoPoster = bgImg || (bgVideo && !isBgVideoGif && bgVideo.includes('res.cloudinary.com')
-                    ? bgVideo.replace(/\.[^./?#]+(\?.*)?$/, '.jpg')
+                  const videoPoster = bgImg || (rawSafeVideo && !isBgVideoGif && rawSafeVideo.includes('res.cloudinary.com')
+                    ? rawSafeVideo.replace(/\.[^./?#]+(\?.*)?$/, '.jpg')
                     : undefined);
 
                   if (banner.is_image_only && (bgVideo || bgImg)) {
@@ -968,6 +971,14 @@ export default function HomePage() {
                       >
                         {bgVideo && !isBgVideoGif ? (
                           <video
+                            ref={(el) => {
+                              if (el) {
+                                el.defaultMuted = true;
+                                el.muted = true;
+                                el.playsInline = true;
+                                el.play().catch(() => {});
+                              }
+                            }}
                             src={bgVideo}
                             poster={videoPoster}
                             autoPlay
@@ -975,7 +986,7 @@ export default function HomePage() {
                             loop
                             playsInline
                             disablePictureInPicture
-                            preload="metadata"
+                            preload="auto"
                             className="w-full h-full object-cover pointer-events-none"
                           />
                         ) : (
@@ -1019,6 +1030,14 @@ export default function HomePage() {
                             />
                           ) : (
                             <video
+                              ref={(el) => {
+                                if (el) {
+                                  el.defaultMuted = true;
+                                  el.muted = true;
+                                  el.playsInline = true;
+                                  el.play().catch(() => {});
+                                }
+                              }}
                               src={bgVideo}
                               poster={videoPoster}
                               autoPlay
@@ -1026,7 +1045,7 @@ export default function HomePage() {
                               loop
                               playsInline
                               disablePictureInPicture
-                              preload="metadata"
+                              preload="auto"
                               aria-hidden="true"
                               className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
                             />
