@@ -3639,9 +3639,29 @@ export default function AdminDashboardPage() {
                 <div className="bg-[#121212] p-3 rounded-2xl border border-stone-800">
                   {bannerForm.is_image_only ? (
                     <div
-                      className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer"
-                      style={{ backgroundColor: bannerForm.bg_color || '#9b4100' }}
+                      className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-[2/1] transition-all duration-300 flex items-center justify-center cursor-pointer bg-stone-950"
                     >
+                      {(bannerVideoPreview || bannerImagePreview) && (
+                        bannerVideoPreview ? (
+                          <video
+                            src={bannerVideoPreview}
+                            poster={bannerImagePreview || undefined}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            aria-hidden="true"
+                            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none"
+                          />
+                        ) : (
+                          <img
+                            src={bannerImagePreview}
+                            alt=""
+                            aria-hidden="true"
+                            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none"
+                          />
+                        )
+                      )}
                       {bannerVideoPreview ? (
                         <video
                           src={bannerVideoPreview}
@@ -3650,13 +3670,13 @@ export default function AdminDashboardPage() {
                           muted
                           loop
                           playsInline
-                          className="w-full h-full object-contain rounded-xl"
+                          className="relative z-10 w-full h-full object-contain rounded-xl"
                         />
                       ) : bannerImagePreview ? (
                         <img
                           src={bannerImagePreview}
                           alt={bannerForm.title || 'Graphic Banner'}
-                          className="w-full h-full object-contain rounded-xl"
+                          className="relative z-10 w-full h-full object-contain rounded-xl"
                         />
                       ) : (
                         <div className="text-center p-4 text-white/80">

@@ -950,9 +950,9 @@ export default function HomePage() {
                       <Link
                         key={banner.id || index}
                         to={banner.cta_link || '/products'}
-                        className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] flex items-center justify-center cursor-pointer group select-none active:opacity-95 transition-opacity"
-                        style={{ backgroundColor: banner.bg_color || '#9b4100' }}
+                        className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] flex items-center justify-center cursor-pointer group select-none active:opacity-95 transition-opacity bg-stone-950"
                       >
+                        {/* Ambient Blurred Backdrop for Vertical/Square Media (Zero Ugly Sidebars) */}
                         {bgVideo ? (
                           <video
                             src={bgVideo}
@@ -963,13 +963,35 @@ export default function HomePage() {
                             playsInline
                             disablePictureInPicture
                             preload="metadata"
-                            className="w-full h-full object-contain pointer-events-none"
+                            aria-hidden="true"
+                            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none"
+                          />
+                        ) : (
+                          <img
+                            src={bgImg}
+                            alt=""
+                            aria-hidden="true"
+                            className="absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-65 pointer-events-none"
+                          />
+                        )}
+
+                        {bgVideo ? (
+                          <video
+                            src={bgVideo}
+                            poster={bgImg || undefined}
+                            autoPlay
+                            muted
+                            loop
+                            playsInline
+                            disablePictureInPicture
+                            preload="metadata"
+                            className="relative z-10 w-full h-full object-contain pointer-events-none"
                           />
                         ) : (
                           <img
                             src={bgImg}
                             alt={banner.title || 'Promotional Banner'}
-                            className="w-full h-full object-contain group-hover:scale-[1.01] transition-transform duration-500"
+                            className="relative z-10 w-full h-full object-contain group-hover:scale-[1.01] transition-transform duration-500"
                             onError={(e) => {
                               e.currentTarget.onerror = null;
                               e.currentTarget.src = '/images/hero/dried_beef_pickle_signature.jpg';
