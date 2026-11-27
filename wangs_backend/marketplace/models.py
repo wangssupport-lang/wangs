@@ -312,7 +312,7 @@ class Product(models.Model):
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal('100.01'), message="Selling price must be strictly above ₹100.")]
+        validators=[MinValueValidator(Decimal('1.00'), message="Selling price must be at least ₹1.00.")]
     )
     base_price = models.DecimalField(
         max_digits=10,
