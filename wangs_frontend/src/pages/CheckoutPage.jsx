@@ -206,8 +206,10 @@ export default function CheckoutPage() {
       }
 
       // Razorpay Standard Checkout (Live / Test keys)
-      const intent = res.payment_intent || {};
-      if (intent.razorpay_order_id && !intent.is_simulated) {
+      const rawIntent = res.payment_intent || {};
+      const intent = { ...rawIntent, ...(rawIntent.checkout_data || {}) };
+      const rzpOrderId = intent.razorpay_order_id || intent.payment_order_id;
+      if (rzpOrderId && !intent.is_simulated) {
         if (!window.Razorpay) {
           setErrorMessage('Razorpay Checkout SDK could not load. Please refresh and try again.');
           return;
@@ -218,7 +220,7 @@ export default function CheckoutPage() {
           currency: intent.currency || 'INR',
           name: intent.name || 'Wangs Marketplace',
           description: intent.description || `Order #${res.order.order_number}`,
-          order_id: intent.razorpay_order_id,
+          order_id: rzpOrderId,
           prefill: intent.prefill || {
             name: customerName,
             email: customerEmail,
@@ -251,11 +253,11 @@ export default function CheckoutPage() {
           setErrorMessage(failResp?.error?.description || 'Payment failed. Please try again.');
         });
         rzp.open();
-      } else if (intent.is_simulated && intent.razorpay_order_id) {
+      } else if (intent.is_simulated && rzpOrderId) {
         // Local placeholder-key sandbox confirmation
         await api.verifyPayment({
           order_number: res.order.order_number,
-          razorpay_order_id: intent.razorpay_order_id,
+          razorpay_order_id: rzpOrderId,
           payment_id: `pay_test_${Date.now()}`,
           signature: 'sig_simulated',
         });

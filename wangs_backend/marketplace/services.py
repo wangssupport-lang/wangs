@@ -304,7 +304,9 @@ class PaymentService:
         and records Payment + PaymentTransaction idempotently.
         """
         from .payments.service import MarketplacePaymentService
-        return MarketplacePaymentService.initiate_payment(order, provider_name='RAZORPAY')
+        res = MarketplacePaymentService.initiate_payment(order, provider_name='RAZORPAY')
+        checkout_data = res.get('checkout_data') or {}
+        return {**res, **checkout_data}
 
     @staticmethod
     def create_mock_or_razorpay_order(order):
