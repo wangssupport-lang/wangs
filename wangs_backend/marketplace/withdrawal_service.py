@@ -350,3 +350,200 @@ def get_previous_withdrawals_total(seller: ManufacturerProfile, exclude_id: int 
         qs = qs.exclude(id=exclude_id)
     agg = qs.aggregate(total=Sum('requested_amount'))
     return (agg['total'] or Decimal('0.00')), qs.count()
+
+
+@transaction.atomic
+def sync_seller_balance_from_paid_orders(seller: ManufacturerProfile) -> SellerBalance:
+    """
+    Idempotently post missing ORDER_EARNING ledger entries for PAID order items
+    and release pending earnings to available_balance once delivered + return_period_days elapsed.
+    """
+    from datetime import timedelta
+
+    balance = get_or_create_seller_balance_locked(seller)
+    settings_obj = CommissionSetting.get_current()
+    return_days = int(getattr(settings_obj, 'return_period_days', 7) or 7)
+    cutoff = timezone.now() - timedelta(days=return_days)
+
+    paid_items = (
+        OrderItem.objects.filter(
+            manufacturer=seller,
+            order__payment_status=Order.PaymentStatus.PAID,
+        )
+        .exclude(order__status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED])
+        .select_related('order')
+    )
+
+    existing_refs = set(
+        SellerFinancialLedger.objects.filter(
+            seller=seller,
+            transaction_type=SellerFinancialLedger.TransactionType.ORDER_EARNING,
+        ).values_list('transaction_reference', flat=True)
+    )
+    released_refs = set(
+        SellerFinancialLedger.objects.filter(
+            seller=seller,
+            transaction_type=SellerFinancialLedger.TransactionType.ELIGIBILITY_RELEASE,
+        ).values_list('transaction_reference', flat=True)
+    )
+
+    for item in paid_items:
+        earn_ref = f"ORDITEM-{item.id}"
+        payout = (item.manufacturer_payout or Decimal('0.00')).quantize(Decimal('0.01'))
+        if payout <= Decimal('0.00'):
+            continue
+
+        is_delivered = (
+            item.order.status == Order.Status.DELIVERED
+            or item.fulfillment_status == OrderItem.FulfillmentStatus.DELIVERED
+        )
+        is_eligible_now = is_delivered and (item.order.updated_at <= cutoff)
+
+        if earn_ref not in existing_refs:
+            SellerFinancialLedger.objects.create(
+                seller=seller,
+                order=item.order,
+                order_item=item,
+                transaction_reference=earn_ref,
+                transaction_type=SellerFinancialLedger.TransactionType.ORDER_EARNING,
+                product_amount=item.subtotal,
+                commission_deduction=item.commission_amount,
+                delivery_allocation=Decimal('0.00'),
+                signed_amount=payout,
+                status=SellerFinancialLedger.Status.COMPLETED if is_eligible_now else SellerFinancialLedger.Status.PENDING,
+                description=f"Order #{item.order.order_number} · {item.quantity}x {item.product_title}",
+            )
+            balance.total_lifetime_earnings += payout
+            if is_eligible_now:
+                balance.available_balance += payout
+                # Also mark eligibility release ref so we don't double-release
+                rel_ref = f"RELITEM-{item.id}"
+                if rel_ref not in released_refs:
+                    SellerFinancialLedger.objects.create(
+                        seller=seller,
+                        order=item.order,
+                        order_item=item,
+                        transaction_reference=rel_ref,
+                        transaction_type=SellerFinancialLedger.TransactionType.ELIGIBILITY_RELEASE,
+                        signed_amount=Decimal('0.00'),
+                        status=SellerFinancialLedger.Status.COMPLETED,
+                        description=f"Return period completed for #{item.order.order_number}",
+                    )
+                    released_refs.add(rel_ref)
+            else:
+                balance.pending_earnings += payout
+            existing_refs.add(earn_ref)
+        else:
+            # Item was already recorded earlier; check if it should now transition from pending -> available
+            rel_ref = f"RELITEM-{item.id}"
+            if is_eligible_now and rel_ref not in released_refs and balance.pending_earnings >= payout:
+                balance.pending_earnings -= payout
+                balance.available_balance += payout
+                SellerFinancialLedger.objects.create(
+                    seller=seller,
+                    order=item.order,
+                    order_item=item,
+                    transaction_reference=rel_ref,
+                    transaction_type=SellerFinancialLedger.TransactionType.ELIGIBILITY_RELEASE,
+                    signed_amount=Decimal('0.00'),
+                    status=SellerFinancialLedger.Status.COMPLETED,
+                    description=f"Return period completed for #{item.order.order_number}",
+                )
+                released_refs.add(rel_ref)
+
+    balance.save()
+    return balance
+
+
+@transaction.atomic
+def submit_seller_withdrawal(
+    seller: ManufacturerProfile,
+    amount,
+    seller_notes: str = '',
+    actor_user=None,
+    ip_address: str | None = None,
+) -> SellerWithdrawal:
+    """
+    Atomically validate and reserve funds for a seller withdrawal request (min ₹300).
+    """
+    from decimal import InvalidOperation
+
+    if seller.status != ManufacturerProfile.Status.APPROVED:
+        raise WithdrawalWorkflowError('Your seller account must be approved before requesting withdrawals.', status_code=403)
+
+    try:
+        req_amount = Decimal(str(amount)).quantize(Decimal('0.01'))
+    except (InvalidOperation, TypeError, ValueError):
+        raise WithdrawalWorkflowError('Enter a valid withdrawal amount.', status_code=400)
+
+    settings_obj = CommissionSetting.get_current()
+    min_amount = (settings_obj.minimum_withdrawal_amount or Decimal('300.00')).quantize(Decimal('0.01'))
+    if req_amount < min_amount:
+        raise WithdrawalWorkflowError(f'Minimum withdrawal amount is ₹{min_amount}.', status_code=400)
+
+    bank_info = get_seller_bank_info(seller)
+    if not bank_info['is_bank_verified']:
+        raise WithdrawalWorkflowError(
+            'Your bank account and KYC verification must be completed before requesting a withdrawal.',
+            status_code=400,
+        )
+
+    balance = sync_seller_balance_from_paid_orders(seller)
+    if req_amount > balance.available_balance:
+        raise WithdrawalWorkflowError(
+            f'Requested amount ₹{req_amount} exceeds your available balance of ₹{balance.available_balance}.',
+            status_code=400,
+        )
+
+    avail_snapshot = balance.available_balance
+    balance.available_balance -= req_amount
+    balance.withdrawal_processing += req_amount
+    balance.save(update_fields=['available_balance', 'withdrawal_processing', 'updated_at'])
+
+    ref = f"WD-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    withdrawal = SellerWithdrawal.objects.create(
+        request_reference=ref,
+        seller=seller,
+        requested_amount=req_amount,
+        available_balance_snapshot=avail_snapshot,
+        bank_verification_status_snapshot=bank_info['verification_status'],
+        status=SellerWithdrawal.Status.REQUESTED,
+        seller_notes=(seller_notes or '').strip(),
+    )
+
+    SellerFinancialLedger.objects.create(
+        seller=seller,
+        transaction_reference=f"WDRES-{ref}",
+        transaction_type=SellerFinancialLedger.TransactionType.WITHDRAWAL_RESERVE,
+        signed_amount=-req_amount,
+        status=SellerFinancialLedger.Status.RESERVED,
+        description=f"Withdrawal request {ref} reserved for admin review",
+        created_by=actor_user,
+    )
+
+    FinancialAuditLog.objects.create(
+        actor=actor_user,
+        action='WITHDRAWAL_REQUESTED',
+        target_model='SellerWithdrawal',
+        target_id=str(withdrawal.id),
+        seller=seller,
+        withdrawal=withdrawal,
+        reason=(seller_notes or '').strip() or 'Seller submitted withdrawal request.',
+        previous_state={'available_balance': str(avail_snapshot)},
+        new_state={
+            'available_balance': str(balance.available_balance),
+            'withdrawal_processing': str(balance.withdrawal_processing),
+            'requested_amount': str(req_amount),
+            'status': withdrawal.status,
+        },
+        ip_address=ip_address,
+    )
+    AuditLog.objects.create(
+        user=actor_user,
+        action='WITHDRAWAL_REQUESTED',
+        target_model='SellerWithdrawal',
+        target_id=str(withdrawal.id),
+        details={'request_reference': ref, 'amount': str(req_amount)},
+    )
+    return withdrawal
+

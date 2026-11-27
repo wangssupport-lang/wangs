@@ -5808,6 +5808,318 @@ class AdminPaymentRequestReviewView(views.APIView):
             return Response({'detail': exc.message}, status=exc.status_code)
 
 
+# -------------------------------------------------------------
+# SELLER MY EARNINGS & WITHDRAWALS + ADMIN SELLER EARNINGS
+# -------------------------------------------------------------
+
+class SellerEarningsOverviewView(views.APIView):
+    """
+    Seller-scoped My Earnings & Withdrawals overview:
+    Balances (Available, Pending, Processing, Withdrawn, Reversed, Lifetime),
+    order-wise breakdown with expected eligibility date, ledger history, and withdrawal history.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from datetime import timedelta
+        from decimal import Decimal
+        from .models import CommissionSetting, Order, OrderItem, SellerFinancialLedger, SellerWithdrawal
+        from .withdrawal_service import get_seller_bank_info, sync_seller_balance_from_paid_orders
+
+        seller = getattr(request.user, 'manufacturer_profile', None)
+        if not seller:
+            return Response({'detail': 'Manufacturer profile required.'}, status=status.HTTP_403_FORBIDDEN)
+
+        balance = sync_seller_balance_from_paid_orders(seller)
+        settings_obj = CommissionSetting.get_current()
+        return_days = int(getattr(settings_obj, 'return_period_days', 7) or 7)
+        min_wd = (settings_obj.minimum_withdrawal_amount or Decimal('300.00')).quantize(Decimal('0.01'))
+        bank_info = get_seller_bank_info(seller)
+
+        paid_items = (
+            OrderItem.objects.filter(
+                manufacturer=seller,
+                order__payment_status=Order.PaymentStatus.PAID,
+            )
+            .select_related('order')
+            .order_by('-order__created_at')[:50]
+        )
+        orders_breakdown = []
+        now = timezone.now()
+        for item in paid_items:
+            is_delivered = (
+                item.order.status == Order.Status.DELIVERED
+                or item.fulfillment_status == OrderItem.FulfillmentStatus.DELIVERED
+            )
+            eligibility_dt = (item.order.updated_at + timedelta(days=return_days)) if is_delivered else None
+            if item.order.status in (Order.Status.CANCELLED, Order.Status.REFUNDED):
+                e_status = 'Reversed / Cancelled'
+            elif is_delivered and eligibility_dt and eligibility_dt <= now:
+                e_status = 'Eligible'
+            elif is_delivered:
+                e_status = 'In Return Period'
+            else:
+                e_status = 'Awaiting Delivery'
+
+            orders_breakdown.append({
+                'order_number': item.order.order_number,
+                'order_date': item.order.created_at.isoformat(),
+                'product_title': item.product_title,
+                'quantity': item.quantity,
+                'product_value': str(item.subtotal),
+                'commission_rate': str(item.commission_rate),
+                'commission_amount': str(item.commission_amount),
+                'delivery_allocation': '0.00',
+                'net_seller_earnings': str(item.manufacturer_payout),
+                'earnings_status': e_status,
+                'expected_eligibility_date': eligibility_dt.isoformat() if eligibility_dt else None,
+            })
+
+        ledger_entries = [
+            {
+                'id': le.id,
+                'transaction_reference': le.transaction_reference,
+                'transaction_type': le.transaction_type,
+                'transaction_type_display': le.get_transaction_type_display(),
+                'signed_amount': str(le.signed_amount),
+                'status': le.status,
+                'description': le.description,
+                'created_at': le.created_at.isoformat(),
+            }
+            for le in SellerFinancialLedger.objects.filter(seller=seller).order_by('-created_at')[:30]
+        ]
+
+        withdrawals = [
+            {
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'requested_amount': str(w.requested_amount),
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'seller_notes': w.seller_notes,
+                'rejection_reason': w.rejection_reason,
+                'provider_payout_reference': w.provider_payout_reference,
+                'created_at': w.created_at.isoformat(),
+                'approved_at': w.approved_at.isoformat() if w.approved_at else None,
+                'paid_at': w.paid_at.isoformat() if w.paid_at else None,
+            }
+            for w in SellerWithdrawal.objects.filter(seller=seller).order_by('-created_at')[:30]
+        ]
+
+        q2 = lambda v: str((v or Decimal('0.00')).quantize(Decimal('0.01')))
+        return Response({
+            'balances': {
+                'available_balance': q2(balance.available_balance),
+                'pending_earnings': q2(balance.pending_earnings),
+                'withdrawal_processing': q2(balance.withdrawal_processing),
+                'total_withdrawn': q2(balance.total_withdrawn),
+                'reversed_adjusted': q2(balance.reversed_adjusted),
+                'total_lifetime_earnings': q2(balance.total_lifetime_earnings),
+            },
+            'minimum_withdrawal_amount': str(min_wd),
+            'return_period_days': return_days,
+            'bank_info': bank_info,
+            'orders_breakdown': orders_breakdown,
+            'ledger_entries': ledger_entries,
+            'withdrawals': withdrawals,
+            'settlement_mode': {
+                'live_payouts_enabled': False,
+                'mode': 'SANDBOX_PENDING_ROUTE_APPROVAL',
+                'notice': 'Marketplace settlement activation is pending Razorpay Route approval. You can submit withdrawal requests for admin review while live transfers remain in sandbox mode.',
+            },
+        })
+
+
+class SellerWithdrawalCreateView(views.APIView):
+    """Allow an approved, bank-verified seller to request a withdrawal (>= ₹300)."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from .withdrawal_service import WithdrawalWorkflowError, get_client_ip, submit_seller_withdrawal
+
+        seller = getattr(request.user, 'manufacturer_profile', None)
+        if not seller:
+            return Response({'detail': 'Manufacturer profile required.'}, status=status.HTTP_403_FORBIDDEN)
+
+        amount = request.data.get('amount')
+        seller_notes = request.data.get('seller_notes', '')
+        try:
+            w = submit_seller_withdrawal(
+                seller=seller,
+                amount=amount,
+                seller_notes=seller_notes,
+                actor_user=request.user,
+                ip_address=get_client_ip(request),
+            )
+            return Response({
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'requested_amount': str(w.requested_amount),
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'created_at': w.created_at.isoformat(),
+                'message': f'Withdrawal request {w.request_reference} submitted for admin review.',
+            }, status=status.HTTP_201_CREATED)
+        except WithdrawalWorkflowError as exc:
+            return Response({'detail': exc.message}, status=exc.status_code)
+
+
+class AdminSellerEarningsListView(views.APIView):
+    """Admin seller-wise financial summary: earnings, commission, pending, available, processing, and paid."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from decimal import Decimal
+        from django.db.models import Count, Q, Sum
+        from .models import ManufacturerProfile, Order, OrderItem
+        from .withdrawal_service import get_seller_bank_info, sync_seller_balance_from_paid_orders
+
+        search = (request.query_params.get('search') or '').strip()
+        sellers_qs = ManufacturerProfile.objects.select_related('user').all().order_by('business_name')
+        if search:
+            sellers_qs = sellers_qs.filter(
+                Q(business_name__icontains=search)
+                | Q(contact_email__icontains=search)
+                | Q(user__username__icontains=search)
+                | Q(user__first_name__icontains=search)
+                | Q(user__last_name__icontains=search)
+            )
+
+        paid_stats = {
+            row['manufacturer_id']: row
+            for row in OrderItem.objects.filter(order__payment_status=Order.PaymentStatus.PAID)
+            .exclude(order__status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED])
+            .values('manufacturer_id')
+            .annotate(
+                total_sales=Sum('subtotal'),
+                wangs_commission=Sum('commission_amount'),
+                orders_count=Count('order', distinct=True),
+            )
+        }
+
+        q2 = lambda v: str((v or Decimal('0.00')).quantize(Decimal('0.01')))
+        totals = {
+            'total_sales': Decimal('0.00'),
+            'total_commission': Decimal('0.00'),
+            'total_pending': Decimal('0.00'),
+            'total_available': Decimal('0.00'),
+            'total_processing': Decimal('0.00'),
+            'total_paid': Decimal('0.00'),
+        }
+
+        results = []
+        for s in sellers_qs:
+            bal = sync_seller_balance_from_paid_orders(s)
+            st = paid_stats.get(s.id, {})
+            sales = (st.get('total_sales') or Decimal('0.00')).quantize(Decimal('0.01'))
+            comm = (st.get('wangs_commission') or Decimal('0.00')).quantize(Decimal('0.01'))
+            bank_info = get_seller_bank_info(s)
+            seller_name = (f"{s.user.first_name} {s.user.last_name}".strip() if s.user else '') or s.bank_account_holder or s.business_name
+
+            totals['total_sales'] += sales
+            totals['total_commission'] += comm
+            totals['total_pending'] += bal.pending_earnings
+            totals['total_available'] += bal.available_balance
+            totals['total_processing'] += bal.withdrawal_processing
+            totals['total_paid'] += bal.total_withdrawn
+
+            results.append({
+                'seller_id': s.id,
+                'seller_name': seller_name,
+                'shop_name': s.business_name,
+                'email': s.contact_email or (s.user.email if s.user else ''),
+                'account_status': s.status,
+                'bank_verification_status': bank_info['verification_status'],
+                'orders_count': st.get('orders_count', 0),
+                'total_sales': str(sales),
+                'wangs_commission': str(comm),
+                'delivery_allocations': '0.00',
+                'pending_earnings': q2(bal.pending_earnings),
+                'available_balance': q2(bal.available_balance),
+                'withdrawal_processing': q2(bal.withdrawal_processing),
+                'total_withdrawn': q2(bal.total_withdrawn),
+                'total_lifetime_earnings': q2(bal.total_lifetime_earnings),
+            })
+
+        return Response({
+            'summary': {k: q2(v) for k, v in totals.items()},
+            'results': results,
+        })
+
+
+class AdminSellerEarningsDetailView(views.APIView):
+    """Admin drill-down for a specific seller's earnings, ledger entries, orders, and withdrawals."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, seller_id):
+        from decimal import Decimal
+        from .models import ManufacturerProfile, SellerFinancialLedger, SellerWithdrawal
+        from .withdrawal_service import (
+            get_seller_bank_info,
+            get_seller_earnings_breakdown,
+            sync_seller_balance_from_paid_orders,
+        )
+
+        seller = ManufacturerProfile.objects.select_related('user').filter(pk=seller_id).first()
+        if not seller:
+            return Response({'detail': 'Seller not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        bal = sync_seller_balance_from_paid_orders(seller)
+        bank_info = get_seller_bank_info(seller)
+        seller_name = (f"{seller.user.first_name} {seller.user.last_name}".strip() if seller.user else '') or seller.bank_account_holder or seller.business_name
+        q2 = lambda v: str((v or Decimal('0.00')).quantize(Decimal('0.01')))
+
+        ledger = [
+            {
+                'id': le.id,
+                'transaction_reference': le.transaction_reference,
+                'transaction_type': le.transaction_type,
+                'transaction_type_display': le.get_transaction_type_display(),
+                'signed_amount': str(le.signed_amount),
+                'status': le.status,
+                'description': le.description,
+                'created_at': le.created_at.isoformat(),
+            }
+            for le in SellerFinancialLedger.objects.filter(seller=seller).order_by('-created_at')[:30]
+        ]
+        withdrawals = [
+            {
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'requested_amount': str(w.requested_amount),
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'created_at': w.created_at.isoformat(),
+                'paid_at': w.paid_at.isoformat() if w.paid_at else None,
+            }
+            for w in SellerWithdrawal.objects.filter(seller=seller).order_by('-created_at')[:20]
+        ]
+
+        return Response({
+            'seller_info': {
+                'seller_id': seller.id,
+                'seller_name': seller_name,
+                'shop_name': seller.business_name,
+                'email': seller.contact_email or (seller.user.email if seller.user else ''),
+                'phone': seller.contact_phone or '',
+                'account_status': seller.status,
+            },
+            'bank_info': bank_info,
+            'balances': {
+                'available_balance': q2(bal.available_balance),
+                'pending_earnings': q2(bal.pending_earnings),
+                'withdrawal_processing': q2(bal.withdrawal_processing),
+                'total_withdrawn': q2(bal.total_withdrawn),
+                'reversed_adjusted': q2(bal.reversed_adjusted),
+                'total_lifetime_earnings': q2(bal.total_lifetime_earnings),
+            },
+            'orders_breakdown': get_seller_earnings_breakdown(seller, limit=25),
+            'ledger_entries': ledger,
+            'withdrawals': withdrawals,
+        })
+
+
+
 
 
 

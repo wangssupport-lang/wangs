@@ -15,6 +15,7 @@ import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
 import BrandCard from '../components/BrandCard';
 import ManufacturerDeliveryTab from '../components/ManufacturerDeliveryTab';
+import SellerEarningsTab from '../components/SellerEarningsTab';
 import { compressImageFile, resolveProductImage } from '../utils/image';
 
 function getBrandInitials(name = '') {
@@ -984,7 +985,7 @@ export default function ManufacturerPortalPage() {
               }`}
             >
               <DollarSign size={15} className={activeTab === 'financials' ? 'text-forest-900' : 'text-stone-400'} />
-              <span>Earnings & Payouts</span>
+              <span>My Earnings &amp; Withdrawals</span>
             </button>
 
             <button
@@ -1721,7 +1722,8 @@ export default function ManufacturerPortalPage() {
             TAB 4: FINANCIALS & SETTLEMENTS
            =================================================================== */}
         {activeTab === 'financials' && (
-          <div className="space-y-6 text-xs animate-fade-in">
+          <div className="space-y-8 text-xs animate-fade-in">
+            <SellerEarningsTab onGoToBankSettings={() => handleTabChange('settings', 'bank')} />
             {/* Financial Overview Card */}
             <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-3">

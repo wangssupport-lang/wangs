@@ -503,6 +503,24 @@ export const api = {
     body: JSON.stringify(body),
   }),
 
+  // Seller My Earnings & Withdrawals
+  getSellerEarnings: () => apiRequest('/sellers/earnings/'),
+  submitSellerWithdrawal: (body) =>
+    apiRequest('/sellers/withdrawals/', { method: 'POST', body: JSON.stringify(body) }),
+
+  // Admin Seller Earnings Overview & Drill-down
+  getAdminSellerEarnings: (params = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== '') {
+        qs.append(k, String(v).trim());
+      }
+    });
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return apiRequest(`/admin/seller-earnings/${suffix}`);
+  },
+  getAdminSellerEarningsDetail: (sellerId) => apiRequest(`/admin/seller-earnings/${sellerId}/`),
+
   // Admin Payment Requests (Bagisto-inspired Withdrawal Governance)
   getAdminPaymentRequests: (params = {}) => {
     const qs = new URLSearchParams();

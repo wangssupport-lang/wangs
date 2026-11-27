@@ -18,6 +18,7 @@ import AdminRewardsTab from '../components/AdminRewardsTab';
 import AdminCouriersTab from '../components/AdminCouriersTab';
 import AdminDeliveryTab from '../components/AdminDeliveryTab';
 import AdminPaymentRequestsTab from '../components/AdminPaymentRequestsTab';
+import AdminSellerEarningsTab from '../components/AdminSellerEarningsTab';
 
 const extractList = (data) => {
   if (!data) return [];
@@ -452,6 +453,7 @@ const tabTitles = {
   categories: 'Catalog Categories',
   commission: 'Commission & Fees Settings',
   payment_requests: 'Payment Requests',
+  seller_earnings: 'Seller Earnings',
   settlements: 'Payout Settlements',
   research: 'Research & Study Records',
   logs: 'System Audit Trail'
@@ -1976,6 +1978,7 @@ export default function AdminDashboardPage() {
         { id: 'orbital', label: 'Orbital Shelf', icon: Sparkles, count: orbitalForm.product_ids.length || 5 },
         { id: 'categories', label: 'Categories', icon: Tags, count: categoriesList.length },
         { id: 'payment_requests', label: 'Payment Requests', icon: Landmark },
+        { id: 'seller_earnings', label: 'Seller Earnings', icon: DollarSign },
         { id: 'commission', label: 'Commission & Fees', icon: DollarSign },
         { id: 'settlements', label: 'Payout Settlements', icon: Landmark },
         { id: 'research', label: 'Research & Exports', icon: FileText },
@@ -6195,6 +6198,9 @@ export default function AdminDashboardPage() {
 
       {/* Tab: Payment Requests (Withdrawal Governance) */}
       {activeTab === 'payment_requests' && <AdminPaymentRequestsTab />}
+
+      {/* Tab: Seller Earnings & Payouts Overview */}
+      {activeTab === 'seller_earnings' && <AdminSellerEarningsTab />}
 
       {/* Tab 5: Commission & Fee Management */}
       {activeTab === 'commission' && (

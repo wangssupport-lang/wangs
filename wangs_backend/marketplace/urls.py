@@ -45,7 +45,9 @@ from .views import (
     AdminSettlementsOverviewView,
     AdminPaymentRequestListView, AdminPaymentRequestDetailView,
     AdminPaymentRequestApproveView, AdminPaymentRequestRejectView,
-    AdminPaymentRequestReviewView
+    AdminPaymentRequestReviewView,
+    SellerEarningsOverviewView, SellerWithdrawalCreateView,
+    AdminSellerEarningsListView, AdminSellerEarningsDetailView
 )
 
 router = DefaultRouter()
@@ -154,6 +156,8 @@ urlpatterns = [
     path('sellers/payment-profile/', SellerPaymentProfileView.as_view(), name='seller-payment-profile'),
     path('sellers/settlements/', SellerSettlementsView.as_view(), name='seller-settlements'),
     path('sellers/transactions/', SellerTransactionsView.as_view(), name='seller-transactions'),
+    path('sellers/earnings/', SellerEarningsOverviewView.as_view(), name='seller-earnings'),
+    path('sellers/withdrawals/', SellerWithdrawalCreateView.as_view(), name='seller-withdrawals'),
     
     # Platform Settings & Maintenance
     path('platform-settings/', PlatformSettingsView.as_view(), name='platform-settings'),
@@ -187,6 +191,8 @@ urlpatterns = [
     path('admin/payment-requests/<int:pk>/approve/', AdminPaymentRequestApproveView.as_view(), name='admin-payment-request-approve'),
     path('admin/payment-requests/<int:pk>/reject/', AdminPaymentRequestRejectView.as_view(), name='admin-payment-request-reject'),
     path('admin/payment-requests/<int:pk>/review/', AdminPaymentRequestReviewView.as_view(), name='admin-payment-request-review'),
+    path('admin/seller-earnings/', AdminSellerEarningsListView.as_view(), name='admin-seller-earnings'),
+    path('admin/seller-earnings/<int:seller_id>/', AdminSellerEarningsDetailView.as_view(), name='admin-seller-earnings-detail'),
     path('admin/payments/', AdminPaymentsOverviewView.as_view(), name='admin-payments-overview'),
     path('admin/maintenance-subscribers/', AdminMaintenanceSubscribersView.as_view(), name='admin-maintenance-subscribers'),
     path('admin/audit-logs/', AdminAuditLogsView.as_view(), name='admin-audit-logs'),

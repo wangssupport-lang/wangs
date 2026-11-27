@@ -154,3 +154,42 @@ class AdminPaymentRequestsTests(TestCase):
             entry.save()
         with self.assertRaises(ValueError):
             entry.delete()
+
+    def test_seller_withdrawal_validation_and_reservation(self):
+        self.client.force_authenticate(user=self.seller_user)
+
+        # Below ₹300 -> rejected
+        low_res = self.client.post('/api/sellers/withdrawals/', {'amount': '299.00'}, format='json')
+        self.assertEqual(low_res.status_code, 400)
+
+        # Exceeds available balance (700.00) -> rejected
+        high_res = self.client.post('/api/sellers/withdrawals/', {'amount': '750.00'}, format='json')
+        self.assertEqual(high_res.status_code, 400)
+
+        # Exactly ₹300 -> succeeds and atomically reserves balance
+        ok_res = self.client.post('/api/sellers/withdrawals/', {'amount': '300.00', 'seller_notes': 'Weekly payout'}, format='json')
+        self.assertEqual(ok_res.status_code, 201)
+        self.balance.refresh_from_db()
+        self.assertEqual(self.balance.available_balance, Decimal('400.00'))
+        self.assertEqual(self.balance.withdrawal_processing, Decimal('800.00'))
+
+        # Seller earnings overview reflects updated balances and masked bank
+        earn_res = self.client.get('/api/sellers/earnings/')
+        self.assertEqual(earn_res.status_code, 200)
+        self.assertEqual(earn_res.data['balances']['available_balance'], '400.00')
+        self.assertEqual(earn_res.data['bank_info']['masked_account_number'], '•••• •••• 7890')
+
+    def test_admin_seller_earnings_list_and_detail(self):
+        self.client.force_authenticate(user=self.admin)
+        list_res = self.client.get('/api/admin/seller-earnings/?search=Smokehouse')
+        self.assertEqual(list_res.status_code, 200)
+        self.assertEqual(len(list_res.data['results']), 1)
+        row = list_res.data['results'][0]
+        self.assertEqual(row['available_balance'], '700.00')
+        self.assertEqual(row['total_withdrawn'], '300.00')
+
+        detail_res = self.client.get(f'/api/admin/seller-earnings/{self.seller.id}/')
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertEqual(detail_res.data['balances']['total_withdrawn'], '300.00')
+        self.assertEqual(detail_res.data['bank_info']['masked_account_number'], '•••• •••• 7890')
+
