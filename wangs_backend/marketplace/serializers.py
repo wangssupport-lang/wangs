@@ -985,14 +985,16 @@ class ProductSerializer(serializers.ModelSerializer):
         return None
 
     def validate_price(self, value):
-        if value is not None and value <= Decimal('100.00'):
-            raise serializers.ValidationError("Selling price must be above ₹100. All sellers are required to sell products above ₹100.")
+        min_price = CommissionSetting.get_current().minimum_product_price or Decimal('101.00')
+        if value is not None and value < min_price:
+            raise serializers.ValidationError(f"Selling price must be at least ₹{min_price}.")
         return value
 
     def validate(self, attrs):
         price = attrs.get('price')
-        if price is not None and price <= Decimal('100.00'):
-            raise serializers.ValidationError({'price': "Selling price must be above ₹100. All sellers are required to sell products above ₹100."})
+        min_price = CommissionSetting.get_current().minimum_product_price or Decimal('101.00')
+        if price is not None and price < min_price:
+            raise serializers.ValidationError({'price': f"Selling price must be at least ₹{min_price}."})
         mrp = attrs.get('mrp')
         if mrp is not None and price is not None and mrp < price:
             raise serializers.ValidationError({'mrp': "MRP cannot be lower than the selling price."})
@@ -1170,6 +1172,9 @@ class CommissionUpdateSerializer(serializers.Serializer):
     customer_platform_fee = serializers.DecimalField(max_digits=6, decimal_places=2)
     default_delivery_fee = serializers.DecimalField(max_digits=6, decimal_places=2)
     free_delivery_threshold = serializers.DecimalField(max_digits=8, decimal_places=2)
+    minimum_product_price = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, min_value=Decimal('1.00'))
+    minimum_withdrawal_amount = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, min_value=Decimal('1.00'))
+    return_period_days = serializers.IntegerField(required=False, min_value=0, max_value=90)
     allow_seller_registration = serializers.BooleanField(required=False, default=False)
     reason = serializers.CharField(max_length=255)
 

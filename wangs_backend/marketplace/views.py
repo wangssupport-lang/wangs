@@ -3480,6 +3480,12 @@ class AdminCommissionView(views.APIView):
         current.customer_platform_fee = data['customer_platform_fee']
         current.default_delivery_fee = data['default_delivery_fee']
         current.free_delivery_threshold = data['free_delivery_threshold']
+        if 'minimum_product_price' in data:
+            current.minimum_product_price = data['minimum_product_price']
+        if 'minimum_withdrawal_amount' in data:
+            current.minimum_withdrawal_amount = data['minimum_withdrawal_amount']
+        if 'return_period_days' in data:
+            current.return_period_days = data['return_period_days']
         if 'allow_seller_registration' in data:
             current.allow_seller_registration = data['allow_seller_registration']
         current.save()
@@ -3489,7 +3495,13 @@ class AdminCommissionView(views.APIView):
             action='COMMISSION_SETTING_UPDATED',
             target_model='CommissionSetting',
             target_id=str(current.id),
-            details={'rate': str(current.default_commission_rate), 'reason': data['reason']}
+            details={
+                'rate': str(current.default_commission_rate),
+                'minimum_product_price': str(current.minimum_product_price),
+                'minimum_withdrawal_amount': str(current.minimum_withdrawal_amount),
+                'return_period_days': current.return_period_days,
+                'reason': data['reason'],
+            }
         )
 
         return Response({
@@ -3555,9 +3567,13 @@ class PlatformSettingsView(views.APIView):
             'allow_seller_registration': current.allow_seller_registration,
             'is_maintenance_mode': current.is_maintenance_mode,
             'maintenance_message': current.maintenance_message,
+            'default_commission_rate': str(current.default_commission_rate),
             'customer_platform_fee': str(current.customer_platform_fee),
             'default_delivery_fee': str(current.default_delivery_fee),
             'free_delivery_threshold': str(current.free_delivery_threshold),
+            'minimum_product_price': str(current.minimum_product_price),
+            'minimum_withdrawal_amount': str(current.minimum_withdrawal_amount),
+            'return_period_days': current.return_period_days,
             'orbital_showcase': get_orbital_showcase_payload(current, request),
         })
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'

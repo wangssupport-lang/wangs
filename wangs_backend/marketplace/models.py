@@ -474,6 +474,10 @@ class CommissionSetting(models.Model):
         max_digits=8, decimal_places=2, default=Decimal('300.00'),
         help_text="Minimum available balance required for a seller to request a withdrawal (₹300.00)."
     )
+    minimum_product_price = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal('101.00'),
+        help_text="Minimum selling price allowed for seller product listings (INR)."
+    )
     is_maintenance_mode = models.BooleanField(
         default=False,
         help_text="When True, the public storefront shows a maintenance page to visitors. Admins can bypass."

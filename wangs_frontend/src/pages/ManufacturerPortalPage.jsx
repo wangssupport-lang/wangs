@@ -30,7 +30,8 @@ function getBrandInitials(name = '') {
 }
 
 export default function ManufacturerPortalPage() {
-  const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp, loading: authLoading } = useAuth();
+  const { user, isManufacturer, isAuthorizedToSell, login, loginWithOtp, loading: authLoading, platformSettings } = useAuth();
+  const minProductPrice = parseFloat(platformSettings?.minimum_product_price || 101);
   const navigate = useNavigate();
   const toast = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -393,8 +394,8 @@ export default function ManufacturerPortalPage() {
   const handleCreateProduct = async (e) => {
     e.preventDefault();
     const priceNum = parseFloat(newProd.price);
-    if (isNaN(priceNum) || priceNum <= 100) {
-      toast.error('Selling price must be above ₹100. All sellers are required to sell products above ₹100 (minimum ₹101).');
+    if (isNaN(priceNum) || priceNum < minProductPrice) {
+      toast.error(`Selling price must be at least ₹${minProductPrice}.`);
       return;
     }
     const cleanImages = (newProd.images || []).map((img) => (img || '').trim()).filter(Boolean);
@@ -2725,7 +2726,7 @@ export default function ManufacturerPortalPage() {
                             className="w-full pl-7 pr-3 py-2 border-2 border-forest-800 bg-white rounded-xl text-sm font-black text-forest-950 focus:ring-1 focus:ring-forest-800"
                           />
                         </div>
-                        <p className="text-[10px] text-amber-700 font-semibold mt-1">Displayed on storefront (Must be &gt; ₹100).</p>
+                        <p className="text-[10px] text-amber-700 font-semibold mt-1">Displayed on storefront (Minimum ₹{minProductPrice}).</p>
                       </div>
                     </div>
 

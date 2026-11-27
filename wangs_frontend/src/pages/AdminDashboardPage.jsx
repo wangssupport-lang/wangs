@@ -538,6 +538,9 @@ export default function AdminDashboardPage() {
     customer_platform_fee: '5.00',
     default_delivery_fee: '50.00',
     free_delivery_threshold: '999.00',
+    minimum_product_price: '101.00',
+    minimum_withdrawal_amount: '300.00',
+    return_period_days: '7',
     reason: '',
   });
 
@@ -704,6 +707,9 @@ export default function AdminDashboardPage() {
           customer_platform_fee: parsedComm.current.customer_platform_fee,
           default_delivery_fee: parsedComm.current.default_delivery_fee,
           free_delivery_threshold: parsedComm.current.free_delivery_threshold,
+          minimum_product_price: parsedComm.current.minimum_product_price || '101.00',
+          minimum_withdrawal_amount: parsedComm.current.minimum_withdrawal_amount || '300.00',
+          return_period_days: String(parsedComm.current.return_period_days ?? 7),
           reason: '',
         });
       }
@@ -970,7 +976,8 @@ export default function AdminDashboardPage() {
     }
     try {
       await api.updateCommissionSettings(commForm);
-      toast.success('Commission settings updated and logged in audit history');
+      if (refreshPlatformSettings) refreshPlatformSettings();
+      toast.success('Commission & minimum policy settings updated and logged in audit history');
       loadAdminData();
     } catch (err) {
       toast.error(err.message || 'Update failed');
@@ -6250,6 +6257,45 @@ export default function AdminDashboardPage() {
                   onChange={(e) => setCommForm({ ...commForm, free_delivery_threshold: e.target.value })}
                   className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Min Product Price (INR)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    required
+                    value={commForm.minimum_product_price}
+                    onChange={(e) => setCommForm({ ...commForm, minimum_product_price: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Min Withdrawal (INR)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    required
+                    value={commForm.minimum_withdrawal_amount}
+                    onChange={(e) => setCommForm({ ...commForm, minimum_withdrawal_amount: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Return Period (Days)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="90"
+                    required
+                    value={commForm.return_period_days}
+                    onChange={(e) => setCommForm({ ...commForm, return_period_days: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
               </div>
 
               <div>
