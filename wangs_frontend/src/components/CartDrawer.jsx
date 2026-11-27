@@ -18,7 +18,7 @@ export default function CartDrawer() {
   const items = cart?.items || [];
   const summary = cart?.financial_summary || {
     items_subtotal: '0.00',
-    customer_platform_fee: '5.00',
+    customer_platform_fee: '3.00',
     delivery_fee: '0.00',
     discount_amount: '0.00',
     total_amount: '0.00',

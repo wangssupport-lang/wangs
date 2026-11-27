@@ -447,8 +447,8 @@ class CommissionSetting(models.Model):
         help_text="Default manufacturer commission rate (e.g. 10.00 for 10%)"
     )
     customer_platform_fee = models.DecimalField(
-        max_digits=6, decimal_places=2, default=Decimal('5.00'),
-        help_text="Customer platform fee in INR (e.g. ₹5.00)"
+        max_digits=6, decimal_places=2, default=Decimal('3.00'),
+        help_text="Customer platform fee in INR (e.g. ₹3.00)"
     )
     default_delivery_fee = models.DecimalField(
         max_digits=6, decimal_places=2, default=Decimal('50.00'),

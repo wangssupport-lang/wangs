@@ -10,7 +10,7 @@ import { resolveProductImage } from '../utils/image';
 
 export default function CheckoutPage() {
   const { cart, refreshCart, removeFromCart, updateQuantity } = useCart();
-  const { user, requireAuth } = useAuth();
+  const { user, requireAuth, platformSettings } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -143,7 +143,8 @@ export default function CheckoutPage() {
 
   const itemsSubtotal = parseFloat(summary.items_subtotal) || 0;
   const deliveryFee = parseFloat(summary.delivery_fee) || 0;
-  const totalAmount = Math.max(0, itemsSubtotal + deliveryFee);
+  const platformFee = itemsSubtotal > 0 ? (parseFloat(summary.customer_platform_fee ?? platformSettings?.customer_platform_fee ?? 3) || 0) : 0;
+  const totalAmount = Math.max(0, itemsSubtotal + deliveryFee + platformFee);
 
   const getPastelColor = (title = '', cat = '') => {
     const text = (title + ' ' + cat).toLowerCase();
@@ -547,6 +548,13 @@ export default function CheckoutPage() {
                 <span>Delivery</span>
                 <span className="font-bold text-stone-900 font-serif text-sm">
                   {deliveryFee === 0 ? 'Free' : `₹${deliveryFee.toFixed(0)}`}
+                </span>
+              </div>
+
+              <div className="flex justify-between">
+                <span>Platform Fee</span>
+                <span className="font-bold text-stone-900 font-serif text-sm">
+                  ₹{platformFee.toFixed(0)}
                 </span>
               </div>
 
