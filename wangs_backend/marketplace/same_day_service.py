@@ -7,6 +7,7 @@ from .models import (
     DeliveryZone,
     DeliveryRate,
     CourierService,
+    CommissionSetting,
 )
 from .delivery_service import DeliveryCalculator, DeliveryService, KOHIMA_TZ
 
@@ -135,6 +136,32 @@ class SameDayService:
         return cls.seller_covers_location(seller, postal_code=postal_code, town=town, district=district)
 
     @classmethod
+    def get_platform_cutoff_time(cls):
+        """
+        Returns the admin-configurable platform-wide Get It Today cutoff time in IST (default 6:00 PM).
+        """
+        try:
+            setting = CommissionSetting.get_current()
+            if setting and getattr(setting, 'same_day_cutoff_time', None):
+                return setting.same_day_cutoff_time
+        except Exception:
+            pass
+        return time(18, 0)
+
+    @classmethod
+    def get_effective_cutoff_time(cls, seller=None, rate=None):
+        """
+        Returns the strictest applicable cutoff time among the admin platform cutoff,
+        seller cutoff, and courier rate cutoff.
+        """
+        cutoffs = [cls.get_platform_cutoff_time()]
+        if seller and getattr(seller, 'same_day_cutoff_time', None):
+            cutoffs.append(seller.same_day_cutoff_time)
+        if rate and getattr(rate, 'same_day_cutoff_time', None):
+            cutoffs.append(rate.same_day_cutoff_time)
+        return min(cutoffs)
+
+    @classmethod
     def check_seller_schedule(cls, seller, now_dt=None):
         """
         Evaluate seller's operating days and daily cutoff time in Asia/Kolkata.
@@ -142,14 +169,14 @@ class SameDayService:
         """
         now_ist = (now_dt or timezone.now()).astimezone(KOHIMA_TZ)
         weekday = now_ist.weekday()  # 0=Mon .. 6=Sun
+        cutoff = cls.get_effective_cutoff_time(seller=seller)
 
         op_days = seller.same_day_operating_days
         if isinstance(op_days, list) and len(op_days) > 0:
             normalized_days = [int(d) for d in op_days if str(d).isdigit()]
             if normalized_days and weekday not in normalized_days:
-                return False, 'Seller is not operating for same-day orders today.', cls.format_cutoff(seller.same_day_cutoff_time)
+                return False, 'Seller is not operating for same-day orders today.', cls.format_cutoff(cutoff)
 
-        cutoff = seller.same_day_cutoff_time
         if cutoff and now_ist.time() > cutoff:
             return False, f"Daily same-day order cutoff ({cls.format_cutoff(cutoff)}) has passed.", cls.format_cutoff(cutoff)
 

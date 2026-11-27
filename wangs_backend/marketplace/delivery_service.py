@@ -571,15 +571,25 @@ class DeliveryCalculator:
     def check_same_day_cutoff_valid(cls, rate):
         """
         Validates if order is placed before same-day cutoff time in Kohima local timezone.
+        Enforces both the admin-configured platform cutoff (default 6:00 PM) and any courier rate cutoff.
         """
         if not rate or rate.delivery_method != DeliveryRate.DeliveryMethod.SAME_DAY:
-            return True
-        if not rate.same_day_cutoff_time:
             return True
 
         now_in_kohima = timezone.now().astimezone(KOHIMA_TZ)
         current_time = now_in_kohima.time()
-        return current_time <= rate.same_day_cutoff_time
+
+        try:
+            from .models import CommissionSetting
+            platform_cutoff = getattr(CommissionSetting.get_current(), 'same_day_cutoff_time', None) or time(18, 0)
+        except Exception:
+            platform_cutoff = time(18, 0)
+
+        if current_time > platform_cutoff:
+            return False
+        if rate.same_day_cutoff_time and current_time > rate.same_day_cutoff_time:
+            return False
+        return True
 
     @classmethod
     def calculate_delivery_quote(cls, cart_items, postal_code, city, state='', requested_method=None):

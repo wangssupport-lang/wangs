@@ -3488,6 +3488,8 @@ class AdminCommissionView(views.APIView):
             current.return_period_days = data['return_period_days']
         if 'eligibility_hours' in data:
             current.eligibility_hours = data['eligibility_hours']
+        if 'same_day_cutoff_time' in data and data['same_day_cutoff_time'] is not None:
+            current.same_day_cutoff_time = data['same_day_cutoff_time']
         if 'support_email' in data:
             current.support_email = data['support_email']
         if 'support_phone' in data:
@@ -3510,6 +3512,7 @@ class AdminCommissionView(views.APIView):
                 'minimum_product_price': str(current.minimum_product_price),
                 'minimum_withdrawal_amount': str(current.minimum_withdrawal_amount),
                 'return_period_days': current.return_period_days,
+                'same_day_cutoff_time': current.same_day_cutoff_time.strftime('%H:%M') if current.same_day_cutoff_time else None,
                 'reason': data['reason'],
             }
         )
@@ -5392,13 +5395,16 @@ class GetItTodayProductsView(views.APIView):
                     or seller.location_district
                 ),
                 'estimated_delivery_window': check.get('estimated_window'),
-                'cutoff_time': SameDayService.format_cutoff(seller.same_day_cutoff_time),
+                'cutoff_time': SameDayService.format_cutoff(
+                    SameDayService.get_effective_cutoff_time(seller, check.get('rate'))
+                ),
             }
             serialized_products.append(item_data)
 
         return Response({
             'status_code': result['status_code'],
             'message': result['message'],
+            'platform_cutoff_time': SameDayService.format_cutoff(SameDayService.get_platform_cutoff_time()),
             'location': result['location'],
             'local_sellers': result['local_sellers'],
             'products': serialized_products,

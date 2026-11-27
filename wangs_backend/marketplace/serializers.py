@@ -1176,6 +1176,7 @@ class CommissionUpdateSerializer(serializers.Serializer):
     minimum_withdrawal_amount = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, min_value=Decimal('1.00'))
     return_period_days = serializers.IntegerField(required=False, min_value=0, max_value=90)
     eligibility_hours = serializers.IntegerField(required=False, min_value=0, max_value=720)
+    same_day_cutoff_time = serializers.TimeField(required=False, input_formats=['%H:%M', '%H:%M:%S'])
     support_email = serializers.EmailField(required=False, allow_blank=True)
     support_phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
     support_hours = serializers.CharField(max_length=120, required=False, allow_blank=True)

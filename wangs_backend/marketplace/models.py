@@ -1,4 +1,5 @@
 import uuid
+from datetime import time
 from decimal import Decimal
 from django.db import models
 from django.utils import timezone
@@ -481,6 +482,10 @@ class CommissionSetting(models.Model):
     eligibility_hours = models.PositiveIntegerField(
         default=48,
         help_text="Hours after verified payment capture before seller earnings become eligible for withdrawal (default 48h)."
+    )
+    same_day_cutoff_time = models.TimeField(
+        default=time(18, 0),
+        help_text="Platform-wide Get It Today (same-day delivery) daily order cutoff time in IST (default 18:00 / 6:00 PM)."
     )
     support_email = models.EmailField(
         blank=True, default='',

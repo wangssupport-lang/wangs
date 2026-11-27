@@ -22,7 +22,7 @@ export default function SellerSameDayConfigCard({ toast }) {
     same_day_dispatch_district: '',
     same_day_dispatch_state: 'Nagaland',
     same_day_operating_days: [0, 1, 2, 3, 4, 5],
-    same_day_cutoff_time: '14:00',
+    same_day_cutoff_time: '18:00',
     same_day_covered_towns: [],
     same_day_covered_pincodes: [],
   });

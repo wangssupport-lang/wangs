@@ -544,6 +544,7 @@ export default function AdminDashboardPage() {
     minimum_withdrawal_amount: '300.00',
     return_period_days: '7',
     eligibility_hours: '48',
+    same_day_cutoff_time: '18:00',
     support_email: '',
     support_phone: '',
     support_hours: 'Mon–Sat, 9:00 AM – 6:00 PM IST',
@@ -718,6 +719,7 @@ export default function AdminDashboardPage() {
           minimum_withdrawal_amount: parsedComm.current.minimum_withdrawal_amount || '300.00',
           return_period_days: String(parsedComm.current.return_period_days ?? 7),
           eligibility_hours: String(parsedComm.current.eligibility_hours ?? 48),
+          same_day_cutoff_time: (parsedComm.current.same_day_cutoff_time || '18:00').slice(0, 5),
           support_email: parsedComm.current.support_email || '',
           support_phone: parsedComm.current.support_phone || '',
           support_hours: parsedComm.current.support_hours || 'Mon–Sat, 9:00 AM – 6:00 PM IST',
@@ -6337,6 +6339,18 @@ export default function AdminDashboardPage() {
                     className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-stone-700 font-medium mb-1">Get It Today Cutoff Time (IST)</label>
+                <input
+                  type="time"
+                  required
+                  value={commForm.same_day_cutoff_time}
+                  onChange={(e) => setCommForm({ ...commForm, same_day_cutoff_time: e.target.value })}
+                  className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                />
+                <p className="text-[11px] text-stone-500 mt-1">Default 18:00 (6:00 PM IST). Controls when same-day Get It Today ordering closes platform-wide.</p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

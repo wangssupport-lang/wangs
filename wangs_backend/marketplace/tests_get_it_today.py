@@ -223,3 +223,57 @@ class GetItTodayTests(TestCase):
                 now_dt=datetime(2026, 11, 26, 11, 0, tzinfo=KOHIMA_TZ),
             )
         self.assertIn('Dimapur Bamboo Pickle', str(ctx.exception))
+
+    def test_admin_configurable_same_day_cutoff_time_6pm(self):
+        # Seller allows until 20:00, so platform default 18:00 (6:00 PM) is the active cap
+        self.seller1.same_day_cutoff_time = time(20, 0)
+        self.seller1.save(update_fields=['same_day_cutoff_time'])
+
+        before_6pm = SameDayService.check_product_same_day_eligibility(
+            self.prod1,
+            postal_code='797001',
+            town='Kohima',
+            district='Kohima',
+            state='Nagaland',
+            now_dt=datetime(2026, 11, 26, 17, 55, tzinfo=KOHIMA_TZ),
+        )
+        self.assertTrue(before_6pm['eligible'])
+
+        after_6pm = SameDayService.check_product_same_day_eligibility(
+            self.prod1,
+            postal_code='797001',
+            town='Kohima',
+            district='Kohima',
+            state='Nagaland',
+            now_dt=datetime(2026, 11, 26, 18, 5, tzinfo=KOHIMA_TZ),
+        )
+        self.assertFalse(after_6pm['eligible'])
+        self.assertIn('6:00 PM', after_6pm['reason'])
+
+        # Admin updates Get It Today cutoff to 19:30 (7:30 PM) via admin endpoint
+        admin = User.objects.create_user(username='admin_sameday', email='adminsd@wangs.in', password='pw', role=User.Role.ADMIN)
+        self.client.force_authenticate(user=admin)
+        upd = self.client.post('/api/admin/commission/', {
+            'default_commission_rate': '10.00',
+            'customer_platform_fee': '3.00',
+            'default_delivery_fee': '50.00',
+            'free_delivery_threshold': '999.00',
+            'same_day_cutoff_time': '19:30',
+            'reason': 'Extend Get It Today cutoff to 7:30 PM',
+        }, format='json')
+        self.assertEqual(upd.status_code, 200, upd.data)
+
+        # Now 18:05 is eligible, and /api/get-it-today/ reports platform_cutoff_time = 7:30 PM
+        after_update = SameDayService.check_product_same_day_eligibility(
+            self.prod1,
+            postal_code='797001',
+            town='Kohima',
+            district='Kohima',
+            state='Nagaland',
+            now_dt=datetime(2026, 11, 26, 18, 5, tzinfo=KOHIMA_TZ),
+        )
+        self.assertTrue(after_update['eligible'])
+
+        pub = self.client.get('/api/get-it-today/?postal_code=797001&town=Kohima&district=Kohima&state=Nagaland')
+        self.assertEqual(pub.status_code, 200)
+        self.assertEqual(pub.data['platform_cutoff_time'], '7:30 PM')
