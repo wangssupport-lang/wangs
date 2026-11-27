@@ -161,7 +161,7 @@ export default function ManufacturerPortalPage() {
     const base = parseFloat(val) || 0;
     const comm = Math.round((base * commissionRate) / 100);
     const dCharge = getEffectiveDeliveryFee(newProd.delivery_charge);
-    const actual = Math.max(101, Math.round(base + comm + dCharge));
+    const actual = Math.max(minProductPrice, Math.round(base + comm + dCharge));
     setNewProd((prev) => ({
       ...prev,
       base_price: val,
@@ -195,7 +195,7 @@ export default function ManufacturerPortalPage() {
       let nextMrp = prev.mrp;
       if (base > 0) {
         const comm = Math.round((base * commissionRate) / 100);
-        const actual = Math.max(101, Math.round(base + comm + dCharge));
+        const actual = Math.max(minProductPrice, Math.round(base + comm + dCharge));
         nextPrice = String(actual);
         nextMrp = prev.mrp && parseFloat(prev.mrp) > actual ? prev.mrp : String(actual + 50);
       }
