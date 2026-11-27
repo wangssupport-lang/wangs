@@ -173,10 +173,18 @@ class MarketplacePaymentService:
             ])
 
             # Update order status
+            from datetime import timedelta
+            from ..models import CommissionSetting
+            elig_hours = int(getattr(CommissionSetting.get_current(), 'eligibility_hours', 48) or 48)
             order.payment_status = Order.PaymentStatus.PAID
             order.status = Order.Status.CONFIRMED
             order.payment_method = adapter.provider_name
-            order.save(update_fields=['payment_status', 'status', 'payment_method', 'updated_at'])
+            order.payment_captured_at = order.payment_captured_at or now
+            order.seller_eligibility_at = order.seller_eligibility_at or (order.payment_captured_at + timedelta(hours=elig_hours))
+            order.save(update_fields=[
+                'payment_status', 'status', 'payment_method',
+                'payment_captured_at', 'seller_eligibility_at', 'updated_at'
+            ])
 
             # Create immutable Commission snapshots & Seller Allocations
             commissions = CommissionEngine.snapshot_order_commissions_and_allocations(order)
@@ -186,6 +194,17 @@ class MarketplacePaymentService:
                 status=PaymentTransaction.Status.SUCCESS,
                 transaction_id=payment.provider_payment_id or payment.payment_id
             )
+
+            # Sync seller financial ledger & balances for every seller in this order
+            try:
+                from ..withdrawal_service import sync_seller_balance_from_paid_orders
+                seen_sellers = set()
+                for item in order.items.select_related('manufacturer').all():
+                    if item.manufacturer_id and item.manufacturer_id not in seen_sellers:
+                        seen_sellers.add(item.manufacturer_id)
+                        sync_seller_balance_from_paid_orders(item.manufacturer)
+            except Exception as exc:
+                logger.warning("Could not sync seller balance after payment capture: %s", exc)
 
             # Create audit log
             AuditLog.objects.create(

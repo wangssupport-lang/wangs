@@ -224,6 +224,7 @@ class AdminPaymentRequestsTests(TestCase):
         import hmac
         from unittest.mock import patch
         from django.test import override_settings
+        from .models import Order, OrderItem, Payment
         from .payments.adapters.razorpay import RazorpayAdapter
         from .payments.exceptions import (
             PaymentProviderFeatureNotActiveError,
@@ -386,6 +387,84 @@ class AdminPaymentRequestsTests(TestCase):
                 transaction_type=SellerFinancialLedger.TransactionType.REFUND_REVERSAL,
             ).exists()
         )
+
+    def test_unified_razorpay_payment_verify_endpoint(self):
+        import hmac
+        import hashlib
+        from unittest.mock import patch
+        from django.test import override_settings
+        from .models import Category, Order, Payment, Product
+        from .services import OrderService
+
+        cust = User.objects.create_user(
+            username='custverify', email='custverify@wangs.in', password='pw',
+            role='CUSTOMER',
+        )
+        cat = Category.objects.create(name='Verify Pickles', slug='verify-pickles')
+        prod = Product.objects.create(
+            manufacturer=self.seller,
+            category=cat,
+            title='Verify Pickle',
+            slug='verify-pickle',
+            price=Decimal('10.00'),
+            base_price=Decimal('9.00'),
+            weight_grams=250,
+            stock_quantity=10,
+            status=Product.Status.APPROVED,
+            is_active=True,
+        )
+
+        class DummyItem:
+            def __init__(self, product, quantity):
+                self.product = product
+                self.quantity = quantity
+
+        order = OrderService.create_order_from_cart(
+            user=cust,
+            customer_details={'name': 'Verify Cust', 'email': 'custverify@wangs.in', 'phone': '9999999998'},
+            shipping_details={'address_line1': 'Main Rd', 'city': 'Kohima', 'state': 'Nagaland', 'postal_code': '797001'},
+            cart_items=[DummyItem(prod, 1)],
+            payment_method='RAZORPAY',
+        )
+        Payment.objects.create(
+            payment_id=f'PAY-{order.order_number}',
+            order=order,
+            customer=cust,
+            payment_provider='RAZORPAY',
+            amount_paise=int(order.total_amount * 100),
+            currency='INR',
+            status=Payment.Status.INITIATED,
+            provider_order_id='order_live_123',
+        )
+
+        secret = 'rzp_test_secret_key'
+        rzp_order_id = 'order_live_123'
+        rzp_payment_id = 'pay_live_456'
+        sig = hmac.new(secret.encode('utf-8'), f"{rzp_order_id}|{rzp_payment_id}".encode('utf-8'), hashlib.sha256).hexdigest()
+
+        self.client.force_authenticate(user=cust)
+        with override_settings(RAZORPAY_KEY_ID='rzp_test_id', RAZORPAY_KEY_SECRET=secret):
+            with patch('marketplace.payments.adapters.razorpay.RazorpayAdapter.get_payment_details', return_value={
+                'id': rzp_payment_id,
+                'status': 'captured',
+                'amount': int(order.total_amount * 100),
+                'method': 'upi',
+            }):
+                res = self.client.post('/api/payments/verify/', {
+                    'order_number': order.order_number,
+                    'provider': 'RAZORPAY',
+                    'razorpay_order_id': rzp_order_id,
+                    'razorpay_payment_id': rzp_payment_id,
+                    'razorpay_signature': sig,
+                }, format='json')
+
+        self.assertEqual(res.status_code, 200, res.data)
+        order.refresh_from_db()
+        self.assertEqual(order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(order.status, Order.Status.CONFIRMED)
+        self.assertIsNotNone(order.payment_captured_at)
+        self.assertIsNotNone(order.seller_eligibility_at)
+
 
 
 

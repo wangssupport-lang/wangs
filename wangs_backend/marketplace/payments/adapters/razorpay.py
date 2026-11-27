@@ -127,6 +127,7 @@ class RazorpayAdapter(BasePaymentAdapter):
         if not self.is_live_configured() and rzp_order_id.startswith('order_test_'):
             return {
                 'is_valid': True,
+                'is_success': True,
                 'provider_payment_id': rzp_payment_id or f"pay_test_{uuid.uuid4().hex[:10]}",
                 'provider_order_id': rzp_order_id,
                 'status': 'CAPTURED',
@@ -159,6 +160,7 @@ class RazorpayAdapter(BasePaymentAdapter):
 
         return {
             'is_valid': True,
+            'is_success': True,
             'provider_payment_id': rzp_payment_id,
             'provider_order_id': rzp_order_id,
             'status': 'CAPTURED',
