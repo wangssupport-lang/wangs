@@ -31,16 +31,16 @@ export function ToastProvider({ children }) {
     <ToastContext.Provider value={toast}>
       {children}
       {/* Toast Notification Container */}
-      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm pointer-events-none">
+      <div className="fixed top-4 left-4 right-4 sm:top-auto sm:left-auto sm:bottom-6 sm:right-6 z-[120] flex flex-col gap-2.5 sm:max-w-sm pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-medium border transition-all animate-in fade-in slide-in-from-bottom-2 ${
+            className={`pointer-events-auto flex items-center justify-between gap-3 px-4 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md text-xs font-medium border transition-all duration-300 animate-in fade-in slide-in-from-top-2 sm:slide-in-from-bottom-2 ${
               t.type === 'success'
-                ? 'bg-stone-900 text-white border-emerald-500/40'
+                ? 'bg-stone-900/95 text-white border-emerald-500/50'
                 : t.type === 'error'
-                ? 'bg-stone-900 text-rose-100 border-red-500/40'
-                : 'bg-stone-900 text-white border-stone-700'
+                ? 'bg-stone-900/95 text-rose-100 border-red-500/50'
+                : 'bg-stone-900/95 text-white border-stone-700'
             }`}
           >
             <div className="flex items-center gap-2.5">

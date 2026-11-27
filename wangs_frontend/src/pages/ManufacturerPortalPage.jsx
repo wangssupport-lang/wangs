@@ -69,6 +69,7 @@ export default function ManufacturerPortalPage() {
     postal_code: '',
   });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
 
   // Bank account management state
   const [editingBank, setEditingBank] = useState(false);
@@ -408,6 +409,7 @@ export default function ManufacturerPortalPage() {
       images: cleanImages.slice(0, 3),
       image_urls: cleanImages.slice(0, 3)
     };
+    setSavingProduct(true);
     try {
       let savedProd = null;
       if (editingProductId) {
@@ -444,6 +446,8 @@ export default function ManufacturerPortalPage() {
       loadData();
     } catch (err) {
       toast.error(err.message || 'Failed to save product');
+    } finally {
+      setSavingProduct(false);
     }
   };
 
@@ -2936,17 +2940,29 @@ export default function ManufacturerPortalPage() {
               <div className="flex items-center justify-end gap-3 p-4 px-6 bg-stone-50 border-t border-stone-200 shrink-0">
                 <button
                   type="button"
+                  disabled={savingProduct}
                   onClick={() => { setShowAddProductModal(false); setEditingProductId(null); }}
-                  className="px-4 py-2.5 border border-stone-300 hover:bg-stone-100 text-stone-700 font-bold rounded-xl transition-colors cursor-pointer text-xs"
+                  className="px-4 py-2.5 border border-stone-300 hover:bg-stone-100 hover:border-stone-400 active:scale-95 text-stone-700 font-bold rounded-xl transition-all duration-200 cursor-pointer text-xs disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2.5 bg-forest-900 hover:bg-forest-950 text-white font-bold rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2 text-xs"
+                  disabled={savingProduct}
+                  className="px-6 py-2.5 bg-gradient-to-r from-[#28452e] to-[#1d3522] hover:from-[#1f3724] hover:to-[#16291a] text-white font-bold rounded-xl shadow-md hover:shadow-lg hover:scale-[1.02] active:scale-[0.97] transition-all duration-200 cursor-pointer flex items-center gap-2 text-xs disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  {editingProductId ? <CheckCircle size={15} /> : <Plus size={15} />}
-                  <span>{editingProductId ? 'Save Recipe Changes' : 'Publish Pickle Batch (Live)'}</span>
+                  {savingProduct ? (
+                    <RefreshCw size={15} className="animate-spin" />
+                  ) : editingProductId ? (
+                    <CheckCircle size={15} />
+                  ) : (
+                    <Plus size={15} />
+                  )}
+                  <span>
+                    {savingProduct
+                      ? (editingProductId ? 'Saving...' : 'Publishing...')
+                      : (editingProductId ? 'Save Recipe Changes' : 'Publish Pickle Batch (Live)')}
+                  </span>
                 </button>
               </div>
             </form>
