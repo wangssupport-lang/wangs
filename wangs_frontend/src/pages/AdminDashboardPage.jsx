@@ -17,6 +17,7 @@ import { api } from '../api';
 import AdminRewardsTab from '../components/AdminRewardsTab';
 import AdminCouriersTab from '../components/AdminCouriersTab';
 import AdminDeliveryTab from '../components/AdminDeliveryTab';
+import AdminPaymentRequestsTab from '../components/AdminPaymentRequestsTab';
 
 const extractList = (data) => {
   if (!data) return [];
@@ -450,6 +451,7 @@ const tabTitles = {
   orbital: 'Orbital Shelf',
   categories: 'Catalog Categories',
   commission: 'Commission & Fees Settings',
+  payment_requests: 'Payment Requests',
   settlements: 'Payout Settlements',
   research: 'Research & Study Records',
   logs: 'System Audit Trail'
@@ -1973,6 +1975,7 @@ export default function AdminDashboardPage() {
         { id: 'banners', label: 'Hero Promo Banners', icon: ImageIcon, count: heroBanners.length },
         { id: 'orbital', label: 'Orbital Shelf', icon: Sparkles, count: orbitalForm.product_ids.length || 5 },
         { id: 'categories', label: 'Categories', icon: Tags, count: categoriesList.length },
+        { id: 'payment_requests', label: 'Payment Requests', icon: Landmark },
         { id: 'commission', label: 'Commission & Fees', icon: DollarSign },
         { id: 'settlements', label: 'Payout Settlements', icon: Landmark },
         { id: 'research', label: 'Research & Exports', icon: FileText },
@@ -6189,6 +6192,9 @@ export default function AdminDashboardPage() {
 
       {/* Tab: Shipping & Delivery Management */}
       {activeTab === 'shipping_delivery' && <AdminDeliveryTab toast={toast} />}
+
+      {/* Tab: Payment Requests (Withdrawal Governance) */}
+      {activeTab === 'payment_requests' && <AdminPaymentRequestsTab />}
 
       {/* Tab 5: Commission & Fee Management */}
       {activeTab === 'commission' && (

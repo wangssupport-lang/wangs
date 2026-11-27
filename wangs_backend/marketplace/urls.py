@@ -42,7 +42,10 @@ from .views import (
     PaymentCreateOrderView, PaymentVerifyUnifiedView, PaymentWebhookUnifiedView,
     PaymentStatusDetailView, SellerPaymentProfileView, SellerSettlementsView,
     SellerTransactionsView, AdminPaymentsOverviewView, AdminCommissionsOverviewView,
-    AdminSettlementsOverviewView
+    AdminSettlementsOverviewView,
+    AdminPaymentRequestListView, AdminPaymentRequestDetailView,
+    AdminPaymentRequestApproveView, AdminPaymentRequestRejectView,
+    AdminPaymentRequestReviewView
 )
 
 router = DefaultRouter()
@@ -179,6 +182,11 @@ urlpatterns = [
     path('admin/commission/', AdminCommissionView.as_view(), name='admin-commission'),
     path('admin/commissions/', AdminCommissionsOverviewView.as_view(), name='admin-commissions-overview'),
     path('admin/settlements/', AdminSettlementsView.as_view(), name='admin-settlements'),
+    path('admin/payment-requests/', AdminPaymentRequestListView.as_view(), name='admin-payment-requests'),
+    path('admin/payment-requests/<int:pk>/', AdminPaymentRequestDetailView.as_view(), name='admin-payment-request-detail'),
+    path('admin/payment-requests/<int:pk>/approve/', AdminPaymentRequestApproveView.as_view(), name='admin-payment-request-approve'),
+    path('admin/payment-requests/<int:pk>/reject/', AdminPaymentRequestRejectView.as_view(), name='admin-payment-request-reject'),
+    path('admin/payment-requests/<int:pk>/review/', AdminPaymentRequestReviewView.as_view(), name='admin-payment-request-review'),
     path('admin/payments/', AdminPaymentsOverviewView.as_view(), name='admin-payments-overview'),
     path('admin/maintenance-subscribers/', AdminMaintenanceSubscribersView.as_view(), name='admin-maintenance-subscribers'),
     path('admin/audit-logs/', AdminAuditLogsView.as_view(), name='admin-audit-logs'),

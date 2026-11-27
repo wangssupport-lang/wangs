@@ -1,0 +1,156 @@
+from decimal import Decimal
+from django.test import TestCase
+from rest_framework.test import APIClient
+
+from .models import (
+    FinancialAuditLog,
+    ManufacturerProfile,
+    SellerBalance,
+    SellerFinancialLedger,
+    SellerPaymentProfile,
+    SellerWithdrawal,
+    User,
+)
+
+
+class AdminPaymentRequestsTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            username='admin_fin',
+            email='admin@wangs.in',
+            password='pass1234',
+            role=User.Role.ADMIN,
+            is_staff=True,
+            is_superuser=True,
+        )
+        self.seller_user = User.objects.create_user(
+            username='seller_naga',
+            email='maker@wangs.in',
+            password='pass1234',
+            role=User.Role.MANUFACTURER,
+            first_name='Ato',
+            last_name='Kikon',
+        )
+        self.seller = ManufacturerProfile.objects.create(
+            user=self.seller_user,
+            business_name='Naga Smokehouse',
+            slug='naga-smokehouse',
+            contact_email='maker@wangs.in',
+            contact_phone='9876543210',
+            business_address='Kohima Main Road',
+            postal_code='797001',
+            status=ManufacturerProfile.Status.APPROVED,
+            is_verified_producer=True,
+            bank_account_holder='Ato Kikon',
+            bank_account_number='123456787890',
+            bank_ifsc_code='SBIN0001234',
+            bank_name='State Bank of India',
+        )
+        self.payment_profile = SellerPaymentProfile.objects.create(
+            seller=self.seller,
+            payment_provider='RAZORPAY',
+            kyc_status=SellerPaymentProfile.KYCStatus.VERIFIED,
+            bank_verification_status=SellerPaymentProfile.BankVerificationStatus.VERIFIED,
+            onboarding_status=SellerPaymentProfile.OnboardingStatus.ACTIVE,
+            payout_eligibility=True,
+        )
+        self.balance = SellerBalance.objects.create(
+            seller=self.seller,
+            pending_earnings=Decimal('450.00'),
+            available_balance=Decimal('700.00'),
+            withdrawal_processing=Decimal('500.00'),
+            total_withdrawn=Decimal('300.00'),
+            total_lifetime_earnings=Decimal('1950.00'),
+        )
+        self.paid_wd = SellerWithdrawal.objects.create(
+            request_reference='WD-20261120-PAID01',
+            seller=self.seller,
+            requested_amount=Decimal('300.00'),
+            available_balance_snapshot=Decimal('1500.00'),
+            bank_verification_status_snapshot='VERIFIED',
+            status=SellerWithdrawal.Status.PAID,
+        )
+        self.pending_wd = SellerWithdrawal.objects.create(
+            request_reference='WD-20261127-REQ001',
+            seller=self.seller,
+            requested_amount=Decimal('500.00'),
+            available_balance_snapshot=Decimal('1200.00'),
+            bank_verification_status_snapshot='VERIFIED',
+            status=SellerWithdrawal.Status.REQUESTED,
+        )
+
+    def test_non_admin_cannot_access_payment_requests(self):
+        self.client.force_authenticate(user=self.seller_user)
+        res = self.client.get('/api/admin/payment-requests/')
+        self.assertEqual(res.status_code, 403)
+
+    def test_admin_list_and_masked_detail(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.get('/api/admin/payment-requests/?search=WD-20261127')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['summary']['total_pending_requests'], 1)
+        self.assertEqual(res.data['summary']['total_requested_amount'], '500.00')
+        self.assertEqual(res.data['summary']['completed_payout_amount'], '300.00')
+        self.assertEqual(len(res.data['results']), 1)
+
+        detail_res = self.client.get(f'/api/admin/payment-requests/{self.pending_wd.id}/')
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertEqual(detail_res.data['bank_info']['masked_account_number'], '•••• •••• 7890')
+        self.assertNotIn('123456787890', str(detail_res.data))
+
+    def test_admin_approve_does_not_mark_paid_and_logs_audit(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self.client.post(
+            f'/api/admin/payment-requests/{self.pending_wd.id}/approve/',
+            {'internal_note': 'Bank verified'},
+            format='json',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.pending_wd.refresh_from_db()
+        self.assertEqual(self.pending_wd.status, SellerWithdrawal.Status.APPROVED)
+        self.assertIsNone(self.pending_wd.paid_at)
+        self.assertTrue(
+            FinancialAuditLog.objects.filter(withdrawal=self.pending_wd, action='WITHDRAWAL_APPROVED').exists()
+        )
+
+    def test_admin_reject_requires_reason_and_releases_reserved_balance(self):
+        self.client.force_authenticate(user=self.admin)
+        bad_res = self.client.post(
+            f'/api/admin/payment-requests/{self.pending_wd.id}/reject/',
+            {'reason': '   '},
+            format='json',
+        )
+        self.assertEqual(bad_res.status_code, 400)
+
+        ok_res = self.client.post(
+            f'/api/admin/payment-requests/{self.pending_wd.id}/reject/',
+            {'reason': 'IFSC mismatch on passbook'},
+            format='json',
+        )
+        self.assertEqual(ok_res.status_code, 200)
+        self.pending_wd.refresh_from_db()
+        self.balance.refresh_from_db()
+        self.assertEqual(self.pending_wd.status, SellerWithdrawal.Status.REJECTED)
+        self.assertEqual(self.balance.available_balance, Decimal('1200.00'))
+        self.assertEqual(self.balance.withdrawal_processing, Decimal('0.00'))
+        self.assertTrue(
+            SellerFinancialLedger.objects.filter(
+                seller=self.seller,
+                transaction_type=SellerFinancialLedger.TransactionType.WITHDRAWAL_RELEASE,
+                signed_amount=Decimal('500.00'),
+            ).exists()
+        )
+
+    def test_ledger_and_audit_log_are_immutable(self):
+        entry = SellerFinancialLedger.objects.create(
+            seller=self.seller,
+            transaction_reference='TX-IMMUTABLE-01',
+            transaction_type=SellerFinancialLedger.TransactionType.ORDER_EARNING,
+            signed_amount=Decimal('450.00'),
+        )
+        entry.signed_amount = Decimal('999.00')
+        with self.assertRaises(ValueError):
+            entry.save()
+        with self.assertRaises(ValueError):
+            entry.delete()

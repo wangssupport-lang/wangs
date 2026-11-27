@@ -466,6 +466,14 @@ class CommissionSetting(models.Model):
         default=False,
         help_text="Require admin review and approval before manufacturer delivery rates become active."
     )
+    return_period_days = models.PositiveIntegerField(
+        default=7,
+        help_text="Number of days after delivery confirmation before seller earnings become eligible for withdrawal."
+    )
+    minimum_withdrawal_amount = models.DecimalField(
+        max_digits=8, decimal_places=2, default=Decimal('300.00'),
+        help_text="Minimum available balance required for a seller to request a withdrawal (₹300.00)."
+    )
     is_maintenance_mode = models.BooleanField(
         default=False,
         help_text="When True, the public storefront shows a maintenance page to visitors. Admins can bypass."
@@ -1476,6 +1484,174 @@ class WebhookEvent(models.Model):
 
     def __str__(self):
         return f"WebhookEvent {self.provider} [{self.event_type}] {self.event_id} ({self.processing_status})"
+
+
+# -------------------------------------------------------------
+# WANGS SELLER LEDGER, BALANCES & WITHDRAWAL WORKFLOW MODELS
+# -------------------------------------------------------------
+
+class SellerBalance(models.Model):
+    seller = models.OneToOneField(ManufacturerProfile, on_delete=models.CASCADE, related_name='financial_balance')
+    pending_earnings = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text="Delivered or paid earnings within return period / awaiting settlement eligibility."
+    )
+    available_balance = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text="Eligible earnings available for withdrawal request."
+    )
+    withdrawal_processing = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text="Amounts atomically reserved for submitted/approved withdrawal requests."
+    )
+    total_withdrawn = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text="Total amounts successfully paid out to the seller."
+    )
+    reversed_adjusted = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text="Refunds, chargebacks, and financial corrections."
+    )
+    total_lifetime_earnings = models.DecimalField(
+        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+        help_text="Cumulative net seller earnings across all verified orders."
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=models.Q(available_balance__gte=Decimal('0.00')), name='seller_balance_available_non_negative'),
+            models.CheckConstraint(condition=models.Q(withdrawal_processing__gte=Decimal('0.00')), name='seller_balance_processing_non_negative'),
+        ]
+
+    def __str__(self):
+        return f"Balance({self.seller.business_name}): Avail ₹{self.available_balance} | Pending ₹{self.pending_earnings}"
+
+
+class SellerFinancialLedger(models.Model):
+    class TransactionType(models.TextChoices):
+        ORDER_EARNING = 'ORDER_EARNING', 'Order Product Earning'
+        DELIVERY_ALLOCATION = 'DELIVERY_ALLOCATION', 'Delivery Charge Allocation'
+        ELIGIBILITY_RELEASE = 'ELIGIBILITY_RELEASE', 'Return Period Eligibility Release'
+        WITHDRAWAL_RESERVE = 'WITHDRAWAL_RESERVE', 'Withdrawal Balance Reserved'
+        WITHDRAWAL_RELEASE = 'WITHDRAWAL_RELEASE', 'Withdrawal Reserve Released'
+        WITHDRAWAL_PAID = 'WITHDRAWAL_PAID', 'Withdrawal Payout Completed'
+        REFUND_REVERSAL = 'REFUND_REVERSAL', 'Refund / Chargeback Reversal'
+        ADMIN_ADJUSTMENT = 'ADMIN_ADJUSTMENT', 'Admin Financial Adjustment'
+
+    class Status(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        POSTED = 'POSTED', 'Posted'
+        RESERVED = 'RESERVED', 'Reserved'
+        COMPLETED = 'COMPLETED', 'Completed'
+        REVERSED = 'REVERSED', 'Reversed'
+
+    seller = models.ForeignKey(ManufacturerProfile, on_delete=models.CASCADE, related_name='ledger_entries')
+    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name='seller_ledger_entries')
+    order_item = models.ForeignKey(OrderItem, on_delete=models.SET_NULL, null=True, blank=True, related_name='ledger_entries')
+    payment = models.ForeignKey(Payment, on_delete=models.SET_NULL, null=True, blank=True, related_name='seller_ledger_entries')
+    transaction_reference = models.CharField(max_length=80, unique=True, db_index=True)
+    transaction_type = models.CharField(max_length=32, choices=TransactionType.choices, db_index=True)
+
+    product_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    commission_deduction = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    delivery_allocation = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    refund_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    adjustment_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    signed_amount = models.DecimalField(max_digits=12, decimal_places=2)
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.POSTED, db_index=True)
+    description = models.TextField(blank=True, default='')
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='created_ledger_entries')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise ValueError("SellerFinancialLedger entries are immutable and cannot be modified.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("SellerFinancialLedger entries are immutable and cannot be deleted.")
+
+    def __str__(self):
+        return f"Ledger {self.transaction_reference} ({self.transaction_type}: ₹{self.signed_amount})"
+
+
+class SellerWithdrawal(models.Model):
+    class Status(models.TextChoices):
+        REQUESTED = 'REQUESTED', 'Requested'
+        UNDER_REVIEW = 'UNDER_REVIEW', 'Under Review'
+        APPROVED = 'APPROVED', 'Approved'
+        PROCESSING = 'PROCESSING', 'Processing'
+        PAID = 'PAID', 'Paid'
+        REJECTED = 'REJECTED', 'Rejected'
+        FAILED = 'FAILED', 'Failed'
+        CANCELLED = 'CANCELLED', 'Cancelled'
+
+    request_reference = models.CharField(max_length=64, unique=True, db_index=True)
+    seller = models.ForeignKey(ManufacturerProfile, on_delete=models.CASCADE, related_name='withdrawals')
+    requested_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        validators=[MinValueValidator(Decimal('300.00'))]
+    )
+    available_balance_snapshot = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    bank_verification_status_snapshot = models.CharField(max_length=30, blank=True, default='PENDING')
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.REQUESTED, db_index=True)
+
+    seller_notes = models.TextField(blank=True, default='')
+    admin_internal_note = models.TextField(blank=True, default='')
+    rejection_reason = models.TextField(blank=True, default='')
+
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_withdrawals')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    payout_provider = models.CharField(max_length=50, default='RAZORPAY_ROUTE_SANDBOX')
+    provider_payout_reference = models.CharField(max_length=120, blank=True, default='', db_index=True)
+    bank_reference = models.CharField(max_length=120, blank=True, default='')
+    failure_reason = models.TextField(blank=True, default='')
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.request_reference} - {self.seller.business_name} (₹{self.requested_amount} · {self.status})"
+
+
+class FinancialAuditLog(models.Model):
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_audit_logs')
+    action = models.CharField(max_length=80, db_index=True)
+    target_model = models.CharField(max_length=60, db_index=True)
+    target_id = models.CharField(max_length=64, db_index=True)
+    seller = models.ForeignKey(ManufacturerProfile, on_delete=models.SET_NULL, null=True, blank=True, related_name='financial_audit_logs')
+    withdrawal = models.ForeignKey(SellerWithdrawal, on_delete=models.SET_NULL, null=True, blank=True, related_name='audit_logs')
+    reason = models.TextField(blank=True, default='')
+    previous_state = models.JSONField(default=dict, blank=True)
+    new_state = models.JSONField(default=dict, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if self.pk is not None:
+            raise ValueError("FinancialAuditLog entries are immutable and cannot be modified.")
+        super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise ValueError("FinancialAuditLog entries are immutable and cannot be deleted.")
+
+    def __str__(self):
+        return f"FinancialAudit[{self.action}] {self.target_model}#{self.target_id}"
+
 
 
 

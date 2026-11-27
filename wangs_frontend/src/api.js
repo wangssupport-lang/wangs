@@ -503,6 +503,25 @@ export const api = {
     body: JSON.stringify(body),
   }),
 
+  // Admin Payment Requests (Bagisto-inspired Withdrawal Governance)
+  getAdminPaymentRequests: (params = {}) => {
+    const qs = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && String(v).trim() !== '') {
+        qs.append(k, String(v).trim());
+      }
+    });
+    const suffix = qs.toString() ? `?${qs.toString()}` : '';
+    return apiRequest(`/admin/payment-requests/${suffix}`);
+  },
+  getAdminPaymentRequestDetail: (id) => apiRequest(`/admin/payment-requests/${id}/`),
+  approveAdminPaymentRequest: (id, body = {}) =>
+    apiRequest(`/admin/payment-requests/${id}/approve/`, { method: 'POST', body: JSON.stringify(body) }),
+  rejectAdminPaymentRequest: (id, body) =>
+    apiRequest(`/admin/payment-requests/${id}/reject/`, { method: 'POST', body: JSON.stringify(body) }),
+  reviewAdminPaymentRequest: (id, body) =>
+    apiRequest(`/admin/payment-requests/${id}/review/`, { method: 'POST', body: JSON.stringify(body) }),
+
   // Delivery & Shipping Management System
   getShippingQuote: (params) => apiRequest('/checkout/shipping-quote/', { method: 'POST', body: JSON.stringify(params) }),
   getAdminDeliveryOverview: () => apiRequest('/admin/delivery/overview/'),

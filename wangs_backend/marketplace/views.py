@@ -5429,6 +5429,7 @@ class ManufacturerSameDaySettingsView(views.APIView):
         platform_coverage = SameDayService.get_supported_platform_coverage()
         return Response(self._serialize_payload(seller, platform_coverage))
 
+
     def patch(self, request):
         seller = request.user.manufacturer_profile
         platform_coverage = SameDayService.get_supported_platform_coverage()
@@ -5516,6 +5517,296 @@ class ManufacturerSameDaySettingsView(views.APIView):
                     prod.save(update_fields=changed_fields)
 
         return Response(self._serialize_payload(seller, platform_coverage))
+
+
+# -------------------------------------------------------------
+# ADMIN PAYMENT REQUESTS (WITHDRAWALS) MANAGEMENT
+# -------------------------------------------------------------
+
+class AdminPaymentRequestListView(views.APIView):
+    """
+    Bagisto-inspired Payment Requests (Seller Withdrawals) list endpoint.
+    Supports summary KPIs, search, status/date-range filters, sorting, and pagination.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from decimal import Decimal
+        from django.db.models import Q, Sum
+        from .models import SellerBalance, SellerWithdrawal
+        from .withdrawal_service import get_previous_withdrawals_total, get_seller_bank_info
+
+        qs = SellerWithdrawal.objects.select_related('seller', 'seller__user', 'reviewed_by').all()
+
+        # Filters
+        search = (request.query_params.get('search') or '').strip()
+        if search:
+            qs = qs.filter(
+                Q(request_reference__icontains=search)
+                | Q(seller__business_name__icontains=search)
+                | Q(seller__contact_email__icontains=search)
+                | Q(seller__user__username__icontains=search)
+                | Q(seller__user__first_name__icontains=search)
+                | Q(seller__user__last_name__icontains=search)
+                | Q(seller__user__email__icontains=search)
+            )
+
+        status_filter = (request.query_params.get('status') or '').strip().upper()
+        if status_filter and status_filter != 'ALL':
+            qs = qs.filter(status=status_filter)
+
+        date_from = (request.query_params.get('date_from') or '').strip()
+        if date_from:
+            qs = qs.filter(created_at__date__gte=date_from)
+
+        date_to = (request.query_params.get('date_to') or '').strip()
+        if date_to:
+            qs = qs.filter(created_at__date__lte=date_to)
+
+        sort_param = (request.query_params.get('sort') or '-created_at').strip()
+        allowed_sorts = {'-created_at', 'created_at', '-requested_amount', 'requested_amount'}
+        if sort_param not in allowed_sorts:
+            sort_param = '-created_at'
+        qs = qs.order_by(sort_param, '-id')
+
+        # Global summary cards (across all withdrawal requests)
+        all_qs = SellerWithdrawal.objects.all()
+        pending_statuses = [SellerWithdrawal.Status.REQUESTED, SellerWithdrawal.Status.UNDER_REVIEW]
+        q2 = lambda val: str((val or Decimal('0.00')).quantize(Decimal('0.01')))
+        summary = {
+            'total_pending_requests': all_qs.filter(status__in=pending_statuses).count(),
+            'total_requested_amount': q2(all_qs.filter(status__in=pending_statuses).aggregate(s=Sum('requested_amount'))['s']),
+            'approved_amount': q2(all_qs.filter(status__in=[SellerWithdrawal.Status.APPROVED, SellerWithdrawal.Status.PROCESSING]).aggregate(s=Sum('requested_amount'))['s']),
+            'completed_payout_amount': q2(all_qs.filter(status=SellerWithdrawal.Status.PAID).aggregate(s=Sum('requested_amount'))['s']),
+        }
+
+        # Pagination
+        try:
+            page = max(1, int(request.query_params.get('page', 1)))
+        except (TypeError, ValueError):
+            page = 1
+        try:
+            page_size = min(100, max(1, int(request.query_params.get('page_size', 10))))
+        except (TypeError, ValueError):
+            page_size = 10
+
+        total_count = qs.count()
+        total_pages = max(1, (total_count + page_size - 1) // page_size)
+        if page > total_pages:
+            page = total_pages
+        offset = (page - 1) * page_size
+        page_items = list(qs[offset:offset + page_size])
+
+        balances_by_seller = {
+            b.seller_id: b
+            for b in SellerBalance.objects.filter(seller_id__in=[w.seller_id for w in page_items])
+        }
+
+        results = []
+        for w in page_items:
+            seller = w.seller
+            seller_user = seller.user
+            seller_name = (f"{seller_user.first_name} {seller_user.last_name}".strip() if seller_user else '') or seller.bank_account_holder or seller.business_name
+            bal = balances_by_seller.get(seller.id)
+            bank_info = get_seller_bank_info(seller)
+            prev_total, prev_count = get_previous_withdrawals_total(seller, exclude_id=w.id)
+
+            results.append({
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'created_at': w.created_at.isoformat(),
+                'seller_id': seller.id,
+                'seller_name': seller_name,
+                'shop_name': seller.business_name,
+                'seller_email': seller.contact_email or (seller_user.email if seller_user else ''),
+                'available_balance': str(bal.available_balance if bal else w.available_balance_snapshot),
+                'requested_amount': str(w.requested_amount),
+                'bank_verification_status': bank_info['verification_status'],
+                'previous_withdrawals_total': str(prev_total),
+                'previous_withdrawals_count': prev_count,
+                'status': w.status,
+                'status_display': w.get_status_display(),
+            })
+
+        return Response({
+            'summary': summary,
+            'results': results,
+            'pagination': {
+                'count': total_count,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+            },
+            'settlement_mode': {
+                'live_payouts_enabled': False,
+                'mode': 'SANDBOX_PENDING_ROUTE_APPROVAL',
+                'notice': 'Marketplace settlement activation is pending Razorpay Route approval. Live payouts remain disabled; approvals reserve balances and log audit records.',
+            },
+        })
+
+
+class AdminPaymentRequestDetailView(views.APIView):
+    """Detailed withdrawal request view with masked bank details, balances, order breakdown, and audit trail."""
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, pk):
+        from decimal import Decimal
+        from .models import FinancialAuditLog, SellerBalance, SellerWithdrawal
+        from .withdrawal_service import (
+            get_previous_withdrawals_total,
+            get_seller_bank_info,
+            get_seller_earnings_breakdown,
+        )
+
+        w = SellerWithdrawal.objects.select_related('seller', 'seller__user', 'reviewed_by').filter(pk=pk).first()
+        if not w:
+            return Response({'detail': 'Payment request not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        seller = w.seller
+        seller_user = seller.user
+        seller_name = (f"{seller_user.first_name} {seller_user.last_name}".strip() if seller_user else '') or seller.bank_account_holder or seller.business_name
+        bal = SellerBalance.objects.filter(seller=seller).first()
+        bank_info = get_seller_bank_info(seller)
+        prev_total, prev_count = get_previous_withdrawals_total(seller, exclude_id=w.id)
+
+        audit_logs = [
+            {
+                'id': log.id,
+                'action': log.action,
+                'actor': log.actor.username if log.actor else 'System',
+                'reason': log.reason,
+                'previous_state': log.previous_state,
+                'new_state': log.new_state,
+                'created_at': log.created_at.isoformat(),
+            }
+            for log in FinancialAuditLog.objects.filter(withdrawal=w).select_related('actor').order_by('-created_at')[:25]
+        ]
+
+        return Response({
+            'id': w.id,
+            'request_reference': w.request_reference,
+            'status': w.status,
+            'status_display': w.get_status_display(),
+            'created_at': w.created_at.isoformat(),
+            'reviewed_at': w.reviewed_at.isoformat() if w.reviewed_at else None,
+            'approved_at': w.approved_at.isoformat() if w.approved_at else None,
+            'paid_at': w.paid_at.isoformat() if w.paid_at else None,
+            'reviewed_by': w.reviewed_by.username if w.reviewed_by else None,
+            'seller_notes': w.seller_notes,
+            'admin_internal_note': w.admin_internal_note,
+            'rejection_reason': w.rejection_reason,
+            'payout_provider': w.payout_provider,
+            'provider_payout_reference': w.provider_payout_reference,
+            'bank_reference': w.bank_reference,
+            'failure_reason': w.failure_reason,
+            'seller_info': {
+                'seller_id': seller.id,
+                'seller_name': seller_name,
+                'shop_name': seller.business_name,
+                'email': seller.contact_email or (seller_user.email if seller_user else ''),
+                'phone': seller.contact_phone or '',
+                'account_status': seller.status,
+            },
+            'bank_info': bank_info,
+            'financial_info': {
+                'available_balance': str(bal.available_balance if bal else w.available_balance_snapshot),
+                'pending_earnings': str(bal.pending_earnings if bal else Decimal('0.00')),
+                'withdrawal_processing': str(bal.withdrawal_processing if bal else Decimal('0.00')),
+                'requested_amount': str(w.requested_amount),
+                'total_lifetime_earnings': str(bal.total_lifetime_earnings if bal else Decimal('0.00')),
+                'total_previous_withdrawals': str(prev_total),
+                'previous_withdrawals_count': prev_count,
+            },
+            'earnings_breakdown': get_seller_earnings_breakdown(seller, limit=20),
+            'audit_history': audit_logs,
+            'settlement_mode': {
+                'live_payouts_enabled': False,
+                'mode': 'SANDBOX_PENDING_ROUTE_APPROVAL',
+                'notice': 'Marketplace settlement activation is pending Razorpay Route approval. Approving does not mark the request as Paid.',
+            },
+        })
+
+
+class AdminPaymentRequestApproveView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        from .withdrawal_service import WithdrawalWorkflowError, approve_withdrawal, get_client_ip
+
+        internal_note = request.data.get('internal_note', '')
+        try:
+            w = approve_withdrawal(
+                withdrawal_id=pk,
+                admin_user=request.user,
+                internal_note=internal_note,
+                ip_address=get_client_ip(request),
+            )
+            return Response({
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'message': 'Withdrawal request approved. Awaiting authorised provider payout confirmation.',
+            })
+        except WithdrawalWorkflowError as exc:
+            return Response({'detail': exc.message}, status=exc.status_code)
+
+
+class AdminPaymentRequestRejectView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        from .withdrawal_service import WithdrawalWorkflowError, get_client_ip, reject_withdrawal
+
+        reason = request.data.get('reason', '')
+        internal_note = request.data.get('internal_note', '')
+        try:
+            w = reject_withdrawal(
+                withdrawal_id=pk,
+                admin_user=request.user,
+                reason=reason,
+                internal_note=internal_note,
+                ip_address=get_client_ip(request),
+            )
+            return Response({
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'rejection_reason': w.rejection_reason,
+                'message': 'Withdrawal request rejected and reserved funds released back to seller available balance.',
+            })
+        except WithdrawalWorkflowError as exc:
+            return Response({'detail': exc.message}, status=exc.status_code)
+
+
+class AdminPaymentRequestReviewView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        from .withdrawal_service import WithdrawalWorkflowError, get_client_ip, review_withdrawal
+
+        internal_note = request.data.get('internal_note', '')
+        set_under_review = bool(request.data.get('set_under_review', True))
+        try:
+            w = review_withdrawal(
+                withdrawal_id=pk,
+                admin_user=request.user,
+                internal_note=internal_note,
+                set_under_review=set_under_review,
+                ip_address=get_client_ip(request),
+            )
+            return Response({
+                'id': w.id,
+                'request_reference': w.request_reference,
+                'status': w.status,
+                'status_display': w.get_status_display(),
+                'admin_internal_note': w.admin_internal_note,
+                'message': 'Payment request review note updated.',
+            })
+        except WithdrawalWorkflowError as exc:
+            return Response({'detail': exc.message}, status=exc.status_code)
+
 
 
 
