@@ -190,6 +190,21 @@ export default function ProductDetailPage() {
     : `Buy ${product.title} online at Wangs. Authentic regional pickle and food product from independent makers.`;
   const productImageRaw = product.primary_image_url || product.images?.[0]?.image_url || product.image_url || '';
   const seoImage = productImageRaw ? resolveProductImage(productImageRaw) : undefined;
+  const galleryImages = [];
+  const seenImgSet = new Set();
+  const pushGalleryImg = (raw) => {
+    const s = String(raw || '').trim();
+    if (s && !seenImgSet.has(s)) {
+      seenImgSet.add(s);
+      galleryImages.push(resolveProductImage(s));
+    }
+  };
+  pushGalleryImg(product.primary_image_url);
+  if (Array.isArray(product.images)) {
+    product.images.forEach((im) => pushGalleryImg(typeof im === 'string' ? im : im?.image_url));
+  }
+  pushGalleryImg(product.image_url);
+  const activeDisplayImage = galleryImages[activeThumbIdx] || galleryImages[0] || '';
   const canonicalProductUrl = `https://wangs.in/product/${product.slug || slug}`;
   const numericPrice = Number(product.selling_price ?? product.price ?? 0);
 
@@ -253,12 +268,12 @@ export default function ProductDetailPage() {
         <div className="lg:col-span-6 space-y-3 sm:space-y-4">
           <div className={`${pastelBg} rounded-2xl sm:rounded-3xl p-6 sm:p-14 flex items-center justify-center min-h-[260px] sm:min-h-[460px] relative overflow-hidden transition-colors duration-500`}>
             {/* Visual Jar Representation */}
-            {product.primary_image_url && !imageError ? (
+            {activeDisplayImage && !imageError ? (
               <img
-                src={resolveProductImage(product.primary_image_url)}
+                src={activeDisplayImage}
                 alt={product.title}
                 onError={() => setImageError(true)}
-                className="max-h-[340px] w-auto object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500"
+                className="max-h-[340px] w-auto object-contain drop-shadow-xl hover:scale-105 transition-transform duration-500 rounded-xl"
               />
             ) : (
               <div className="relative w-44 h-56 flex items-center justify-center">
@@ -295,35 +310,61 @@ export default function ProductDetailPage() {
             )}
           </div>
 
-          {/* 3 Pastel Thumbnails Below */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveThumbIdx(0)}
-              className={`w-20 h-20 rounded-2xl ${pastelBg} flex items-center justify-center border-2 transition-all p-2 ${
-                activeThumbIdx === 0 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
-              }`}
-            >
-              <div className="w-8 h-12 rounded-lg shadow-2xs" style={{ backgroundColor: jarColor }} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveThumbIdx(1)}
-              className={`w-20 h-20 rounded-2xl bg-[#f7ebd2] flex items-center justify-center border-2 transition-all p-2 ${
-                activeThumbIdx === 1 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
-              }`}
-            >
-              <div className="w-8 h-12 rounded-lg bg-[#c87820] shadow-2xs" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveThumbIdx(2)}
-              className={`w-20 h-20 rounded-2xl bg-[#e2ede2] flex items-center justify-center border-2 transition-all p-2 ${
-                activeThumbIdx === 2 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
-              }`}
-            >
-              <div className="w-8 h-12 rounded-lg bg-[#496e4c] shadow-2xs" />
-            </button>
+          {/* Product Image Thumbnails Below */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-1">
+            {galleryImages.length > 0 ? (
+              galleryImages.map((imgSrc, idx) => (
+                <button
+                  key={`${idx}-${imgSrc.slice(0, 32)}`}
+                  type="button"
+                  onClick={() => {
+                    setImageError(false);
+                    setActiveThumbIdx(idx);
+                  }}
+                  className={`w-20 h-20 rounded-2xl ${pastelBg} flex items-center justify-center border-2 transition-all overflow-hidden p-1.5 shrink-0 cursor-pointer ${
+                    activeThumbIdx === idx
+                      ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20'
+                      : 'border-stone-200/80 opacity-75 hover:opacity-100'
+                  }`}
+                >
+                  <img
+                    src={imgSrc}
+                    alt={`${product.title} view ${idx + 1}`}
+                    className="w-full h-full object-cover rounded-xl"
+                  />
+                </button>
+              ))
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setActiveThumbIdx(0)}
+                  className={`w-20 h-20 rounded-2xl ${pastelBg} flex items-center justify-center border-2 transition-all p-2 ${
+                    activeThumbIdx === 0 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                >
+                  <div className="w-8 h-12 rounded-lg shadow-2xs" style={{ backgroundColor: jarColor }} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveThumbIdx(1)}
+                  className={`w-20 h-20 rounded-2xl bg-[#f7ebd2] flex items-center justify-center border-2 transition-all p-2 ${
+                    activeThumbIdx === 1 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                >
+                  <div className="w-8 h-12 rounded-lg bg-[#c87820] shadow-2xs" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveThumbIdx(2)}
+                  className={`w-20 h-20 rounded-2xl bg-[#e2ede2] flex items-center justify-center border-2 transition-all p-2 ${
+                    activeThumbIdx === 2 ? 'border-[#ab331c] ring-2 ring-[#ab331c]/20' : 'border-transparent opacity-80 hover:opacity-100'
+                  }`}
+                >
+                  <div className="w-8 h-12 rounded-lg bg-[#496e4c] shadow-2xs" />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
