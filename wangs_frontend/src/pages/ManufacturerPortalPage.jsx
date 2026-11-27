@@ -2547,8 +2547,8 @@ export default function ManufacturerPortalPage() {
           ADD / EDIT PRODUCT MODAL
          ===================================================================== */}
       {showAddProductModal && (
-        <div className="fixed inset-0 z-50 bg-stone-950/75 flex items-start sm:items-center justify-center p-3 sm:p-5 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-2xl w-full my-auto shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-fade-in">
+        <div className="fixed inset-0 z-[70] bg-stone-950/75 flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-2xl w-full my-auto shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[90dvh] animate-fade-in">
             {/* Modal Header */}
             <div className="p-4 sm:p-5 bg-gradient-to-r from-forest-950 via-forest-900 to-forest-950 text-white flex items-center justify-between border-b border-amber-500/30 shrink-0">
               <div className="flex items-center gap-3">
