@@ -133,12 +133,14 @@ class FinancialCalculator:
 class OrderService:
     @staticmethod
     @transaction.atomic
-    def create_order_from_cart(user, customer_details, shipping_details, cart_items, coupon=None, payment_method='RAZORPAY_TEST', credits_to_redeem=0, requested_method=None):
+    def create_order_from_cart(user, customer_details, shipping_details, cart_items, coupon=None, payment_method='RAZORPAY', credits_to_redeem=0, requested_method=None):
         """
         Atomically validates stock, computes financials, applies Wangs Rewards credits,
         deducts stock, saves immutable snapshots of Order and OrderItems, and generates
         unique OrderUnits and ProductQRCodes for every individual item unit.
         """
+        if str(payment_method or '').strip().upper() == 'COD':
+            raise ValueError('Cash on Delivery (COD) is not available. Please complete online payment via Razorpay.')
         # Validate stock availability
         for item in cart_items:
             product = Product.objects.select_for_update().get(id=item.product.id)
@@ -394,11 +396,19 @@ class PaymentService:
         tx.provider = actual_provider
         tx.save()
 
-        # Update Order status
+        # Update Order status & exact payment capture + seller 48h eligibility timestamps
+        from datetime import timedelta
+        capture_ts = timezone.now()
+        elig_hours = int(getattr(CommissionSetting.get_current(), 'eligibility_hours', 48) or 48)
         order.payment_status = Order.PaymentStatus.PAID
         order.status = Order.Status.CONFIRMED
         order.payment_method = actual_provider
-        order.save(update_fields=['payment_status', 'status', 'payment_method', 'updated_at'])
+        order.payment_captured_at = order.payment_captured_at or capture_ts
+        order.seller_eligibility_at = order.seller_eligibility_at or (order.payment_captured_at + timedelta(hours=elig_hours))
+        order.save(update_fields=[
+            'payment_status', 'status', 'payment_method',
+            'payment_captured_at', 'seller_eligibility_at', 'updated_at'
+        ])
 
         # Audit log
         AuditLog.objects.create(

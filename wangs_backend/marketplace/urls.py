@@ -48,7 +48,8 @@ from .views import (
     AdminPaymentRequestReviewView,
     SellerEarningsOverviewView, SellerWithdrawalCreateView,
     AdminSellerEarningsListView, AdminSellerEarningsDetailView,
-    DeleteMyAccountView
+    DeleteMyAccountView,
+    CustomerComplaintView, AdminComplaintListView, AdminComplaintActionView
 )
 
 router = DefaultRouter()
@@ -104,6 +105,7 @@ urlpatterns = [
     path('payments/cashfree-status/<str:order_number>/', CashfreePaymentStatusView.as_view(), name='cashfree-payment-status'),
     path('orders/lookup/<str:order_number>/', OrderLookupView.as_view(), name='order-lookup'),
     path('orders/my-orders/', CustomerOrdersView.as_view(), name='customer-orders'),
+    path('complaints/', CustomerComplaintView.as_view(), name='customer-complaints'),
     
     # Delivery Portal (Accessed directly via /delivery & QR scan - Protected for Approved Couriers)
     path('delivery/active/', DeliveryActiveOrdersView.as_view(), name='delivery-active-orders'),
@@ -195,6 +197,8 @@ urlpatterns = [
     path('admin/payment-requests/<int:pk>/review/', AdminPaymentRequestReviewView.as_view(), name='admin-payment-request-review'),
     path('admin/seller-earnings/', AdminSellerEarningsListView.as_view(), name='admin-seller-earnings'),
     path('admin/seller-earnings/<int:seller_id>/', AdminSellerEarningsDetailView.as_view(), name='admin-seller-earnings-detail'),
+    path('admin/complaints/', AdminComplaintListView.as_view(), name='admin-complaints'),
+    path('admin/complaints/<int:pk>/action/', AdminComplaintActionView.as_view(), name='admin-complaint-action'),
     path('admin/payments/', AdminPaymentsOverviewView.as_view(), name='admin-payments-overview'),
     path('admin/maintenance-subscribers/', AdminMaintenanceSubscribersView.as_view(), name='admin-maintenance-subscribers'),
     path('admin/audit-logs/', AdminAuditLogsView.as_view(), name='admin-audit-logs'),

@@ -19,6 +19,7 @@ import AdminCouriersTab from '../components/AdminCouriersTab';
 import AdminDeliveryTab from '../components/AdminDeliveryTab';
 import AdminPaymentRequestsTab from '../components/AdminPaymentRequestsTab';
 import AdminSellerEarningsTab from '../components/AdminSellerEarningsTab';
+import AdminComplaintsTab from '../components/AdminComplaintsTab';
 
 const extractList = (data) => {
   if (!data) return [];
@@ -454,6 +455,7 @@ const tabTitles = {
   commission: 'Commission & Fees Settings',
   payment_requests: 'Payment Requests',
   seller_earnings: 'Seller Earnings',
+  complaints: 'Complaints & Refunds',
   settlements: 'Payout Settlements',
   research: 'Research & Study Records',
   logs: 'System Audit Trail'
@@ -541,6 +543,11 @@ export default function AdminDashboardPage() {
     minimum_product_price: '101.00',
     minimum_withdrawal_amount: '300.00',
     return_period_days: '7',
+    eligibility_hours: '48',
+    support_email: '',
+    support_phone: '',
+    support_hours: 'Mon–Sat, 9:00 AM – 6:00 PM IST',
+    returns_policy_text: '',
     reason: '',
   });
 
@@ -710,6 +717,11 @@ export default function AdminDashboardPage() {
           minimum_product_price: parsedComm.current.minimum_product_price || '101.00',
           minimum_withdrawal_amount: parsedComm.current.minimum_withdrawal_amount || '300.00',
           return_period_days: String(parsedComm.current.return_period_days ?? 7),
+          eligibility_hours: String(parsedComm.current.eligibility_hours ?? 48),
+          support_email: parsedComm.current.support_email || '',
+          support_phone: parsedComm.current.support_phone || '',
+          support_hours: parsedComm.current.support_hours || 'Mon–Sat, 9:00 AM – 6:00 PM IST',
+          returns_policy_text: parsedComm.current.returns_policy_text || '',
           reason: '',
         });
       }
@@ -1986,6 +1998,7 @@ export default function AdminDashboardPage() {
         { id: 'categories', label: 'Categories', icon: Tags, count: categoriesList.length },
         { id: 'payment_requests', label: 'Payment Requests', icon: Landmark },
         { id: 'seller_earnings', label: 'Seller Earnings', icon: DollarSign },
+        { id: 'complaints', label: 'Complaints & Refunds', icon: AlertCircle },
         { id: 'commission', label: 'Commission & Fees', icon: DollarSign },
         { id: 'settlements', label: 'Payout Settlements', icon: Landmark },
         { id: 'research', label: 'Research & Exports', icon: FileText },
@@ -6197,6 +6210,9 @@ export default function AdminDashboardPage() {
       {/* Tab: Seller Earnings & Payouts Overview */}
       {activeTab === 'seller_earnings' && <AdminSellerEarningsTab />}
 
+      {/* Tab: Customer Complaints & Refunds */}
+      {activeTab === 'complaints' && <AdminComplaintsTab />}
+
       {/* Tab 5: Commission & Fee Management */}
       {activeTab === 'commission' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-xs">
@@ -6296,6 +6312,65 @@ export default function AdminDashboardPage() {
                     className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Seller Eligibility Window (Hours)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="720"
+                    required
+                    value={commForm.eligibility_hours}
+                    onChange={(e) => setCommForm({ ...commForm, eligibility_hours: e.target.value })}
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Support Operating Hours</label>
+                  <input
+                    type="text"
+                    value={commForm.support_hours}
+                    onChange={(e) => setCommForm({ ...commForm, support_hours: e.target.value })}
+                    placeholder="Mon–Sat, 9:00 AM – 6:00 PM IST"
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Customer Support Email</label>
+                  <input
+                    type="email"
+                    value={commForm.support_email}
+                    onChange={(e) => setCommForm({ ...commForm, support_email: e.target.value })}
+                    placeholder="support@wangs.in"
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-stone-700 font-medium mb-1">Customer Support Phone</label>
+                  <input
+                    type="text"
+                    value={commForm.support_phone}
+                    onChange={(e) => setCommForm({ ...commForm, support_phone: e.target.value })}
+                    placeholder="+91 ..."
+                    className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-stone-700 font-medium mb-1">Custom Returns &amp; Refunds Policy (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={commForm.returns_policy_text}
+                  onChange={(e) => setCommForm({ ...commForm, returns_policy_text: e.target.value })}
+                  placeholder="Leave blank to show the default compliant Wangs Returns & Refunds policy."
+                  className="w-full px-3 py-1.5 border border-stone-200 rounded-lg"
+                />
               </div>
 
               <div>

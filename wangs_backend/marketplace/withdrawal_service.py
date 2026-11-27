@@ -356,21 +356,23 @@ def get_previous_withdrawals_total(seller: ManufacturerProfile, exclude_id: int 
 def sync_seller_balance_from_paid_orders(seller: ManufacturerProfile) -> SellerBalance:
     """
     Idempotently post missing ORDER_EARNING ledger entries for PAID order items
-    and release pending earnings to available_balance once delivered + return_period_days elapsed.
+    and release pending earnings to available_balance after the configured eligibility
+    period (default 48 hours from payment capture), provided the order is not
+    cancelled/refunded and has no unresolved complaint/refund dispute.
     """
     from datetime import timedelta
+    from .models import OrderComplaint, Refund
 
     balance = get_or_create_seller_balance_locked(seller)
     settings_obj = CommissionSetting.get_current()
-    return_days = int(getattr(settings_obj, 'return_period_days', 7) or 7)
-    cutoff = timezone.now() - timedelta(days=return_days)
+    elig_hours = int(getattr(settings_obj, 'eligibility_hours', 48) or 48)
+    now = timezone.now()
 
     paid_items = (
         OrderItem.objects.filter(
             manufacturer=seller,
-            order__payment_status=Order.PaymentStatus.PAID,
+            order__payment_status__in=[Order.PaymentStatus.PAID, Order.PaymentStatus.REFUNDED],
         )
-        .exclude(order__status__in=[Order.Status.CANCELLED, Order.Status.REFUNDED])
         .select_related('order')
     )
 
@@ -386,20 +388,52 @@ def sync_seller_balance_from_paid_orders(seller: ManufacturerProfile) -> SellerB
             transaction_type=SellerFinancialLedger.TransactionType.ELIGIBILITY_RELEASE,
         ).values_list('transaction_reference', flat=True)
     )
+    reversed_refs = set(
+        SellerFinancialLedger.objects.filter(
+            seller=seller,
+            transaction_type=SellerFinancialLedger.TransactionType.REFUND_REVERSAL,
+        ).values_list('transaction_reference', flat=True)
+    )
+
+    disputed_order_ids = set(
+        OrderComplaint.objects.filter(
+            order_id__in=[i.order_id for i in paid_items],
+            status__in=[
+                OrderComplaint.Status.SUBMITTED,
+                OrderComplaint.Status.UNDER_REVIEW,
+                OrderComplaint.Status.EVIDENCE_REQUESTED,
+                OrderComplaint.Status.REFUND_APPROVED,
+            ],
+        ).values_list('order_id', flat=True)
+    )
+    refunded_order_ids = set(
+        Refund.objects.filter(
+            order_id__in=[i.order_id for i in paid_items],
+            status__in=[Refund.Status.REQUESTED, Refund.Status.APPROVED, Refund.Status.PROCESSED],
+        ).values_list('order_id', flat=True)
+    )
 
     for item in paid_items:
         earn_ref = f"ORDITEM-{item.id}"
+        rel_ref = f"RELITEM-{item.id}"
+        rev_ref = f"REVITEM-{item.id}"
         payout = (item.manufacturer_payout or Decimal('0.00')).quantize(Decimal('0.01'))
         if payout <= Decimal('0.00'):
             continue
 
-        is_delivered = (
-            item.order.status == Order.Status.DELIVERED
-            or item.fulfillment_status == OrderItem.FulfillmentStatus.DELIVERED
+        is_cancelled_or_refunded = (
+            item.order.status in (Order.Status.CANCELLED, Order.Status.REFUNDED)
+            or item.order.payment_status == Order.PaymentStatus.REFUNDED
         )
-        is_eligible_now = is_delivered and (item.order.updated_at <= cutoff)
+        has_dispute = (item.order_id in disputed_order_ids) or (item.order_id in refunded_order_ids)
+
+        capture_ts = item.order.payment_captured_at or item.order.created_at
+        eligibility_dt = item.order.seller_eligibility_at or (capture_ts + timedelta(hours=elig_hours))
+        is_eligible_now = (not is_cancelled_or_refunded) and (not has_dispute) and (now >= eligibility_dt)
 
         if earn_ref not in existing_refs:
+            if is_cancelled_or_refunded:
+                continue
             SellerFinancialLedger.objects.create(
                 seller=seller,
                 order=item.order,
@@ -416,8 +450,6 @@ def sync_seller_balance_from_paid_orders(seller: ManufacturerProfile) -> SellerB
             balance.total_lifetime_earnings += payout
             if is_eligible_now:
                 balance.available_balance += payout
-                # Also mark eligibility release ref so we don't double-release
-                rel_ref = f"RELITEM-{item.id}"
                 if rel_ref not in released_refs:
                     SellerFinancialLedger.objects.create(
                         seller=seller,
@@ -427,16 +459,33 @@ def sync_seller_balance_from_paid_orders(seller: ManufacturerProfile) -> SellerB
                         transaction_type=SellerFinancialLedger.TransactionType.ELIGIBILITY_RELEASE,
                         signed_amount=Decimal('0.00'),
                         status=SellerFinancialLedger.Status.COMPLETED,
-                        description=f"Return period completed for #{item.order.order_number}",
+                        description=f"48h eligibility window completed for #{item.order.order_number}",
                     )
                     released_refs.add(rel_ref)
             else:
                 balance.pending_earnings += payout
             existing_refs.add(earn_ref)
         else:
-            # Item was already recorded earlier; check if it should now transition from pending -> available
-            rel_ref = f"RELITEM-{item.id}"
-            if is_eligible_now and rel_ref not in released_refs and balance.pending_earnings >= payout:
+            # Handle cancellation/refund reversal of previously pending/available earnings
+            if is_cancelled_or_refunded and rev_ref not in reversed_refs:
+                if balance.pending_earnings >= payout:
+                    balance.pending_earnings -= payout
+                elif balance.available_balance >= payout:
+                    balance.available_balance -= payout
+                balance.reversed_adjusted += payout
+                SellerFinancialLedger.objects.create(
+                    seller=seller,
+                    order=item.order,
+                    order_item=item,
+                    transaction_reference=rev_ref,
+                    transaction_type=SellerFinancialLedger.TransactionType.REFUND_REVERSAL,
+                    refund_amount=payout,
+                    signed_amount=-payout,
+                    status=SellerFinancialLedger.Status.REVERSED,
+                    description=f"Reversed earnings for cancelled/refunded order #{item.order.order_number}",
+                )
+                reversed_refs.add(rev_ref)
+            elif is_eligible_now and rel_ref not in released_refs and balance.pending_earnings >= payout:
                 balance.pending_earnings -= payout
                 balance.available_balance += payout
                 SellerFinancialLedger.objects.create(
@@ -447,7 +496,7 @@ def sync_seller_balance_from_paid_orders(seller: ManufacturerProfile) -> SellerB
                     transaction_type=SellerFinancialLedger.TransactionType.ELIGIBILITY_RELEASE,
                     signed_amount=Decimal('0.00'),
                     status=SellerFinancialLedger.Status.COMPLETED,
-                    description=f"Return period completed for #{item.order.order_number}",
+                    description=f"48h eligibility window completed for #{item.order.order_number}",
                 )
                 released_refs.add(rel_ref)
 
@@ -546,4 +595,103 @@ def submit_seller_withdrawal(
         details={'request_reference': ref, 'amount': str(req_amount)},
     )
     return withdrawal
+
+
+@transaction.atomic
+def apply_complaint_refund_adjustment(
+    complaint,
+    refund_amount,
+    admin_user,
+    reason: str = '',
+    ip_address: str | None = None,
+):
+    """
+    Create an auditable Refund + immutable REFUND_REVERSAL ledger entry when admin approves a refund
+    for a customer complaint. Never deducts a seller's balance without an audit/ledger record.
+    """
+    from decimal import InvalidOperation
+    from .models import Payment, Refund
+
+    order = complaint.order
+    try:
+        req_refund = Decimal(str(refund_amount or order.total_amount)).quantize(Decimal('0.01'))
+    except (InvalidOperation, TypeError, ValueError):
+        raise WithdrawalWorkflowError('Enter a valid refund amount.', status_code=400)
+
+    if req_refund <= Decimal('0.00') or req_refund > order.total_amount:
+        raise WithdrawalWorkflowError(f'Refund amount must be between ₹0.01 and ₹{order.total_amount}.', status_code=400)
+
+    payment = Payment.objects.filter(order=order).order_by('-created_at').first()
+    refund_rec = Refund.objects.create(
+        order=order,
+        payment=payment,
+        amount=req_refund,
+        amount_paise=int((req_refund * Decimal('100')).quantize(Decimal('1'))),
+        reason=reason or f'Complaint {complaint.complaint_reference} refund approved',
+        status=Refund.Status.APPROVED,
+        admin_notes=f'Approved by {admin_user.username}',
+    )
+
+    items = list(order.items.select_related('manufacturer').all())
+    total_payout = sum((i.manufacturer_payout or Decimal('0.00')) for i in items)
+    if total_payout > Decimal('0.00'):
+        by_seller = {}
+        for item in items:
+            if item.manufacturer_id:
+                by_seller.setdefault(item.manufacturer, Decimal('0.00'))
+                by_seller[item.manufacturer] += (item.manufacturer_payout or Decimal('0.00'))
+
+        for seller, seller_share in by_seller.items():
+            bal = get_or_create_seller_balance_locked(seller)
+            proportion = (seller_share / total_payout)
+            deduct = min(seller_share, (req_refund * proportion).quantize(Decimal('0.01')))
+            if deduct <= Decimal('0.00'):
+                continue
+            prev = {
+                'pending_earnings': str(bal.pending_earnings),
+                'available_balance': str(bal.available_balance),
+                'reversed_adjusted': str(bal.reversed_adjusted),
+            }
+            if bal.pending_earnings >= deduct:
+                bal.pending_earnings -= deduct
+            elif bal.pending_earnings + bal.available_balance >= deduct:
+                rem = deduct - bal.pending_earnings
+                bal.pending_earnings = Decimal('0.00')
+                bal.available_balance -= rem
+            else:
+                bal.pending_earnings = Decimal('0.00')
+                bal.available_balance = Decimal('0.00')
+            bal.reversed_adjusted += deduct
+            bal.save()
+
+            SellerFinancialLedger.objects.create(
+                seller=seller,
+                order=order,
+                payment=payment,
+                transaction_reference=f"CMPREF-{complaint.complaint_reference}-{seller.id}-{uuid.uuid4().hex[:5].upper()}",
+                transaction_type=SellerFinancialLedger.TransactionType.REFUND_REVERSAL,
+                refund_amount=deduct,
+                signed_amount=-deduct,
+                status=SellerFinancialLedger.Status.REVERSED,
+                description=f"Complaint {complaint.complaint_reference} refund adjustment: {reason or complaint.issue_category}",
+                created_by=admin_user,
+            )
+            FinancialAuditLog.objects.create(
+                actor=admin_user,
+                action='COMPLAINT_REFUND_ADJUSTMENT',
+                target_model='OrderComplaint',
+                target_id=str(complaint.id),
+                seller=seller,
+                reason=reason or f'Refund approved for complaint {complaint.complaint_reference}',
+                previous_state=prev,
+                new_state={
+                    'pending_earnings': str(bal.pending_earnings),
+                    'available_balance': str(bal.available_balance),
+                    'reversed_adjusted': str(bal.reversed_adjusted),
+                },
+                ip_address=ip_address,
+            )
+
+    return refund_rec
+
 

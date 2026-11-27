@@ -522,6 +522,12 @@ export const api = {
   },
   getAdminSellerEarningsDetail: (sellerId) => apiRequest(`/admin/seller-earnings/${sellerId}/`),
 
+  // Customer Complaints & Admin Refunds Review
+  getMyComplaints: () => apiRequest('/complaints/'),
+  submitComplaint: (body) => apiRequest('/complaints/', { method: 'POST', body: JSON.stringify(body) }),
+  getAdminComplaints: (statusFilter = 'ALL') => apiRequest(`/admin/complaints/?status=${encodeURIComponent(statusFilter)}`),
+  actOnAdminComplaint: (id, body) => apiRequest(`/admin/complaints/${id}/action/`, { method: 'POST', body: JSON.stringify(body) }),
+
   // Admin Payment Requests (Bagisto-inspired Withdrawal Governance)
   getAdminPaymentRequests: (params = {}) => {
     const qs = new URLSearchParams();

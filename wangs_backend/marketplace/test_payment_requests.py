@@ -281,5 +281,112 @@ class AdminPaymentRequestsTests(TestCase):
             with self.assertRaises(WebhookSignatureError):
                 adapter.verify_webhook_signature({'X-Razorpay-Signature': 'bad_wh_sig'}, raw_body, {})
 
+    def test_48h_eligibility_no_cod_and_complaints_refund_workflow(self):
+        from datetime import timedelta
+        from django.core.management import call_command
+        from django.utils import timezone
+        from .models import Category, Order, OrderComplaint, OrderItem, Payment, Product, Refund
+        from .services import OrderService, PaymentService
+        from .withdrawal_service import sync_seller_balance_from_paid_orders
+
+        cat = Category.objects.create(name='Test Pickles', slug='test-pickles')
+        prod = Product.objects.create(
+            manufacturer=self.seller,
+            category=cat,
+            title='King Chilli Pickle',
+            slug='king-chilli-pickle',
+            price=Decimal('500.00'),
+            weight_grams=250,
+            stock_quantity=20,
+            status=Product.Status.APPROVED,
+            is_active=True,
+        )
+        cust = User.objects.create_user(username='cust_48h', email='cust48@wangs.in', password='pass1234', role=User.Role.CUSTOMER)
+
+        # COD is rejected
+        class DummyItem:
+            def __init__(self, product, quantity):
+                self.product = product
+                self.quantity = quantity
+
+        with self.assertRaises(ValueError):
+            OrderService.create_order_from_cart(
+                user=cust,
+                customer_details={'name': 'Test Cust', 'email': 'cust48@wangs.in', 'phone': '9999999999'},
+                shipping_details={'address_line1': 'Main Rd', 'city': 'Kohima', 'state': 'Nagaland', 'postal_code': '797001'},
+                cart_items=[DummyItem(prod, 1)],
+                payment_method='COD',
+            )
+
+        # Online Razorpay order -> payment captured -> pending earnings created (48h window)
+        order = OrderService.create_order_from_cart(
+            user=cust,
+            customer_details={'name': 'Test Cust', 'email': 'cust48@wangs.in', 'phone': '9999999999'},
+            shipping_details={'address_line1': 'Main Rd', 'city': 'Kohima', 'state': 'Nagaland', 'postal_code': '797001'},
+            cart_items=[DummyItem(prod, 1)],
+            payment_method='RAZORPAY',
+        )
+        PaymentService.create_razorpay_order(order)
+        PaymentService.verify_and_confirm_payment(
+            order=order,
+            payment_id='pay_sim_48h',
+            razorpay_order_id=f'order_test_{order.order_number}',
+            signature='sig_sim',
+            provider='RAZORPAY',
+        )
+        order.refresh_from_db()
+        self.assertIsNotNone(order.payment_captured_at)
+        self.assertIsNotNone(order.seller_eligibility_at)
+        pay_rec = Payment.objects.filter(order=order).first()
+        self.assertIn('T+2', pay_rec.gateway_settlement_schedule)
+
+        # Before 48h, earnings stay in pending_earnings (not available)
+        prev_avail = self.balance.available_balance
+        prev_pend = self.balance.pending_earnings
+        bal = sync_seller_balance_from_paid_orders(self.seller)
+        self.assertEqual(bal.available_balance, prev_avail)
+        self.assertEqual(bal.pending_earnings, prev_pend + Decimal('450.00'))
+
+        # Customer submits complaint -> blocks 48h release while unresolved
+        self.client.force_authenticate(user=cust)
+        cmp_res = self.client.post('/api/complaints/', {
+            'order_id': order.order_number,
+            'customer_name': 'Test Cust',
+            'registered_email': 'cust48@wangs.in',
+            'contact_number': '9999999999',
+            'product_name': 'King Chilli Pickle',
+            'issue_category': 'DAMAGED',
+            'description': 'Jar arrived cracked',
+        }, format='json')
+        self.assertEqual(cmp_res.status_code, 201)
+        cmp_id = cmp_res.data['id']
+
+        # Fast-forward past 48h: still blocked by unresolved complaint
+        Order.objects.filter(id=order.id).update(
+            payment_captured_at=timezone.now() - timedelta(hours=50),
+            seller_eligibility_at=timezone.now() - timedelta(hours=2),
+        )
+        call_command('release_eligible_earnings')
+        self.balance.refresh_from_db()
+        self.assertEqual(self.balance.available_balance, prev_avail)
+
+        # Admin approves refund -> creates auditable Refund + REFUND_REVERSAL ledger entry
+        self.client.force_authenticate(user=self.admin)
+        act_res = self.client.post(f'/api/admin/complaints/{cmp_id}/action/', {
+            'action': 'approve_refund',
+            'refund_amount': '450.00',
+            'reason': 'Verified broken jar',
+        }, format='json')
+        self.assertEqual(act_res.status_code, 200)
+        self.assertTrue(Refund.objects.filter(order=order, status=Refund.Status.APPROVED).exists())
+        self.assertTrue(
+            SellerFinancialLedger.objects.filter(
+                seller=self.seller,
+                order=order,
+                transaction_type=SellerFinancialLedger.TransactionType.REFUND_REVERSAL,
+            ).exists()
+        )
+
+
 
 

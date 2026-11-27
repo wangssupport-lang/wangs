@@ -478,6 +478,26 @@ class CommissionSetting(models.Model):
         max_digits=8, decimal_places=2, default=Decimal('101.00'),
         help_text="Minimum selling price allowed for seller product listings (INR)."
     )
+    eligibility_hours = models.PositiveIntegerField(
+        default=48,
+        help_text="Hours after verified payment capture before seller earnings become eligible for withdrawal (default 48h)."
+    )
+    support_email = models.EmailField(
+        blank=True, default='',
+        help_text="Centrally configured customer support email."
+    )
+    support_phone = models.CharField(
+        max_length=30, blank=True, default='',
+        help_text="Centrally configured customer support phone."
+    )
+    support_hours = models.CharField(
+        max_length=120, blank=True, default='Mon–Sat, 9:00 AM – 6:00 PM IST',
+        help_text="Customer support operating hours."
+    )
+    returns_policy_text = models.TextField(
+        blank=True, default='',
+        help_text="Configurable Returns & Refunds policy text (uses default food-marketplace policy when blank)."
+    )
     is_maintenance_mode = models.BooleanField(
         default=False,
         help_text="When True, the public storefront shows a maintenance page to visitors. Admins can bypass."
@@ -654,6 +674,14 @@ class Order(models.Model):
         default=dict,
         blank=True,
         help_text="Cashfree Easy Split vendor allocations and settlement reference"
+    )
+    payment_captured_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Exact timestamp when online payment capture was verified."
+    )
+    seller_eligibility_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Timestamp when seller earnings become eligible for withdrawal (default 48h after payment capture)."
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1282,6 +1310,10 @@ class Payment(models.Model):
     status = models.CharField(max_length=30, choices=Status.choices, default=Status.PENDING, db_index=True)
     payment_method = models.CharField(max_length=50, blank=True, default='')
     verification_timestamp = models.DateTimeField(null=True, blank=True)
+    gateway_settlement_schedule = models.CharField(max_length=60, blank=True, default='T+2 Domestic (0% displayed fee)')
+    gateway_settlement_date = models.DateTimeField(null=True, blank=True)
+    gateway_settlement_reference = models.CharField(max_length=120, blank=True, default='', db_index=True)
+    gateway_settlement_status = models.CharField(max_length=30, blank=True, default='PENDING')
     idempotency_key = models.CharField(max_length=120, unique=True, null=True, blank=True)
     raw_response = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -1655,6 +1687,53 @@ class FinancialAuditLog(models.Model):
 
     def __str__(self):
         return f"FinancialAudit[{self.action}] {self.target_model}#{self.target_id}"
+
+
+class OrderComplaint(models.Model):
+    class IssueCategory(models.TextChoices):
+        DAMAGED = 'DAMAGED', 'Damaged Product'
+        DEFECTIVE_SPOILED = 'DEFECTIVE_SPOILED', 'Defective or Spoiled Product'
+        EXPIRED = 'EXPIRED', 'Expired Product'
+        INCORRECT_MISSING = 'INCORRECT_MISSING', 'Incorrect or Missing Product'
+        OTHER = 'OTHER', 'Other Issue'
+
+    class Status(models.TextChoices):
+        SUBMITTED = 'SUBMITTED', 'Submitted'
+        UNDER_REVIEW = 'UNDER_REVIEW', 'Under Review'
+        EVIDENCE_REQUESTED = 'EVIDENCE_REQUESTED', 'Additional Evidence Requested'
+        REFUND_APPROVED = 'REFUND_APPROVED', 'Refund Approved'
+        REPLACEMENT_APPROVED = 'REPLACEMENT_APPROVED', 'Replacement Approved'
+        REJECTED = 'REJECTED', 'Rejected'
+        RESOLVED = 'RESOLVED', 'Resolved'
+
+    complaint_reference = models.CharField(max_length=64, unique=True, db_index=True)
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='complaints')
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='order_complaints')
+
+    customer_name = models.CharField(max_length=150)
+    registered_email = models.EmailField()
+    contact_number = models.CharField(max_length=25)
+    product_name = models.CharField(max_length=200)
+    issue_category = models.CharField(max_length=32, choices=IssueCategory.choices, default=IssueCategory.DAMAGED)
+    description = models.TextField()
+    supporting_images = models.JSONField(default=list, blank=True)
+
+    status = models.CharField(max_length=32, choices=Status.choices, default=Status.SUBMITTED, db_index=True)
+    admin_notes = models.TextField(blank=True, default='')
+    rejection_reason = models.TextField(blank=True, default='')
+    refund_amount = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
+
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_complaints')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.complaint_reference} - #{self.order.order_number} ({self.status})"
+
 
 
 

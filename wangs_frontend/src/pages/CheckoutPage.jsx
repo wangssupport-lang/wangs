@@ -226,6 +226,11 @@ export default function CheckoutPage() {
             email: customerEmail,
             contact: customerPhone,
           },
+          config: {
+            display: {
+              hide: [{ method: 'emi' }],
+            },
+          },
           theme: { color: '#28452e' },
           handler: async (rpResponse) => {
             try {
@@ -582,18 +587,6 @@ export default function CheckoutPage() {
                     className="accent-[#ab331c] w-4 h-4 cursor-pointer"
                   />
                   <span className="font-medium text-stone-900">Card / Netbanking</span>
-                </label>
-
-                <label className="flex items-center gap-2.5 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="payment_option"
-                    value="COD"
-                    checked={paymentOption === 'COD'}
-                    onChange={() => setPaymentOption('COD')}
-                    className="accent-[#ab331c] w-4 h-4 cursor-pointer"
-                  />
-                  <span className="font-medium text-stone-900">Cash on delivery</span>
                 </label>
               </div>
             </div>

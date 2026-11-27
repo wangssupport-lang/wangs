@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import SeoHead from '../components/SeoHead';
+import { api } from '../api';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { ShieldCheck, Mail, MapPin, Phone, Truck, RefreshCw, Award, Flame, ShieldAlert, CheckCircle2, XCircle, Check, X } from 'lucide-react';
 
 export function AboutPage() {
@@ -347,17 +350,20 @@ export function RefundsPage() {
         </p>
       </div>
 
-      {/* Strict No-Return Banner */}
+      {/* Food Safety & Statutory Consumer Rights Policy */}
       <div className="p-5 sm:p-6 bg-amber-50/80 border border-amber-200/90 rounded-2xl sm:rounded-3xl flex items-start gap-3.5">
         <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
           <ShieldAlert size={20} />
         </div>
-        <div>
+        <div className="space-y-1.5">
           <h3 className="font-serif font-bold text-stone-900 text-sm sm:text-base">
-            Strict No-Return Policy (Edible & Perishable Food Items)
+            Food Product Returns &amp; Consumer Rights Policy
           </h3>
-          <p className="text-xs text-stone-600 mt-1 leading-relaxed">
-            Due to the perishable nature of handcrafted food products, slow-cured preserves, and strict FSSAI food hygiene protocols, <strong>we cannot accept physical returns under any circumstances</strong> once an order has been dispatched or delivered.
+          <p className="text-xs text-stone-700 leading-relaxed">
+            Because food and artisanal pickle products are perishable, <strong>change-of-mind returns for food products are generally not accepted where legally permissible</strong>, and <strong>opened or used food products are not ordinarily eligible for return, subject to applicable consumer rights</strong>.
+          </p>
+          <p className="text-xs text-stone-700 leading-relaxed">
+            However, customers can always report <strong>damaged, defective or spoiled, expired, or incorrect/missing products</strong>. All complaints are reviewed individually, and eligible refunds or replacements are processed according to applicable law and Wangs&apos; published policy.
           </p>
         </div>
       </div>
@@ -464,24 +470,113 @@ export function RefundsPage() {
         </ol>
       </div>
 
-      {/* Support Card */}
-      <div className="p-5 bg-stone-100 rounded-2xl text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-stone-700">
+      {/* Submit Customer Complaint Form */}
+      <ComplaintSubmissionBox />
+    </div>
+  );
+}
+
+function ComplaintSubmissionBox() {
+  const { user, platformSettings } = useAuth();
+  const toast = useToast();
+  const [form, setForm] = useState({
+    order_id: '',
+    customer_name: user ? `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.username : '',
+    registered_email: user?.email || '',
+    contact_number: user?.phone_number || '',
+    product_name: '',
+    issue_category: 'DAMAGED',
+    description: '',
+  });
+  const [busy, setBusy] = useState(false);
+  const [submittedRef, setSubmittedRef] = useState('');
+
+  const supportEmail = platformSettings?.support_email || 'Not configured yet';
+  const supportPhone = platformSettings?.support_phone || '';
+  const supportHours = platformSettings?.support_hours || 'Mon–Sat, 9:00 AM – 6:00 PM IST';
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const res = await api.submitComplaint(form);
+      setSubmittedRef(res.complaint_reference);
+      toast.success(res.message || 'Complaint submitted.');
+    } catch (err) {
+      toast.error(err.message || 'Could not submit complaint');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-3xl border border-stone-200 p-6 space-y-5 shadow-xs text-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
         <div>
-          <span className="font-bold text-stone-900">Have a genuine issue with an order?</span>
-          <p className="text-[11px] text-stone-500">Contact our support team to submit your evidence for manufacturer review.</p>
+          <h3 className="font-serif text-lg font-bold text-stone-900">Report an Order Issue / Request Refund</h3>
+          <p className="text-stone-500 mt-0.5">
+            Every complaint is reviewed individually. Support: <strong>{supportEmail}</strong>{supportPhone ? ` · ${supportPhone}` : ''} ({supportHours})
+          </p>
         </div>
-        <Link
-          to="/contact"
-          className="px-4 py-2 bg-red-600 text-white rounded-xl font-bold text-xs hover:bg-red-700 transition-colors self-start sm:self-auto text-center shadow-xs"
-        >
-          Contact Support
-        </Link>
       </div>
+
+      {submittedRef && (
+        <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900">
+          Complaint <strong>{submittedRef}</strong> has been submitted and our support team has been notified.
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="block font-semibold text-stone-700 mb-1">Order ID *</label>
+          <input required value={form.order_id} onChange={(e) => setForm({ ...form, order_id: e.target.value })} placeholder="e.g. WNG-..." className="w-full rounded-xl border border-stone-200 px-3 py-2 font-mono" />
+        </div>
+        <div>
+          <label className="block font-semibold text-stone-700 mb-1">Product Name *</label>
+          <input required value={form.product_name} onChange={(e) => setForm({ ...form, product_name: e.target.value })} placeholder="Product title" className="w-full rounded-xl border border-stone-200 px-3 py-2" />
+        </div>
+        <div>
+          <label className="block font-semibold text-stone-700 mb-1">Customer Name *</label>
+          <input required value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} className="w-full rounded-xl border border-stone-200 px-3 py-2" />
+        </div>
+        <div>
+          <label className="block font-semibold text-stone-700 mb-1">Registered Email *</label>
+          <input type="email" required value={form.registered_email} onChange={(e) => setForm({ ...form, registered_email: e.target.value })} className="w-full rounded-xl border border-stone-200 px-3 py-2" />
+        </div>
+        <div>
+          <label className="block font-semibold text-stone-700 mb-1">Contact Number *</label>
+          <input required value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} className="w-full rounded-xl border border-stone-200 px-3 py-2" />
+        </div>
+        <div>
+          <label className="block font-semibold text-stone-700 mb-1">Issue Category *</label>
+          <select value={form.issue_category} onChange={(e) => setForm({ ...form, issue_category: e.target.value })} className="w-full rounded-xl border border-stone-200 px-3 py-2 bg-white">
+            <option value="DAMAGED">Damaged Product</option>
+            <option value="DEFECTIVE_SPOILED">Defective or Spoiled Product</option>
+            <option value="EXPIRED">Expired Product</option>
+            <option value="INCORRECT_MISSING">Incorrect or Missing Product</option>
+            <option value="OTHER">Other Issue</option>
+          </select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="block font-semibold text-stone-700 mb-1">Description *</label>
+          <textarea required rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Describe the issue clearly..." className="w-full rounded-xl border border-stone-200 px-3 py-2" />
+        </div>
+        <div className="sm:col-span-2">
+          <button type="submit" disabled={busy} className="px-5 py-2.5 rounded-xl bg-[#28452e] text-white font-semibold hover:bg-[#1f3724] disabled:opacity-50 cursor-pointer">
+            {busy ? 'Submitting...' : 'Submit Complaint'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
 
 export function ContactPage() {
+  const { platformSettings } = useAuth();
+  const supportEmail = platformSettings?.support_email || 'Configured in Admin Settings';
+  const supportPhone = platformSettings?.support_phone || 'Configured in Admin Settings';
+  const supportHours = platformSettings?.support_hours || 'Mon–Sat, 9:00 AM – 6:00 PM IST';
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
       <SeoHead
@@ -506,15 +601,15 @@ export function ContactPage() {
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2 text-center">
           <Mail size={24} className="text-red-600 mx-auto" />
           <h3 className="font-serif font-bold text-sm text-stone-900">Support Email</h3>
-          <p className="text-stone-700 font-semibold">wangssupport@gmail.com</p>
+          <p className="text-stone-700 font-semibold">{supportEmail}</p>
           <p className="text-stone-400 text-[11px]">Direct Support & Inquiries</p>
         </div>
 
         <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-sm space-y-2 text-center">
           <Phone size={24} className="text-red-600 mx-auto" />
           <h3 className="font-serif font-bold text-sm text-stone-900">Customer Helpline</h3>
-          <p className="text-stone-500">+91 94360 12345</p>
-          <p className="text-stone-400 text-[11px]">Mon - Sat: 9 AM to 6 PM IST</p>
+          <p className="text-stone-700 font-semibold">{supportPhone}</p>
+          <p className="text-stone-400 text-[11px]">{supportHours}</p>
         </div>
       </div>
     </div>

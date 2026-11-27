@@ -3486,6 +3486,16 @@ class AdminCommissionView(views.APIView):
             current.minimum_withdrawal_amount = data['minimum_withdrawal_amount']
         if 'return_period_days' in data:
             current.return_period_days = data['return_period_days']
+        if 'eligibility_hours' in data:
+            current.eligibility_hours = data['eligibility_hours']
+        if 'support_email' in data:
+            current.support_email = data['support_email']
+        if 'support_phone' in data:
+            current.support_phone = data['support_phone']
+        if 'support_hours' in data:
+            current.support_hours = data['support_hours']
+        if 'returns_policy_text' in data:
+            current.returns_policy_text = data['returns_policy_text']
         if 'allow_seller_registration' in data:
             current.allow_seller_registration = data['allow_seller_registration']
         current.save()
@@ -3574,6 +3584,11 @@ class PlatformSettingsView(views.APIView):
             'minimum_product_price': str(current.minimum_product_price),
             'minimum_withdrawal_amount': str(current.minimum_withdrawal_amount),
             'return_period_days': current.return_period_days,
+            'eligibility_hours': getattr(current, 'eligibility_hours', 48),
+            'support_email': getattr(current, 'support_email', '') or '',
+            'support_phone': getattr(current, 'support_phone', '') or '',
+            'support_hours': getattr(current, 'support_hours', 'Mon–Sat, 9:00 AM – 6:00 PM IST') or 'Mon–Sat, 9:00 AM – 6:00 PM IST',
+            'returns_policy_text': getattr(current, 'returns_policy_text', '') or '',
             'orbital_showcase': get_orbital_showcase_payload(current, request),
         })
         response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
@@ -5868,7 +5883,7 @@ class SellerEarningsOverviewView(views.APIView):
 
         balance = sync_seller_balance_from_paid_orders(seller)
         settings_obj = CommissionSetting.get_current()
-        return_days = int(getattr(settings_obj, 'return_period_days', 7) or 7)
+        elig_hours = int(getattr(settings_obj, 'eligibility_hours', 48) or 48)
         min_wd = (settings_obj.minimum_withdrawal_amount or Decimal('300.00')).quantize(Decimal('0.01'))
         bank_info = get_seller_bank_info(seller)
 
@@ -5883,19 +5898,14 @@ class SellerEarningsOverviewView(views.APIView):
         orders_breakdown = []
         now = timezone.now()
         for item in paid_items:
-            is_delivered = (
-                item.order.status == Order.Status.DELIVERED
-                or item.fulfillment_status == OrderItem.FulfillmentStatus.DELIVERED
-            )
-            eligibility_dt = (item.order.updated_at + timedelta(days=return_days)) if is_delivered else None
+            capture_ts = item.order.payment_captured_at or item.order.created_at
+            eligibility_dt = item.order.seller_eligibility_at or (capture_ts + timedelta(hours=elig_hours))
             if item.order.status in (Order.Status.CANCELLED, Order.Status.REFUNDED):
                 e_status = 'Reversed / Cancelled'
-            elif is_delivered and eligibility_dt and eligibility_dt <= now:
+            elif eligibility_dt <= now:
                 e_status = 'Eligible'
-            elif is_delivered:
-                e_status = 'In Return Period'
             else:
-                e_status = 'Awaiting Delivery'
+                e_status = f'Pending ({elig_hours}h Window)'
 
             orders_breakdown.append({
                 'order_number': item.order.order_number,
@@ -5953,7 +5963,8 @@ class SellerEarningsOverviewView(views.APIView):
                 'total_lifetime_earnings': q2(balance.total_lifetime_earnings),
             },
             'minimum_withdrawal_amount': str(min_wd),
-            'return_period_days': return_days,
+            'eligibility_hours': elig_hours,
+            'return_period_days': int(getattr(settings_obj, 'return_period_days', 7) or 7),
             'bank_info': bank_info,
             'orders_breakdown': orders_breakdown,
             'ledger_entries': ledger_entries,
@@ -6268,6 +6279,236 @@ class DeleteMyAccountView(views.APIView):
             )
 
         return Response({'message': 'Your account has been removed.'})
+
+
+# -------------------------------------------------------------
+# RETURNS, REFUNDS & CUSTOMER COMPLAINT WORKFLOW
+# -------------------------------------------------------------
+
+class CustomerComplaintView(views.APIView):
+    """
+    GET /api/complaints/  -> List complaints for the authenticated customer
+    POST /api/complaints/ -> Submit a product complaint (damaged/spoiled/expired/missing)
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        from .models import OrderComplaint
+        if not request.user or not request.user.is_authenticated:
+            return Response([], status=200)
+        complaints = OrderComplaint.objects.filter(
+            Q(user=request.user) | Q(registered_email__iexact=request.user.email)
+        ).select_related('order').order_by('-created_at')[:30]
+        return Response([
+            {
+                'id': c.id,
+                'complaint_reference': c.complaint_reference,
+                'order_number': c.order.order_number,
+                'product_name': c.product_name,
+                'issue_category': c.issue_category,
+                'issue_category_display': c.get_issue_category_display(),
+                'status': c.status,
+                'status_display': c.get_status_display(),
+                'description': c.description,
+                'admin_notes': c.admin_notes,
+                'rejection_reason': c.rejection_reason,
+                'refund_amount': str(c.refund_amount),
+                'created_at': c.created_at.isoformat(),
+            }
+            for c in complaints
+        ])
+
+    def post(self, request):
+        import uuid
+        from .models import AuditLog, CommissionSetting, Order, OrderComplaint
+
+        data = request.data or {}
+        order_number = str(data.get('order_id') or data.get('order_number') or '').strip()
+        customer_name = str(data.get('customer_name') or '').strip()
+        registered_email = str(data.get('registered_email') or '').strip()
+        contact_number = str(data.get('contact_number') or '').strip()
+        product_name = str(data.get('product_name') or '').strip()
+        issue_category = str(data.get('issue_category') or OrderComplaint.IssueCategory.DAMAGED).strip().upper()
+        description = str(data.get('description') or '').strip()
+        supporting_images = data.get('supporting_images') or []
+        if not isinstance(supporting_images, list):
+            supporting_images = []
+
+        if not all([order_number, customer_name, registered_email, contact_number, product_name, description]):
+            return Response(
+                {'detail': 'Order ID, Customer Name, Registered Email, Contact Number, Product Name, and Description are required.'},
+                status=400,
+            )
+
+        order = Order.objects.filter(order_number__iexact=order_number).first()
+        if not order:
+            return Response({'detail': f'Order #{order_number} was not found.'}, status=404)
+
+        if request.user and request.user.is_authenticated and not request.user.is_staff:
+            if order.user_id and order.user_id != request.user.id and order.customer_email.lower() != request.user.email.lower():
+                return Response({'detail': 'You do not have permission to file a complaint on this order.'}, status=403)
+        elif order.customer_email.lower() != registered_email.lower():
+            return Response({'detail': 'Registered email does not match the order record.'}, status=403)
+
+        valid_cats = {c[0] for c in OrderComplaint.IssueCategory.choices}
+        if issue_category not in valid_cats:
+            issue_category = OrderComplaint.IssueCategory.OTHER
+
+        ref = f"CMP-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+        complaint = OrderComplaint.objects.create(
+            complaint_reference=ref,
+            order=order,
+            user=request.user if (request.user and request.user.is_authenticated) else order.user,
+            customer_name=customer_name,
+            registered_email=registered_email,
+            contact_number=contact_number,
+            product_name=product_name,
+            issue_category=issue_category,
+            description=description,
+            supporting_images=supporting_images[:5],
+        )
+
+        AuditLog.objects.create(
+            user=request.user if (request.user and request.user.is_authenticated) else None,
+            action='COMPLAINT_SUBMITTED',
+            target_model='OrderComplaint',
+            target_id=str(complaint.id),
+            details={'complaint_reference': ref, 'order_number': order.order_number, 'issue_category': issue_category},
+        )
+
+        # Notify Wangs admin by email
+        try:
+            from .resend_service import dispatch_email
+            settings_obj = CommissionSetting.get_current()
+            admin_email = getattr(settings_obj, 'support_email', '') or getattr(settings, 'DEFAULT_FROM_EMAIL', 'wangssupport@gmail.com')
+            html = (
+                f"<h3>New Order Complaint: {ref}</h3>"
+                f"<p><strong>Order:</strong> #{order.order_number}</p>"
+                f"<p><strong>Customer:</strong> {customer_name} ({registered_email} / {contact_number})</p>"
+                f"<p><strong>Product:</strong> {product_name}</p>"
+                f"<p><strong>Issue:</strong> {complaint.get_issue_category_display()}</p>"
+                f"<p><strong>Description:</strong> {description}</p>"
+            )
+            dispatch_email(admin_email, f"[Wangs Support] New Complaint {ref} (#{order.order_number})", html)
+        except Exception as exc:
+            logger.warning("Failed to send admin complaint email for %s: %s", ref, exc)
+
+        return Response({
+            'id': complaint.id,
+            'complaint_reference': ref,
+            'status': complaint.status,
+            'status_display': complaint.get_status_display(),
+            'message': f'Complaint {ref} submitted. Our support team will review it individually.',
+        }, status=201)
+
+
+class AdminComplaintListView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request):
+        from .models import OrderComplaint
+        qs = OrderComplaint.objects.select_related('order', 'reviewed_by').all()
+        st = (request.query_params.get('status') or '').strip().upper()
+        if st and st != 'ALL':
+            qs = qs.filter(status=st)
+        return Response([
+            {
+                'id': c.id,
+                'complaint_reference': c.complaint_reference,
+                'order_number': c.order.order_number,
+                'order_total': str(c.order.total_amount),
+                'customer_name': c.customer_name,
+                'registered_email': c.registered_email,
+                'contact_number': c.contact_number,
+                'product_name': c.product_name,
+                'issue_category': c.issue_category,
+                'issue_category_display': c.get_issue_category_display(),
+                'description': c.description,
+                'supporting_images': c.supporting_images,
+                'status': c.status,
+                'status_display': c.get_status_display(),
+                'admin_notes': c.admin_notes,
+                'rejection_reason': c.rejection_reason,
+                'refund_amount': str(c.refund_amount),
+                'reviewed_by': c.reviewed_by.username if c.reviewed_by else None,
+                'created_at': c.created_at.isoformat(),
+            }
+            for c in qs[:100]
+        ])
+
+
+class AdminComplaintActionView(views.APIView):
+    permission_classes = [permissions.IsAdminUser]
+
+    def post(self, request, pk):
+        from .models import FinancialAuditLog, OrderComplaint
+        from .withdrawal_service import WithdrawalWorkflowError, apply_complaint_refund_adjustment, get_client_ip
+
+        c = OrderComplaint.objects.select_related('order').filter(pk=pk).first()
+        if not c:
+            return Response({'detail': 'Complaint not found.'}, status=404)
+
+        action = str(request.data.get('action') or '').strip().lower()
+        notes = str(request.data.get('admin_notes') or '').strip()
+        reason = str(request.data.get('reason') or '').strip()
+        prev_status = c.status
+
+        if action == 'review':
+            c.status = OrderComplaint.Status.UNDER_REVIEW
+        elif action == 'request_evidence':
+            c.status = OrderComplaint.Status.EVIDENCE_REQUESTED
+        elif action == 'approve_replacement':
+            c.status = OrderComplaint.Status.REPLACEMENT_APPROVED
+        elif action == 'approve_refund':
+            amt = request.data.get('refund_amount') or c.order.total_amount
+            try:
+                refund_rec = apply_complaint_refund_adjustment(
+                    complaint=c,
+                    refund_amount=amt,
+                    admin_user=request.user,
+                    reason=reason or notes or 'Complaint refund approved',
+                    ip_address=get_client_ip(request),
+                )
+            except WithdrawalWorkflowError as exc:
+                return Response({'detail': exc.message}, status=exc.status_code)
+            c.status = OrderComplaint.Status.REFUND_APPROVED
+            c.refund_amount = refund_rec.amount
+        elif action == 'reject':
+            if not reason:
+                return Response({'detail': 'A rejection reason is mandatory.'}, status=400)
+            c.status = OrderComplaint.Status.REJECTED
+            c.rejection_reason = reason
+        elif action == 'resolve':
+            c.status = OrderComplaint.Status.RESOLVED
+        else:
+            return Response({'detail': 'Invalid complaint action.'}, status=400)
+
+        if notes:
+            c.admin_notes = notes
+        c.reviewed_by = request.user
+        c.reviewed_at = timezone.now()
+        c.save()
+
+        FinancialAuditLog.objects.create(
+            actor=request.user,
+            action=f'COMPLAINT_{action.upper()}',
+            target_model='OrderComplaint',
+            target_id=str(c.id),
+            reason=reason or notes or f'Admin action: {action}',
+            previous_state={'status': prev_status},
+            new_state={'status': c.status, 'refund_amount': str(c.refund_amount)},
+            ip_address=get_client_ip(request),
+        )
+
+        return Response({
+            'id': c.id,
+            'complaint_reference': c.complaint_reference,
+            'status': c.status,
+            'status_display': c.get_status_display(),
+            'refund_amount': str(c.refund_amount),
+            'message': f'Complaint {c.complaint_reference} updated to {c.get_status_display()}.',
+        })
+
 
 
 

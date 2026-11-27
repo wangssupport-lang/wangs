@@ -99,7 +99,7 @@ export default function SellerEarningsTab({ onGoToBankSettings }) {
         <div>
           <h2 className="font-serif text-2xl font-bold text-stone-900">My Earnings &amp; Withdrawals</h2>
           <p className="text-xs text-stone-500 mt-0.5">
-            Track order earnings, return-period eligibility ({data?.return_period_days || 7} days), and request bank payouts (min ₹{minWd}).
+            Track order earnings, {data?.eligibility_hours || 48}-hour post-payment eligibility window, and request bank payouts (min ₹{minWd}).
           </p>
         </div>
         <button
@@ -137,7 +137,7 @@ export default function SellerEarningsTab({ onGoToBankSettings }) {
             <Clock size={16} className="text-amber-600" />
           </div>
           <p className="text-2xl font-serif font-bold text-stone-900 mt-2">{fmt(balances.pending_earnings)}</p>
-          <p className="text-[11px] text-stone-500 mt-1">In delivery / {data?.return_period_days || 7}-day return window</p>
+          <p className="text-[11px] text-stone-500 mt-1">Awaiting {data?.eligibility_hours || 48}h eligibility window</p>
         </div>
 
         <div className="rounded-2xl bg-white border border-stone-200 p-5 shadow-xs">
