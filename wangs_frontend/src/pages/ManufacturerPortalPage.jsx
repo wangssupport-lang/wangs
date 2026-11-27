@@ -16,6 +16,7 @@ import QRCodeSVG from '../components/QRCodeSVG';
 import BrandCard from '../components/BrandCard';
 import ManufacturerDeliveryTab from '../components/ManufacturerDeliveryTab';
 import SellerEarningsTab from '../components/SellerEarningsTab';
+import DeleteAccountCard from '../components/DeleteAccountCard';
 import { compressImageFile, resolveProductImage } from '../utils/image';
 
 function getBrandInitials(name = '') {
@@ -2427,6 +2428,10 @@ export default function ManufacturerPortalPage() {
                 </div>
               </div>
             )}
+
+            <div className="max-w-3xl mx-auto pt-2">
+              <DeleteAccountCard accountLabel="Seller Account" />
+            </div>
           </div>
         )}
 

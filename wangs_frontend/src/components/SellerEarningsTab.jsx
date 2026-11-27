@@ -31,6 +31,7 @@ export default function SellerEarningsTab({ onGoToBankSettings }) {
   const [amount, setAmount] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [lastSubmittedMsg, setLastSubmittedMsg] = useState('');
 
   const loadEarnings = useCallback(async () => {
     setLoading(true);
@@ -64,7 +65,9 @@ export default function SellerEarningsTab({ onGoToBankSettings }) {
     setSubmitting(true);
     try {
       const res = await api.submitSellerWithdrawal({ amount: num.toFixed(2), seller_notes: notes });
-      toast.success(res.message || 'Withdrawal request submitted!');
+      const msg = res.message || 'Withdrawal request submitted! Amount will be deposited within 24 hours on working days (excluding Sundays).';
+      toast.success(msg);
+      setLastSubmittedMsg(msg);
       setAmount('');
       setNotes('');
       await loadEarnings();
@@ -230,6 +233,17 @@ export default function SellerEarningsTab({ onGoToBankSettings }) {
           >
             {submitting ? 'Submitting Request...' : 'Submit Withdrawal Request'}
           </button>
+
+          <p className="text-[11px] text-stone-500 leading-relaxed">
+            <strong>Payout Timeline:</strong> Approved amounts are deposited within 24 hours on working days (excluding Sundays).
+          </p>
+
+          {lastSubmittedMsg && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 flex items-start gap-2 text-xs text-emerald-900">
+              <CheckCircle2 size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+              <span>{lastSubmittedMsg}</span>
+            </div>
+          )}
         </form>
 
         {/* Bank & Payment Account Summary */}

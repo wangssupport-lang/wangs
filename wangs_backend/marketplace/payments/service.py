@@ -256,13 +256,20 @@ class MarketplacePaymentService:
             event.save(update_fields=['processing_status', 'error_message'])
             raise WebhookSignatureError("Invalid webhook signature.")
 
-        # Identify related order from payload (txnid or udf1 or order_id)
+        # Identify related order from payload (Razorpay entity OR PayU txnid/udf1 OR order_number)
+        rzp_payment_entity = (payload.get('payload') or {}).get('payment', {}).get('entity', {}) if isinstance(payload.get('payload'), dict) else {}
+        rzp_notes = rzp_payment_entity.get('notes') if isinstance(rzp_payment_entity.get('notes'), dict) else {}
         order_number = (
+            rzp_notes.get('order_number') or
             payload.get('udf1') or
             payload.get('order_number') or
             payload.get('txnid', '').replace('PAY-', '').split('-')[0]
         )
-        order = Order.objects.filter(order_number=order_number).first()
+        order = Order.objects.filter(order_number=order_number).first() if order_number else None
+        if not order and rzp_payment_entity.get('order_id'):
+            pay_by_rzp = Payment.objects.filter(provider_order_id=rzp_payment_entity['order_id']).first()
+            if pay_by_rzp:
+                order = pay_by_rzp.order
         if not order and payload.get('txnid'):
             # Try finding via payment
             payment_by_tx = Payment.objects.filter(payment_id=payload['txnid']).first()

@@ -193,3 +193,93 @@ class AdminPaymentRequestsTests(TestCase):
         self.assertEqual(detail_res.data['balances']['total_withdrawn'], '300.00')
         self.assertEqual(detail_res.data['bank_info']['masked_account_number'], '•••• •••• 7890')
 
+    def test_user_and_seller_remove_account(self):
+        # Customer without orders is deleted cleanly
+        cust = User.objects.create_user(username='cust_del', email='cust_del@wangs.in', password='pass1234', role=User.Role.CUSTOMER)
+        self.client.force_authenticate(user=cust)
+        bad_del = self.client.post('/api/auth/delete-account/', {'confirm_text': 'NO'}, format='json')
+        self.assertEqual(bad_del.status_code, 400)
+        ok_del = self.client.post('/api/auth/delete-account/', {'confirm_text': 'DELETE'}, format='json')
+        self.assertEqual(ok_del.status_code, 200)
+        self.assertFalse(User.objects.filter(id=cust.id).exists())
+
+        # Seller with active REQUESTED withdrawal is blocked
+        self.client.force_authenticate(user=self.seller_user)
+        blocked_res = self.client.post('/api/auth/delete-account/', {'confirm_text': 'DELETE'}, format='json')
+        self.assertEqual(blocked_res.status_code, 400)
+
+        # Reject pending withdrawal so no active withdrawals remain, then anonymize/deactivate seller preserving ledger
+        SellerWithdrawal.objects.filter(id=self.pending_wd.id).update(status=SellerWithdrawal.Status.REJECTED)
+        anon_res = self.client.post('/api/auth/delete-account/', {'confirm_text': 'DELETE'}, format='json')
+        self.assertEqual(anon_res.status_code, 200)
+        self.seller_user.refresh_from_db()
+        self.seller.refresh_from_db()
+        self.assertFalse(self.seller_user.is_active)
+        self.assertEqual(self.seller.status, ManufacturerProfile.Status.SUSPENDED)
+        self.assertEqual(self.seller.bank_account_number, '')
+        self.assertTrue(SellerWithdrawal.objects.filter(seller=self.seller).exists())
+
+    def test_razorpay_signature_webhook_and_route_gate(self):
+        import hashlib
+        import hmac
+        from unittest.mock import patch
+        from django.test import override_settings
+        from .payments.adapters.razorpay import RazorpayAdapter
+        from .payments.exceptions import (
+            PaymentProviderFeatureNotActiveError,
+            PaymentVerificationError,
+            WebhookSignatureError,
+        )
+
+        adapter = RazorpayAdapter()
+
+        # Route transfers/payouts remain disabled when RAZORPAY_ROUTE_ENABLED=False
+        with override_settings(RAZORPAY_ROUTE_ENABLED=False):
+            with self.assertRaises(PaymentProviderFeatureNotActiveError):
+                adapter.create_split_settlement(None, [])
+            with self.assertRaises(PaymentProviderFeatureNotActiveError):
+                adapter.release_seller_settlement(None)
+
+        # Live signature & webhook verification
+        with override_settings(
+            RAZORPAY_KEY_ID='rzp_live_testkey123',
+            RAZORPAY_KEY_SECRET='rzp_live_secret_xyz',
+            RAZORPAY_WEBHOOK_SECRET='whsec_test_12345',
+        ):
+            self.assertTrue(adapter.is_live_configured())
+
+            # Invalid signature raises
+            with self.assertRaises(PaymentVerificationError):
+                adapter.verify_payment({
+                    'razorpay_order_id': 'order_RZP123',
+                    'razorpay_payment_id': 'pay_RZP123',
+                    'razorpay_signature': 'forged_sig',
+                })
+
+            # Valid signature + mocked captured status passes
+            valid_sig = hmac.new(
+                b'rzp_live_secret_xyz',
+                b'order_RZP123|pay_RZP123',
+                hashlib.sha256,
+            ).hexdigest()
+            with patch.object(adapter, 'get_payment_details', return_value={'id': 'pay_RZP123', 'status': 'captured', 'amount': 58300, 'method': 'upi'}):
+                res = adapter.verify_payment(
+                    {
+                        'razorpay_order_id': 'order_RZP123',
+                        'razorpay_payment_id': 'pay_RZP123',
+                        'razorpay_signature': valid_sig,
+                    },
+                    expected_amount_paise=58300,
+                )
+                self.assertTrue(res['is_valid'])
+                self.assertEqual(res['status'], 'CAPTURED')
+
+            # Webhook signature verification
+            raw_body = b'{"event":"payment.captured"}'
+            wh_sig = hmac.new(b'whsec_test_12345', raw_body, hashlib.sha256).hexdigest()
+            self.assertTrue(adapter.verify_webhook_signature({'X-Razorpay-Signature': wh_sig}, raw_body, {}))
+            with self.assertRaises(WebhookSignatureError):
+                adapter.verify_webhook_signature({'X-Razorpay-Signature': 'bad_wh_sig'}, raw_body, {})
+
+
+

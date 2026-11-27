@@ -199,8 +199,11 @@ CASHFREE_ENV = os.getenv('CASHFREE_ENV', 'PROD').strip().upper()
 FRONTEND_BASE_URL = os.getenv('FRONTEND_BASE_URL', 'https://wangs.in').strip()
 
 # Razorpay Test / Production configuration
-RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_placeholder_key')
-RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'placeholder_secret')
+RAZORPAY_KEY_ID = os.getenv('RAZORPAY_KEY_ID', 'rzp_test_placeholder_key').strip()
+RAZORPAY_KEY_SECRET = os.getenv('RAZORPAY_KEY_SECRET', 'placeholder_secret').strip()
+RAZORPAY_WEBHOOK_SECRET = os.getenv('RAZORPAY_WEBHOOK_SECRET', '').strip()
+# Razorpay Route live split transfers/payouts remain disabled until Route capability is approved
+RAZORPAY_ROUTE_ENABLED = os.getenv('RAZORPAY_ROUTE_ENABLED', 'False').strip().lower() in ('true', '1', 'yes')
 
 # PayU India Gateway & Marketplace Split Settlement Architecture
 PAYU_MERCHANT_KEY = os.getenv('PAYU_MERCHANT_KEY', 'payu_test_merchant_key').strip()
@@ -208,7 +211,7 @@ PAYU_MERCHANT_SALT = os.getenv('PAYU_MERCHANT_SALT', 'payu_test_merchant_salt').
 PAYU_MODE = os.getenv('PAYU_MODE', 'TEST').strip().upper()  # 'TEST' or 'PROD'
 # Split settlements and live seller payouts remain strictly disabled until PayU approval & activation
 PAYU_SPLIT_SETTLEMENTS_ENABLED = os.getenv('PAYU_SPLIT_SETTLEMENTS_ENABLED', 'False').strip().lower() in ('true', '1', 'yes')
-DEFAULT_PAYMENT_PROVIDER = os.getenv('DEFAULT_PAYMENT_PROVIDER', 'PAYU').strip().upper()
+DEFAULT_PAYMENT_PROVIDER = os.getenv('DEFAULT_PAYMENT_PROVIDER', 'RAZORPAY').strip().upper()
 
 # Resend Email Configuration for OTP Verification
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')

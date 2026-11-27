@@ -47,7 +47,8 @@ from .views import (
     AdminPaymentRequestApproveView, AdminPaymentRequestRejectView,
     AdminPaymentRequestReviewView,
     SellerEarningsOverviewView, SellerWithdrawalCreateView,
-    AdminSellerEarningsListView, AdminSellerEarningsDetailView
+    AdminSellerEarningsListView, AdminSellerEarningsDetailView,
+    DeleteMyAccountView
 )
 
 router = DefaultRouter()
@@ -70,6 +71,7 @@ urlpatterns = [
     path('auth/login/', LoginView.as_view(), name='auth-login'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
     path('auth/me/', CurrentUserView.as_view(), name='auth-me'),
+    path('auth/delete-account/', DeleteMyAccountView.as_view(), name='auth-delete-account'),
     path('auth/send-otp/', SendEmailOTPView.as_view(), name='auth-send-otp'),
     path('auth/verify-otp/', VerifyEmailOTPView.as_view(), name='auth-verify-otp'),
     path('auth/reset-password/', ResetPasswordView.as_view(), name='auth-reset-password'),

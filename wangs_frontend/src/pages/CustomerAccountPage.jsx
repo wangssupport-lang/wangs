@@ -11,6 +11,7 @@ import { api } from '../api';
 import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import QRCodeSVG from '../components/QRCodeSVG';
 import ScanAndEarnModal from '../components/ScanAndEarnModal';
+import DeleteAccountCard from '../components/DeleteAccountCard';
 
 const TRACKING_STEPS = [
   {
@@ -1518,6 +1519,8 @@ export default function CustomerAccountPage() {
                   </span>
                 )}
               </div>
+
+              <DeleteAccountCard accountLabel="Account" />
             </div>
           )}
         </div>

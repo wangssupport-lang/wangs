@@ -191,6 +191,7 @@ export const api = {
   login: (credentials) => apiRequest('/auth/login/', { method: 'POST', body: JSON.stringify(credentials) }),
   register: (payload) => apiRequest('/auth/register/', { method: 'POST', body: JSON.stringify(payload) }),
   getMe: () => apiRequest('/auth/me/', { timeout: 12000 }),
+  deleteMyAccount: (payload) => apiRequest('/auth/delete-account/', { method: 'POST', body: JSON.stringify(payload) }),
   sendOtp: (email, purpose = 'LOGIN') => apiRequest('/auth/send-otp/', { method: 'POST', body: JSON.stringify({ email, purpose }) }),
   verifyOtp: (email, otp_code, purpose = 'LOGIN') => apiRequest('/auth/verify-otp/', { method: 'POST', body: JSON.stringify({ email, otp_code, purpose }) }),
   resetPassword: (payload) => apiRequest('/auth/reset-password/', { method: 'POST', body: JSON.stringify(payload) }),

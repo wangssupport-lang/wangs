@@ -298,36 +298,17 @@ class PaymentService:
         return CashfreeService.create_order(order, request=request)
 
     @staticmethod
-    def create_mock_or_razorpay_order(order):
+    def create_razorpay_order(order):
         """
-        Creates a test payment intent for the given order.
-        Amount is in INR paise (e.g. ₹155 = 15500 paise).
+        Creates a Razorpay order (live or test/simulated depending on RAZORPAY_KEY_ID/SECRET)
+        and records Payment + PaymentTransaction idempotently.
         """
-        razorpay_order_id = f"order_{order.order_number}_{uuid.uuid4().hex[:8]}"
-        amount_paise = int(order.total_amount * 100)
+        from .payments.service import MarketplacePaymentService
+        return MarketplacePaymentService.initiate_payment(order, provider_name='RAZORPAY')
 
-        # Create or update pending PaymentTransaction record
-        tx, created = PaymentTransaction.objects.get_or_create(
-            idempotency_key=f"tx_init_{order.order_number}",
-            defaults={
-                'order': order,
-                'provider': 'RAZORPAY_TEST',
-                'payment_order_id': razorpay_order_id,
-                'status': PaymentTransaction.Status.PENDING,
-                'amount': order.total_amount,
-                'currency': 'INR',
-                'raw_payload': {'simulated_mode': True, 'amount_paise': amount_paise}
-            }
-        )
-        return {
-            'payment_order_id': razorpay_order_id,
-            'amount': order.total_amount,
-            'amount_paise': amount_paise,
-            'currency': 'INR',
-            'order_number': order.order_number,
-            'key_id': 'rzp_test_wangs_demo',
-            'transaction_id': tx.id
-        }
+    @staticmethod
+    def create_mock_or_razorpay_order(order):
+        return PaymentService.create_razorpay_order(order)
 
     @staticmethod
     @transaction.atomic
@@ -338,15 +319,48 @@ class PaymentService:
         from .cashfree_service import CashfreeService
 
         # Determine provider
-        actual_provider = provider or order.payment_method or 'CASHFREE'
+        actual_provider = provider or order.payment_method or 'RAZORPAY'
         idempotency_key = f"pay_confirm_{payment_id or order.order_number}"
 
         existing_tx = PaymentTransaction.objects.filter(idempotency_key=idempotency_key, status=PaymentTransaction.Status.SUCCESS).first()
         if existing_tx:
             return order, existing_tx
 
+        # Strictly verify Razorpay HMAC-SHA256 signature & payment amount
+        if actual_provider in ('RAZORPAY', 'RAZORPAY_TEST'):
+            from .payments.adapters.razorpay import RazorpayAdapter
+            from .payments.commission_engine import to_paise
+            from .models import Payment
+
+            rzp_adapter = RazorpayAdapter()
+            verify_payload = {
+                'razorpay_order_id': razorpay_order_id or (raw_data or {}).get('razorpay_order_id') or '',
+                'razorpay_payment_id': payment_id or (raw_data or {}).get('razorpay_payment_id') or '',
+                'razorpay_signature': signature or (raw_data or {}).get('razorpay_signature') or '',
+            }
+            if not verify_payload['razorpay_order_id']:
+                pay_rec = Payment.objects.filter(order=order, payment_provider='RAZORPAY').first()
+                if pay_rec and pay_rec.provider_order_id:
+                    verify_payload['razorpay_order_id'] = pay_rec.provider_order_id
+                    razorpay_order_id = pay_rec.provider_order_id
+
+            verified = rzp_adapter.verify_payment(
+                verify_payload,
+                expected_amount_paise=to_paise(order.total_amount),
+            )
+            payment_id = verified.get('provider_payment_id') or payment_id
+            razorpay_order_id = verified.get('provider_order_id') or razorpay_order_id
+
+            Payment.objects.filter(order=order, payment_provider='RAZORPAY').update(
+                status=Payment.Status.CAPTURED,
+                provider_payment_id=payment_id or '',
+                verification_timestamp=timezone.now(),
+                payment_method=verified.get('payment_method', 'RAZORPAY') or 'RAZORPAY',
+            )
+            actual_provider = 'RAZORPAY'
+
         # If Cashfree and credentials configured, verify order status from Cashfree
-        if actual_provider == 'CASHFREE' and CashfreeService.is_configured():
+        elif actual_provider == 'CASHFREE' and CashfreeService.is_configured():
             cf_status = CashfreeService.get_order_status(order.order_number)
             status_str = cf_status.get('order_status')
             if status_str and status_str != 'PAID':
@@ -392,6 +406,18 @@ class PaymentService:
             target_id=str(order.id),
             details={'payment_id': tx.transaction_id, 'amount': str(order.total_amount)}
         )
+
+        # Sync seller financial ledger & balances for every seller in this order
+        try:
+            from .withdrawal_service import sync_seller_balance_from_paid_orders
+            seen_sellers = set()
+            for item in order.items.select_related('manufacturer').all():
+                if item.manufacturer_id and item.manufacturer_id not in seen_sellers:
+                    seen_sellers.add(item.manufacturer_id)
+                    sync_seller_balance_from_paid_orders(item.manufacturer)
+        except Exception as exc:
+            import logging
+            logging.getLogger('marketplace.orders').warning("Could not sync seller balance after payment: %s", exc)
 
         # Notify each manufacturer of their particular product(s) ordered
         try:

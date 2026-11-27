@@ -5820,24 +5820,6 @@ export default function AdminDashboardPage() {
               </button>
               <button
                 type="button"
-                onClick={async () => {
-                  if (!window.confirm("Sync all approved manufacturers to Cashfree Easy Split as Vendors?")) return;
-                  try {
-                    const res = await api.syncAllCashfreeVendors();
-                    alert(`Cashfree Easy Split Sync Complete!\nTotal Manufacturers Processed: ${res.total_synced}\nCheck your Cashfree Easy Split Vendors tab to see them!`);
-                    loadData();
-                  } catch (err) {
-                    alert('Sync error: ' + err.message);
-                  }
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white flex items-center gap-1.5 shadow-2xs active:scale-95 shrink-0"
-                title="Sync all approved manufacturers to Cashfree Easy Split as Vendors"
-              >
-                <RefreshCw size={12} />
-                <span>Sync All to Cashfree</span>
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveTab('yet_to_approve')}
                 className="px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 flex items-center gap-1.5 shadow-2xs hover:scale-105 active:scale-95 shrink-0"
               >
@@ -5939,7 +5921,13 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="p-3.5">
                           <span className="font-serif font-bold text-slate-900 block">₹{parseFloat(m.total_sales_revenue || 0).toLocaleString('en-IN')}</span>
-                          <span className="text-[10px] text-slate-500">seller volume</span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab('seller_earnings')}
+                            className="text-[10px] font-semibold text-[#28452e] hover:underline cursor-pointer mt-0.5 block"
+                          >
+                            Earnings, Comm. &amp; Paid →
+                          </button>
                         </td>
                         <td className="p-3.5">
                           <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
@@ -6746,43 +6734,6 @@ export default function AdminDashboardPage() {
                 <p className="text-stone-700">Bank: <strong className="font-semibold">{selectedSeller.bank_name || 'Not provided'}</strong></p>
                 <p className="text-stone-700">A/C: <span className="font-mono font-bold text-stone-900">{selectedSeller.bank_account_number || 'Not provided'}</span></p>
                 <p className="text-stone-700">IFSC: <span className="font-mono font-bold text-emerald-900">{selectedSeller.bank_ifsc_code || 'Not provided'}</span></p>
-                
-                {/* Cashfree Easy Split Vendor Status */}
-                <div className="pt-2 border-t border-amber-200/80 space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-stone-600 font-bold">Cashfree Easy Split:</span>
-                    <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
-                      selectedSeller.cashfree_vendor_status === 'ACTIVE'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      {selectedSeller.cashfree_vendor_id ? `Linked (${selectedSeller.cashfree_vendor_status || 'ACTIVE'})` : 'Not Synced'}
-                    </span>
-                  </div>
-                  {selectedSeller.cashfree_vendor_id && (
-                    <p className="text-[10px] text-stone-500 font-mono">Vendor ID: {selectedSeller.cashfree_vendor_id}</p>
-                  )}
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      try {
-                        const res = await api.syncCashfreeVendor(selectedSeller.id);
-                        if (res.success) {
-                          alert(`Synced successfully with Cashfree! Vendor ID: ${res.vendor_id}`);
-                          setSelectedSeller((prev) => ({ ...prev, cashfree_vendor_id: res.vendor_id, cashfree_vendor_status: res.cashfree_vendor_status }));
-                          loadData();
-                        } else {
-                          alert(res.details?.detail || 'Vendor sync notice: Easy Split configuration pending.');
-                        }
-                      } catch (err) {
-                        alert('Sync error: ' + err.message);
-                      }
-                    }}
-                    className="w-full py-1.5 px-3 bg-stone-900 hover:bg-stone-800 text-white font-bold text-[11px] rounded-lg transition-colors cursor-pointer text-center block mt-1"
-                  >
-                    Sync with Cashfree Easy Split
-                  </button>
-                </div>
 
                 {selectedSeller.bank_passbook_image && (
                   <div className="pt-1.5 border-t border-amber-200/80">

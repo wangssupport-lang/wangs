@@ -1185,15 +1185,17 @@ class CreateOrderView(views.APIView):
                 shipping_details=shipping_details,
                 cart_items=items,
                 coupon=coupon,
-                payment_method=request.data.get('payment_method', 'CASHFREE'),
+                payment_method=request.data.get('payment_method', 'RAZORPAY'),
                 credits_to_redeem=data.get('credits_to_redeem', 0),
                 requested_method=data.get('shipping_delivery_method')
             )
             cart.items.all().delete()
             if order.payment_method == 'CASHFREE':
                 payment_intent = PaymentService.create_cashfree_order(order, request=request)
+            elif order.payment_method != 'COD':
+                payment_intent = PaymentService.create_razorpay_order(order)
             else:
-                payment_intent = PaymentService.create_mock_or_razorpay_order(order)
+                payment_intent = {'provider': 'COD', 'order_number': order.order_number}
 
             if order.payment_method == 'COD':
                 order.status = Order.Status.CONFIRMED
@@ -1233,17 +1235,32 @@ class VerifyPaymentView(views.APIView):
             })
 
         cf_order_id = data.get('cf_order_id') or request.data.get('cf_order_id')
-        payment_id = data.get('payment_id') or data.get('cf_payment_id') or request.data.get('cf_payment_id')
-        provider = 'CASHFREE' if (order.payment_method == 'CASHFREE' or cf_order_id) else order.payment_method
-
-        order, tx = PaymentService.verify_and_confirm_payment(
-            order=order,
-            payment_id=payment_id or cf_order_id,
-            razorpay_order_id=data.get('razorpay_order_id') or cf_order_id,
-            signature=data.get('signature'),
-            provider=provider,
-            raw_data=request.data
+        rzp_order_id = data.get('razorpay_order_id') or request.data.get('razorpay_order_id')
+        rzp_sig = data.get('signature') or request.data.get('razorpay_signature')
+        payment_id = (
+            data.get('payment_id')
+            or request.data.get('razorpay_payment_id')
+            or data.get('cf_payment_id')
+            or request.data.get('cf_payment_id')
         )
+        if rzp_sig or request.data.get('razorpay_payment_id') or order.payment_method in ('RAZORPAY', 'RAZORPAY_TEST'):
+            provider = 'RAZORPAY'
+        elif order.payment_method == 'CASHFREE' or cf_order_id:
+            provider = 'CASHFREE'
+        else:
+            provider = order.payment_method
+
+        try:
+            order, tx = PaymentService.verify_and_confirm_payment(
+                order=order,
+                payment_id=payment_id or cf_order_id,
+                razorpay_order_id=rzp_order_id or cf_order_id,
+                signature=rzp_sig,
+                provider=provider,
+                raw_data=request.data
+            )
+        except Exception as exc:
+            return Response({'detail': str(exc)}, status=400)
 
         return Response({
             'detail': 'Payment successfully verified.',
@@ -5013,18 +5030,21 @@ class PaymentWebhookUnifiedView(views.APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        provider = request.data.get('provider') or request.headers.get('X-Payment-Provider', 'PAYU').upper()
+        event_name = request.data.get('event') or request.data.get('event_type') or request.data.get('status') or 'PAYMENT_NOTIFICATION'
+        is_razorpay = bool(request.headers.get('X-Razorpay-Signature')) or str(event_name).startswith(('payment.', 'refund.', 'transfer.', 'order.'))
+        provider = (
+            request.data.get('provider')
+            or request.headers.get('X-Payment-Provider')
+            or ('RAZORPAY' if is_razorpay else 'PAYU')
+        ).upper()
         event_id = (
+            request.headers.get('X-Razorpay-Event-Id') or
             request.data.get('event_id') or
             request.data.get('mihpayid') or
             request.data.get('txnid') or
             str(uuid.uuid4())
         )
-        event_type = (
-            request.data.get('event_type') or
-            request.data.get('status') or
-            'PAYMENT_NOTIFICATION'
-        )
+        event_type = event_name
 
         try:
             result = MarketplacePaymentService.process_webhook(
@@ -5958,7 +5978,7 @@ class SellerWithdrawalCreateView(views.APIView):
                 'status': w.status,
                 'status_display': w.get_status_display(),
                 'created_at': w.created_at.isoformat(),
-                'message': f'Withdrawal request {w.request_reference} submitted for admin review.',
+                'message': f'Withdrawal request {w.request_reference} submitted! Amount will be deposited within 24 hours on working days (excluding Sundays).',
             }, status=status.HTTP_201_CREATED)
         except WithdrawalWorkflowError as exc:
             return Response({'detail': exc.message}, status=exc.status_code)
@@ -6117,6 +6137,122 @@ class AdminSellerEarningsDetailView(views.APIView):
             'ledger_entries': ledger,
             'withdrawals': withdrawals,
         })
+
+
+class DeleteMyAccountView(views.APIView):
+    """
+    Allow a customer or seller to permanently remove/deactivate their account from their profile page.
+    Preserves immutable order/financial/audit records via anonymization if history exists.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        from django.db import transaction
+        from .models import (
+            Address, AuditLog, Cart, FinancialAuditLog, Order, OrderItem,
+            Product, SellerFinancialLedger, SellerWithdrawal, User,
+        )
+
+        user = request.user
+        if user.is_superuser or user.role == User.Role.ADMIN:
+            return Response(
+                {'detail': 'Administrator accounts cannot be self-deleted from the storefront.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        confirm_text = str(request.data.get('confirm_text') or '').strip().upper()
+        if confirm_text != 'DELETE':
+            return Response(
+                {'detail': 'Please type DELETE to confirm account removal.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        seller = getattr(user, 'manufacturer_profile', None)
+        if seller:
+            has_active_wd = SellerWithdrawal.objects.filter(
+                seller=seller,
+                status__in=[
+                    SellerWithdrawal.Status.REQUESTED,
+                    SellerWithdrawal.Status.UNDER_REVIEW,
+                    SellerWithdrawal.Status.APPROVED,
+                    SellerWithdrawal.Status.PROCESSING,
+                ],
+            ).exists()
+            if has_active_wd:
+                return Response(
+                    {'detail': 'You have active withdrawal requests in progress. Please wait until they are resolved before removing your account.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            has_active_orders = OrderItem.objects.filter(
+                manufacturer=seller,
+                order__payment_status=Order.PaymentStatus.PAID,
+                order__status__in=[
+                    Order.Status.PENDING,
+                    Order.Status.CONFIRMED,
+                    Order.Status.PROCESSING,
+                    Order.Status.DISPATCHED,
+                ],
+            ).exists()
+            if has_active_orders:
+                return Response(
+                    {'detail': 'You have active paid orders pending fulfilment. Please complete them before removing your account.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        has_history = Order.objects.filter(user=user).exists()
+        if seller and not has_history:
+            has_history = (
+                OrderItem.objects.filter(manufacturer=seller).exists()
+                or SellerWithdrawal.objects.filter(seller=seller).exists()
+                or SellerFinancialLedger.objects.filter(seller=seller).exists()
+                or FinancialAuditLog.objects.filter(seller=seller).exists()
+            )
+
+        ts = int(timezone.now().timestamp())
+        orig_username = user.username
+
+        with transaction.atomic():
+            Address.objects.filter(user=user).delete()
+            Cart.objects.filter(user=user).delete()
+
+            if has_history:
+                if seller:
+                    Product.objects.filter(manufacturer=seller).update(is_active=False)
+                    seller.status = seller.Status.SUSPENDED
+                    seller.same_day_enabled = False
+                    seller.contact_email = f"deleted_{user.id}_{ts}@deleted.wangs.in"
+                    seller.contact_phone = ''
+                    seller.bank_account_holder = ''
+                    seller.bank_account_number = ''
+                    seller.bank_ifsc_code = ''
+                    seller.bank_passbook_image = ''
+                    seller.save()
+
+                user.is_active = False
+                user.username = f"deleted_{user.id}_{ts}"
+                user.email = f"deleted_{user.id}_{ts}@deleted.wangs.in"
+                user.first_name = 'Deleted'
+                user.last_name = 'User'
+                user.phone_number = ''
+                user.set_unusable_password()
+                user.save()
+            else:
+                if seller:
+                    Product.objects.filter(manufacturer=seller).delete()
+                    seller.delete()
+                user.delete()
+
+            AuditLog.objects.create(
+                user=None,
+                action='ACCOUNT_REMOVED_BY_USER',
+                target_model='User',
+                target_id=str(user.id),
+                details={'username': orig_username, 'had_history_anonymized': has_history},
+            )
+
+        return Response({'message': 'Your account has been removed.'})
+
 
 
 

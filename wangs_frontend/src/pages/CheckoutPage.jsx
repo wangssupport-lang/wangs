@@ -180,7 +180,7 @@ export default function CheckoutPage() {
 
     setLoading(true);
     try {
-      const paymentMethodBackend = paymentOption === 'COD' ? 'COD' : 'CASHFREE';
+      const paymentMethodBackend = paymentOption === 'COD' ? 'COD' : 'RAZORPAY';
       const orderPayload = {
         ...formData,
         customer_email: formData.customer_email || user.email || 'customer@wangs.in',
@@ -205,42 +205,64 @@ export default function CheckoutPage() {
         return;
       }
 
-      // If Cashfree
-      if (res.payment_intent?.payment_session_id && window.Cashfree) {
-        const mode = res.payment_intent.environment === 'PROD' ? 'production' : 'sandbox';
-        const cashfree = window.Cashfree({ mode });
-        cashfree.checkout({
-          paymentSessionId: res.payment_intent.payment_session_id,
-          redirectTarget: '_modal',
-        }).then(async (result) => {
-          if (result.error) {
-            setErrorMessage(result.error.message || 'Payment was cancelled or failed.');
-          } else {
+      // Razorpay Standard Checkout (Live / Test keys)
+      const intent = res.payment_intent || {};
+      if (intent.razorpay_order_id && !intent.is_simulated) {
+        if (!window.Razorpay) {
+          setErrorMessage('Razorpay Checkout SDK could not load. Please refresh and try again.');
+          return;
+        }
+        const rzp = new window.Razorpay({
+          key: intent.key_id,
+          amount: intent.amount_paise,
+          currency: intent.currency || 'INR',
+          name: intent.name || 'Wangs Marketplace',
+          description: intent.description || `Order #${res.order.order_number}`,
+          order_id: intent.razorpay_order_id,
+          prefill: intent.prefill || {
+            name: customerName,
+            email: customerEmail,
+            contact: customerPhone,
+          },
+          theme: { color: '#28452e' },
+          handler: async (rpResponse) => {
             try {
               await api.verifyPayment({
                 order_number: res.order.order_number,
-                cf_order_id: res.payment_intent.cf_order_id,
+                payment_id: rpResponse.razorpay_payment_id,
+                razorpay_payment_id: rpResponse.razorpay_payment_id,
+                razorpay_order_id: rpResponse.razorpay_order_id,
+                signature: rpResponse.razorpay_signature,
+                razorpay_signature: rpResponse.razorpay_signature,
               });
               await refreshCart();
               goToOrderSuccess(res.order.order_number, res.order);
             } catch (err) {
-              setErrorMessage('Payment verification error: ' + err.message);
+              setErrorMessage('Payment verification failed: ' + (err.message || 'Please contact support.'));
             }
-          }
+          },
+          modal: {
+            ondismiss: () => {
+              setErrorMessage('Payment was cancelled before completion. Your order is saved as pending.');
+            },
+          },
         });
+        rzp.on('payment.failed', (failResp) => {
+          setErrorMessage(failResp?.error?.description || 'Payment failed. Please try again.');
+        });
+        rzp.open();
+      } else if (intent.is_simulated && intent.razorpay_order_id) {
+        // Local placeholder-key sandbox confirmation
+        await api.verifyPayment({
+          order_number: res.order.order_number,
+          razorpay_order_id: intent.razorpay_order_id,
+          payment_id: `pay_test_${Date.now()}`,
+          signature: 'sig_simulated',
+        });
+        await refreshCart();
+        goToOrderSuccess(res.order.order_number, res.order);
       } else {
-        // Fallback or dev confirmation
-        try {
-          await api.verifyPayment({
-            order_number: res.order.order_number,
-            payment_status: 'PAID',
-            signature: 'sig_verified',
-          });
-          await refreshCart();
-          goToOrderSuccess(res.order.order_number, res.order);
-        } catch (e) {
-          goToOrderSuccess(res.order.order_number, res.order);
-        }
+        setErrorMessage('Payment gateway could not initialize. Please try again.');
       }
     } catch (err) {
       setErrorMessage(err.message || 'Could not place order. Please verify details.');

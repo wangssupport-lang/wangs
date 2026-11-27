@@ -334,11 +334,22 @@ class SameDayService:
                 eligible_entries.append((product, check))
 
         if not eligible_entries:
+            serialized_sellers = [cls._serialize_public_seller(s, now_dt=now_dt) for s in local_sellers]
+            cutoff_notes = [
+                s.get('status_note')
+                for s in serialized_sellers
+                if s.get('same_day_enabled') and not s.get('same_day_paused') and s.get('status_note')
+            ]
+            msg = (
+                f"{cutoff_notes[0]} Same-day delivery resumes on the next operating window."
+                if cutoff_notes
+                else 'No products are currently available for same-day delivery in your location.'
+            )
             return {
                 'status_code': 'NO_ELIGIBLE_PRODUCTS',
-                'message': 'No products are currently available for same-day delivery in your location.',
+                'message': msg,
                 'location': cls._serialize_location(loc),
-                'local_sellers': [cls._serialize_public_seller(s, now_dt=now_dt) for s in local_sellers],
+                'local_sellers': serialized_sellers,
                 'products': [],
             }
 

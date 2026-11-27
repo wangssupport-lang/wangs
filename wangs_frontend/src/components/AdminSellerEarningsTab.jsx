@@ -126,7 +126,8 @@ export default function AdminSellerEarningsTab() {
                 <th className="py-3 px-4">Seller / Shop</th>
                 <th className="py-3 px-4 text-right">Orders</th>
                 <th className="py-3 px-4 text-right">Total Sales</th>
-                <th className="py-3 px-4 text-right">Wangs Comm.</th>
+                <th className="py-3 px-4 text-right">Seller Earnings</th>
+                <th className="py-3 px-4 text-right">Wangs Earning</th>
                 <th className="py-3 px-4 text-right">Pending</th>
                 <th className="py-3 px-4 text-right">Available</th>
                 <th className="py-3 px-4 text-right">Processing</th>
@@ -137,11 +138,11 @@ export default function AdminSellerEarningsTab() {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">Loading seller earnings...</td>
+                  <td colSpan={10} className="py-10 text-center text-slate-400">Loading seller earnings...</td>
                 </tr>
               ) : sellers.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="py-10 text-center text-slate-400">No sellers found.</td>
+                  <td colSpan={10} className="py-10 text-center text-slate-400">No sellers found.</td>
                 </tr>
               ) : (
                 sellers.map((s) => (
@@ -152,6 +153,7 @@ export default function AdminSellerEarningsTab() {
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono">{s.orders_count}</td>
                     <td className="py-3.5 px-4 text-right font-mono">{fmt(s.total_sales)}</td>
+                    <td className="py-3.5 px-4 text-right font-mono font-semibold text-slate-900">{fmt(s.total_lifetime_earnings)}</td>
                     <td className="py-3.5 px-4 text-right font-mono text-amber-700">{fmt(s.wangs_commission)}</td>
                     <td className="py-3.5 px-4 text-right font-mono">{fmt(s.pending_earnings)}</td>
                     <td className="py-3.5 px-4 text-right font-mono font-semibold text-emerald-700">{fmt(s.available_balance)}</td>
