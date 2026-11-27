@@ -2718,11 +2718,11 @@ export default function ManufacturerPortalPage() {
                           <input
                             type="number"
                             required
-                            min="101"
+                            min={minProductPrice}
                             step="1"
                             value={newProd.price || ''}
                             onChange={(e) => handleActualPriceChange(e.target.value)}
-                            placeholder="Min ₹101"
+                            placeholder={`Min ₹${minProductPrice}`}
                             className="w-full pl-7 pr-3 py-2 border-2 border-forest-800 bg-white rounded-xl text-sm font-black text-forest-950 focus:ring-1 focus:ring-forest-800"
                           />
                         </div>
