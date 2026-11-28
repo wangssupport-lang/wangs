@@ -809,7 +809,7 @@ export default function ManufacturerPortalPage() {
   return (
     <div className="min-h-screen bg-stone-50/60 pb-16">
       {/* Top Professional Header Bar */}
-      <header className="bg-white border-b border-stone-200/90 shadow-2xs sticky top-0 z-30">
+      <header className="bg-white border-b border-stone-200/90 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-5">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             {/* Brand Identity & Status */}
@@ -1068,38 +1068,38 @@ export default function ManufacturerPortalPage() {
             )}
 
             {/* KPI Metric Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-              <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Gross Sales</span>
-                <p className="text-2xl font-serif font-black text-stone-950">₹{financials?.total_sales || '0.00'}</p>
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Gross Sales</span>
+                <p className="text-lg sm:text-2xl font-serif font-black text-stone-950">₹{financials?.total_sales || '0.00'}</p>
                 <span className="text-[10px] text-stone-500 block">Total product order volume</span>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Commission ({commissionRate}%)</span>
-                <p className="text-2xl font-serif font-black text-stone-950">₹{financials?.total_commission_deducted || '0.00'}</p>
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Commission ({commissionRate}%)</span>
+                <p className="text-lg sm:text-2xl font-serif font-black text-stone-950">₹{financials?.total_commission_deducted || '0.00'}</p>
                 <span className="text-[10px] text-amber-700 block">Platform service fee</span>
               </div>
 
-              <div className="bg-forest-900 text-white p-5 rounded-2xl border border-forest-800 shadow-xs space-y-1">
-                <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block">Net Producer Earnings</span>
-                <p className="text-2xl font-serif font-black text-white">₹{financials?.net_earnings || '0.00'}</p>
+              <div className="bg-forest-900 text-white p-3.5 sm:p-5 rounded-2xl border border-forest-800 shadow-xs space-y-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-amber-300 uppercase tracking-wider block">Net Producer Earnings</span>
+                <p className="text-lg sm:text-2xl font-serif font-black text-white">₹{financials?.net_earnings || '0.00'}</p>
                 <span className="text-[10px] text-cream-200 block">Direct bank payout total</span>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-                <span className="text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Active Products</span>
-                <p className="text-2xl font-serif font-black text-stone-950">
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-stone-400 uppercase tracking-wider block">Active Products</span>
+                <p className="text-lg sm:text-2xl font-serif font-black text-stone-950">
                   {safeProducts.filter((p) => p.status === 'APPROVED').length}
                 </p>
                 <span className="text-[10px] text-emerald-700 block">Live on storefront</span>
               </div>
 
-              <div className="bg-gradient-to-br from-amber-50 to-orange-50/70 p-5 rounded-2xl border border-amber-200 shadow-2xs space-y-1">
-                <span className="text-[11px] font-bold text-amber-900 uppercase tracking-wider block flex items-center gap-1">
+              <div className="col-span-2 lg:col-span-1 bg-gradient-to-br from-amber-50 to-orange-50/70 p-3.5 sm:p-5 rounded-2xl border border-amber-200 shadow-2xs space-y-1">
+                <span className="text-[10px] sm:text-[11px] font-bold text-amber-900 uppercase tracking-wider block flex items-center gap-1">
                   <Sparkles size={11} className="text-amber-600" /> Bundle Orders
                 </span>
-                <p className="text-2xl font-serif font-black text-amber-950">
+                <p className="text-lg sm:text-2xl font-serif font-black text-amber-950">
                   {bundleOrdersCount} <span className="text-xs font-sans font-normal text-amber-700">({bundlePercentage}%)</span>
                 </p>
                 <span className="text-[10px] text-amber-800 block">Avg basket: {avgBasketSize} units</span>
