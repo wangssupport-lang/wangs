@@ -2300,11 +2300,15 @@ class ManufacturerProductViewSet(viewsets.ModelViewSet):
             count += 1
 
         # No admin approval required for authorized sellers: product is approved and live immediately
+        extra_kwargs = {}
+        if 'same_day_eligible' not in serializer.validated_data and 'same_day_eligible' not in self.request.data:
+            extra_kwargs['same_day_eligible'] = bool(profile.same_day_enabled)
         product = serializer.save(
             manufacturer=profile,
             slug=slug,
             status=Product.Status.APPROVED,
-            is_active=True
+            is_active=True,
+            **extra_kwargs,
         )
         raw_images = self.request.data.get('images') or self.request.data.get('image_urls')
         if raw_images:

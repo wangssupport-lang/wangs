@@ -277,3 +277,32 @@ class GetItTodayTests(TestCase):
         pub = self.client.get('/api/get-it-today/?postal_code=797001&town=Kohima&district=Kohima&state=Nagaland')
         self.assertEqual(pub.status_code, 200)
         self.assertEqual(pub.data['platform_cutoff_time'], '7:30 PM')
+
+    def test_new_product_from_same_day_seller_is_automatically_eligible(self):
+        self.client.force_authenticate(user=self.seller1_user)
+        resp = self.client.post('/api/manufacturer/products/', {
+            'category_id': self.category.id,
+            'title': 'Fresh Batch Bamboo Shoot',
+            'short_description': 'Fresh',
+            'description': 'Fresh batch',
+            'price': '250.00',
+            'base_price': '225.00',
+            'courier_charge': '0.00',
+            'weight_grams': 250,
+            'ingredients': 'Bamboo, Salt',
+            'stock_quantity': 12,
+        }, format='json')
+        self.assertEqual(resp.status_code, 201, resp.data)
+        new_prod = Product.objects.get(id=resp.data['id'])
+        self.assertTrue(new_prod.same_day_eligible)
+
+        avail = SameDayService.get_available_for_location(
+            postal_code='797001',
+            town='Kohima',
+            district='Kohima',
+            state='Nagaland',
+            now_dt=datetime(2026, 11, 26, 11, 0, tzinfo=KOHIMA_TZ),
+        )
+        returned_ids = [p.id for p, _ in avail['products']]
+        self.assertIn(self.prod1.id, returned_ids)
+        self.assertIn(new_prod.id, returned_ids)
