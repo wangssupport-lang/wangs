@@ -7,6 +7,7 @@ import logging
 import urllib.parse
 from decimal import Decimal
 from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.db.models import Q, Sum, Count, ProtectedError, Prefetch
 from django.db.models.functions import Coalesce
@@ -579,6 +580,10 @@ class BrandListView(views.APIView):
 
     def get(self, request):
         featured_only = request.query_params.get('featured') == 'true'
+        cache_key = f"brands_list_{'1' if featured_only else '0'}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
         qs = ManufacturerProfile.objects.filter(
             status=ManufacturerProfile.Status.APPROVED
         ).prefetch_related(
@@ -592,7 +597,9 @@ class BrandListView(views.APIView):
         ).order_by('-display_priority', '-is_featured', 'business_name')
         if featured_only:
             qs = qs.filter(is_featured=True)
-        return Response(BrandSerializer(qs, many=True).data)
+        data = BrandSerializer(qs, many=True).data
+        cache.set(cache_key, data, 120)
+        return Response(data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
 
 class BrandDetailView(views.APIView):
@@ -675,7 +682,13 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return ProductSerializer
 
     def list(self, request, *args, **kwargs):
+        cache_key = f"products_list:{request.get_full_path()}"
+        cached_data = cache.get(cache_key)
+        if cached_data is not None:
+            return Response(cached_data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
         response = super().list(request, *args, **kwargs)
+        if response.status_code == 200:
+            cache.set(cache_key, response.data, 120)
         response['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=120'
         return response
 
@@ -769,18 +782,29 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def featured(self, request):
+        cached = cache.get('products_featured')
+        if cached is not None:
+            return Response(cached, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
         featured_products = self.get_queryset().filter(is_featured=True)[:8]
-        return Response(ProductListSerializer(featured_products, many=True).data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
+        data = ProductListSerializer(featured_products, many=True).data
+        cache.set('products_featured', data, 120)
+        return Response(data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
     @action(detail=False, methods=['get'])
     def bestsellers(self, request):
-        qs = self.get_queryset()
         dietary_type = request.query_params.get('dietary_type')
+        cache_key = f"products_bestsellers:{dietary_type or 'all'}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
+        qs = self.get_queryset()
         if dietary_type:
             qs = qs.filter(dietary_type=dietary_type)
 
         bestsellers = qs.filter(is_bestseller=True)[:8]
-        return Response(ProductListSerializer(bestsellers, many=True).data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
+        data = ProductListSerializer(bestsellers, many=True).data
+        cache.set(cache_key, data, 120)
+        return Response(data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
     @action(detail=False, methods=['get'])
     def deals(self, request):
@@ -789,6 +813,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         generous net weight (quantity) and attractive price (best value for money, grams-per-rupee).
         Prioritizes admin-marked is_deal_of_the_day, followed by best quantity-to-price ratio.
         """
+        cached = cache.get('products_deals')
+        if cached is not None:
+            return Response(cached, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
         qs = self.get_queryset().filter(stock_quantity__gt=0)
         products = list(qs)
 
@@ -813,7 +840,9 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             if len(curated_deals) >= 8:
                 break
 
-        return Response(ProductListSerializer(curated_deals, many=True).data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
+        data = ProductListSerializer(curated_deals, many=True).data
+        cache.set('products_deals', data, 120)
+        return Response(data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def add_review(self, request, slug=None):
@@ -2324,6 +2353,7 @@ class ManufacturerProductViewSet(viewsets.ModelViewSet):
         raw_images = self.request.data.get('images') or self.request.data.get('image_urls')
         if raw_images:
             self._sync_product_images(product, raw_images)
+        cache.clear()
 
         # Notify in Admin Page via AuditLog & support email
         try:

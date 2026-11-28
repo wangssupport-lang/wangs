@@ -18,7 +18,7 @@ const PUBLIC_GET_CACHE_PREFIXES = [
   '/brands/',
   '/reviews/community/',
 ];
-const PUBLIC_CACHE_TTL_MS = 45000;
+const PUBLIC_CACHE_TTL_MS = 120000;
 const getResponseCache = new Map();
 const inflightGetRequests = new Map();
 
@@ -27,13 +27,42 @@ function isCacheablePublicGet(endpoint, method) {
   return PUBLIC_GET_CACHE_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
 }
 
+function readSessionCache(endpoint) {
+  try {
+    const raw = sessionStorage.getItem(`wangs_api_v1:${endpoint}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Date.now() - parsed.ts < PUBLIC_CACHE_TTL_MS) {
+      return parsed;
+    }
+    sessionStorage.removeItem(`wangs_api_v1:${endpoint}`);
+  } catch {}
+  return null;
+}
+
+function writeSessionCache(endpoint, data) {
+  try {
+    sessionStorage.setItem(`wangs_api_v1:${endpoint}`, JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
+
+function clearPublicCache() {
+  getResponseCache.clear();
+  try {
+    Object.keys(sessionStorage).forEach((k) => {
+      if (k.startsWith('wangs_api_v1:')) sessionStorage.removeItem(k);
+    });
+  } catch {}
+}
+
 export async function apiRequest(endpoint, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
   if (method !== 'GET') {
-    getResponseCache.clear();
+    clearPublicCache();
   } else if (isCacheablePublicGet(endpoint, method)) {
-    const cached = getResponseCache.get(endpoint);
+    const cached = getResponseCache.get(endpoint) || readSessionCache(endpoint);
     if (cached && Date.now() - cached.ts < PUBLIC_CACHE_TTL_MS) {
+      getResponseCache.set(endpoint, cached);
       return cached.data;
     }
     if (inflightGetRequests.has(endpoint)) {
@@ -47,6 +76,7 @@ export async function apiRequest(endpoint, options = {}) {
     execPromise
       .then((data) => {
         getResponseCache.set(endpoint, { data, ts: Date.now() });
+        writeSessionCache(endpoint, data);
       })
       .catch(() => {})
       .finally(() => {

@@ -667,19 +667,34 @@ class BrandSerializer(serializers.ModelSerializer):
             'products_count', 'sample_products', 'created_at'
         ]
 
+    def _get_approved_products(self, obj):
+        return [
+            p for p in obj.products.all()
+            if getattr(p, 'is_active', True) and getattr(p, 'status', Product.Status.APPROVED) == Product.Status.APPROVED
+        ]
+
+    @staticmethod
+    def _get_first_product_image(prod):
+        if prod.primary_image_url and str(prod.primary_image_url).strip():
+            return str(prod.primary_image_url).strip()
+        imgs = list(prod.images.all())
+        primary = next((im for im in imgs if getattr(im, 'is_primary', False)), None) or (imgs[0] if imgs else None)
+        if primary and primary.image_url and str(primary.image_url).strip():
+            return str(primary.image_url).strip()
+        return None
+
     def get_products_count(self, obj):
-        return obj.products.filter(is_active=True, status=Product.Status.APPROVED).count()
+        return len(self._get_approved_products(obj))
 
     def get_logo_image(self, obj):
         if obj.logo_image and str(obj.logo_image).strip():
             return str(obj.logo_image).strip()
-        first_prod = obj.products.filter(is_active=True, status=Product.Status.APPROVED).first() or obj.products.first()
+        approved = self._get_approved_products(obj)
+        first_prod = approved[0] if approved else (list(obj.products.all())[:1] or [None])[0]
         if first_prod:
-            if first_prod.primary_image_url and str(first_prod.primary_image_url).strip():
-                return str(first_prod.primary_image_url).strip()
-            first_img = first_prod.images.filter(is_primary=True).first() or first_prod.images.first()
-            if first_img and first_img.image_url and str(first_img.image_url).strip():
-                return str(first_img.image_url).strip()
+            img = self._get_first_product_image(first_prod)
+            if img:
+                return img
         if obj.hero_banner and str(obj.hero_banner).strip():
             return str(obj.hero_banner).strip()
         return None
@@ -689,20 +704,18 @@ class BrandSerializer(serializers.ModelSerializer):
             return str(obj.hero_banner).strip()
         if obj.logo_image and str(obj.logo_image).strip():
             return str(obj.logo_image).strip()
-        first_prod = obj.products.filter(is_active=True, status=Product.Status.APPROVED).first() or obj.products.first()
+        approved = self._get_approved_products(obj)
+        first_prod = approved[0] if approved else (list(obj.products.all())[:1] or [None])[0]
         if first_prod:
-            if first_prod.primary_image_url and str(first_prod.primary_image_url).strip():
-                return str(first_prod.primary_image_url).strip()
-            first_img = first_prod.images.filter(is_primary=True).first() or first_prod.images.first()
-            if first_img and first_img.image_url and str(first_img.image_url).strip():
-                return str(first_img.image_url).strip()
+            img = self._get_first_product_image(first_prod)
+            if img:
+                return img
         return None
 
     def get_sample_products(self, obj):
-        prods = obj.products.filter(is_active=True, status=Product.Status.APPROVED).prefetch_related('images')[:4]
+        prods = self._get_approved_products(obj)[:4]
         res = []
         for p in prods:
-            first_img = p.images.filter(is_primary=True).first() or p.images.first()
             res.append({
                 'id': p.id,
                 'title': p.title,
@@ -710,7 +723,7 @@ class BrandSerializer(serializers.ModelSerializer):
                 'price': str(p.price),
                 'mrp': str(p.mrp) if p.mrp else None,
                 'weight_grams': p.weight_grams,
-                'image': first_img.image_url if first_img else None
+                'image': self._get_first_product_image(p),
             })
         return res
 
