@@ -409,7 +409,7 @@ export default function GetItTodayPage() {
                 >
                   <div>
                     <Link to={`/product/${product.slug}`} className="block aspect-square bg-[#fbf8f3] overflow-hidden relative">
-                      <img src={img} alt={product.title} className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
+                      <img src={img} alt={product.title} loading="lazy" decoding="async" className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-500" />
                       <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full bg-[#28452e]/80 backdrop-blur-md border border-white/30 text-white text-[9px] font-bold shadow-[0_4px_12px_rgba(0,0,0,0.15),inset_0_1px_0_rgba(255,255,255,0.25)]">
                         Today
                       </span>

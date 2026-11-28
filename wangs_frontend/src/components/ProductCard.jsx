@@ -107,7 +107,9 @@ function ProductCard({ product }) {
 
   const brandName = product.manufacturer?.business_name || product.brand?.name || 'Heritage Kitchen';
   const provenance = product.origin_district || product.origin_state || product.manufacturer?.location_district || 'Sun-Cured Terroir';
-  const weightText = product.weight_grams ? `${product.weight_grams}g` : '350g Pack';
+  const extraQtyCount = Array.isArray(product.net_quantity_options) ? product.net_quantity_options.length : 0;
+  const baseWeightText = product.weight_grams ? `${product.weight_grams}g` : '250g';
+  const weightText = extraQtyCount > 0 ? `${baseWeightText} (+${extraQtyCount})` : baseWeightText;
 
   // Heat meter & theme tag representation
   const t = ((product.title || '') + ' ' + (product.category?.name || '') + ' ' + (product.dietary_type || '')).toLowerCase();
@@ -141,6 +143,7 @@ function ProductCard({ product }) {
               onError={() => setImageError(true)}
               className="max-h-full max-w-full object-contain drop-shadow-sm group-hover:scale-105 transition-transform duration-300 select-none"
               loading="lazy"
+              decoding="async"
             />
           </Link>
 

@@ -38,7 +38,7 @@ from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, AddressSerializer, CustomerProfileSerializer,
     ComplianceDocumentSerializer, ManufacturerProfileSerializer, ManufacturerApplicationSerializer,
     CourierProfileSerializer, CourierRegisterSerializer, CourierDeliveryScanLogSerializer,
-    CategorySerializer, ProductSerializer, ProductReviewSerializer, CartSerializer, CartItemSerializer,
+    CategorySerializer, ProductSerializer, ProductListSerializer, ProductReviewSerializer, CartSerializer, CartItemSerializer,
     OrderSerializer, OrderCreateSerializer, PaymentVerifySerializer,
     CommissionSettingSerializer, CommissionUpdateSerializer,
     ManufacturerSettlementSerializer, RefundSerializer, AuditLogSerializer,
@@ -669,6 +669,16 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.AllowAny]
     lookup_field = 'slug'
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ProductListSerializer
+        return ProductSerializer
+
+    def list(self, request, *args, **kwargs):
+        response = super().list(request, *args, **kwargs)
+        response['Cache-Control'] = 'public, max-age=60, stale-while-revalidate=120'
+        return response
+
     def retrieve(self, request, *args, **kwargs):
         slug = kwargs.get('slug', '')
         instance = self.get_queryset().filter(slug=slug).first()
@@ -690,11 +700,12 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({'detail': 'Product not found'}, status=404)
 
     def get_queryset(self):
+        prefetch_fields = ('images', 'reviews') if self.action == 'retrieve' else ('reviews',)
         qs = Product.objects.filter(
             is_active=True,
             status=Product.Status.APPROVED,
             manufacturer__status=ManufacturerProfile.Status.APPROVED
-        ).select_related('category', 'manufacturer').prefetch_related('images', 'reviews')
+        ).select_related('category', 'manufacturer').prefetch_related(*prefetch_fields)
 
         category_slug = self.request.query_params.get('category')
         if category_slug:
@@ -759,7 +770,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def featured(self, request):
         featured_products = self.get_queryset().filter(is_featured=True)[:8]
-        return Response(ProductSerializer(featured_products, many=True).data)
+        return Response(ProductListSerializer(featured_products, many=True).data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
     @action(detail=False, methods=['get'])
     def bestsellers(self, request):
@@ -769,7 +780,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(dietary_type=dietary_type)
 
         bestsellers = qs.filter(is_bestseller=True)[:8]
-        return Response(ProductSerializer(bestsellers, many=True).data)
+        return Response(ProductListSerializer(bestsellers, many=True).data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
     @action(detail=False, methods=['get'])
     def deals(self, request):
@@ -802,7 +813,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             if len(curated_deals) >= 8:
                 break
 
-        return Response(ProductSerializer(curated_deals, many=True).data)
+        return Response(ProductListSerializer(curated_deals, many=True).data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.AllowAny])
     def add_review(self, request, slug=None):
@@ -5388,7 +5399,7 @@ class GetItTodayProductsView(views.APIView):
 
         serialized_products = []
         for product, check in result['products']:
-            item_data = ProductSerializer(product, context={'request': request}).data
+            item_data = ProductListSerializer(product, context={'request': request}).data
             seller = product.manufacturer
             item_data['same_day_info'] = {
                 'seller_name': seller.business_name,

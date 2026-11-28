@@ -945,7 +945,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'slug', 'short_description', 'description',
             'price', 'base_price', 'delivery_charge', 'pricing_breakdown', 'mrp',
-            'weight_grams', 'spice_level', 'dietary_type',
+            'weight_grams', 'net_quantity_options', 'spice_level', 'dietary_type',
             'contains_non_veg_substance',
             'ingredients', 'allergens', 'storage_instructions', 'shelf_life',
             'stock_quantity', 'status', 'is_active', 'is_featured', 'is_bestseller', 'is_deal_of_the_day',
@@ -1000,6 +1000,32 @@ class ProductSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'mrp': "MRP cannot be lower than the selling price."})
         return attrs
 
+    def validate_net_quantity_options(self, value):
+        if not value:
+            return []
+        if not isinstance(value, list):
+            raise serializers.ValidationError("net_quantity_options must be a list.")
+        cleaned = []
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            label = str(item.get('label') or '').strip()
+            if not label:
+                continue
+            entry = {'label': label[:60]}
+            if item.get('weight_grams') not in (None, ''):
+                try:
+                    entry['weight_grams'] = max(1, int(item['weight_grams']))
+                except (TypeError, ValueError):
+                    pass
+            if item.get('price') not in (None, ''):
+                try:
+                    entry['price'] = str(Decimal(str(item['price'])).quantize(Decimal('0.01')))
+                except Exception:
+                    pass
+            cleaned.append(entry)
+        return cleaned
+
     def get_manufacturer(self, obj):
         return {
             'id': obj.manufacturer.id,
@@ -1015,8 +1041,51 @@ class ProductSerializer(serializers.ModelSerializer):
         }
 
 
+class ProductListSerializer(serializers.ModelSerializer):
+    """Lightweight product serializer for list/catalog/cart views without gallery base64 images or review lists."""
+    category = CategorySerializer(read_only=True)
+    manufacturer = serializers.SerializerMethodField()
+    reviews_count = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    is_in_stock = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Product
+        fields = [
+            'id', 'title', 'slug', 'short_description',
+            'price', 'mrp', 'weight_grams', 'net_quantity_options',
+            'spice_level', 'dietary_type', 'contains_non_veg_substance',
+            'stock_quantity', 'status', 'is_active', 'is_featured',
+            'is_bestseller', 'is_deal_of_the_day', 'same_day_eligible',
+            'primary_image_url', 'category', 'manufacturer',
+            'reviews_count', 'average_rating', 'is_in_stock',
+            'created_at', 'updated_at',
+        ]
+
+    def get_reviews_count(self, obj):
+        return len(obj.reviews.all())
+
+    def get_average_rating(self, obj):
+        revs = list(obj.reviews.all())
+        if revs:
+            return round(sum(r.rating for r in revs) / len(revs), 1)
+        return None
+
+    def get_manufacturer(self, obj):
+        return {
+            'id': obj.manufacturer.id,
+            'business_name': obj.manufacturer.business_name,
+            'slug': obj.manufacturer.slug,
+            'location_district': obj.manufacturer.location_district,
+            'is_verified_producer': obj.manufacturer.is_verified_producer,
+            'is_featured': obj.manufacturer.is_featured,
+            'brand_badge': obj.manufacturer.brand_badge or 'Official Brand Store',
+            'status': obj.manufacturer.status,
+        }
+
+
 class CartItemSerializer(serializers.ModelSerializer):
-    product = ProductSerializer(read_only=True)
+    product = ProductListSerializer(read_only=True)
     product_id = serializers.PrimaryKeyRelatedField(
         queryset=Product.objects.all(), source='product', write_only=True
     )

@@ -330,6 +330,11 @@ class Product(models.Model):
     )
     mrp = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     weight_grams = models.PositiveIntegerField(help_text="Net weight in grams (e.g. 200, 250, 400)")
+    net_quantity_options = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Optional list of seller-defined net quantity / pack size options (e.g. [{'label': '500g', 'weight_grams': 500, 'price': '450.00'}])."
+    )
     
     spice_level = models.CharField(max_length=25, choices=SpiceLevel.choices, default=SpiceLevel.HOT)
     dietary_type = models.CharField(max_length=20, choices=DietaryType.choices, default=DietaryType.NON_VEG)

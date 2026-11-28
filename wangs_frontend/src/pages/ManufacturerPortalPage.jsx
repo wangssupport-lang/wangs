@@ -105,6 +105,7 @@ export default function ManufacturerPortalPage() {
     price: '',
     mrp: '',
     weight_grams: '250',
+    net_quantity_options: [],
     spice_level: 'HOT',
     dietary_type: 'NON_VEG',
     contains_non_veg_substance: false,
@@ -403,8 +404,16 @@ export default function ManufacturerPortalPage() {
     if (cleanImages.length === 0 && newProd.primary_image_url) {
       cleanImages.push(newProd.primary_image_url);
     }
+    const cleanNetOptions = (newProd.net_quantity_options || [])
+      .filter((opt) => String(opt?.label || '').trim())
+      .map((opt) => ({
+        label: String(opt.label).trim(),
+        ...(opt.weight_grams ? { weight_grams: parseInt(opt.weight_grams, 10) || undefined } : {}),
+        ...(opt.price !== '' && opt.price !== undefined && opt.price !== null ? { price: String(opt.price) } : {}),
+      }));
     const payload = {
       ...newProd,
+      net_quantity_options: cleanNetOptions,
       primary_image_url: cleanImages[0] || newProd.primary_image_url,
       images: cleanImages.slice(0, 3),
       image_urls: cleanImages.slice(0, 3)
@@ -705,6 +714,7 @@ export default function ManufacturerPortalPage() {
       price: '',
       mrp: '',
       weight_grams: '250',
+      net_quantity_options: [],
       spice_level: 'HOT',
       dietary_type: defaultCat?.slug === 'veg' ? 'VEG' : 'NON_VEG',
       contains_non_veg_substance: false,
@@ -745,6 +755,7 @@ export default function ManufacturerPortalPage() {
       price: p.price ? String(p.price) : '',
       mrp: p.mrp ? String(p.mrp) : '',
       weight_grams: p.weight_grams ? String(p.weight_grams) : '250',
+      net_quantity_options: Array.isArray(p.net_quantity_options) ? p.net_quantity_options : [],
       spice_level: p.spice_level || 'HOT',
       dietary_type: p.dietary_type || 'NON_VEG',
       contains_non_veg_substance: Boolean(p.contains_non_veg_substance),
@@ -2789,6 +2800,115 @@ export default function ManufacturerPortalPage() {
                       <option value="HOT">Hot</option>
                       <option value="FIERY_KING_CHILLI">Fiery King Chilli (Raja Mircha)</option>
                     </select>
+                  </div>
+
+                  <div className="col-span-2 bg-stone-50/90 border border-stone-200 rounded-xl p-3 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <label className="block text-stone-800 font-semibold text-xs">
+                          Additional Net Quantity Options (Shown to Customer)
+                        </label>
+                        <p className="text-[11px] text-stone-500">
+                          Customers see {newProd.weight_grams || 250}g plus any extra pack sizes you add below.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNewProd((prev) => ({
+                            ...prev,
+                            net_quantity_options: [
+                              ...(prev.net_quantity_options || []),
+                              { label: '', weight_grams: '', price: '' },
+                            ],
+                          }))
+                        }
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#28452e] hover:bg-[#1e3523] text-white text-[11px] font-semibold transition-all cursor-pointer"
+                      >
+                        <Plus size={12} /> Add Net Quantity
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        { label: '250g', weight_grams: '250' },
+                        { label: '500g', weight_grams: '500' },
+                        { label: '1 kg', weight_grams: '1000' },
+                        { label: '500 ml', weight_grams: '500' },
+                      ].map((preset) => (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() =>
+                            setNewProd((prev) => {
+                              const current = prev.net_quantity_options || [];
+                              if (current.some((o) => String(o.label).toLowerCase() === preset.label.toLowerCase())) {
+                                return prev;
+                              }
+                              return {
+                                ...prev,
+                                net_quantity_options: [...current, { ...preset, price: '' }],
+                              };
+                            })
+                          }
+                          className="px-2 py-0.5 rounded-md border border-stone-300 bg-white hover:border-[#28452e] text-[11px] font-medium text-stone-700 cursor-pointer"
+                        >
+                          + {preset.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {(newProd.net_quantity_options || []).length > 0 && (
+                      <div className="space-y-2 pt-1">
+                        {(newProd.net_quantity_options || []).map((opt, idx) => (
+                          <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                            <input
+                              type="text"
+                              value={opt.label || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setNewProd((prev) => {
+                                  const next = [...(prev.net_quantity_options || [])];
+                                  next[idx] = { ...next[idx], label: val };
+                                  return { ...prev, net_quantity_options: next };
+                                });
+                              }}
+                              placeholder="e.g. 500g, 1 kg, 500 ml"
+                              className="col-span-6 px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs bg-white"
+                            />
+                            <input
+                              type="number"
+                              min="1"
+                              step="0.01"
+                              value={opt.price || ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setNewProd((prev) => {
+                                  const next = [...(prev.net_quantity_options || [])];
+                                  next[idx] = { ...next[idx], price: val };
+                                  return { ...prev, net_quantity_options: next };
+                                });
+                              }}
+                              placeholder="Price ₹ (optional)"
+                              className="col-span-5 px-2.5 py-1.5 border border-stone-300 rounded-lg text-xs bg-white"
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNewProd((prev) => ({
+                                  ...prev,
+                                  net_quantity_options: (prev.net_quantity_options || []).filter((_, i) => i !== idx),
+                                }))
+                              }
+                              className="col-span-1 p-1.5 text-stone-400 hover:text-red-600 cursor-pointer flex items-center justify-center"
+                              aria-label="Remove net quantity option"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="col-span-2">

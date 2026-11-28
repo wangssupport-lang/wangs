@@ -122,7 +122,24 @@ export default function ProductDetailPage() {
   }
 
   const basePrice = parseFloat(product.price || 299);
-  const displayPrice = selectedSize === '500 g' ? Math.round(basePrice * 1.85) : basePrice;
+  const primaryNetLabel = product.weight_grams ? `${product.weight_grams}g` : '250g';
+  const sizeOptions = [{ label: primaryNetLabel, price: basePrice }];
+  if (Array.isArray(product.net_quantity_options)) {
+    product.net_quantity_options.forEach((opt) => {
+      const lbl = String(opt?.label || '').trim();
+      if (lbl && !sizeOptions.some((s) => s.label.toLowerCase() === lbl.toLowerCase())) {
+        const optPrice = opt?.price !== undefined && opt?.price !== null && opt?.price !== ''
+          ? parseFloat(opt.price)
+          : basePrice;
+        sizeOptions.push({
+          label: lbl,
+          price: Number.isFinite(optPrice) && optPrice > 0 ? optPrice : basePrice,
+        });
+      }
+    });
+  }
+  const activeOption = sizeOptions.find((s) => s.label === selectedSize) || sizeOptions[0];
+  const displayPrice = activeOption.price;
 
   const makerName = product.manufacturer?.business_name || product.manufacturer?.name || 'Apeno Kikon';
   const village = product.manufacturer?.location_district || 'Khonoma, Nagaland';
@@ -390,9 +407,9 @@ export default function ProductDetailPage() {
             <span className="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
               ₹{displayPrice}
             </span>
-            {selectedSize === '500 g' && (
-              <span className="text-xs font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                Value Pack Savings
+            {activeOption.label && (
+              <span className="text-xs font-semibold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-0.5 rounded-full">
+                Net Qty: {activeOption.label}
               </span>
             )}
           </div>
@@ -402,34 +419,29 @@ export default function ProductDetailPage() {
             {product.description || product.short_description || 'Handcrafted in traditional earthen martabans with sun-cured spices and cold-pressed mustard oil. Matured slowly under ambient hill sunlight.'}
           </p>
 
-          {/* Size Pills */}
+          {/* Size / Net Quantity Pills */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-stone-900 uppercase tracking-wider">
-              Size
+              Net Quantity
             </label>
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setSelectedSize('250 g')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  selectedSize === '250 g'
-                    ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
-                    : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
-                }`}
-              >
-                250 g
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedSize('500 g')}
-                className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                  selectedSize === '500 g'
-                    ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
-                    : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
-                }`}
-              >
-                500 g
-              </button>
+            <div className="flex flex-wrap items-center gap-2.5">
+              {sizeOptions.map((opt) => {
+                const isSelected = activeOption.label === opt.label;
+                return (
+                  <button
+                    key={opt.label}
+                    type="button"
+                    onClick={() => setSelectedSize(opt.label)}
+                    className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                      isSelected
+                        ? 'border-2 border-[#ab331c] text-[#ab331c] bg-white shadow-xs'
+                        : 'border border-stone-300 text-stone-700 bg-white hover:border-stone-400'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

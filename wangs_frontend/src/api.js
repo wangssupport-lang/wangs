@@ -10,7 +10,53 @@ const DEV_BACKEND_URL = 'http://127.0.0.1:8000/api';
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '');
 const DIRECT_BACKEND = isProduction ? PROD_BACKEND_URL : DEV_BACKEND_URL;
 
+const PUBLIC_GET_CACHE_PREFIXES = [
+  '/products/',
+  '/hero-banners/',
+  '/platform-settings/',
+  '/categories/',
+  '/brands/',
+  '/reviews/community/',
+];
+const PUBLIC_CACHE_TTL_MS = 45000;
+const getResponseCache = new Map();
+const inflightGetRequests = new Map();
+
+function isCacheablePublicGet(endpoint, method) {
+  if (method && method.toUpperCase() !== 'GET') return false;
+  return PUBLIC_GET_CACHE_PREFIXES.some((prefix) => endpoint.startsWith(prefix));
+}
+
 export async function apiRequest(endpoint, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  if (method !== 'GET') {
+    getResponseCache.clear();
+  } else if (isCacheablePublicGet(endpoint, method)) {
+    const cached = getResponseCache.get(endpoint);
+    if (cached && Date.now() - cached.ts < PUBLIC_CACHE_TTL_MS) {
+      return cached.data;
+    }
+    if (inflightGetRequests.has(endpoint)) {
+      return inflightGetRequests.get(endpoint);
+    }
+  }
+
+  const execPromise = _executeApiRequest(endpoint, options);
+  if (isCacheablePublicGet(endpoint, method)) {
+    inflightGetRequests.set(endpoint, execPromise);
+    execPromise
+      .then((data) => {
+        getResponseCache.set(endpoint, { data, ts: Date.now() });
+      })
+      .catch(() => {})
+      .finally(() => {
+        inflightGetRequests.delete(endpoint);
+      });
+  }
+  return execPromise;
+}
+
+async function _executeApiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('wangs_token');
   const sessionKey = localStorage.getItem('wangs_session_key') || '';
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
