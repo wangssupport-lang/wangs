@@ -15,10 +15,10 @@ import { useToast } from '../context/ToastContext';
 import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import { api } from '../api';
 import QRCodeSVG from '../components/QRCodeSVG';
-import BrandCard from '../components/BrandCard';
-import ManufacturerDeliveryTab from '../components/ManufacturerDeliveryTab';
-import SellerEarningsTab from '../components/SellerEarningsTab';
-import DeleteAccountCard from '../components/DeleteAccountCard';
+const BrandCard = React.lazy(() => import('../components/BrandCard'));
+const ManufacturerDeliveryTab = React.lazy(() => import('../components/ManufacturerDeliveryTab'));
+const SellerEarningsTab = React.lazy(() => import('../components/SellerEarningsTab'));
+const DeleteAccountCard = React.lazy(() => import('../components/DeleteAccountCard'));
 import { compressImageFile, resolveProductImage } from '../utils/image';
 
 function getBrandInitials(name = '') {
@@ -158,16 +158,24 @@ export default function ManufacturerPortalPage() {
   const [settingsSubTab, setSettingsSubTab] = useState(initialSub);
   const [orderStatusFilter, setOrderStatusFilter] = useState('ALL'); // 'ALL', 'PENDING', 'DISPATCHED', 'DELIVERED'
 
-  // Data states
-  const [profile, setProfile] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [financials, setFinancials] = useState(null);
-  const [sellerEarnings, setSellerEarnings] = useState(null);
+  // Data states (hydrate from sessionStorage for instant repeat open)
+  const initialPortalCache = (() => {
+    try {
+      const raw = sessionStorage.getItem('wangs_seller_portal_v1');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const [profile, setProfile] = useState(() => initialPortalCache?.profile || null);
+  const [products, setProducts] = useState(() => initialPortalCache?.products || []);
+  const [categories, setCategories] = useState(() => initialPortalCache?.categories || []);
+  const [orders, setOrders] = useState(() => initialPortalCache?.orders || []);
+  const [financials, setFinancials] = useState(() => initialPortalCache?.financials || null);
+  const [sellerEarnings, setSellerEarnings] = useState(() => initialPortalCache?.sellerEarnings || null);
   const [analyticsRange, setAnalyticsRange] = useState('30D');
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !initialPortalCache?.profile);
 
   // Modals & Overlays
   const [selectedParcelOrder, setSelectedParcelOrder] = useState(null);
@@ -328,32 +336,41 @@ export default function ManufacturerPortalPage() {
     });
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadDeliveryRatesIfNeeded = async () => {
+    if (Object.keys(productRates).length > 0) return;
     try {
-      const [profData, prodsData, catsData, ordsData, finData, ratesData, earningsData] = await Promise.all([
-        api.getManufacturerProfile(),
-        api.getManufacturerProducts(),
-        api.getCategories(),
-        api.getManufacturerOrders(),
-        api.getManufacturerFinancials(),
-        api.getManufacturerDeliveryRates().catch(() => ({ own_rates: [] })),
+      const ratesData = await api.getManufacturerDeliveryRates().catch(() => ({ own_rates: [] }));
+      const rateMap = {};
+      (ratesData?.own_rates || []).forEach((r) => {
+        const pId = typeof r.product === 'object' ? r.product?.id : r.product;
+        if (pId) rateMap[pId] = r;
+      });
+      setProductRates(rateMap);
+    } catch {}
+  };
+
+  const loadData = async () => {
+    if (!profile) setLoading(true);
+    try {
+      // Unblock Seller Studio shell immediately as soon as profile resolves
+      const profPromise = api.getManufacturerProfile().then((profData) => {
+        setProfile(profData);
+        setLoading(false);
+        return profData;
+      });
+
+      const [profData, prodsData, catsData, ordsData, finData, earningsData] = await Promise.all([
+        profPromise,
+        api.getManufacturerProducts().catch(() => []),
+        api.getCategories().catch(() => []),
+        api.getManufacturerOrders().catch(() => []),
+        api.getManufacturerFinancials().catch(() => null),
         api.getSellerEarnings().catch(() => null),
       ]);
       const rawProducts = Array.isArray(prodsData) ? prodsData : (prodsData?.results || []);
       const rawCategories = Array.isArray(catsData) ? catsData : (catsData?.results || []);
       const rawOrders = Array.isArray(ordsData) ? ordsData : (ordsData?.results || []);
 
-      const rateMap = {};
-      (ratesData?.own_rates || []).forEach((r) => {
-        const pId = typeof r.product === 'object' ? r.product?.id : r.product;
-        if (pId) {
-          rateMap[pId] = r;
-        }
-      });
-      setProductRates(rateMap);
-
-      setProfile(profData);
       setProducts(rawProducts);
       setCategories(rawCategories);
       setOrders(rawOrders);
@@ -362,6 +379,16 @@ export default function ManufacturerPortalPage() {
       if (rawCategories?.length && !newProd.category_id) {
         setNewProd((p) => ({ ...p, category_id: rawCategories[0].id }));
       }
+      try {
+        sessionStorage.setItem('wangs_seller_portal_v1', JSON.stringify({
+          profile: profData,
+          products: rawProducts,
+          categories: rawCategories,
+          orders: rawOrders,
+          financials: finData,
+          sellerEarnings: earningsData,
+        }));
+      } catch {}
     } catch (err) {
       console.error('Failed to load manufacturer portal data', err);
     } finally {
@@ -852,6 +879,7 @@ export default function ManufacturerPortalPage() {
   };
 
   const openEditProductModal = (p) => {
+    loadDeliveryRatesIfNeeded();
     setEditingProductId(p.id);
     const existingImgs = (p.images || []).map((img) => (typeof img === 'string' ? img : (img?.image_url || '')));
     if (!existingImgs.length && p.primary_image_url) {
@@ -1698,7 +1726,7 @@ export default function ManufacturerPortalPage() {
                                 className="w-11 h-11 object-cover rounded-xl border border-stone-200 shrink-0 shadow-2xs"
                                 onError={(e) => {
                                   e.target.onerror = null;
-                                  e.target.src = '/featured-pouches.png';
+                                  e.target.src = '/featured-pouches.webp';
                                 }}
                               />
                               <div>
@@ -2009,7 +2037,9 @@ export default function ManufacturerPortalPage() {
            =================================================================== */}
         {activeTab === 'financials' && (
           <div className="space-y-8 text-xs animate-fade-in">
-            <SellerEarningsTab onGoToBankSettings={() => handleTabChange('settings', 'bank')} />
+            <React.Suspense fallback={<div className="py-12 text-center text-xs text-stone-500">Loading earnings...</div>}>
+              <SellerEarningsTab onGoToBankSettings={() => handleTabChange('settings', 'bank')} />
+            </React.Suspense>
             {/* Financial Overview Card */}
             <div className="bg-white p-6 rounded-2xl border border-stone-200/90 shadow-2xs space-y-4">
               <div className="flex items-center justify-between border-b border-stone-100 pb-3">
@@ -2276,7 +2306,9 @@ export default function ManufacturerPortalPage() {
                     <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                       Live Storefront Card Preview
                     </span>
-                    <BrandCard brand={profile} />
+                    <React.Suspense fallback={null}>
+                      <BrandCard brand={profile} />
+                    </React.Suspense>
                     <p className="text-[10px] text-stone-400 text-center italic">
                       How shoppers see your brand in store carousels
                     </p>
@@ -2715,7 +2747,9 @@ export default function ManufacturerPortalPage() {
             )}
 
             <div className="max-w-3xl mx-auto pt-2">
-              <DeleteAccountCard accountLabel="Seller Account" />
+              <React.Suspense fallback={null}>
+                <DeleteAccountCard accountLabel="Seller Account" />
+              </React.Suspense>
             </div>
           </div>
         )}
@@ -2724,7 +2758,9 @@ export default function ManufacturerPortalPage() {
             DELIVERY CHARGES & PACKAGING TAB
            ============================================================== */}
         {activeTab === 'delivery' && (
-          <ManufacturerDeliveryTab profile={profile} toast={toast} />
+          <React.Suspense fallback={<div className="py-12 text-center text-xs text-stone-500">Loading delivery settings...</div>}>
+            <ManufacturerDeliveryTab profile={profile} toast={toast} />
+          </React.Suspense>
         )}
       </main>
       </div>
@@ -3284,7 +3320,7 @@ export default function ManufacturerPortalPage() {
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
                                     e.target.onerror = null;
-                                    e.target.src = '/featured-pouches.png';
+                                    e.target.src = '/featured-pouches.webp';
                                   }}
                                 />
                               ) : (

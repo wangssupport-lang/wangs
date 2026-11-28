@@ -676,11 +676,13 @@ class BrandSerializer(serializers.ModelSerializer):
     @staticmethod
     def _get_first_product_image(prod):
         if prod.primary_image_url and str(prod.primary_image_url).strip():
-            return str(prod.primary_image_url).strip()
+            raw = str(prod.primary_image_url).strip()
+            return f"/api/products/{prod.id}/image/" if raw.startswith('data:image/') else raw
         imgs = list(prod.images.all())
         primary = next((im for im in imgs if getattr(im, 'is_primary', False)), None) or (imgs[0] if imgs else None)
         if primary and primary.image_url and str(primary.image_url).strip():
-            return str(primary.image_url).strip()
+            raw = str(primary.image_url).strip()
+            return f"/api/products/{prod.id}/image/" if raw.startswith('data:image/') else raw
         return None
 
     def get_products_count(self, obj):
@@ -688,7 +690,8 @@ class BrandSerializer(serializers.ModelSerializer):
 
     def get_logo_image(self, obj):
         if obj.logo_image and str(obj.logo_image).strip():
-            return str(obj.logo_image).strip()
+            raw = str(obj.logo_image).strip()
+            return f"/api/brands/{obj.id}/image/?kind=logo" if raw.startswith('data:image/') else raw
         approved = self._get_approved_products(obj)
         first_prod = approved[0] if approved else (list(obj.products.all())[:1] or [None])[0]
         if first_prod:
@@ -696,14 +699,17 @@ class BrandSerializer(serializers.ModelSerializer):
             if img:
                 return img
         if obj.hero_banner and str(obj.hero_banner).strip():
-            return str(obj.hero_banner).strip()
+            raw = str(obj.hero_banner).strip()
+            return f"/api/brands/{obj.id}/image/?kind=cover" if raw.startswith('data:image/') else raw
         return None
 
     def get_cover_image(self, obj):
         if obj.hero_banner and str(obj.hero_banner).strip():
-            return str(obj.hero_banner).strip()
+            raw = str(obj.hero_banner).strip()
+            return f"/api/brands/{obj.id}/image/?kind=cover" if raw.startswith('data:image/') else raw
         if obj.logo_image and str(obj.logo_image).strip():
-            return str(obj.logo_image).strip()
+            raw = str(obj.logo_image).strip()
+            return f"/api/brands/{obj.id}/image/?kind=logo" if raw.startswith('data:image/') else raw
         approved = self._get_approved_products(obj)
         first_prod = approved[0] if approved else (list(obj.products.all())[:1] or [None])[0]
         if first_prod:
@@ -1061,6 +1067,13 @@ class ProductListSerializer(serializers.ModelSerializer):
     reviews_count = serializers.SerializerMethodField()
     average_rating = serializers.SerializerMethodField()
     is_in_stock = serializers.BooleanField(read_only=True)
+    primary_image_url = serializers.SerializerMethodField()
+
+    def get_primary_image_url(self, obj):
+        raw = str(obj.primary_image_url or '').strip()
+        if raw.startswith('data:image/'):
+            return f"/api/products/{obj.id}/image/"
+        return raw
 
     class Meta:
         model = Product

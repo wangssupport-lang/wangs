@@ -159,7 +159,6 @@ export default function HomePage() {
 
     const handleOrbitalChanged = () => loadOrbitalShowcase();
     window.addEventListener('wangs_orbital_changed', handleOrbitalChanged);
-    window.addEventListener('focus', loadOrbitalShowcase);
 
     return () => {
       cancelled = true;
@@ -167,7 +166,6 @@ export default function HomePage() {
         try { channel.close(); } catch {}
       }
       window.removeEventListener('wangs_orbital_changed', handleOrbitalChanged);
-      window.removeEventListener('focus', loadOrbitalShowcase);
     };
   }, []);
 
@@ -197,12 +195,7 @@ export default function HomePage() {
     } catch {}
 
     const handleBannersChanged = () => refreshHeroBanners();
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') refreshHeroBanners();
-    };
     window.addEventListener('wangs_banners_changed', handleBannersChanged);
-    window.addEventListener('focus', refreshHeroBanners);
-    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       cancelled = true;
@@ -210,8 +203,6 @@ export default function HomePage() {
         try { bannerChannel.close(); } catch {}
       }
       window.removeEventListener('wangs_banners_changed', handleBannersChanged);
-      window.removeEventListener('focus', refreshHeroBanners);
-      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
@@ -1328,9 +1319,13 @@ export default function HomePage() {
             <div className="hero-dc-stage select-none">
               <div className="hero-dc-blob" aria-hidden="true" />
               <img
-                src="/hero-pickle-cutout.png"
+                src="/hero-pickle-cutout.webp"
                 alt="Open jar and bowl of handmade pickle with chillies and curry leaves"
+                width="630"
+                height="505"
+                fetchPriority="high"
                 className="hero-dc-shot pointer-events-none"
+                decoding="async"
               />
               <span className="hero-dc-chip" style={{ top: '6%', right: '4%' }}>
                 🌶 Very hot

@@ -602,6 +602,50 @@ class BrandListView(views.APIView):
         return Response(data, headers={'Cache-Control': 'public, max-age=60, stale-while-revalidate=120'})
 
 
+def _serve_data_uri_response(raw_value):
+    import base64
+    from django.shortcuts import redirect
+    s = str(raw_value or '').strip()
+    if not s:
+        return HttpResponse(status=404)
+    if s.startswith('http://') or s.startswith('https://') or s.startswith('/'):
+        return redirect(s)
+    if s.startswith('data:image/') and ';base64,' in s:
+        header, b64 = s.split(';base64,', 1)
+        mime = header.replace('data:', '').strip() or 'image/jpeg'
+        try:
+            raw_bytes = base64.b64decode(b64)
+            resp = HttpResponse(raw_bytes, content_type=mime)
+            resp['Cache-Control'] = 'public, max-age=86400, stale-while-revalidate=604800'
+            return resp
+        except Exception:
+            return HttpResponse(status=404)
+    return HttpResponse(status=404)
+
+
+class ProductImageServeView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        prod = get_object_or_404(Product, pk=pk)
+        raw = str(prod.primary_image_url or '').strip()
+        if not raw:
+            first_img = prod.images.filter(is_primary=True).first() or prod.images.first()
+            if first_img:
+                raw = str(first_img.image_url or '').strip()
+        return _serve_data_uri_response(raw)
+
+
+class BrandImageServeView(views.APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, pk):
+        brand = get_object_or_404(ManufacturerProfile, pk=pk)
+        kind = request.query_params.get('kind', 'logo')
+        raw = brand.hero_banner if kind == 'cover' else brand.logo_image
+        return _serve_data_uri_response(raw)
+
+
 class BrandDetailView(views.APIView):
     """
     Single brand store page with brand profile and their active products.
@@ -2296,9 +2340,20 @@ class ManufacturerProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsManufacturerUser]
     pagination_class = None
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return ProductListSerializer
+        return ProductSerializer
+
     def get_queryset(self):
         profile = get_object_or_404(ManufacturerProfile, user=self.request.user)
-        return Product.objects.filter(manufacturer=profile).order_by('-created_at')
+        prefetch_fields = ('reviews',) if self.action == 'list' else ('images', 'reviews')
+        return (
+            Product.objects.filter(manufacturer=profile)
+            .select_related('category', 'manufacturer')
+            .prefetch_related(*prefetch_fields)
+            .order_by('-created_at')
+        )
 
     def _sync_product_images(self, product, raw_images):
         if raw_images is None:
@@ -2574,6 +2629,9 @@ class AdminMetricsView(views.APIView):
     permission_classes = [IsAdminUserRole]
 
     def get(self, request):
+        cached_metrics = cache.get('admin_metrics_summary')
+        if cached_metrics is not None:
+            return Response(cached_metrics, headers={'Cache-Control': 'private, no-store'})
         paid_orders = Order.objects.filter(payment_status=Order.PaymentStatus.PAID)
         total_orders = Order.objects.count()
         pending_orders = Order.objects.filter(status=Order.Status.PENDING).count()
@@ -2675,7 +2733,7 @@ class AdminMetricsView(views.APIView):
                 'user_signups': b_users,
             })
 
-        return Response({
+        metrics_payload = {
             'gmv': str(gmv),
             'total_orders': total_orders,
             'pending_orders': pending_orders,
@@ -2704,7 +2762,9 @@ class AdminMetricsView(views.APIView):
             'is_maintenance_mode': comm_setting.is_maintenance_mode,
             'maintenance_message': comm_setting.maintenance_message,
             'timeline': timeline,
-        })
+        }
+        cache.set('admin_metrics_summary', metrics_payload, 60)
+        return Response(metrics_payload, headers={'Cache-Control': 'private, no-store'})
 
 
 class AdminManufacturerViewSet(viewsets.ModelViewSet):
@@ -5420,6 +5480,11 @@ class GetItTodayProductsView(views.APIView):
         district = request.query_params.get('district', '').strip()
         state = request.query_params.get('state', '').strip()
 
+        cache_key = f"get_it_today:{postal_code}:{town.lower()}:{district.lower()}:{state.lower()}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached, headers={'Cache-Control': 'public, max-age=30, stale-while-revalidate=60'})
+
         result = SameDayService.get_available_for_location(
             postal_code=postal_code,
             town=town,
@@ -5446,14 +5511,16 @@ class GetItTodayProductsView(views.APIView):
             }
             serialized_products.append(item_data)
 
-        return Response({
+        payload = {
             'status_code': result['status_code'],
             'message': result['message'],
             'platform_cutoff_time': SameDayService.format_cutoff(SameDayService.get_platform_cutoff_time()),
             'location': result['location'],
             'local_sellers': result['local_sellers'],
             'products': serialized_products,
-        })
+        }
+        cache.set(cache_key, payload, 30)
+        return Response(payload, headers={'Cache-Control': 'public, max-age=30, stale-while-revalidate=60'})
 
 
 class GetItTodayDetectLocationView(views.APIView):

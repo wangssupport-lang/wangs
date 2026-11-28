@@ -16,7 +16,8 @@ const PUBLIC_GET_CACHE_PREFIXES = [
   '/platform-settings/',
   '/categories/',
   '/brands/',
-  '/reviews/community/',
+  '/community-reviews/',
+  '/get-it-today/',
 ];
 const PUBLIC_CACHE_TTL_MS = 120000;
 const getResponseCache = new Map();

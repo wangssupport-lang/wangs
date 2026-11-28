@@ -149,12 +149,12 @@ class SameDayService:
         return time(18, 0)
 
     @classmethod
-    def get_effective_cutoff_time(cls, seller=None, rate=None):
+    def get_effective_cutoff_time(cls, seller=None, rate=None, platform_cutoff=None):
         """
         Returns the strictest applicable cutoff time among the admin platform cutoff,
         seller cutoff, and courier rate cutoff.
         """
-        cutoffs = [cls.get_platform_cutoff_time()]
+        cutoffs = [platform_cutoff or cls.get_platform_cutoff_time()]
         if seller and getattr(seller, 'same_day_cutoff_time', None):
             cutoffs.append(seller.same_day_cutoff_time)
         if rate and getattr(rate, 'same_day_cutoff_time', None):
@@ -162,14 +162,14 @@ class SameDayService:
         return min(cutoffs)
 
     @classmethod
-    def check_seller_schedule(cls, seller, now_dt=None):
+    def check_seller_schedule(cls, seller, now_dt=None, platform_cutoff=None):
         """
         Evaluate seller's operating days and daily cutoff time in Asia/Kolkata.
         Returns (is_open_now: bool, reason: str, cutoff_str: str | None)
         """
         now_ist = (now_dt or timezone.now()).astimezone(KOHIMA_TZ)
         weekday = now_ist.weekday()  # 0=Mon .. 6=Sun
-        cutoff = cls.get_effective_cutoff_time(seller=seller)
+        cutoff = cls.get_effective_cutoff_time(seller=seller, platform_cutoff=platform_cutoff)
 
         op_days = seller.same_day_operating_days
         if isinstance(op_days, list) and len(op_days) > 0:
@@ -211,7 +211,18 @@ class SameDayService:
         return rate
 
     @classmethod
-    def check_product_same_day_eligibility(cls, product, postal_code='', town='', district='', state='', now_dt=None):
+    def check_product_same_day_eligibility(
+        cls,
+        product,
+        postal_code='',
+        town='',
+        district='',
+        state='',
+        now_dt=None,
+        precomputed_loc=None,
+        precomputed_platform_cutoff=None,
+        precomputed_rate_fn=None,
+    ):
         """
         Evaluate all 7 mandatory conditions for a single product & location.
         Returns dict: { eligible: bool, reason: str, rate: DeliveryRate | None, estimated_window: str | None }
@@ -238,16 +249,18 @@ class SameDayService:
         if not cls.seller_covers_location(seller, postal_code=postal_code, town=town, district=district):
             return {'eligible': False, 'reason': f"'{seller.business_name}' does not cover this location for same-day delivery.", 'rate': None, 'estimated_window': None}
 
-        is_open, schedule_reason, _ = cls.check_seller_schedule(seller, now_dt=now_dt)
+        is_open, schedule_reason, _ = cls.check_seller_schedule(
+            seller, now_dt=now_dt, platform_cutoff=precomputed_platform_cutoff
+        )
         if not is_open:
             return {'eligible': False, 'reason': schedule_reason, 'rate': None, 'estimated_window': None}
 
-        loc = cls.match_location(postal_code=postal_code, town=town, district=district, state=state)
+        loc = precomputed_loc or cls.match_location(postal_code=postal_code, town=town, district=district, state=state)
         zone = loc['zone']
         if not zone:
             return {'eligible': False, 'reason': 'Platform same-day delivery is not supported in this area.', 'rate': None, 'estimated_window': None}
 
-        rate = cls.get_platform_same_day_rate(product, zone)
+        rate = precomputed_rate_fn(product, zone) if precomputed_rate_fn else cls.get_platform_same_day_rate(product, zone)
         if not rate:
             return {'eligible': False, 'reason': 'No active same-day courier service is available for this zone.', 'rate': None, 'estimated_window': None}
 
@@ -309,21 +322,22 @@ class SameDayService:
                 'products': [],
             }
 
-        # Check if platform supports same-day delivery in this zone
+        # Preload active SAME_DAY rates and platform cutoff once to avoid per-product N+1 queries
+        platform_cutoff = cls.get_platform_cutoff_time()
+        same_day_rates = list(
+            DeliveryRate.objects.filter(
+                is_active=True,
+                approval_status=DeliveryRate.ApprovalStatus.APPROVED,
+                delivery_method=DeliveryRate.DeliveryMethod.SAME_DAY,
+            ).select_related('courier', 'zone', 'product', 'manufacturer')
+        )
+        has_active_courier = bool(zone and zone.is_active and CourierService.objects.filter(is_active=True).exists())
         has_zone_same_day_rate = False
-        if zone and zone.is_active and CourierService.objects.filter(is_active=True).exists():
-            has_zone_same_day_rate = DeliveryRate.objects.filter(
-                is_active=True,
-                approval_status=DeliveryRate.ApprovalStatus.APPROVED,
-                delivery_method=DeliveryRate.DeliveryMethod.SAME_DAY,
-            ).filter(
-                zone=zone
-            ).exists() or DeliveryRate.objects.filter(
-                is_active=True,
-                approval_status=DeliveryRate.ApprovalStatus.APPROVED,
-                delivery_method=DeliveryRate.DeliveryMethod.SAME_DAY,
-                scope=DeliveryRate.Scope.PRODUCT_SPECIFIC,
-            ).exists()
+        if has_active_courier:
+            has_zone_same_day_rate = any(
+                (r.zone_id == zone.id) or (r.scope == DeliveryRate.Scope.PRODUCT_SPECIFIC)
+                for r in same_day_rates
+            )
 
         if not zone or not has_zone_same_day_rate:
             return {
@@ -333,6 +347,26 @@ class SameDayService:
                 'local_sellers': [cls._serialize_public_seller(s, now_dt=now_dt) for s in local_sellers],
                 'products': [],
             }
+
+        def resolve_same_day_rate_fast(prod, target_zone):
+            if not target_zone or not target_zone.is_active:
+                return None
+            # Priority 1: Product-specific rate for this zone or global product-specific
+            for r in same_day_rates:
+                if r.scope == DeliveryRate.Scope.PRODUCT_SPECIFIC and r.product_id == prod.id:
+                    if r.zone_id in (None, target_zone.id) and (not r.courier or r.courier.is_active):
+                        return r
+            # Priority 2: Manufacturer-specific rate for this zone
+            for r in same_day_rates:
+                if r.scope == DeliveryRate.Scope.MANUFACTURER_ZONE and r.manufacturer_id == prod.manufacturer_id:
+                    if r.zone_id in (None, target_zone.id) and (not r.courier or r.courier.is_active):
+                        return r
+            # Priority 3: Zone default same-day rate
+            for r in same_day_rates:
+                if r.scope == DeliveryRate.Scope.ZONE_DEFAULT and r.zone_id == target_zone.id:
+                    if not r.courier or r.courier.is_active:
+                        return r
+            return None
 
         # Evaluate products of all approved sellers
         candidate_products = (
@@ -344,7 +378,7 @@ class SameDayService:
                 same_day_eligible=True,
             )
             .select_related('manufacturer', 'category')
-            .prefetch_related('images')
+            .prefetch_related('reviews')
         )
 
         eligible_entries = []
@@ -356,6 +390,9 @@ class SameDayService:
                 district=district,
                 state=state,
                 now_dt=now_dt,
+                precomputed_loc=loc,
+                precomputed_platform_cutoff=platform_cutoff,
+                precomputed_rate_fn=resolve_same_day_rate_fast,
             )
             if check['eligible']:
                 eligible_entries.append((product, check))

@@ -151,7 +151,7 @@ export default function CartDrawer() {
                     alt={item.product.title}
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = '/featured-pouches.png';
+                      e.target.src = '/featured-pouches.webp';
                     }}
                     className="w-16 h-16 sm:w-18 sm:h-18 object-cover rounded-xl border border-stone-200 flex-shrink-0 shadow-sm"
                   />

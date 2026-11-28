@@ -78,7 +78,7 @@ export async function compressImageFile(file, maxDimension = 900, quality = 0.82
  * Resolves product image URLs cleanly across local dev, Vercel SPA routing,
  * and direct backend Render media paths.
  */
-export function resolveProductImage(url, fallback = '/featured-pouches.png') {
+export function resolveProductImage(url, fallback = '/featured-pouches.webp') {
   if (!url || typeof url !== 'string' || !url.trim()) {
     return fallback;
   }

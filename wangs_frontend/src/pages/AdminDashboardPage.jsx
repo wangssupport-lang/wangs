@@ -2028,7 +2028,7 @@ export default function AdminDashboardPage() {
           <Link to="/" className="flex items-center gap-3 group shrink-0" title="Return to Storefront">
             <div className="w-11 h-11 rounded-2xl bg-white/10 backdrop-blur-xs border border-white/15 p-1.5 flex items-center justify-center shadow-md group-hover:bg-white/15 transition-all">
               <img
-                src="/logo.png"
+                src="/logo.webp"
                 alt="Wangs Logo"
                 className="w-full h-full object-contain drop-shadow transition-transform duration-200 group-hover:scale-105"
                 onError={(e) => {

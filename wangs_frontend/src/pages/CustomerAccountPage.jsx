@@ -10,7 +10,7 @@ import { useToast } from '../context/ToastContext';
 import { api } from '../api';
 import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
 import QRCodeSVG from '../components/QRCodeSVG';
-import ScanAndEarnModal from '../components/ScanAndEarnModal';
+const ScanAndEarnModal = React.lazy(() => import('../components/ScanAndEarnModal'));
 import DeleteAccountCard from '../components/DeleteAccountCard';
 
 const TRACKING_STEPS = [
@@ -1526,15 +1526,19 @@ export default function CustomerAccountPage() {
         </div>
       </div>
 
-      <ScanAndEarnModal
-        isOpen={showScanModal}
-        initialToken={autoClaimToken}
-        onClose={() => {
-          setShowScanModal(false);
-          setAutoClaimToken('');
-        }}
-        onSuccess={loadData}
-      />
+      {showScanModal && (
+        <React.Suspense fallback={null}>
+          <ScanAndEarnModal
+            isOpen={showScanModal}
+            initialToken={autoClaimToken}
+            onClose={() => {
+              setShowScanModal(false);
+              setAutoClaimToken('');
+            }}
+            onSuccess={loadData}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 }

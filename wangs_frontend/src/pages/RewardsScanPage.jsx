@@ -7,7 +7,7 @@ import {
 import { api } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import ScanAndEarnModal from '../components/ScanAndEarnModal';
+const ScanAndEarnModal = React.lazy(() => import('../components/ScanAndEarnModal'));
 
 export default function RewardsScanPage() {
   const [searchParams] = useSearchParams();
@@ -268,14 +268,18 @@ export default function RewardsScanPage() {
         )}
       </div>
 
-      <ScanAndEarnModal
-        isOpen={showScannerModal}
-        onClose={() => setShowScannerModal(false)}
-        onSuccess={(res) => {
-          setClaimResult(res);
-          setShowScannerModal(false);
-        }}
-      />
+      {showScannerModal && (
+        <React.Suspense fallback={null}>
+          <ScanAndEarnModal
+            isOpen={showScannerModal}
+            onClose={() => setShowScannerModal(false)}
+            onSuccess={(res) => {
+              setClaimResult(res);
+              setShowScannerModal(false);
+            }}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 }
