@@ -62,7 +62,9 @@ function SellerSalesChart({ orders = [], range = '30D', totalSalesFallback = 0 }
     const t = new Date(rawDate).getTime();
     if (Number.isNaN(t) || t < startMs) return;
     const idx = Math.min(buckets - 1, Math.max(0, Math.floor((t - startMs) / bucketMs)));
-    const amt = parseFloat(o.line_total ?? o.seller_payout ?? o.price_at_purchase ?? 0) || 0;
+    const amt = parseFloat(
+      o.gross_amount ?? o.total_price ?? o.manufacturer_payout ?? o.line_total ?? o.seller_payout ?? o.price_at_purchase ?? 0
+    ) || 0;
     series[idx].value += amt;
   });
 
@@ -1102,7 +1104,7 @@ export default function ManufacturerPortalPage() {
       {/* Main Content Wrapper */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
         {/* Mobile Dark Green Hero Header */}
-        <header className={`lg:hidden relative bg-gradient-to-b from-[#0d2e1a] via-[#134025] to-[#1a5230] text-white px-4 pt-3 overflow-hidden ${activeTab === 'overview' ? 'pb-14' : 'pb-3.5'}`}>
+        <header className={`lg:hidden relative z-0 bg-gradient-to-b from-[#0d2e1a] via-[#134025] to-[#1a5230] text-white px-4 pt-3 overflow-hidden ${activeTab === 'overview' ? 'pb-11' : 'pb-3.5'}`}>
           <svg
             viewBox="0 0 400 90"
             preserveAspectRatio="none"
@@ -1250,7 +1252,7 @@ export default function ManufacturerPortalPage() {
         </header>
 
         {/* Main Content Area */}
-        <main className={`max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 ${activeTab === 'overview' ? '-mt-9 lg:mt-0 pt-0 lg:py-6' : 'py-5 lg:py-6'}`}>
+        <main className={`relative z-10 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 ${activeTab === 'overview' ? '-mt-7 lg:mt-0 pt-0 lg:py-6' : 'py-5 lg:py-6'}`}>
         {/* Pending Review Notice (only if not approved and not overlapping hero) */}
         {profile.status === 'PENDING' && activeTab !== 'overview' && (
           <div className="mb-6 p-4 bg-amber-50/90 border border-amber-200/90 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-2xs">
