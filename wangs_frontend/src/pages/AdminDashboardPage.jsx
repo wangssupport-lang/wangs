@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { PickleLoadingScreen } from '../components/PickleCharacterIllustration';
+import { PickleLoadingScreen, PickleCharacterIllustration } from '../components/PickleCharacterIllustration';
 import {
   Shield, Users, Package, DollarSign, Settings,
   CheckCircle, XCircle, AlertCircle, TrendingUp, Search,
@@ -557,13 +557,13 @@ export default function AdminDashboardPage() {
   const [bannerUploading, setBannerUploading] = useState(false);
   const [editingBannerId, setEditingBannerId] = useState(null);
   const [bannerForm, setBannerForm] = useState({
-    title: 'The Great Achar Season',
-    subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.',
-    badge_text: 'FRESH BATCH LIVE',
-    coupon_code: 'ACHAR15',
+    title: '',
+    subtitle: '',
+    badge_text: '',
+    coupon_code: '',
     cta_text: 'Shop Now',
-    cta_link: '/products?category=andhra-gongura',
-    bg_color: '#9b4100',
+    cta_link: '/products',
+    bg_color: '#173822',
     image_url: '',
     video_url: '',
     is_image_only: false,
@@ -1200,13 +1200,13 @@ export default function AdminDashboardPage() {
     setBannerVideoPreview('');
     setBannerLayoutMode('standard');
     setBannerForm({
-      title: 'The Great Achar Season',
-      subtitle: 'Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.',
-      badge_text: 'FRESH BATCH LIVE',
-      coupon_code: 'ACHAR15',
+      title: '',
+      subtitle: '',
+      badge_text: '',
+      coupon_code: '',
       cta_text: 'Shop Now',
-      cta_link: '/products?category=andhra-gongura',
-      bg_color: '#9b4100',
+      cta_link: '/products',
+      bg_color: '#173822',
       image_url: '',
       video_url: '',
       is_image_only: false,
@@ -3800,6 +3800,28 @@ export default function AdminDashboardPage() {
                       <div className="absolute bottom-2.5 right-3 flex items-center gap-1 z-20 bg-black/40 backdrop-blur-xs px-2 py-1 rounded-full pointer-events-none">
                         <span className="w-3.5 h-1.5 rounded-full bg-white" />
                         <span className="w-1.5 h-1.5 rounded-full bg-white/50" />
+                      </div>
+                    </div>
+                  ) : !bannerForm.title?.trim() && !bannerImagePreview && !bannerVideoPreview ? (
+                    <div className="relative w-full overflow-hidden rounded-xl shadow-lg aspect-[2/1] p-4 flex items-center justify-between gap-2 bg-gradient-to-br from-[#fbf8f3] via-[#f6efe2] to-[#e9efe8] text-stone-900">
+                      <div className="flex flex-col justify-between h-full z-10 min-w-0 max-w-[58%]">
+                        <div className="space-y-1">
+                          <span className="px-2 py-0.5 rounded-full bg-[#ab331c]/10 text-[#ab331c] text-[9px] font-bold uppercase tracking-wider inline-flex items-center gap-1 w-fit">
+                            <Flame size={10} /> HANDMADE IN NAGALAND
+                          </span>
+                          <h2 className="text-lg font-serif font-bold text-stone-950 leading-tight">
+                            Fiery pickles, made the old way.
+                          </h2>
+                          <p className="text-[10px] text-stone-600 leading-snug line-clamp-2">
+                            Small-batch, hand-ground and slow-fermented by local families.
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-[#ab331c] text-white text-[10px] font-bold inline-flex items-center gap-1 w-fit">
+                          Shop Now →
+                        </span>
+                      </div>
+                      <div className="shrink-0 flex items-center justify-center -mr-2">
+                        <PickleCharacterIllustration className="w-32 h-28" />
                       </div>
                     </div>
                   ) : (

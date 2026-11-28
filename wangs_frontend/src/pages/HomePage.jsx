@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../api';
 import ProductCard from '../components/ProductCard';
 import SeoHead from '../components/SeoHead';
+import { PickleCharacterIllustration } from '../components/PickleCharacterIllustration';
 import { resolveProductImage } from '../utils/image';
 import {
   Flame, ArrowRight, Zap, Timer, ChevronRight, ChevronLeft,
@@ -320,14 +321,15 @@ export default function HomePage() {
     ? heroBanners
     : [
         {
-          id: 'default',
-          title: "The Great Achar Season",
-          subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
-          badge_text: "FRESH BATCH LIVE",
-          coupon_code: "ACHAR15",
-          cta_text: "Shop Now",
-          cta_link: "/products",
-          bg_color: "#9b4100",
+          id: 'doll-default',
+          isDollDefault: true,
+          title: 'Fiery pickles, made the old way.',
+          subtitle: 'Small-batch, hand-ground and slow-fermented by local families.',
+          badge_text: 'HANDMADE IN NAGALAND',
+          coupon_code: '',
+          cta_text: 'Shop Now',
+          cta_link: '/products',
+          bg_color: '#fbf8f3',
         }
       ];
 
@@ -674,13 +676,14 @@ export default function HomePage() {
   const currentBanner = (heroBanners && heroBanners.length > 0)
     ? (heroBanners[activeBannerIndex] || heroBanners[0])
     : {
-        title: "The Great Achar Season",
-        subtitle: "Authentic Andhra Avakaya & Gongura small-batches straight from Guntur clay vessels.",
-        badge_text: "FRESH BATCH LIVE",
-        coupon_code: "ACHAR15",
-        cta_text: "Shop Now",
-        cta_link: "/products?category=andhra-gongura",
-        bg_color: "#9b4100",
+        isDollDefault: true,
+        title: 'Fiery pickles, made the old way.',
+        subtitle: 'Small-batch, hand-ground and slow-fermented by local families.',
+        badge_text: 'HANDMADE IN NAGALAND',
+        coupon_code: '',
+        cta_text: 'Shop Now',
+        cta_link: '/products',
+        bg_color: '#fbf8f3',
       };
   const bannerBgImg = currentBanner.effective_image_url || currentBanner.image_url || currentBanner.image;
 
@@ -1052,6 +1055,42 @@ export default function HomePage() {
                           />
                         )}
                       </Link>
+                    );
+                  }
+
+                  if (banner.isDollDefault) {
+                    return (
+                      <div
+                        key={banner.id || index}
+                        className="w-full min-w-full snap-center snap-always shrink-0 relative overflow-hidden aspect-[2/1] p-4 flex items-center justify-between gap-2 bg-gradient-to-br from-[#fbf8f3] via-[#f6efe2] to-[#e9efe8] text-stone-900"
+                      >
+                        <div className="flex flex-col justify-between h-full z-10 min-w-0 max-w-[58%]">
+                          <div className="space-y-1">
+                            <span className="px-2 py-0.5 rounded-full bg-[#ab331c]/10 text-[#ab331c] text-[9px] font-bold uppercase tracking-wider inline-flex items-center gap-1 w-fit">
+                              <Flame size={10} className="shrink-0" />
+                              <span>{banner.badge_text}</span>
+                            </span>
+                            <h2 className="text-lg font-serif font-bold text-stone-950 leading-tight line-clamp-2">
+                              {banner.title}
+                            </h2>
+                            <p className="text-[10px] text-stone-600 leading-snug line-clamp-2">
+                              {banner.subtitle}
+                            </p>
+                          </div>
+
+                          <Link
+                            to={safeCtaLink}
+                            className="px-3.5 py-1.5 rounded-full bg-[#ab331c] text-white text-[11px] font-bold shadow-xs active:scale-95 transition-transform inline-flex items-center gap-1 w-fit"
+                          >
+                            <span>{banner.cta_text || 'Shop Now'}</span>
+                            <ArrowRight size={12} />
+                          </Link>
+                        </div>
+
+                        <div className="shrink-0 flex items-center justify-center -mr-2">
+                          <PickleCharacterIllustration className="w-36 h-32" />
+                        </div>
+                      </div>
                     );
                   }
 
