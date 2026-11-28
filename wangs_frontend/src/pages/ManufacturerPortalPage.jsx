@@ -944,7 +944,7 @@ export default function ManufacturerPortalPage() {
     { id: 'financials', label: 'Earnings', icon: Wallet },
     { id: 'delivery', label: 'Delivery & Rates', icon: Truck },
     { id: 'settings', sub: 'brand', label: 'Store Profile', icon: Store },
-    { id: 'settings', sub: 'sameday', label: 'Settings', icon: SettingsIcon },
+    { id: 'settings', sub: 'payout', label: 'Payout & Settings', icon: SettingsIcon },
   ];
 
   return (
@@ -1102,7 +1102,7 @@ export default function ManufacturerPortalPage() {
       {/* Main Content Wrapper */}
       <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
         {/* Mobile Dark Green Hero Header */}
-        <header className="lg:hidden relative bg-gradient-to-b from-[#0d2e1a] via-[#134025] to-[#1a5230] text-white px-4 pt-3 pb-14 overflow-hidden">
+        <header className={`lg:hidden relative bg-gradient-to-b from-[#0d2e1a] via-[#134025] to-[#1a5230] text-white px-4 pt-3 overflow-hidden ${activeTab === 'overview' ? 'pb-14' : 'pb-3.5'}`}>
           <svg
             viewBox="0 0 400 90"
             preserveAspectRatio="none"
@@ -1112,15 +1112,25 @@ export default function ManufacturerPortalPage() {
             <path d="M0 90 L90 38 L155 62 L245 14 L320 50 L400 22 L400 90 Z" />
           </svg>
 
-          <div className="relative z-10 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setMobileDrawerOpen(true)}
-              className="p-2 -ml-2 rounded-xl hover:bg-white/10 text-white"
-              aria-label="Open menu"
-            >
-              <Menu size={20} />
-            </button>
+          <div className="relative z-10 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMobileDrawerOpen(true)}
+                className="p-2 -ml-2 rounded-xl hover:bg-white/10 text-white"
+                aria-label="Open menu"
+              >
+                <Menu size={20} />
+              </button>
+              <Link
+                to="/"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/15 hover:bg-white/25 text-white text-[10px] font-bold transition-colors"
+                title="Return to Wangs Homepage"
+              >
+                <Home size={11} />
+                <span>Home</span>
+              </Link>
+            </div>
 
             <div className="text-center">
               <span className="font-serif text-lg font-black tracking-wider leading-none block">WANGS</span>
@@ -1153,14 +1163,16 @@ export default function ManufacturerPortalPage() {
             </div>
           </div>
 
-          <div className="relative z-10 mt-4">
-            <h1 className="font-serif text-xl font-bold leading-snug">
-              {getGreeting()}, {profile.business_name}! 👋
-            </h1>
-            <p className="text-xs text-emerald-100/80 mt-0.5">
-              Here&apos;s what&apos;s happening with your store today.
-            </p>
-          </div>
+          {activeTab === 'overview' && (
+            <div className="relative z-10 mt-4">
+              <h1 className="font-serif text-xl font-bold leading-snug">
+                {getGreeting()}, {profile.business_name}! 👋
+              </h1>
+              <p className="text-xs text-emerald-100/80 mt-0.5">
+                Here&apos;s what&apos;s happening with your store today.
+              </p>
+            </div>
+          )}
         </header>
 
         {/* Desktop Header */}
@@ -1189,7 +1201,14 @@ export default function ManufacturerPortalPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
+              <Link
+                to="/"
+                className="px-3.5 py-2 bg-white hover:bg-stone-50 border border-stone-200 text-stone-800 text-xs font-bold rounded-xl shadow-2xs transition-all flex items-center gap-1.5"
+              >
+                <Home size={14} className="text-[#113820]" />
+                <span>Return to Homepage</span>
+              </Link>
               {profile.status === 'APPROVED' && (
                 <button
                   type="button"
@@ -1232,8 +1251,8 @@ export default function ManufacturerPortalPage() {
 
         {/* Main Content Area */}
         <main className={`max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 ${activeTab === 'overview' ? '-mt-9 lg:mt-0 pt-0 lg:py-6' : 'py-5 lg:py-6'}`}>
-        {/* Pending Review Notice (only if not approved) */}
-        {profile.status === 'PENDING' && (
+        {/* Pending Review Notice (only if not approved and not overlapping hero) */}
+        {profile.status === 'PENDING' && activeTab !== 'overview' && (
           <div className="mb-6 p-4 bg-amber-50/90 border border-amber-200/90 rounded-2xl text-xs text-amber-900 flex items-start gap-3 shadow-2xs">
             <AlertCircle size={18} className="text-amber-700 mt-0.5 flex-shrink-0" />
             <div>
@@ -1449,7 +1468,19 @@ export default function ManufacturerPortalPage() {
                           ? 'bg-emerald-100 text-emerald-800'
                           : o.fulfillment_status === 'DISPATCHED'
                           ? 'bg-emerald-50 text-emerald-700'
+                          : o.fulfillment_status === 'CANCELLED'
+                          ? 'bg-rose-100 text-rose-700'
                           : 'bg-amber-100 text-amber-800';
+                      const statusLabel =
+                        o.fulfillment_status === 'PENDING'
+                          ? 'Processing'
+                          : o.fulfillment_status === 'PACKED'
+                          ? 'Packed'
+                          : o.fulfillment_status === 'DISPATCHED'
+                          ? 'Shipped'
+                          : o.fulfillment_status === 'CANCELLED'
+                          ? 'Cancelled'
+                          : 'Delivered';
                       return (
                         <div
                           key={o.order_item_id}
@@ -1473,7 +1504,7 @@ export default function ManufacturerPortalPage() {
                               ₹{parseFloat(o.manufacturer_payout || 0).toFixed(0)}
                             </span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${statusCls}`}>
-                              {o.fulfillment_status === 'PENDING' ? 'Processing' : o.fulfillment_status === 'DISPATCHED' ? 'Shipped' : 'Delivered'}
+                              {statusLabel}
                             </span>
                             <ChevronRight size={14} className="text-stone-400" />
                           </div>
