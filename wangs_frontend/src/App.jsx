@@ -12,12 +12,6 @@ import AuthModal from './components/AuthModal';
 import SeoHead from './components/SeoHead';
 
 import HomePage from './pages/HomePage';
-import BrandsPage from './pages/BrandsPage';
-import ProductListPage from './pages/ProductListPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import OrderSuccessPage from './pages/OrderSuccessPage';
-import AuthPage from './pages/AuthPages';
-import MaintenancePage from './pages/MaintenancePage';
 
 // Auto-recovery wrapper for lazy loaded routes when new deployments change bundle hashes
 function lazyWithRetry(componentImport) {
@@ -60,6 +54,12 @@ if (typeof window !== 'undefined') {
   });
 }
 
+const BrandsPage = lazyWithRetry(() => import('./pages/BrandsPage'));
+const ProductListPage = lazyWithRetry(() => import('./pages/ProductListPage'));
+const ProductDetailPage = lazyWithRetry(() => import('./pages/ProductDetailPage'));
+const OrderSuccessPage = lazyWithRetry(() => import('./pages/OrderSuccessPage'));
+const AuthPage = lazyWithRetry(() => import('./pages/AuthPages'));
+const MaintenancePage = lazyWithRetry(() => import('./pages/MaintenancePage'));
 const CheckoutPage = lazyWithRetry(() => import('./pages/CheckoutPage'));
 const CartPage = CheckoutPage;
 const CustomerAccountPage = lazyWithRetry(() => import('./pages/CustomerAccountPage'));
@@ -82,37 +82,6 @@ import { PickleLoadingScreen } from './components/PickleCharacterIllustration';
 
 function PageFallback() {
   return <PickleLoadingScreen minHeight="min-h-[55vh]" message="Serving up something fiery..." />;
-}
-
-function StickerSplashOverlay() {
-  const [visible, setVisible] = React.useState(true);
-  const [fading, setFading] = React.useState(false);
-
-  React.useEffect(() => {
-    const fadeTimer = setTimeout(() => setFading(true), 320);
-    const hideTimer = setTimeout(() => setVisible(false), 520);
-    return () => {
-      clearTimeout(fadeTimer);
-      clearTimeout(hideTimer);
-    };
-  }, []);
-
-  if (!visible) return null;
-
-  return (
-    <div
-      aria-hidden="true"
-      className={`fixed inset-0 z-[9999] bg-[#fbf8f3] flex items-center justify-center pointer-events-none transition-opacity duration-250 ${
-        fading ? 'opacity-0' : 'opacity-100'
-      }`}
-    >
-      <img
-        src="/wangs-packaging-sticker.png"
-        alt="Wangs"
-        className="w-36 h-36 sm:w-44 sm:h-44 object-contain animate-sticker-wheel drop-shadow-md select-none"
-      />
-    </div>
-  );
 }
 
 function ScrollToTop() {
@@ -192,7 +161,6 @@ function AppLayout() {
           robots="noindex, nofollow"
         />
       )}
-      <StickerSplashOverlay />
       <ScrollToTop />
       {!isAdminRoute && !isDeliveryRoute && <Navbar />}
       {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
