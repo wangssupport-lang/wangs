@@ -94,7 +94,7 @@ function ScrollToTop() {
 
 function AppLayout() {
   const { setIsDrawerOpen } = useCart();
-  const { isAdmin, isMaintenanceMode, maintenanceMessage } = useAuth();
+  const { user, isAdmin, isMaintenanceMode, maintenanceMessage } = useAuth();
   const location = useLocation();
 
   // When website is in maintenance mode, regular visitors see the MaintenancePage.
@@ -114,7 +114,8 @@ function AppLayout() {
     location.pathname.startsWith('/wangsadminspace') ||
     location.pathname.startsWith('/wangadminspace');
   const isDeliveryRoute = location.pathname.startsWith('/delivery') || location.pathname.startsWith('/courier');
-  const hasMobileBottomNav = !isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/');
+  const isSellerStudioRoute = Boolean(user) && (location.pathname === '/manufacturer' || location.pathname === '/manufacturer/');
+  const hasMobileBottomNav = !isAdminRoute && !isDeliveryRoute && !isSellerStudioRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/');
 
   const isNoIndexRoute = (() => {
     const p = location.pathname;
@@ -162,8 +163,8 @@ function AppLayout() {
         />
       )}
       <ScrollToTop />
-      {!isAdminRoute && !isDeliveryRoute && <Navbar />}
-      {!isAdminRoute && !isDeliveryRoute && <CartDrawer />}
+      {!isAdminRoute && !isDeliveryRoute && !isSellerStudioRoute && <Navbar />}
+      {!isAdminRoute && !isDeliveryRoute && !isSellerStudioRoute && <CartDrawer />}
       <AuthModal />
 
       <main className="flex-1">
@@ -220,8 +221,8 @@ function AppLayout() {
         </ErrorBoundary>
       </main>
 
-      {!isAdminRoute && !isDeliveryRoute && <Footer />}
-      {!isAdminRoute && !isDeliveryRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/') && (
+      {!isAdminRoute && !isDeliveryRoute && !isSellerStudioRoute && <Footer />}
+      {hasMobileBottomNav && (
         <MobileBottomNav onOpenCart={() => setIsDrawerOpen(true)} />
       )}
     </div>
