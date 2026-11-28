@@ -114,7 +114,7 @@ function AppLayout() {
     location.pathname.startsWith('/wangsadminspace') ||
     location.pathname.startsWith('/wangadminspace');
   const isDeliveryRoute = location.pathname.startsWith('/delivery') || location.pathname.startsWith('/courier');
-  const isSellerStudioRoute = Boolean(user) && (location.pathname === '/manufacturer' || location.pathname === '/manufacturer/');
+  const isSellerStudioRoute = Boolean(user) && location.pathname.startsWith('/manufacturer') && !location.pathname.startsWith('/manufacturer/register');
   const hasMobileBottomNav = !isAdminRoute && !isDeliveryRoute && !isSellerStudioRoute && location.pathname !== '/checkout' && !location.pathname.startsWith('/product/');
 
   const isNoIndexRoute = (() => {
